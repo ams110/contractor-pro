@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { C, SPECS, PROJECT_TYPES, PROJECT_STATUS, PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, validateProject, todayStr } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, TabBar, ConfirmDialog } from '../components/index.jsx'
+import { uploadReceipt } from '../lib/storage.js'
 
-export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, addProject, updateProject, deleteProject, addReceipt, deleteReceipt }) {
+export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, addProject, updateProject, deleteProject, addReceipt, deleteReceipt, userId }) {
   const [showForm,        setShowForm]        = useState(false)
   const [showReceiptForm, setShowReceiptForm] = useState(false)
   const [editing,         setEditing]         = useState(null)
@@ -14,6 +15,9 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   const [formError,       setFormError]       = useState('')
   const [receiptError,    setReceiptError]    = useState('')
   const [saving,          setSaving]          = useState(false)
+  const [receiptFile,     setReceiptFile]     = useState(null)
+  const [receiptPreview,  setReceiptPreview]  = useState('')
+  const receiptFileRef = useRef()
 
   const emptyForm    = { name:'', client_name:'', client_phone:'', type:'', price:'', status:'نشط', specialization:'', notes:'' }
   const emptyReceipt = { amount:'', date: todayStr(), notes:'', payment_method:'كاش' }
@@ -60,8 +64,12 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
       return setReceiptError('أدخل المبلغ المقبوض')
     setSaving(true)
     try {
-      await addReceipt({ ...receiptForm, amount: parseFloat(receiptForm.amount), project_id: detail })
-      setShowReceiptForm(false)
+      let receipt_url = ''
+      if (receiptFile && receiptForm.payment_method === 'تحويل بنكي') {
+        receipt_url = await uploadReceipt(userId, receiptFile)
+      }
+      await addReceipt({ ...receiptForm, amount: parseFloat(receiptForm.amount), project_id: detail, receipt_url })
+      setShowReceiptForm(false); setReceiptFile(null); setReceiptPreview('')
     } catch (e) {
       setReceiptError(e.message)
     } finally {
@@ -142,7 +150,10 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                   <div style={{ fontSize:14, fontWeight:700, color:C.success, fontFamily:'monospace' }}>{fmt(r.amount)}₪</div>
                   <div style={{ fontSize:11, color:C.textDim }}>{fmtDate(r.date)} • {r.payment_method} {r.notes ? `• ${r.notes}` : ''}</div>
                 </div>
-                <button onClick={() => setConfirmDelR(r.id)} style={{ background:'none', border:'none', color:C.accent, cursor:'pointer', fontSize:16 }}>🗑️</button>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  {r.receipt_url && <a href={r.receipt_url} target="_blank" rel="noreferrer" style={{ fontSize:18, textDecoration:'none' }} title="عرض الإثبات">📎</a>}
+                  <button onClick={() => setConfirmDelR(r.id)} style={{ background:'none', border:'none', color:C.accent, cursor:'pointer', fontSize:16 }}>🗑️</button>
+                </div>
               </div>
             ))
           }
@@ -154,11 +165,31 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
         </div>
 
         {/* فورم قبض دفعة */}
-        <Modal open={showReceiptForm} onClose={() => setShowReceiptForm(false)} title="تسجيل دفعة مقبوضة">
+        <Modal open={showReceiptForm} onClose={() => { setShowReceiptForm(false); setReceiptFile(null); setReceiptPreview('') }} title="تسجيل دفعة مقبوضة">
           <Input label="المبلغ المقبوض (₪)" value={receiptForm.amount} onChange={fr('amount')} type="number" min="0" required />
           <Input label="التاريخ"            value={receiptForm.date}   onChange={fr('date')}   type="date" required />
           <Input label="طريقة الدفع"        value={receiptForm.payment_method} onChange={fr('payment_method')} options={PAY_METHODS} />
           <Input label="ملاحظات"            value={receiptForm.notes}  onChange={fr('notes')} />
+
+          {receiptForm.payment_method === 'تحويل بنكي' && (
+            <div style={{ marginBottom:14 }}>
+              <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>📎 إثبات التحويل</label>
+              <input ref={receiptFileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) { setReceiptFile(f); setReceiptPreview(URL.createObjectURL(f)) } }} />
+              {receiptPreview
+                ? <div style={{ position:'relative', display:'inline-block', width:'100%' }}>
+                    <img src={receiptPreview} alt="إثبات" style={{ width:'100%', maxHeight:150, objectFit:'cover', borderRadius:10, border:`1px solid ${C.border}` }} />
+                    <button onClick={() => { setReceiptFile(null); setReceiptPreview('') }}
+                      style={{ position:'absolute', top:4, left:4, background:`${C.accent}cc`, border:'none', borderRadius:'50%', width:22, height:22, color:'#fff', cursor:'pointer', fontSize:12 }}>×</button>
+                  </div>
+                : <button onClick={() => receiptFileRef.current.click()}
+                    style={{ width:'100%', padding:'12px', borderRadius:10, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer' }}>
+                    📷 اضغط لرفع صورة الإثبات
+                  </button>
+              }
+            </div>
+          )}
+
           {receiptError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {receiptError}</div>}
           <Btn onClick={saveReceipt} full disabled={saving}>{saving ? 'جاري الحفظ...' : 'حفظ الدفعة'}</Btn>
         </Modal>

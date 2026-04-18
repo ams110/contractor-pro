@@ -1,13 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { C, PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validatePayment } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
+import { uploadReceipt } from '../lib/storage.js'
 
-export default function PaymentsScreen({ payments, employees, workDays, addPayment, deletePayment }) {
+export default function PaymentsScreen({ payments, employees, workDays, addPayment, deletePayment, userId }) {
   const [showForm,   setShowForm]   = useState(false)
   const [confirmDel, setConfirmDel] = useState(null)
   const [formError,  setFormError]  = useState('')
   const [saving,     setSaving]     = useState(false)
+  const [receiptFile,setReceiptFile]= useState(null)
+  const [preview,    setPreview]    = useState('')
+  const fileRef = useRef()
 
   const emptyForm = { date: todayStr(), employee_id:'', amount:'', method:'' }
   const [form, setForm] = useState(emptyForm)
@@ -25,13 +29,24 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
     return Math.max(0, earned - paid)
   }
 
+  function pickFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setReceiptFile(file)
+    setPreview(URL.createObjectURL(file))
+  }
+
   async function save() {
     const err = validatePayment(form)
     if (err) return setFormError(err)
     setSaving(true)
     try {
-      await addPayment({ ...form, amount: parseFloat(form.amount) })
-      setForm(emptyForm)
+      let receipt_url = ''
+      if (receiptFile && form.method === 'تحويل بنكي') {
+        receipt_url = await uploadReceipt(userId, receiptFile)
+      }
+      await addPayment({ ...form, amount: parseFloat(form.amount), receipt_url })
+      setForm(emptyForm); setReceiptFile(null); setPreview('')
       setShowForm(false)
     } catch (e) {
       setFormError(e.message)
@@ -97,6 +112,10 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <div style={{ fontSize:14, fontWeight:700, color:C.success, fontFamily:'monospace' }}>{fmt(p.amount)}₪</div>
+                  {p.receipt_url && (
+                    <a href={p.receipt_url} target="_blank" rel="noreferrer"
+                      style={{ fontSize:16, textDecoration:'none' }} title="عرض الإثبات">📎</a>
+                  )}
                   <button onClick={() => setConfirmDel(p.id)} style={{ background:'none', border:'none', fontSize:12, cursor:'pointer' }}>🗑️</button>
                 </div>
               </div>
@@ -126,6 +145,26 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
 
         <Input label="المبلغ (₪)" value={form.amount} onChange={f('amount')} type="number" min="0.01" required />
         <Input label="طريقة الدفع" value={form.method} onChange={f('method')} options={PAY_METHODS} />
+
+        {/* إثبات التحويل */}
+        {form.method === 'تحويل بنكي' && (
+          <div style={{ marginBottom:14 }}>
+            <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>📎 إثبات التحويل</label>
+            <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={pickFile} />
+            {preview
+              ? <div style={{ position:'relative', display:'inline-block' }}>
+                  <img src={preview} alt="إثبات" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:10, border:`1px solid ${C.border}` }} />
+                  <button onClick={() => { setReceiptFile(null); setPreview('') }}
+                    style={{ position:'absolute', top:4, left:4, background:`${C.accent}cc`, border:'none', borderRadius:'50%', width:22, height:22, color:'#fff', cursor:'pointer', fontSize:12 }}>×</button>
+                </div>
+              : <button onClick={() => fileRef.current.click()}
+                  style={{ width:'100%', padding:'12px', borderRadius:10, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer' }}>
+                  📷 اضغط لرفع صورة الإثبات
+                </button>
+            }
+          </div>
+        )}
+
         {formError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {formError}</div>}
         <Btn onClick={save} full disabled={saving || !form.employee_id || !form.amount}>
           {saving ? 'جاري الحفظ...' : '✓ سجّل الدفعة'}
