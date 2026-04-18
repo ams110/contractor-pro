@@ -82,10 +82,10 @@ export function validatePayment(form) {
  * التحقق من صحة نموذج يوم العمل
  */
 export function validateWorkDay(form) {
-  if (!form.employeeId)  return 'اختر العامل'
-  if (!form.projectId)   return 'اختر المشروع'
+  if (!form.employee_id) return 'اختر العامل'
+  if (!form.project_id)  return 'اختر المشروع'
   if (!form.date)        return 'التاريخ مطلوب'
-  if (form.dayType === 'ساعات') {
+  if (form.day_type === 'ساعات') {
     const h = parseFloat(form.hours)
     if (!h || h <= 0)    return 'عدد الساعات يجب أن يكون أكبر من صفر'
     if (h > 24)          return 'عدد الساعات لا يمكن أن يتجاوز 24'
