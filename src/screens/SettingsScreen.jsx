@@ -37,32 +37,35 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
 
   return (
     <div className="fade-in" style={{ padding:16 }}>
-      <div style={{ fontSize:20, fontWeight:800, color:C.text, marginBottom:16 }}>⚙️ الإعدادات</div>
 
-      {/* معلومات الحساب */}
-      <Card>
-        <div style={{ padding:16 }}>
-          <div style={{ fontSize:14, fontWeight:700, color:C.text, marginBottom:12 }}>👤 الحساب</div>
-          <div style={{ fontSize:13, color:C.textDim, marginBottom:16 }}>{user?.email}</div>
+      {/* هيدر الحساب - الشعار + الاسم + الإيميل */}
+      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20, padding:'16px', background:C.surface, borderRadius:20, border:`1px solid ${C.border}` }}>
+        <div style={{ width:52, height:52, borderRadius:16, background:`${C.primary}22`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>🏗️</div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:16, fontWeight:800, color:C.primary }}>Contractor Pro</div>
+          <div style={{ fontSize:11, color:C.textDim, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{user?.email}</div>
+        </div>
+        <button
+          onClick={() => setConfirmSignOut(true)}
+          style={{ padding:'8px 12px', borderRadius:12, border:`1.5px solid ${C.accent}33`, background:`${C.accent}11`, color:C.accent, fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}
+        >
+          🚪 خروج
+        </button>
+      </div>
 
-          {isPasskeySupported() && (
-            <div style={{ marginBottom:12 }}>
-              <Btn onClick={handleRegisterPasskey} disabled={passkeyLoading} variant="outline" color={C.primary} full>
-                {passkeyLoading ? '...' : '👆 تفعيل الدخول بالبصمة'}
-              </Btn>
-              {passkeyStatus && (
-                <div style={{ fontSize:12, marginTop:8, color: passkeyStatus.startsWith('✓') ? C.success : C.accent, textAlign:'center' }}>
-                  {passkeyStatus}
-                </div>
-              )}
+      {/* البصمة */}
+      {isPasskeySupported() && (
+        <div style={{ marginBottom:12 }}>
+          <Btn onClick={handleRegisterPasskey} disabled={passkeyLoading} variant="outline" color={C.primary} full>
+            {passkeyLoading ? '...' : '👆 تفعيل الدخول بالبصمة'}
+          </Btn>
+          {passkeyStatus && (
+            <div style={{ fontSize:12, marginTop:8, color: passkeyStatus.startsWith('✓') ? C.success : C.accent, textAlign:'center' }}>
+              {passkeyStatus}
             </div>
           )}
-
-          <Btn onClick={() => setConfirmSignOut(true)} variant="outline" color={C.accent} full>
-            🚪 تسجيل خروج
-          </Btn>
         </div>
-      </Card>
+      )}
 
       {/* الإحصائيات */}
       <Card>
