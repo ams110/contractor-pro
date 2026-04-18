@@ -24,6 +24,14 @@ export default function WorkersScreen({ employees, workDays, payments, addEmploy
     setShowForm(true)
   }
 
+  function toggleSpec(spec) {
+    const current = form.specialization ? form.specialization.split(',') : []
+    const updated = current.includes(spec)
+      ? current.filter(s => s !== spec)
+      : [...current, spec]
+    setForm(prev => ({ ...prev, specialization: updated.join(',') }))
+  }
+
   async function save() {
     const err = validateWorker({ ...form, dailyRate: form.daily_rate })
     if (err) return setFormError(err)
@@ -84,8 +92,10 @@ export default function WorkersScreen({ employees, workDays, payments, addEmploy
                       </div>
                       <div>
                         <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{w.name}</div>
-                        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                          <Badge text={w.specialization || 'عام'} color={C.blue} />
+                        <div style={{ display:'flex', gap:4, alignItems:'center', flexWrap:'wrap' }}>
+                          {w.specialization
+                            ? w.specialization.split(',').map(s => <Badge key={s} text={s.trim()} color={C.blue} />)
+                            : <Badge text="عام" color={C.blue} />}
                           <span style={{ fontSize:11, color:C.textDim }}>{w.daily_rate}₪/يوم</span>
                         </div>
                       </div>
@@ -115,10 +125,26 @@ export default function WorkersScreen({ employees, workDays, payments, addEmploy
       }
 
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'تعديل عامل' : 'عامل جديد'}>
-        <Input label="الاسم"           value={form.name}          onChange={f('name')}          required />
-        <Input label="التلفون"         value={form.phone}         onChange={f('phone')}         type="tel" />
-        <Input label="التخصص"         value={form.specialization} onChange={f('specialization')} options={SPECS} />
-        <Input label="الأجر اليومي (₪)" value={form.daily_rate}  onChange={f('daily_rate')}    type="number" min="1" required />
+        <Input label="الاسم"             value={form.name}       onChange={f('name')}       required />
+        <Input label="التلفون"           value={form.phone}      onChange={f('phone')}      type="tel" />
+        <Input label="الأجر اليومي (₪)" value={form.daily_rate} onChange={f('daily_rate')} type="number" min="1" required />
+
+        {/* اختيار التخصصات - متعدد */}
+        <div style={{ marginBottom:14 }}>
+          <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:8 }}>التخصصات (يمكن اختيار أكثر من واحد)</label>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+            {SPECS.map(spec => {
+              const selected = form.specialization?.split(',').map(s => s.trim()).includes(spec)
+              return (
+                <button key={spec} onClick={() => toggleSpec(spec)}
+                  style={{ padding:'7px 12px', borderRadius:20, border:`1.5px solid ${selected ? C.primary : C.border}`, background: selected ? `${C.primary}22` : 'transparent', color: selected ? C.primary : C.textDim, fontSize:12, fontWeight:600, cursor:'pointer', transition:'all .15s' }}>
+                  {selected ? '✓ ' : ''}{spec}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {formError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {formError}</div>}
         <Btn onClick={save} full disabled={saving}>{saving ? 'جاري الحفظ...' : editing ? 'حفظ' : 'أضف العامل'}</Btn>
       </Modal>
