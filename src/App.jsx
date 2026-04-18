@@ -7,6 +7,7 @@ import { useWorkDays }       from './hooks/useData.js'
 import { useExpenses }       from './hooks/useData.js'
 import { usePayments }       from './hooks/useData.js'
 import { useClientReceipts } from './hooks/useData.js'
+import { useSettings }       from './hooks/useSettings.js'
 
 import LoginScreen    from './screens/LoginScreen.jsx'
 import DashboardScreen from './screens/DashboardScreen.jsx'
@@ -39,6 +40,7 @@ export default function App() {
   const { expenses,       loading: xLoad,  addExpense,                      deleteExpense   } = useExpenses(uid)
   const { payments,       loading: pyLoad, addPayment,                      deletePayment   } = usePayments(uid)
   const { clientReceipts, loading: crLoad, addReceipt,                      deleteReceipt   } = useClientReceipts(uid)
+  const { specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat }                      = useSettings(uid)
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
@@ -70,11 +72,11 @@ export default function App() {
     switch (screen) {
       case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} />
       case 'projects':  return <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} deleteReceipt={deleteReceipt} />
-      case 'workers':   return <WorkersScreen   employees={employees} workDays={workDays} payments={payments} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} />
+      case 'workers':   return <WorkersScreen   employees={employees} workDays={workDays} payments={payments} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} />
       case 'workdays':  return <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} />
-      case 'expenses':  return <ExpensesScreen  expenses={expenses} projects={projects} addExpense={addExpense} deleteExpense={deleteExpense} />
+      case 'expenses':  return <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} />
       case 'payments':  return <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} addPayment={addPayment} deletePayment={deletePayment} />
-      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} />
+      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} />
       default:          return <DashboardScreen {...commonData} onNav={setScreen} />
     }
   }

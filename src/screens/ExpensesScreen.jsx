@@ -5,7 +5,7 @@ import { Modal, Input, Btn, Card, EmptyState, TabBar, ConfirmDialog } from '../c
 
 const CAT_ICONS = { 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
 
-export default function ExpensesScreen({ expenses, projects, addExpense, deleteExpense }) {
+export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense }) {
   const [showForm,   setShowForm]   = useState(false)
   const [filter,     setFilter]     = useState('الكل')
   const [confirmDel, setConfirmDel] = useState(null)
@@ -99,7 +99,7 @@ export default function ExpensesScreen({ expenses, projects, addExpense, deleteE
           </div>
         )}
 
-        <Input label="التصنيف"       value={form.category}      onChange={f('category')}       options={EXP_CATS} required />
+        <Input label="التصنيف"       value={form.category}      onChange={f('category')}       options={expCats || EXP_CATS} required />
 
         {/* اختيار المشروع */}
         {projects.length > 0 && (

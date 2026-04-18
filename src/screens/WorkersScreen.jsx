@@ -3,7 +3,7 @@ import { C, SPECS } from '../constants/index.js'
 import { fmt, validateWorker } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
 
-export default function WorkersScreen({ employees, workDays, payments, addEmployee, updateEmployee, deleteEmployee }) {
+export default function WorkersScreen({ employees, workDays, payments, specs, addEmployee, updateEmployee, deleteEmployee }) {
   const [showForm,   setShowForm]   = useState(false)
   const [editing,    setEditing]    = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
@@ -133,7 +133,7 @@ export default function WorkersScreen({ employees, workDays, payments, addEmploy
         <div style={{ marginBottom:14 }}>
           <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:8 }}>التخصصات (يمكن اختيار أكثر من واحد)</label>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-            {SPECS.map(spec => {
+            {(specs || SPECS).map(spec => {
               const selected = form.specialization?.split(',').map(s => s.trim()).includes(spec)
               return (
                 <button key={spec} onClick={() => toggleSpec(spec)}

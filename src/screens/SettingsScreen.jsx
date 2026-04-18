@@ -1,13 +1,15 @@
 import React, { useState } from 'react'
-import { C, SPECS, EXP_CATS } from '../constants/index.js'
+import { C } from '../constants/index.js'
 import { Btn, Card, ConfirmDialog } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, userId }) {
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat }) {
   const { signOut, registerPasskey, isPasskeySupported, user } = useAuth()
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [passkeyStatus,  setPasskeyStatus]  = useState('')
   const [passkeyLoading, setPasskeyLoading] = useState(false)
+  const [newSpec,        setNewSpec]        = useState('')
+  const [newExpCat,      setNewExpCat]      = useState('')
 
   async function handleRegisterPasskey() {
     setPasskeyLoading(true)
@@ -85,10 +87,24 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
       <Card>
         <div style={{ padding:16 }}>
           <div style={{ fontSize:14, fontWeight:700, color:C.text, marginBottom:12 }}>🔧 التخصصات</div>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-            {SPECS.map(s => (
-              <span key={s} style={{ padding:'5px 11px', borderRadius:14, background:`${C.blue}22`, border:`1px solid ${C.blue}33`, color:C.blue, fontSize:11 }}>{s}</span>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
+            {(specs || []).map(s => (
+              <div key={s} style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', borderRadius:14, background:`${C.blue}22`, border:`1px solid ${C.blue}33` }}>
+                <span style={{ color:C.blue, fontSize:11 }}>{s}</span>
+                <button onClick={() => removeSpec(s)} style={{ background:'none', border:'none', color:C.accent, cursor:'pointer', fontSize:12, padding:0, lineHeight:1 }}>×</button>
+              </div>
             ))}
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            <input
+              value={newSpec}
+              onChange={e => setNewSpec(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && newSpec.trim()) { addSpec(newSpec); setNewSpec('') } }}
+              placeholder="تخصص جديد..."
+              style={{ flex:1, padding:'8px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontSize:12, outline:'none' }}
+            />
+            <button onClick={() => { if (newSpec.trim()) { addSpec(newSpec); setNewSpec('') } }}
+              style={{ padding:'8px 14px', borderRadius:10, background:C.primary, color:C.bg, border:'none', cursor:'pointer', fontSize:13, fontWeight:700 }}>+</button>
           </div>
         </div>
       </Card>
@@ -97,10 +113,24 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
       <Card>
         <div style={{ padding:16 }}>
           <div style={{ fontSize:14, fontWeight:700, color:C.text, marginBottom:12 }}>📂 تصنيفات المصاريف</div>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-            {EXP_CATS.map(c => (
-              <span key={c} style={{ padding:'5px 11px', borderRadius:14, background:`${C.orange}22`, border:`1px solid ${C.orange}33`, color:C.orange, fontSize:11 }}>{c}</span>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
+            {(expCats || []).map(c => (
+              <div key={c} style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', borderRadius:14, background:`${C.orange}22`, border:`1px solid ${C.orange}33` }}>
+                <span style={{ color:C.orange, fontSize:11 }}>{c}</span>
+                <button onClick={() => removeExpCat(c)} style={{ background:'none', border:'none', color:C.accent, cursor:'pointer', fontSize:12, padding:0, lineHeight:1 }}>×</button>
+              </div>
             ))}
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            <input
+              value={newExpCat}
+              onChange={e => setNewExpCat(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && newExpCat.trim()) { addExpCat(newExpCat); setNewExpCat('') } }}
+              placeholder="تصنيف جديد..."
+              style={{ flex:1, padding:'8px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontSize:12, outline:'none' }}
+            />
+            <button onClick={() => { if (newExpCat.trim()) { addExpCat(newExpCat); setNewExpCat('') } }}
+              style={{ padding:'8px 14px', borderRadius:10, background:C.orange, color:C.bg, border:'none', cursor:'pointer', fontSize:13, fontWeight:700 }}>+</button>
           </div>
         </div>
       </Card>
