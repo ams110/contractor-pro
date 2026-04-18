@@ -3,7 +3,22 @@ import { C } from '../constants/index.js'
 import { Btn, Card, ConfirmDialog } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat, profile, profSaving, uploading, saveName, uploadAvatar }) {
+const PERM_LABELS = [
+  ['can_view_projects',  'مشاهدة المشاريع'],
+  ['can_edit_projects',  'إضافة/تعديل المشاريع'],
+  ['can_view_workers',   'مشاهدة العمال'],
+  ['can_edit_workers',   'إضافة/تعديل العمال'],
+  ['can_view_expenses',  'مشاهدة المصاريف'],
+  ['can_add_expenses',   'إضافة المصاريف'],
+  ['can_view_payments',  'مشاهدة الرواتب'],
+  ['can_add_payments',   'إضافة الرواتب'],
+  ['can_delete',         'حذف السجلات'],
+  ['can_manage_team',    'إدارة الفريق'],
+]
+
+const DEFAULT_NEW_PERMS = Object.fromEntries(PERM_LABELS.map(([k]) => [k, false]))
+
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember }) {
   const { signOut, registerPasskey, isPasskeySupported, user } = useAuth()
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [passkeyStatus,  setPasskeyStatus]  = useState('')
@@ -13,6 +28,13 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
   const [editingName,    setEditingName]    = useState(false)
   const [nameInput,      setNameInput]      = useState('')
   const [uploadError,    setUploadError]    = useState('')
+  const [showInvite,     setShowInvite]     = useState(false)
+  const [inviteEmail,    setInviteEmail]    = useState('')
+  const [invitePerms,    setInvitePerms]    = useState(DEFAULT_NEW_PERMS)
+  const [inviting,       setInviting]       = useState(false)
+  const [inviteError,    setInviteError]    = useState('')
+  const [editingMember,  setEditingMember]  = useState(null)
+  const [editPerms,      setEditPerms]      = useState({})
 
   async function handleRegisterPasskey() {
     setPasskeyLoading(true)
@@ -181,6 +203,88 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
           </div>
         </div>
       </Card>
+
+      {/* إدارة الفريق - للمالك فقط */}
+      {permissions?.manageTeam && (
+        <Card>
+          <div style={{ padding:16 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+              <div style={{ fontSize:14, fontWeight:700, color:C.text }}>👥 الفريق</div>
+              <button onClick={() => { setShowInvite(!showInvite); setInviteError('') }}
+                style={{ padding:'6px 12px', borderRadius:10, background:`${C.primary}22`, color:C.primary, border:`1px solid ${C.primary}44`, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                + دعوة
+              </button>
+            </div>
+
+            {/* فورم الدعوة */}
+            {showInvite && (
+              <div style={{ background:`${C.border}22`, borderRadius:12, padding:12, marginBottom:12 }}>
+                <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+                  placeholder="إيميل الشخص المدعو"
+                  style={{ width:'100%', padding:'8px 12px', borderRadius:8, border:`1px solid ${C.border}`, background:C.bg, color:C.text, fontSize:12, marginBottom:10, boxSizing:'border-box', outline:'none' }}
+                />
+                <div style={{ fontSize:11, color:C.textDim, marginBottom:8, fontWeight:700 }}>الصلاحيات:</div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:10 }}>
+                  {PERM_LABELS.map(([key, label]) => (
+                    <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:C.text, cursor:'pointer' }}>
+                      <input type="checkbox" checked={!!invitePerms[key]} onChange={e => setInvitePerms(p => ({ ...p, [key]: e.target.checked }))} />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                {inviteError && <div style={{ fontSize:11, color:C.accent, marginBottom:8 }}>{inviteError}</div>}
+                <Btn onClick={async () => {
+                  if (!inviteEmail.trim() || !inviteEmail.includes('@')) return setInviteError('أدخل إيميل صحيح')
+                  setInviting(true)
+                  try { await inviteMember(inviteEmail.trim(), invitePerms); setShowInvite(false); setInviteEmail(''); setInvitePerms(DEFAULT_NEW_PERMS) }
+                  catch (e) { setInviteError(e.message) }
+                  finally { setInviting(false) }
+                }} full disabled={inviting}>{inviting ? '...' : 'إرسال الدعوة'}</Btn>
+              </div>
+            )}
+
+            {/* قائمة الأعضاء */}
+            {teamMembers.length === 0
+              ? <div style={{ fontSize:12, color:C.textDim, textAlign:'center', padding:'8px 0' }}>لا يوجد أعضاء بعد</div>
+              : teamMembers.map(m => (
+                <div key={m.id} style={{ marginBottom:8, background:`${C.border}22`, borderRadius:12, padding:12 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <div>
+                      <div style={{ fontSize:12, fontWeight:700, color:C.text }}>{m.email}</div>
+                      <div style={{ fontSize:10, color: m.status==='active' ? C.success : C.warning }}>
+                        {m.status === 'active' ? '● نشط' : '⏳ في انتظار القبول'}
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button onClick={() => { setEditingMember(m.id); setEditPerms(Object.fromEntries(PERM_LABELS.map(([k]) => [k, m[k]]))) }}
+                        style={{ background:'none', border:'none', cursor:'pointer', fontSize:14 }}>✏️</button>
+                      <button onClick={() => removeMember(m.id)}
+                        style={{ background:'none', border:'none', cursor:'pointer', fontSize:14 }}>🗑️</button>
+                    </div>
+                  </div>
+                  {/* تعديل صلاحيات العضو */}
+                  {editingMember === m.id && (
+                    <div style={{ marginTop:10 }}>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:8 }}>
+                        {PERM_LABELS.map(([key, label]) => (
+                          <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:C.text, cursor:'pointer' }}>
+                            <input type="checkbox" checked={!!editPerms[key]} onChange={e => setEditPerms(p => ({ ...p, [key]: e.target.checked }))} />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+                      <div style={{ display:'flex', gap:6 }}>
+                        <Btn onClick={async () => { await updateMember(m.id, editPerms); setEditingMember(null) }} full>حفظ</Btn>
+                        <Btn onClick={() => setEditingMember(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            }
+          </div>
+        </Card>
+      )}
 
       {/* تصدير البيانات */}
       <div style={{ marginTop:8 }}>

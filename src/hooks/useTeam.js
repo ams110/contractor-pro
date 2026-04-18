@@ -1,0 +1,82 @@
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase.js'
+
+export const OWNER_PERMS = {
+  isOwner: true,
+  viewProjects: true,  editProjects: true,
+  viewWorkers:  true,  editWorkers:  true,
+  viewExpenses: true,  addExpenses:  true,
+  viewPayments: true,  addPayments:  true,
+  canDelete:    true,  manageTeam:   true,
+}
+
+function rowToPerms(row) {
+  return {
+    isOwner:      false,
+    viewProjects: row.can_view_projects,
+    editProjects: row.can_edit_projects,
+    viewWorkers:  row.can_view_workers,
+    editWorkers:  row.can_edit_workers,
+    viewExpenses: row.can_view_expenses,
+    addExpenses:  row.can_add_expenses,
+    viewPayments: row.can_view_payments,
+    addPayments:  row.can_add_payments,
+    canDelete:    row.can_delete,
+    manageTeam:   row.can_manage_team,
+  }
+}
+
+export function useTeam(userId, userEmail) {
+  const [membership,   setMembership]   = useState(null)
+  const [teamMembers,  setTeamMembers]  = useState([])
+  const [pendingInvite,setPendingInvite]= useState(null)
+  const [loading,      setLoading]      = useState(false)
+
+  useEffect(() => {
+    if (!userId || !userEmail) return
+    load()
+  }, [userId, userEmail])
+
+  async function load() {
+    setLoading(true)
+    const [{ data: active }, { data: team }, { data: pending }] = await Promise.all([
+      supabase.from('team_members').select('*').eq('member_id', userId).eq('status', 'active').maybeSingle(),
+      supabase.from('team_members').select('*').eq('owner_id', userId),
+      supabase.from('team_members').select('*').eq('email', userEmail).eq('status', 'pending').maybeSingle(),
+    ])
+    setMembership(active || null)
+    setTeamMembers(team || [])
+    setPendingInvite(pending || null)
+    setLoading(false)
+  }
+
+  async function acceptInvite(inviteId) {
+    const { error } = await supabase.from('team_members')
+      .update({ member_id: userId, status: 'active' }).eq('id', inviteId)
+    if (error) throw error
+    await load()
+  }
+
+  async function inviteMember(email, perms) {
+    const { error } = await supabase.from('team_members').insert({ owner_id: userId, email, status: 'pending', ...perms })
+    if (error) throw error
+    await load()
+  }
+
+  async function updateMember(id, perms) {
+    const { error } = await supabase.from('team_members').update(perms).eq('id', id).eq('owner_id', userId)
+    if (error) throw error
+    await load()
+  }
+
+  async function removeMember(id) {
+    const { error } = await supabase.from('team_members').delete().eq('id', id).eq('owner_id', userId)
+    if (error) throw error
+    await load()
+  }
+
+  const permissions      = membership ? rowToPerms(membership) : OWNER_PERMS
+  const effectiveOwnerId = membership ? membership.owner_id : userId
+
+  return { membership, teamMembers, pendingInvite, permissions, effectiveOwnerId, loading, acceptInvite, inviteMember, updateMember, removeMember }
+}

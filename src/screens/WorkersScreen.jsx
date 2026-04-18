@@ -3,7 +3,7 @@ import { C, SPECS } from '../constants/index.js'
 import { fmt, validateWorker } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
 
-export default function WorkersScreen({ employees, workDays, payments, specs, addEmployee, updateEmployee, deleteEmployee }) {
+export default function WorkersScreen({ employees, workDays, payments, specs, addEmployee, updateEmployee, deleteEmployee, permissions }) {
   const [showForm,   setShowForm]   = useState(false)
   const [editing,    setEditing]    = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
@@ -55,7 +55,7 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
     <div className="fade-in" style={{ padding:16 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
         <div style={{ fontSize:20, fontWeight:800, color:C.text }}>👷 العمال</div>
-        <Btn onClick={openNew}>+ جديد</Btn>
+        {permissions?.editWorkers !== false && <Btn onClick={openNew}>+ جديد</Btn>}
       </div>
 
       {/* ملخص الرواتب */}
@@ -101,8 +101,8 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
                       </div>
                     </div>
                     <div style={{ display:'flex', gap:4 }}>
-                      <button onClick={() => openEdit(w)} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>✏️</button>
-                      <button onClick={() => setConfirmDel(w.id)} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>🗑️</button>
+                      {permissions?.editWorkers !== false && <button onClick={() => openEdit(w)} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>✏️</button>}
+                      {permissions?.canDelete   !== false && <button onClick={() => setConfirmDel(w.id)} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>🗑️</button>}
                     </div>
                   </div>
 

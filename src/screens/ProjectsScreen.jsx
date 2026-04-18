@@ -4,7 +4,7 @@ import { fmt, fmtDate, validateProject, todayStr } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, TabBar, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
 
-export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, addProject, updateProject, deleteProject, addReceipt, deleteReceipt, userId }) {
+export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, addProject, updateProject, deleteProject, addReceipt, deleteReceipt, userId, permissions }) {
   const [showForm,        setShowForm]        = useState(false)
   const [showReceiptForm, setShowReceiptForm] = useState(false)
   const [editing,         setEditing]         = useState(null)
@@ -140,7 +140,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
         <div style={{ marginTop:16 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
             <div style={{ fontSize:14, fontWeight:700, color:C.text }}>💵 المقبوضات من العميل</div>
-            <Btn onClick={openReceiptForm}>+ قبض</Btn>
+            {permissions?.editProjects !== false && <Btn onClick={openReceiptForm}>+ قبض</Btn>}
           </div>
           {receipts.length === 0
             ? <div style={{ fontSize:12, color:C.textDim, textAlign:'center', padding:16 }}>لم يُقبض شيء بعد</div>
@@ -160,8 +160,8 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
         </div>
 
         <div style={{ display:'flex', gap:8, marginTop:12 }}>
-          <Btn onClick={() => openEdit(proj)} variant="outline" color={C.blue}>✏️ تعديل</Btn>
-          <Btn onClick={() => setConfirmDel(proj.id)} variant="outline" color={C.accent}>🗑️ حذف</Btn>
+          {permissions?.editProjects !== false && <Btn onClick={() => openEdit(proj)} variant="outline" color={C.blue}>✏️ تعديل</Btn>}
+          {permissions?.canDelete    !== false && <Btn onClick={() => setConfirmDel(proj.id)} variant="outline" color={C.accent}>🗑️ حذف</Btn>}
         </div>
 
         {/* فورم قبض دفعة */}
@@ -205,7 +205,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     <div className="fade-in" style={{ padding:16 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
         <div style={{ fontSize:20, fontWeight:800, color:C.text }}>🏗️ المشاريع</div>
-        <Btn onClick={openNew}>+ جديد</Btn>
+        {permissions?.editProjects !== false && <Btn onClick={openNew}>+ جديد</Btn>}
       </div>
 
       <TabBar tabs={['الكل','نشط','مكتمل']} active={filter} onChange={setFilter} />

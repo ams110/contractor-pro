@@ -4,7 +4,7 @@ import { fmt, fmtDate, todayStr, validatePayment } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
 
-export default function PaymentsScreen({ payments, employees, workDays, addPayment, deletePayment, userId }) {
+export default function PaymentsScreen({ payments, employees, workDays, addPayment, deletePayment, userId, permissions }) {
   const [showForm,   setShowForm]   = useState(false)
   const [confirmDel, setConfirmDel] = useState(null)
   const [formError,  setFormError]  = useState('')
@@ -65,7 +65,7 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
     <div className="fade-in" style={{ padding:16 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
         <div style={{ fontSize:20, fontWeight:800, color:C.text }}>💰 الدفعات</div>
-        <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ دفعة</Btn>
+        {permissions?.addPayments !== false && <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ دفعة</Btn>}
       </div>
 
       {/* ملخص لكل عامل */}

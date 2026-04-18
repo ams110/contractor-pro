@@ -9,6 +9,7 @@ import { usePayments }       from './hooks/useData.js'
 import { useClientReceipts } from './hooks/useData.js'
 import { useSettings }       from './hooks/useSettings.js'
 import { useProfile }        from './hooks/useProfile.js'
+import { useTeam }           from './hooks/useTeam.js'
 
 import LoginScreen    from './screens/LoginScreen.jsx'
 import DashboardScreen from './screens/DashboardScreen.jsx'
@@ -29,6 +30,10 @@ const globalCSS = `
   .slide-up { animation: slideUp .35s ease }
 `
 
+function NoAccess() {
+  return <div style={{ padding:40, textAlign:'center', color:'#888', fontSize:14 }}>🔒 ليس لديك صلاحية لعرض هذه الصفحة</div>
+}
+
 export default function App() {
   const { user, loading: authLoading } = useAuth()
   const [screen, setScreen] = useState('dashboard')
@@ -43,6 +48,7 @@ export default function App() {
   const { clientReceipts, loading: crLoad, addReceipt,                      deleteReceipt   } = useClientReceipts(uid)
   const { specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat }                      = useSettings(uid)
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar }                   = useProfile(uid)
+  const { teamMembers, pendingInvite, permissions, effectiveOwnerId, acceptInvite, inviteMember, updateMember, removeMember } = useTeam(uid, user?.email)
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
@@ -69,23 +75,35 @@ export default function App() {
   }
 
   // ─── الشاشة الحالية ──────────────────────────────────────────────────────
+  const p = permissions
   function renderScreen() {
     const commonData = { projects, employees, workDays, expenses, payments, clientReceipts }
     switch (screen) {
-      case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} />
-      case 'projects':  return <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} deleteReceipt={deleteReceipt} userId={uid} />
-      case 'workers':   return <WorkersScreen   employees={employees} workDays={workDays} payments={payments} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} />
-      case 'workdays':  return <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} />
-      case 'expenses':  return <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} />
-      case 'payments':  return <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} addPayment={addPayment} deletePayment={deletePayment} userId={uid} />
-      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} />
-      default:          return <DashboardScreen {...commonData} onNav={setScreen} />
+      case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
+      case 'projects':  return p.viewProjects  ? <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} /> : <NoAccess />
+      case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={workDays} payments={payments} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} /> : <NoAccess />
+      case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} permissions={p} /> : <NoAccess />
+      case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} permissions={p} /> : <NoAccess />
+      case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} addPayment={addPayment} deletePayment={deletePayment} userId={uid} permissions={p} /> : <NoAccess />
+      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} inviteMember={inviteMember} updateMember={updateMember} removeMember={removeMember} />
+      default:          return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
     }
   }
 
   return (
     <div style={{ maxWidth:430, margin:'0 auto', background:C.bg, minHeight:'100vh', fontFamily:"'Segoe UI',Tahoma,sans-serif", direction:'rtl', position:'relative' }}>
       <style>{globalCSS}</style>
+
+      {/* بانر الدعوة المعلقة */}
+      {pendingInvite && (
+        <div style={{ position:'sticky', top:0, zIndex:100, background:`${C.warning}ee`, padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span style={{ fontSize:12, color:'#000', fontWeight:700 }}>📨 لديك دعوة للانضمام لفريق</span>
+          <button onClick={() => acceptInvite(pendingInvite.id)}
+            style={{ padding:'6px 14px', borderRadius:10, background:C.primary, color:'#fff', border:'none', cursor:'pointer', fontSize:12, fontWeight:700 }}>
+            قبول
+          </button>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ position:'sticky', top:0, zIndex:50, background:`${C.bg}ee`, backdropFilter:'blur(12px)', borderBottom:`1px solid ${C.border}`, padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>

@@ -5,7 +5,7 @@ import { Modal, Input, Btn, Card, EmptyState, TabBar, ConfirmDialog } from '../c
 
 const CAT_ICONS = { 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
 
-export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense }) {
+export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, permissions }) {
   const [showForm,   setShowForm]   = useState(false)
   const [filter,     setFilter]     = useState('الكل')
   const [confirmDel, setConfirmDel] = useState(null)
@@ -40,7 +40,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
     <div className="fade-in" style={{ padding:16 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
         <div style={{ fontSize:20, fontWeight:800, color:C.text }}>💸 المصاريف</div>
-        <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ مصروف</Btn>
+        {permissions?.addExpenses !== false && <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ مصروف</Btn>}
       </div>
 
       {/* إجمالي */}
