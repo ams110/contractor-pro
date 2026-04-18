@@ -94,14 +94,15 @@ export default function DashboardScreen({ projects, employees, workDays, expense
       )}
 
       {/* أزرار الاختصارات */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginTop:20 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:20 }}>
         {[
-          { icon:'📅', label:'يوم عمل', nav:'workdays', color:C.primary },
-          { icon:'💸', label:'مصروف',   nav:'expenses', color:C.blue   },
-          { icon:'🏗️', label:'مشروع',   nav:'projects', color:C.purple },
+          { icon:'📅', label:'يوم عمل',  nav:'workdays', color:C.primary },
+          { icon:'💸', label:'مصروف',    nav:'expenses', color:C.blue   },
+          { icon:'🏗️', label:'مشروع',    nav:'projects', color:C.purple },
+          { icon:'💵', label:'قبض دفعة', nav:'projects', color:C.success },
         ].map(a => (
           <button
-            key={a.nav} onClick={() => onNav(a.nav)}
+            key={a.label} onClick={() => onNav(a.nav)}
             style={{ padding:'14px 8px', borderRadius:14, border:`2px solid ${a.color}`, background:`${a.color}12`, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}
           >
             <span style={{ fontSize:22 }}>{a.icon}</span>
