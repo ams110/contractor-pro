@@ -2,11 +2,12 @@ import React, { useState } from 'react'
 import { C } from '../constants/index.js'
 import { Btn, Input } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
+import { supabase } from '../lib/supabase.js'
 
 export default function LoginScreen() {
   const { signIn, signUp, signInWithPasskey, isPasskeySupported } = useAuth()
 
-  const [mode,     setMode]     = useState('login')   // 'login' | 'register'
+  const [mode,     setMode]     = useState('login')   // 'login' | 'register' | 'forgot'
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [name,     setName]     = useState('')
@@ -17,6 +18,24 @@ export default function LoginScreen() {
   const passkeyOk = isPasskeySupported()
 
   function clearMsg() { setError(''); setInfo('') }
+
+  async function handleForgotPassword() {
+    clearMsg()
+    if (!email.trim()) return setError('أدخل بريدك الإلكتروني أولاً')
+    setLoading(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: 'https://app.linko.services',
+      })
+      if (error) throw error
+      setInfo('تم إرسال رابط تغيير كلمة المرور لبريدك ✓')
+      setMode('login')
+    } catch (e) {
+      setError('تأكد من البريد الإلكتروني وحاول مجدداً')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -76,7 +95,7 @@ export default function LoginScreen() {
 
         {/* Tabs */}
         <div style={{ display:'flex', marginBottom:24, background:C.bg, borderRadius:14, padding:4 }}>
-          {[['login','تسجيل دخول'],['register','حساب جديد']].map(([m, label]) => (
+          {[['login','تسجيل دخول'],['register','حساب جديد'],['forgot','نسيت كلمة المرور']].map(([m, label]) => (
             <button
               key={m} onClick={() => { setMode(m); clearMsg() }}
               style={{ flex:1, padding:'10px', borderRadius:10, border:'none', cursor:'pointer', fontWeight:700, fontSize:13, transition:'all .2s',
@@ -89,7 +108,17 @@ export default function LoginScreen() {
           ))}
         </div>
 
-        <form onSubmit={handleSubmit}>
+        {/* شاشة نسيت كلمة المرور */}
+        {mode === 'forgot' && (
+          <div>
+            <Input label="البريد الإلكتروني" value={email} onChange={setEmail} type="email" placeholder="example@email.com" required />
+            {error && <div style={{ padding:'10px 14px', background:`${C.accent}18`, border:`1px solid ${C.accent}44`, borderRadius:10, fontSize:12, color:C.accent, marginBottom:14 }}>⚠ {error}</div>}
+            {info  && <div style={{ padding:'10px 14px', background:`${C.success}18`, border:`1px solid ${C.success}44`, borderRadius:10, fontSize:12, color:C.success, marginBottom:14 }}>✓ {info}</div>}
+            <Btn onClick={handleForgotPassword} full disabled={loading}>{loading ? '...' : 'إرسال رابط التغيير'}</Btn>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: mode === 'forgot' ? 'none' : 'block' }}>
           {mode === 'register' && (
             <Input label="الاسم الكامل" value={name} onChange={setName} placeholder="محمد علي" required />
           )}
