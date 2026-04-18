@@ -6,15 +6,17 @@ import { C, EXP_CATS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../lib/helpers.js'
 import { StatCard, Card } from '../components/index.jsx'
 
-export default function DashboardScreen({ projects, employees, workDays, expenses, payments, onNav }) {
+export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav }) {
   const pieColors = [C.primary, C.blue, C.purple, C.orange, C.pink, C.cyan]
 
-  const totalLabor   = workDays.reduce((s, w) => s + (w.amount || 0), 0)
-  const totalExp     = expenses.reduce((s, e) => s + (e.amount || 0), 0)
-  const totalPaid    = payments.reduce((s, p) => s + (p.amount || 0), 0)
-  const totalOwed    = totalLabor - totalPaid
-  const projectIncome = projects.reduce((s, p) => s + (parseFloat(p.price) || 0), 0)
-  const netProfit    = projectIncome - totalExp - totalLabor
+  const totalLabor    = workDays.reduce((s, w) => s + (w.amount || 0), 0)
+  const totalExp      = expenses.reduce((s, e) => s + (e.amount || 0), 0)
+  const totalPaid     = payments.reduce((s, p) => s + (p.amount || 0), 0)
+  const totalOwed     = totalLabor - totalPaid
+  const totalReceived = (clientReceipts || []).reduce((s, r) => s + (r.amount || 0), 0)
+  const totalContract = projects.reduce((s, p) => s + (parseFloat(p.price) || 0), 0)
+  const totalPending  = totalContract - totalReceived
+  const netProfit     = totalReceived - totalExp - totalLabor
 
   const expByCat = EXP_CATS
     .map(cat => ({ name: cat.split(' / ')[0].split(' ')[0], value: expenses.filter(e => e.category === cat).reduce((s, e) => s + (e.amount || 0), 0) }))
@@ -42,10 +44,10 @@ export default function DashboardScreen({ projects, employees, workDays, expense
 
       {/* إحصائيات */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:20 }}>
-        <StatCard icon="💰" label="دخل المشاريع"     value={`${fmt(projectIncome)}₪`} color={C.success} />
-        <StatCard icon="💸" label="إجمالي التكاليف"  value={`${fmt(totalExp + totalLabor)}₪`} color={C.accent} />
-        <StatCard icon="📈" label="صافي الربح"        value={`${fmt(netProfit)}₪`}  color={netProfit >= 0 ? C.primary : C.accent} />
-        <StatCard icon="🚨" label="رواتب معلقة"      value={`${fmt(Math.max(0, totalOwed))}₪`} color={totalOwed > 0 ? C.warning : C.success} />
+        <StatCard icon="💰" label="المقبوض من العملاء" value={`${fmt(totalReceived)}₪`} color={C.success} />
+        <StatCard icon="💸" label="إجمالي التكاليف"    value={`${fmt(totalExp + totalLabor)}₪`} color={C.accent} />
+        <StatCard icon="📈" label="صافي الربح"          value={`${fmt(netProfit)}₪`}  color={netProfit >= 0 ? C.primary : C.accent} />
+        <StatCard icon="⏳" label="متبقي للتحصيل"      value={`${fmt(Math.max(0, totalPending))}₪`} color={totalPending > 0 ? C.warning : C.success} />
       </div>
 
       {/* رسم بياني للمصاريف */}

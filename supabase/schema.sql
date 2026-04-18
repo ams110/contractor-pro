@@ -118,3 +118,21 @@ CREATE INDEX IF NOT EXISTS idx_expenses_user   ON expenses  (user_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_proj   ON expenses  (project_id);
 CREATE INDEX IF NOT EXISTS idx_payments_user   ON payments  (user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_emp    ON payments  (employee_id);
+
+-- ─── جدول المقبوضات من العملاء (client_receipts) ──
+-- شغّل هذا في Supabase > SQL Editor إذا كنت تضيفه لاحقاً
+CREATE TABLE IF NOT EXISTS client_receipts (
+  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id         UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  project_id      UUID REFERENCES projects(id) ON DELETE CASCADE NOT NULL,
+  amount          NUMERIC(12,2) NOT NULL DEFAULT 0,
+  date            DATE NOT NULL DEFAULT CURRENT_DATE,
+  notes           TEXT DEFAULT '',
+  payment_method  TEXT DEFAULT 'كاش',
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE client_receipts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "user_client_receipts" ON client_receipts FOR ALL USING (user_id = auth.uid());
+CREATE INDEX IF NOT EXISTS idx_receipts_user    ON client_receipts (user_id);
+CREATE INDEX IF NOT EXISTS idx_receipts_project ON client_receipts (project_id);

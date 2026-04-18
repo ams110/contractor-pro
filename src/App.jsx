@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { C, NAV } from './constants/index.js'
 import { useAuth }      from './hooks/useAuth.js'
-import { useProjects }  from './hooks/useData.js'
-import { useEmployees } from './hooks/useData.js'
-import { useWorkDays }  from './hooks/useData.js'
-import { useExpenses }  from './hooks/useData.js'
-import { usePayments }  from './hooks/useData.js'
+import { useProjects }       from './hooks/useData.js'
+import { useEmployees }      from './hooks/useData.js'
+import { useWorkDays }       from './hooks/useData.js'
+import { useExpenses }       from './hooks/useData.js'
+import { usePayments }       from './hooks/useData.js'
+import { useClientReceipts } from './hooks/useData.js'
 
 import LoginScreen    from './screens/LoginScreen.jsx'
 import DashboardScreen from './screens/DashboardScreen.jsx'
@@ -32,13 +33,14 @@ export default function App() {
 
   const uid = user?.id
 
-  const { projects,  loading: pLoad,  addProject,    updateProject,    deleteProject   } = useProjects(uid)
-  const { employees, loading: eLoad,  addEmployee,   updateEmployee,   deleteEmployee  } = useEmployees(uid)
-  const { workDays,  loading: wLoad,  addWorkDay,                      deleteWorkDay   } = useWorkDays(uid)
-  const { expenses,  loading: xLoad,  addExpense,                      deleteExpense   } = useExpenses(uid)
-  const { payments,  loading: pyLoad, addPayment,                      deletePayment   } = usePayments(uid)
+  const { projects,       loading: pLoad,  addProject,    updateProject,    deleteProject   } = useProjects(uid)
+  const { employees,      loading: eLoad,  addEmployee,   updateEmployee,   deleteEmployee  } = useEmployees(uid)
+  const { workDays,       loading: wLoad,  addWorkDay,                      deleteWorkDay   } = useWorkDays(uid)
+  const { expenses,       loading: xLoad,  addExpense,                      deleteExpense   } = useExpenses(uid)
+  const { payments,       loading: pyLoad, addPayment,                      deletePayment   } = usePayments(uid)
+  const { clientReceipts, loading: crLoad, addReceipt,                      deleteReceipt   } = useClientReceipts(uid)
 
-  const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad
+  const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
   // ─── شاشة التحميل الأولى ─────────────────────────────────────────────────
   if (authLoading) {
@@ -64,10 +66,10 @@ export default function App() {
 
   // ─── الشاشة الحالية ──────────────────────────────────────────────────────
   function renderScreen() {
-    const commonData = { projects, employees, workDays, expenses, payments }
+    const commonData = { projects, employees, workDays, expenses, payments, clientReceipts }
     switch (screen) {
       case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} />
-      case 'projects':  return <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />
+      case 'projects':  return <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} deleteReceipt={deleteReceipt} />
       case 'workers':   return <WorkersScreen   employees={employees} workDays={workDays} payments={payments} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} />
       case 'workdays':  return <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} />
       case 'expenses':  return <ExpensesScreen  expenses={expenses} projects={projects} addExpense={addExpense} deleteExpense={deleteExpense} />

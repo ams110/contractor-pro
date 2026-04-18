@@ -136,3 +136,22 @@ export function usePayments(userId) {
 
   return { payments: data, loading, error, addPayment, deletePayment, refetch }
 }
+
+/* ─── Client Receipts (مقبوضات من العملاء) ─── */
+export function useClientReceipts(userId) {
+  const { data, loading, error, refetch } = useTable('client_receipts', userId)
+
+  async function addReceipt(form) {
+    const { error } = await supabase.from('client_receipts').insert({ ...form, user_id: userId })
+    if (error) throw error
+    await refetch()
+  }
+
+  async function deleteReceipt(id) {
+    const { error } = await supabase.from('client_receipts').delete().eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
+  return { clientReceipts: data, loading, error, addReceipt, deleteReceipt, refetch }
+}
