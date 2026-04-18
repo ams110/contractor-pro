@@ -54,6 +54,6 @@ export const NAV = [
   { id: 'workers',   icon: '👷', label: 'العمال' },
   { id: 'workdays',  icon: '📅', label: 'أيام العمل' },
   { id: 'expenses',  icon: '💸', label: 'المصاريف' },
-  { id: 'payments',  icon: '💰', label: 'الدفعات' },
+  { id: 'payments',  icon: '💰', label: 'الرواتب' },
   { id: 'settings',  icon: '⚙️', label: 'إعدادات' },
 ]
