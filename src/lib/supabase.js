@@ -1,11 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  || 'https://rvhjrzbhugvytvktdhor.supabase.co'
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ ملف .env ناقص! انسخ .env.example إلى .env وأضف بيانات Supabase')
-}
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+  || 'sb_publishable_StYQEWIn705_V2lNNSITtg_ty04ZO5E'
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
