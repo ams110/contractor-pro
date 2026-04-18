@@ -3,13 +3,16 @@ import { C } from '../constants/index.js'
 import { Btn, Card, ConfirmDialog } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat }) {
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat, profile, profSaving, uploading, saveName, uploadAvatar }) {
   const { signOut, registerPasskey, isPasskeySupported, user } = useAuth()
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [passkeyStatus,  setPasskeyStatus]  = useState('')
   const [passkeyLoading, setPasskeyLoading] = useState(false)
   const [newSpec,        setNewSpec]        = useState('')
   const [newExpCat,      setNewExpCat]      = useState('')
+  const [editingName,    setEditingName]    = useState(false)
+  const [nameInput,      setNameInput]      = useState('')
+  const [uploadError,    setUploadError]    = useState('')
 
   async function handleRegisterPasskey() {
     setPasskeyLoading(true)
@@ -38,20 +41,61 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
   return (
     <div className="fade-in" style={{ padding:16 }}>
 
-      {/* هيدر الحساب - الشعار + الاسم + الإيميل */}
-      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20, padding:'16px', background:C.surface, borderRadius:20, border:`1px solid ${C.border}` }}>
-        <div style={{ width:52, height:52, borderRadius:16, background:`${C.primary}22`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>🏗️</div>
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:16, fontWeight:800, color:C.primary }}>Contractor Pro</div>
-          <div style={{ fontSize:11, color:C.textDim, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{user?.email}</div>
+      {/* هيدر الحساب - الصورة + الاسم + الإيميل */}
+      <Card>
+        <div style={{ padding:16 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
+            {/* الصورة */}
+            <label style={{ cursor:'pointer', flexShrink:0, position:'relative' }}>
+              <input type="file" accept="image/*" style={{ display:'none' }}
+                onChange={async e => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setUploadError('')
+                  try { await uploadAvatar(file) }
+                  catch (err) { setUploadError('فشل رفع الصورة، تأكد من إعداد Supabase Storage') }
+                }}
+              />
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} alt="avatar" style={{ width:60, height:60, borderRadius:'50%', objectFit:'cover', border:`2px solid ${C.primary}` }} />
+                : <div style={{ width:60, height:60, borderRadius:'50%', background:`${C.primary}22`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, border:`2px dashed ${C.primary}44` }}>👤</div>
+              }
+              <div style={{ position:'absolute', bottom:0, right:0, width:18, height:18, borderRadius:'50%', background:C.primary, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10 }}>
+                {uploading ? '⏳' : '📷'}
+              </div>
+            </label>
+
+            {/* الاسم والإيميل */}
+            <div style={{ flex:1, minWidth:0 }}>
+              {editingName
+                ? <div style={{ display:'flex', gap:6 }}>
+                    <input autoFocus value={nameInput} onChange={e => setNameInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { saveName(nameInput); setEditingName(false) } if (e.key === 'Escape') setEditingName(false) }}
+                      style={{ flex:1, padding:'6px 10px', borderRadius:8, border:`1.5px solid ${C.primary}`, background:C.bg, color:C.text, fontSize:14, fontWeight:700, outline:'none' }}
+                    />
+                    <button onClick={() => { saveName(nameInput); setEditingName(false) }}
+                      style={{ padding:'6px 10px', borderRadius:8, background:C.primary, color:C.bg, border:'none', cursor:'pointer', fontSize:12, fontWeight:700 }}>
+                      {profSaving ? '...' : '✓'}
+                    </button>
+                  </div>
+                : <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <div style={{ fontSize:16, fontWeight:800, color:C.text }}>{profile?.full_name || 'أضف اسمك'}</div>
+                    <button onClick={() => { setNameInput(profile?.full_name || ''); setEditingName(true) }}
+                      style={{ background:'none', border:'none', cursor:'pointer', fontSize:12, color:C.textDim }}>✏️</button>
+                  </div>
+              }
+              <div style={{ fontSize:11, color:C.textDim, marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{user?.email}</div>
+            </div>
+
+            {/* زر الخروج */}
+            <button onClick={() => setConfirmSignOut(true)}
+              style={{ padding:'8px 10px', borderRadius:12, border:`1.5px solid ${C.accent}33`, background:`${C.accent}11`, color:C.accent, fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+              🚪 خروج
+            </button>
+          </div>
+          {uploadError && <div style={{ fontSize:11, color:C.accent }}>{uploadError}</div>}
         </div>
-        <button
-          onClick={() => setConfirmSignOut(true)}
-          style={{ padding:'8px 12px', borderRadius:12, border:`1.5px solid ${C.accent}33`, background:`${C.accent}11`, color:C.accent, fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}
-        >
-          🚪 خروج
-        </button>
-      </div>
+      </Card>
 
       {/* البصمة */}
       {isPasskeySupported() && (

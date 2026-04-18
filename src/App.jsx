@@ -8,6 +8,7 @@ import { useExpenses }       from './hooks/useData.js'
 import { usePayments }       from './hooks/useData.js'
 import { useClientReceipts } from './hooks/useData.js'
 import { useSettings }       from './hooks/useSettings.js'
+import { useProfile }        from './hooks/useProfile.js'
 
 import LoginScreen    from './screens/LoginScreen.jsx'
 import DashboardScreen from './screens/DashboardScreen.jsx'
@@ -41,6 +42,7 @@ export default function App() {
   const { payments,       loading: pyLoad, addPayment,                      deletePayment   } = usePayments(uid)
   const { clientReceipts, loading: crLoad, addReceipt,                      deleteReceipt   } = useClientReceipts(uid)
   const { specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat }                      = useSettings(uid)
+  const { profile, saving: profSaving, uploading, saveName, uploadAvatar }                   = useProfile(uid)
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
@@ -76,7 +78,7 @@ export default function App() {
       case 'workdays':  return <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} />
       case 'expenses':  return <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} />
       case 'payments':  return <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} addPayment={addPayment} deletePayment={deletePayment} />
-      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} />
+      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} />
       default:          return <DashboardScreen {...commonData} onNav={setScreen} />
     }
   }
