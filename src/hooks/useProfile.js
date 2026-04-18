@@ -10,9 +10,19 @@ export function useProfile(userId) {
   useEffect(() => {
     if (!userId) return
     setLoading(true)
-    supabase.from('profiles').select('*').eq('id', userId).single()
-      .then(({ data }) => { if (data) setProfile(data) })
-      .finally(() => setLoading(false))
+    Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase.auth.getUser(),
+    ]).then(([{ data: prof }, { data: { user } }]) => {
+      if (prof) {
+        setProfile(prof)
+      } else {
+        // أول دخول - أنشئ البروفايل تلقائياً من اسم التسجيل
+        const full_name = user?.user_metadata?.full_name || ''
+        const newProfile = { id: userId, full_name, avatar_url: '' }
+        supabase.from('profiles').insert(newProfile).then(() => setProfile(newProfile))
+      }
+    }).finally(() => setLoading(false))
   }, [userId])
 
   async function saveName(full_name) {
