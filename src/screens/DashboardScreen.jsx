@@ -1,37 +1,90 @@
 import React, { useState } from 'react'
-import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-} from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { C, EXP_CATS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../lib/helpers.js'
 import { StatCard, Card } from '../components/index.jsx'
 
 export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav }) {
+  const [alertsExpanded, setAlertsExpanded] = useState(true)
   const pieColors = [C.primary, C.blue, C.purple, C.orange, C.pink, C.cyan]
 
   const totalLabor    = workDays.reduce((s, w) => s + (w.amount || 0), 0)
   const totalExp      = expenses.reduce((s, e) => s + (e.amount || 0), 0)
   const totalPaid     = payments.reduce((s, p) => s + (p.amount || 0), 0)
-  const totalOwed     = totalLabor - totalPaid
   const totalReceived = (clientReceipts || []).reduce((s, r) => s + (r.amount || 0), 0)
   const totalContract = projects.reduce((s, p) => s + (parseFloat(p.price) || 0), 0)
   const totalPending  = totalContract - totalReceived
   const netProfit     = totalReceived - totalExp - totalLabor
 
   const expByCat = EXP_CATS
-    .map(cat => ({ name: cat.split(' / ')[0].split(' ')[0], value: expenses.filter(e => e.category === cat).reduce((s, e) => s + (e.amount || 0), 0) }))
+    .map(cat => ({
+      name:  cat.split(' / ')[0].split(' ')[0],
+      value: expenses.filter(e => e.category === cat).reduce((s, e) => s + (e.amount || 0), 0),
+    }))
     .filter(e => e.value > 0)
 
+  // ─── بناء التنبيهات ──────────────────────────────────────────────────────
   const alerts = []
-  if (totalOwed > 0) alerts.push({ text: `رواتب معلقة: ${fmt(totalOwed)}₪`, color: C.warning, icon: '⚠️' })
-  projects.filter(p => p.status === 'نشط').forEach(p => {
+
+  // عمال مديونية قديمة (أكثر من 14 يوم من آخر يوم عمل)
+  const today = new Date(todayStr())
+  employees.forEach(emp => {
+    const earned = workDays.filter(w => w.employee_id === emp.id).reduce((s, w) => s + w.amount, 0)
+    const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
+    const owed   = earned - paid
+    if (owed <= 0) return
+
+    const lastDay = workDays
+      .filter(w => w.employee_id === emp.id)
+      .map(w => new Date(w.date))
+      .sort((a, b) => b - a)[0]
+
+    if (lastDay) {
+      const daysSince = Math.floor((today - lastDay) / 86400000)
+      if (daysSince >= 14) {
+        alerts.push({
+          text:    `${emp.name} - راتب متأخر ${daysSince} يوم (${fmt(owed)}₪)`,
+          color:   C.accent,
+          icon:    '🔴',
+          nav:     'payments',
+          urgent:  true,
+        })
+      }
+    }
+  })
+
+  // مشاريع تجاوزت الميزانية
+  projects.filter(p => p.status === 'نشط' && p.price > 0).forEach(p => {
     const spent = workDays.filter(w => w.project_id === p.id).reduce((s, w) => s + w.amount, 0)
                + expenses.filter(e => e.project_id === p.id).reduce((s, e) => s + e.amount, 0)
-    if (p.price && spent > p.price * 0.9)
-      alerts.push({ text: `${p.name} تجاوز 90% من الميزانية!`, color: C.accent, icon: '🔴' })
+    const pct   = spent / p.price
+    if (pct >= 1) {
+      alerts.push({ text: `${p.name} - تجاوز الميزانية كاملاً!`, color: C.accent, icon: '🚨', nav: 'projects', urgent: true })
+    } else if (pct >= 0.9) {
+      alerts.push({ text: `${p.name} - وصل 90% من الميزانية`, color: C.warning, icon: '⚠️', nav: 'projects', urgent: false })
+    }
   })
-  if (!projects.length && !employees.length)
-    alerts.push({ text: 'ابدأ بإضافة مشاريع وعمال!', color: C.primary, icon: '💡' })
+
+  // مشاريع نشطة بدون تحصيل من العميل
+  projects.filter(p => p.status === 'نشط' && p.price > 0).forEach(p => {
+    const received = (clientReceipts || []).filter(r => r.project_id === p.id).reduce((s, r) => s + r.amount, 0)
+    if (received === 0) {
+      alerts.push({ text: `${p.name} - ما في مقبوضات من العميل بعد`, color: C.blue, icon: '💵', nav: 'projects', urgent: false })
+    }
+  })
+
+  // إجمالي رواتب معلقة
+  const totalOwed = totalLabor - totalPaid
+  if (totalOwed > 0 && !alerts.some(a => a.nav === 'payments' && a.urgent)) {
+    alerts.push({ text: `إجمالي رواتب معلقة: ${fmt(totalOwed)}₪`, color: C.warning, icon: '⚠️', nav: 'payments', urgent: false })
+  }
+
+  // ترحيب للمستخدم الجديد
+  if (!projects.length && !employees.length) {
+    alerts.push({ text: 'ابدأ بإضافة مشاريع وعمال!', color: C.primary, icon: '💡', nav: 'projects', urgent: false })
+  }
+
+  const urgentCount = alerts.filter(a => a.urgent).length
 
   return (
     <div className="fade-in" style={{ padding:16 }}>
@@ -40,6 +93,11 @@ export default function DashboardScreen({ projects, employees, workDays, expense
           <div style={{ fontSize:22, fontWeight:800, color:C.text }}>مرحبا 👋</div>
           <div style={{ fontSize:12, color:C.textDim }}>{fmtDate(todayStr())}</div>
         </div>
+        {urgentCount > 0 && (
+          <div style={{ background:C.accent, borderRadius:20, padding:'4px 12px', fontSize:12, fontWeight:800, color:'#fff' }}>
+            {urgentCount} تنبيه عاجل
+          </div>
+        )}
       </div>
 
       {/* إحصائيات */}
@@ -49,6 +107,25 @@ export default function DashboardScreen({ projects, employees, workDays, expense
         <StatCard icon="📈" label="صافي الربح"          value={`${fmt(netProfit)}₪`}  color={netProfit >= 0 ? C.primary : C.accent} />
         <StatCard icon="⏳" label="متبقي للتحصيل"      value={`${fmt(Math.max(0, totalPending))}₪`} color={totalPending > 0 ? C.warning : C.success} />
       </div>
+
+      {/* التنبيهات */}
+      {alerts.length > 0 && (
+        <div style={{ marginBottom:16 }}>
+          <button onClick={() => setAlertsExpanded(e => !e)}
+            style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', background:`${C.warning}11`, borderRadius:12, border:`1px solid ${C.warning}33`, marginBottom:4, cursor:'pointer' }}>
+            <span style={{ fontSize:13, fontWeight:700, color:C.text }}>⚠️ التنبيهات ({alerts.length})</span>
+            <span style={{ fontSize:12, color:C.textDim }}>{alertsExpanded ? '▲ إخفاء' : '▼ عرض'}</span>
+          </button>
+          {alertsExpanded && alerts.map((a, i) => (
+            <button key={i} onClick={() => a.nav && onNav(a.nav)}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 14px', marginBottom:4, background:`${a.color}11`, borderRadius:10, border:`1px solid ${a.color}33`, cursor:'pointer', textAlign:'right' }}>
+              <span>{a.icon}</span>
+              <span style={{ fontSize:12, color:C.text, flex:1 }}>{a.text}</span>
+              {a.nav && <span style={{ fontSize:10, color:a.color }}>←</span>}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* رسم بياني للمصاريف */}
       {expByCat.length > 0 && (
@@ -78,19 +155,6 @@ export default function DashboardScreen({ projects, employees, workDays, expense
             </div>
           </div>
         </Card>
-      )}
-
-      {/* التنبيهات */}
-      {alerts.length > 0 && (
-        <div style={{ marginTop:16, marginBottom:12 }}>
-          <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:10 }}>⚠️ تنبيهات</div>
-          {alerts.map((a, i) => (
-            <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', marginBottom:6, background:`${a.color}11`, borderRadius:12, border:`1px solid ${a.color}33` }}>
-              <span>{a.icon}</span>
-              <span style={{ fontSize:12, color:C.text }}>{a.text}</span>
-            </div>
-          ))}
-        </div>
       )}
 
       {/* أزرار الاختصارات */}

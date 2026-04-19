@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { C, SPECS } from '../constants/index.js'
 import { fmt, validateWorker } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
+import { setWorkerCredentials } from '../hooks/useWorkerPortal.js'
 
 export default function WorkersScreen({ employees, workDays, payments, specs, addEmployee, updateEmployee, deleteEmployee, permissions }) {
   const [showForm,   setShowForm]   = useState(false)
@@ -9,6 +10,47 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
   const [confirmDel, setConfirmDel] = useState(null)
   const [formError,  setFormError]  = useState('')
   const [saving,     setSaving]     = useState(false)
+
+  // بيانات دخول العامل
+  const [credWorker, setCredWorker] = useState(null)
+  const [credForm,   setCredForm]   = useState({ username: '', password: '', confirm: '' })
+  const [credError,  setCredError]  = useState('')
+  const [credSaving, setCredSaving] = useState(false)
+  const [credDone,   setCredDone]   = useState(false)
+
+  // نسخ رابط البوابة
+  const [copied, setCopied] = useState(false)
+
+  function copyPortalLink() {
+    const url = `${window.location.origin}${window.location.pathname}?portal`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  function openCreds(w) {
+    setCredWorker(w)
+    setCredForm({ username: '', password: '', confirm: '' })
+    setCredError('')
+    setCredDone(false)
+  }
+
+  async function saveCreds() {
+    if (!credForm.username.trim()) return setCredError('اسم المستخدم مطلوب')
+    if (credForm.password.length < 4) return setCredError('كلمة المرور 4 أحرف على الأقل')
+    if (credForm.password !== credForm.confirm) return setCredError('كلمة المرور غير متطابقة')
+    setCredSaving(true)
+    setCredError('')
+    try {
+      await setWorkerCredentials(credWorker.id, credForm.username, credForm.password)
+      setCredDone(true)
+    } catch (e) {
+      setCredError(e.message)
+    } finally {
+      setCredSaving(false)
+    }
+  }
 
   const emptyForm = { name:'', phone:'', specialization:'', daily_rate:'', status:'نشط' }
   const [form, setForm] = useState(emptyForm)
@@ -55,7 +97,14 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
     <div className="fade-in" style={{ padding:16 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
         <div style={{ fontSize:20, fontWeight:800, color:C.text }}>👷 العمال</div>
-        {permissions?.editWorkers !== false && <Btn onClick={openNew}>+ جديد</Btn>}
+        <div style={{ display:'flex', gap:6 }}>
+          <button onClick={copyPortalLink}
+            title="نسخ رابط بوابة العمال"
+            style={{ padding:'7px 12px', borderRadius:10, border:`1px solid ${copied?C.success:C.border}`, background:copied?`${C.success}22`:'transparent', color:copied?C.success:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', transition:'all .2s' }}>
+            {copied ? '✓ تم النسخ' : '🔗 رابط البوابة'}
+          </button>
+          {permissions?.editWorkers !== false && <Btn onClick={openNew}>+ جديد</Btn>}
+        </div>
       </div>
 
       {/* ملخص الرواتب */}
@@ -100,7 +149,12 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
                         </div>
                       </div>
                     </div>
-                    <div style={{ display:'flex', gap:4 }}>
+                    <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                      <button onClick={() => openCreds(w)}
+                        title="بيانات دخول العامل"
+                        style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                        🔑
+                      </button>
                       {permissions?.editWorkers !== false && <button onClick={() => openEdit(w)} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>✏️</button>}
                       {permissions?.canDelete   !== false && <button onClick={() => setConfirmDel(w.id)} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>🗑️</button>}
                     </div>
@@ -124,6 +178,7 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
           })
       }
 
+      {/* فورم إضافة/تعديل عامل */}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'تعديل عامل' : 'عامل جديد'}>
         <Input label="الاسم"             value={form.name}       onChange={f('name')}       required />
         <Input label="التلفون"           value={form.phone}      onChange={f('phone')}      type="tel" />
@@ -147,6 +202,41 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
 
         {formError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {formError}</div>}
         <Btn onClick={save} full disabled={saving}>{saving ? 'جاري الحفظ...' : editing ? 'حفظ' : 'أضف العامل'}</Btn>
+      </Modal>
+
+      {/* فورم بيانات الدخول */}
+      <Modal open={!!credWorker} onClose={() => setCredWorker(null)} title={`🔑 بيانات دخول ${credWorker?.name || ''}`}>
+        {credDone ? (
+          <div style={{ textAlign:'center', padding:'20px 0' }}>
+            <div style={{ fontSize:40, marginBottom:10 }}>✅</div>
+            <div style={{ fontSize:15, fontWeight:700, color:C.success, marginBottom:6 }}>تم الحفظ!</div>
+            <div style={{ fontSize:12, color:C.textDim, marginBottom:16 }}>
+              اسم المستخدم: <b style={{ color:C.primary }}>{credForm.username}</b>
+            </div>
+            <div style={{ padding:'10px 14px', background:`${C.border}33`, borderRadius:10, fontSize:12, color:C.textDim, marginBottom:16, textAlign:'right' }}>
+              أرسل رابط البوابة وبيانات الدخول للعامل عبر واتساب:
+              <br/><b style={{ color:C.text }}>رابط: </b>
+              <span style={{ color:C.primary, fontSize:11 }}>{window.location.origin}{window.location.pathname}?portal</span>
+            </div>
+            <Btn onClick={() => setCredWorker(null)} full>إغلاق</Btn>
+          </div>
+        ) : (
+          <>
+            <div style={{ padding:'10px 12px', background:`${C.border}22`, borderRadius:10, marginBottom:14, fontSize:12, color:C.textDim }}>
+              العامل سيستخدم هذه البيانات لتسجيل الدخول في بوابة العمال ومشاهدة راتبه
+            </div>
+            <Input label="اسم المستخدم" value={credForm.username}
+              onChange={v => setCredForm(p => ({ ...p, username: v }))} required />
+            <Input label="كلمة المرور (4 أحرف على الأقل)" value={credForm.password}
+              onChange={v => setCredForm(p => ({ ...p, password: v }))} type="password" required />
+            <Input label="تأكيد كلمة المرور" value={credForm.confirm}
+              onChange={v => setCredForm(p => ({ ...p, confirm: v }))} type="password" required />
+            {credError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {credError}</div>}
+            <Btn onClick={saveCreds} full disabled={credSaving}>
+              {credSaving ? 'جاري الحفظ...' : '✓ حفظ بيانات الدخول'}
+            </Btn>
+          </>
+        )}
       </Modal>
 
       <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={async () => { await deleteEmployee(confirmDel); setConfirmDel(null) }} message="حذف هالعامل؟" />

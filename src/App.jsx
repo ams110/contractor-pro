@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { C, NAV } from './constants/index.js'
-import { useAuth }      from './hooks/useAuth.js'
+import { useAuth }           from './hooks/useAuth.js'
 import { useProjects }       from './hooks/useData.js'
 import { useEmployees }      from './hooks/useData.js'
 import { useWorkDays }       from './hooks/useData.js'
@@ -11,17 +11,18 @@ import { useSettings }       from './hooks/useSettings.js'
 import { useProfile }        from './hooks/useProfile.js'
 import { useTeam }           from './hooks/useTeam.js'
 
-import LoginScreen    from './screens/LoginScreen.jsx'
-import DashboardScreen from './screens/DashboardScreen.jsx'
-import ProjectsScreen  from './screens/ProjectsScreen.jsx'
-import WorkersScreen   from './screens/WorkersScreen.jsx'
-import WorkDaysScreen  from './screens/WorkDaysScreen.jsx'
-import ExpensesScreen  from './screens/ExpensesScreen.jsx'
-import PaymentsScreen  from './screens/PaymentsScreen.jsx'
-import SettingsScreen  from './screens/SettingsScreen.jsx'
+import LoginScreen        from './screens/LoginScreen.jsx'
+import WorkerPortalScreen from './screens/WorkerPortalScreen.jsx'
+import DashboardScreen    from './screens/DashboardScreen.jsx'
+import ProjectsScreen     from './screens/ProjectsScreen.jsx'
+import WorkersScreen      from './screens/WorkersScreen.jsx'
+import WorkDaysScreen     from './screens/WorkDaysScreen.jsx'
+import ExpensesScreen     from './screens/ExpensesScreen.jsx'
+import PaymentsScreen     from './screens/PaymentsScreen.jsx'
+import SettingsScreen     from './screens/SettingsScreen.jsx'
+import SearchOverlay      from './components/SearchOverlay.jsx'
 import { LoadingSpinner } from './components/index.jsx'
 
-// ─── Animations CSS ───────────────────────────────────────────────────────────
 const globalCSS = `
   @keyframes fadeIn  { from { opacity:0; transform:translateY(8px)  } to { opacity:1; transform:translateY(0) } }
   @keyframes slideUp { from { transform:translateY(100%) }             to { transform:translateY(0) } }
@@ -35,8 +36,20 @@ function NoAccess() {
 }
 
 export default function App() {
+  // Worker portal: detect ?portal in URL
+  const params = new URLSearchParams(window.location.search)
+  if (params.has('portal') || params.has('worker')) {
+    return (
+      <>
+        <style>{globalCSS}</style>
+        <WorkerPortalScreen />
+      </>
+    )
+  }
+
   const { user, loading: authLoading } = useAuth()
-  const [screen, setScreen] = useState('dashboard')
+  const [screen,     setScreen]     = useState('dashboard')
+  const [showSearch, setShowSearch] = useState(false)
 
   const uid = user?.id
 
@@ -52,7 +65,6 @@ export default function App() {
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
-  // ─── شاشة التحميل الأولى ─────────────────────────────────────────────────
   if (authLoading) {
     return (
       <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
@@ -64,7 +76,6 @@ export default function App() {
     )
   }
 
-  // ─── تسجيل الدخول ────────────────────────────────────────────────────────
   if (!user) {
     return (
       <>
@@ -83,7 +94,7 @@ export default function App() {
       case 'projects':  return p.viewProjects  ? <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} /> : <NoAccess />
       case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={workDays} payments={payments} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} /> : <NoAccess />
       case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} permissions={p} /> : <NoAccess />
-      case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} permissions={p} /> : <NoAccess />
+      case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} userId={uid} permissions={p} /> : <NoAccess />
       case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} addPayment={addPayment} deletePayment={deletePayment} userId={uid} permissions={p} /> : <NoAccess />
       case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} inviteMember={inviteMember} updateMember={updateMember} removeMember={removeMember} />
       default:          return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
@@ -111,8 +122,12 @@ export default function App() {
           <span style={{ fontSize:20 }}>🏗️</span>
           <span style={{ fontSize:15, fontWeight:800, color:C.primary }}>Contractor Pro</span>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           {dataLoading && <div style={{ width:14, height:14, border:`2px solid ${C.border}`, borderTopColor:C.primary, borderRadius:'50%', animation:'spin .8s linear infinite' }} />}
+          <button onClick={() => setShowSearch(true)}
+            style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', padding:'2px 4px', color:C.textDim }}>
+            🔍
+          </button>
           <div style={{ fontSize:12, color:C.textDim }}>{NAV.find(n => n.id === screen)?.label}</div>
         </div>
       </div>
@@ -137,6 +152,16 @@ export default function App() {
           </button>
         ))}
       </div>
+
+      {/* بحث */}
+      <SearchOverlay
+        open={showSearch}
+        onClose={() => setShowSearch(false)}
+        projects={projects} employees={employees}
+        expenses={expenses} payments={payments}
+        workDays={workDays}
+        onNav={nav => { setScreen(nav); setShowSearch(false) }}
+      />
     </div>
   )
 }

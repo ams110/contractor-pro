@@ -136,3 +136,10 @@ ALTER TABLE client_receipts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "user_client_receipts" ON client_receipts FOR ALL USING (user_id = auth.uid());
 CREATE INDEX IF NOT EXISTS idx_receipts_user    ON client_receipts (user_id);
 CREATE INDEX IF NOT EXISTS idx_receipts_project ON client_receipts (project_id);
+
+-- ─── تحديثات إضافية ───────────────────────────────
+-- رابط الفاتورة للمصاريف
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS receipt_url TEXT DEFAULT '';
+
+-- إنشاء bucket للملفات في Supabase Storage
+-- شغّل في Supabase Dashboard > Storage > New Bucket > receipts (Public)

@@ -4,13 +4,20 @@ import { fmt, fmtDate, todayStr, validatePayment } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
 
+function sendWhatsApp(phone, name, amount, date) {
+  if (!phone) return
+  const clean = phone.replace(/\D/g, '').replace(/^0/, '972')
+  const msg   = `السلام عليكم ${name}،\nتم صرف راتبك بمبلغ ${fmt(amount)}₪ بتاريخ ${fmtDate(date)}.\nشكراً 🏗️`
+  window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank')
+}
+
 export default function PaymentsScreen({ payments, employees, workDays, addPayment, deletePayment, userId, permissions }) {
-  const [showForm,   setShowForm]   = useState(false)
-  const [confirmDel, setConfirmDel] = useState(null)
-  const [formError,  setFormError]  = useState('')
-  const [saving,     setSaving]     = useState(false)
-  const [receiptFile,setReceiptFile]= useState(null)
-  const [preview,    setPreview]    = useState('')
+  const [showForm,    setShowForm]    = useState(false)
+  const [confirmDel,  setConfirmDel]  = useState(null)
+  const [formError,   setFormError]   = useState('')
+  const [saving,      setSaving]      = useState(false)
+  const [receiptFile, setReceiptFile] = useState(null)
+  const [preview,     setPreview]     = useState('')
   const fileRef = useRef()
 
   const emptyForm = { date: todayStr(), employee_id:'', amount:'', method:'' }
@@ -115,6 +122,12 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
                   {p.receipt_url && (
                     <a href={p.receipt_url} target="_blank" rel="noreferrer"
                       style={{ fontSize:16, textDecoration:'none' }} title="عرض الإثبات">📎</a>
+                  )}
+                  {emp?.phone && (
+                    <button onClick={() => sendWhatsApp(emp.phone, emp.name, p.amount, p.date)}
+                      style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }} title="إرسال إشعار واتساب">
+                      💬
+                    </button>
                   )}
                   <button onClick={() => setConfirmDel(p.id)} style={{ background:'none', border:'none', fontSize:12, cursor:'pointer' }}>🗑️</button>
                 </div>
