@@ -37,7 +37,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     setSaving(true)
     try {
       const amount = calcSalary(selectedEmp.daily_rate, form.day_type, form.hours)
-      await addWorkDay({ ...form, amount, hours: parseFloat(form.hours) || 8, status: 'approved' })
+      await addWorkDay({ ...form, amount, hours: parseFloat(form.hours) || 8 })
       setForm(emptyForm)
       setShowForm(false)
     } catch (e) {
