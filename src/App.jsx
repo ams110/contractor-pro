@@ -138,20 +138,31 @@ export default function App() {
       </div>
 
       {/* شريط التنقل السفلي */}
-      <div style={{ position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, background:`${C.surface}f5`, backdropFilter:'blur(12px)', borderTop:`1px solid ${C.border}`, padding:'4px 2px 6px', display:'flex', justifyContent:'space-around', zIndex:50 }}>
-        {NAV.map(n => (
-          <button
-            key={n.id} onClick={() => setScreen(n.id)}
-            style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1, padding:'4px 2px', background:'none', border:'none', cursor:'pointer', minWidth:44 }}
-          >
-            <span style={{ fontSize:18, transform:screen===n.id?'scale(1.15)':'scale(1)', filter:screen===n.id?'none':'grayscale(0.6) opacity(0.5)', transition:'all .2s' }}>
-              {n.icon}
-            </span>
-            <span style={{ fontSize:8, fontWeight:700, color:screen===n.id?C.primary:C.textMuted }}>{n.label}</span>
-            {screen === n.id && <div style={{ width:4, height:4, borderRadius:'50%', background:C.primary, marginTop:1 }} />}
-          </button>
-        ))}
-      </div>
+      {(() => {
+        const pendingCount = workDays.filter(w => w.status === 'pending').length
+        return (
+          <div style={{ position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, background:`${C.surface}f5`, backdropFilter:'blur(12px)', borderTop:`1px solid ${C.border}`, padding:'4px 2px 6px', display:'flex', justifyContent:'space-around', zIndex:50 }}>
+            {NAV.map(n => (
+              <button
+                key={n.id} onClick={() => setScreen(n.id)}
+                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1, padding:'4px 2px', background:'none', border:'none', cursor:'pointer', minWidth:44, position:'relative' }}
+              >
+                <span style={{ fontSize:18, transform:screen===n.id?'scale(1.15)':'scale(1)', filter:screen===n.id?'none':'grayscale(0.6) opacity(0.5)', transition:'all .2s' }}>
+                  {n.icon}
+                </span>
+                {n.id === 'workdays' && pendingCount > 0 && (
+                  <div style={{ position:'absolute', top:0, right:4, minWidth:16, height:16, borderRadius:8, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 3px' }}>
+                    {pendingCount}
+                  </div>
+                )}
+                <span style={{ fontSize:8, fontWeight:700, color:screen===n.id?C.primary:C.textMuted }}>{n.label}</span>
+                {screen === n.id && <div style={{ width:4, height:4, borderRadius:'50%', background:C.primary, marginTop:1 }} />}
+              </button>
+            ))}
+          </div>
+        )
+      })()}
+
 
       {/* بحث */}
       <SearchOverlay

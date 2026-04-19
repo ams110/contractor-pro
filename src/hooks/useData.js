@@ -25,7 +25,15 @@ function useTable(table, userId) {
     setLoading(false)
   }, [table, userId])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => {
+    if (!userId) return
+    fetch()
+    const channel = supabase
+      .channel(`${table}_${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table, filter: `user_id=eq.${userId}` }, fetch)
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [fetch, userId])
 
   return { data, loading, error, refetch: fetch, setData }
 }
