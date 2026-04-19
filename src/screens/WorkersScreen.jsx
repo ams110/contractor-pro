@@ -9,6 +9,15 @@ export default function WorkersScreen({ employees, workDays, payments, addEmploy
   const [confirmDel, setConfirmDel] = useState(null)
   const [formError,  setFormError]  = useState('')
   const [saving,     setSaving]     = useState(false)
+  const [copied,     setCopied]     = useState(null)
+
+  function copyWorkerLink(emp) {
+    const url = `${window.location.origin}${window.location.pathname}?worker=${emp.id}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(emp.id)
+      setTimeout(() => setCopied(null), 2000)
+    })
+  }
 
   const emptyForm = { name:'', phone:'', specialization:'', daily_rate:'', status:'نشط' }
   const [form, setForm] = useState(emptyForm)
@@ -90,7 +99,12 @@ export default function WorkersScreen({ employees, workDays, payments, addEmploy
                         </div>
                       </div>
                     </div>
-                    <div style={{ display:'flex', gap:4 }}>
+                    <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                      <button onClick={() => copyWorkerLink(w)}
+                        title="نسخ رابط بوابة العامل"
+                        style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${copied===w.id?C.success:C.border}`, background:copied===w.id?`${C.success}22`:'transparent', color:copied===w.id?C.success:C.textDim, fontSize:11, fontWeight:700, cursor:'pointer', transition:'all .2s' }}>
+                        {copied===w.id ? '✓ تم' : '🔗'}
+                      </button>
                       <button onClick={() => openEdit(w)} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>✏️</button>
                       <button onClick={() => setConfirmDel(w.id)} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>🗑️</button>
                     </div>

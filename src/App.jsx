@@ -8,7 +8,8 @@ import { useExpenses }       from './hooks/useData.js'
 import { usePayments }       from './hooks/useData.js'
 import { useClientReceipts } from './hooks/useData.js'
 
-import LoginScreen    from './screens/LoginScreen.jsx'
+import LoginScreen      from './screens/LoginScreen.jsx'
+import WorkerPortalScreen from './screens/WorkerPortalScreen.jsx'
 import DashboardScreen from './screens/DashboardScreen.jsx'
 import ProjectsScreen  from './screens/ProjectsScreen.jsx'
 import WorkersScreen   from './screens/WorkersScreen.jsx'
@@ -28,6 +29,17 @@ const globalCSS = `
 `
 
 export default function App() {
+  // Worker portal: detect ?worker=EMPLOYEE_ID in URL
+  const workerParam = new URLSearchParams(window.location.search).get('worker')
+  if (workerParam) {
+    return (
+      <>
+        <style>{globalCSS}</style>
+        <WorkerPortalScreen empId={workerParam} />
+      </>
+    )
+  }
+
   const { user, loading: authLoading } = useAuth()
   const [screen, setScreen] = useState('dashboard')
 
