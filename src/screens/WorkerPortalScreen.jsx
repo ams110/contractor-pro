@@ -143,10 +143,10 @@ function LoginScreen({ onLogin, error, loading }) {
 }
 
 // ─── فورم إرسال يوم عمل ──────────────────────────────────────────────────────
-function SubmitDayForm({ projects, dailyRate, workerName, onSubmit, submitting, submitErr, setSubmitErr }) {
-  const [form, setForm]     = useState({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8' })
-  const [done, setDone]     = useState(false)
-  const [amount, setAmount] = useState(0)
+function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, setSubmitErr }) {
+  const [form, setForm]         = useState({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8' })
+  const [done, setDone]         = useState(false)
+  const [amount, setAmount]     = useState(0)
   const [projName, setProjName] = useState('')
   const [submittedDate, setSubmittedDate] = useState('')
 
@@ -175,33 +175,19 @@ function SubmitDayForm({ projects, dailyRate, workerName, onSubmit, submitting, 
     } catch { /* error shown via submitErr */ }
   }
 
-  function buildWhatsAppMsg() {
-    return encodeURIComponent(
-      `السلام عليكم 👋\nأنا ${workerName}، سجلت يوم شغل بتاريخ ${submittedDate} في مشروع "${projName}" (${fmt(amount)}₪).\nرجاءً تأكد الحضور. شكراً 🏗️`
-    )
-  }
-
   if (done) {
     return (
       <div style={{ textAlign: 'center', padding: '30px 16px' }}>
         <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
         <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم الإرسال!</div>
-        <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>
-          {projName} • {submittedDate}
+        <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>{projName} • {submittedDate}</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: C.primary, marginBottom: 16, fontFamily: 'monospace' }}>{fmt(amount)}₪</div>
+        <div style={{ padding: '12px 16px', background: `${C.primary}12`, borderRadius: 12, marginBottom: 20, border: `1px solid ${C.primary}33` }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4 }}>🔔 وصل إشعار للمشرف</div>
+          <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب في التطبيق ويوافق عليه</div>
         </div>
-        <div style={{ fontSize: 15, fontWeight: 800, color: C.primary, marginBottom: 16, fontFamily: 'monospace' }}>
-          {fmt(amount)}₪
-        </div>
-        <div style={{ fontSize: 12, color: C.warning, marginBottom: 16, padding: '8px 12px', background: `${C.warning}15`, borderRadius: 10 }}>
-          ⏳ بانتظار موافقة المشرف
-        </div>
-        {/* زر إبلاغ المشرف عبر واتساب */}
-        <a href={`https://wa.me/?text=${buildWhatsAppMsg()}`} target="_blank" rel="noreferrer"
-          style={{ display: 'block', width: '100%', padding: '13px 0', borderRadius: 14, background: '#25D366', border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', textDecoration: 'none', marginBottom: 10, boxSizing: 'border-box' }}>
-          📲 أبلغ المشرف عبر واتساب
-        </a>
         <button onClick={() => { setDone(false); setForm({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8' }) }}
-          style={{ width: '100%', padding: '11px 0', borderRadius: 12, background: 'transparent', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           + أضف يوم آخر
         </button>
       </div>
@@ -355,7 +341,6 @@ export default function WorkerPortalScreen() {
           <SubmitDayForm
             projects={projects}
             dailyRate={worker.daily_rate || 0}
-            workerName={worker.name || ''}
             onSubmit={submitWorkDay}
             submitting={submitting}
             submitErr={submitErr}

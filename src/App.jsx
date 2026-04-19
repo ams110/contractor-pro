@@ -20,8 +20,10 @@ import WorkDaysScreen     from './screens/WorkDaysScreen.jsx'
 import ExpensesScreen     from './screens/ExpensesScreen.jsx'
 import PaymentsScreen     from './screens/PaymentsScreen.jsx'
 import SettingsScreen     from './screens/SettingsScreen.jsx'
-import SearchOverlay      from './components/SearchOverlay.jsx'
-import { LoadingSpinner } from './components/index.jsx'
+import SearchOverlay        from './components/SearchOverlay.jsx'
+import NotificationsPanel   from './components/NotificationsPanel.jsx'
+import { LoadingSpinner }   from './components/index.jsx'
+import { useNotifications } from './hooks/useNotifications.js'
 
 const globalCSS = `
   @keyframes fadeIn  { from { opacity:0; transform:translateY(8px)  } to { opacity:1; transform:translateY(0) } }
@@ -48,8 +50,9 @@ export default function App() {
   }
 
   const { user, loading: authLoading } = useAuth()
-  const [screen,     setScreen]     = useState('dashboard')
-  const [showSearch, setShowSearch] = useState(false)
+  const [screen,      setScreen]      = useState('dashboard')
+  const [showSearch,  setShowSearch]  = useState(false)
+  const [showNotifs,  setShowNotifs]  = useState(false)
 
   const uid = user?.id
 
@@ -62,6 +65,7 @@ export default function App() {
   const { specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat }                      = useSettings(uid)
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar }                   = useProfile(uid)
   const { teamMembers, pendingInvite, permissions, effectiveOwnerId, acceptInvite, inviteMember, updateMember, removeMember } = useTeam(uid, user?.email)
+  const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
@@ -122,13 +126,22 @@ export default function App() {
           <span style={{ fontSize:20 }}>🏗️</span>
           <span style={{ fontSize:15, fontWeight:800, color:C.primary }}>Contractor Pro</span>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           {dataLoading && <div style={{ width:14, height:14, border:`2px solid ${C.border}`, borderTopColor:C.primary, borderRadius:'50%', animation:'spin .8s linear infinite' }} />}
+          {/* زر الإشعارات */}
+          <button onClick={() => setShowNotifs(true)}
+            style={{ position:'relative', background:'none', border:'none', fontSize:18, cursor:'pointer', padding:'2px 4px', color:C.textDim }}>
+            🔔
+            {unreadCount > 0 && (
+              <div style={{ position:'absolute', top:-2, right:-2, minWidth:16, height:16, borderRadius:8, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 3px' }}>
+                {unreadCount}
+              </div>
+            )}
+          </button>
           <button onClick={() => setShowSearch(true)}
             style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', padding:'2px 4px', color:C.textDim }}>
             🔍
           </button>
-          <div style={{ fontSize:12, color:C.textDim }}>{NAV.find(n => n.id === screen)?.label}</div>
         </div>
       </div>
 
@@ -163,6 +176,18 @@ export default function App() {
         )
       })()}
 
+
+      {/* إشعارات */}
+      <NotificationsPanel
+        open={showNotifs}
+        onClose={() => setShowNotifs(false)}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        markAllRead={markAllRead}
+        markRead={markRead}
+        deleteAll={deleteAll}
+        onNav={nav => { setScreen(nav); setShowNotifs(false) }}
+      />
 
       {/* بحث */}
       <SearchOverlay
