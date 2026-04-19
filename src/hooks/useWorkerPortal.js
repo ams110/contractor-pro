@@ -44,7 +44,14 @@ export function useWorkerPortal() {
   }, [])
 
   useEffect(() => {
-    if (stored?.id) loadData(stored.id)
+    if (!stored?.id) return
+    if (!stored.token) {
+      // جلسة قديمة بدون توكن — أجبر على إعادة تسجيل الدخول
+      clearSession()
+      setWorker(null)
+      return
+    }
+    loadData(stored.id)
   }, []) // eslint-disable-line
 
   async function login(username, password) {
