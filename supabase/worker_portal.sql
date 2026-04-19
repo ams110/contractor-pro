@@ -1,35 +1,83 @@
 -- =====================================================
 -- Worker Portal - Supabase Functions
 -- شغّل هذا الملف في Supabase > SQL Editor
--- يتيح للعمال تسجيل أيام شغلهم عبر رابط خاص
 -- =====================================================
 
--- دالة: جلب بيانات العامل عبر رمزه (employee id)
-CREATE OR REPLACE FUNCTION get_worker_by_id(emp_id UUID)
+-- تفعيل امتداد التشفير
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- إضافة أعمدة بيانات دخول العامل
+ALTER TABLE employees
+  ADD COLUMN IF NOT EXISTS worker_username     TEXT UNIQUE,
+  ADD COLUMN IF NOT EXISTS worker_password_hash TEXT;
+
+-- ─── دالة: تعيين بيانات دخول العامل (يستدعيها الأدمن فقط) ───────────────────
+CREATE OR REPLACE FUNCTION set_worker_credentials(
+  emp_id   UUID,
+  username TEXT,
+  password TEXT
+)
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE result json;
 BEGIN
-  SELECT json_build_object(
-    'id',             e.id,
-    'name',           e.name,
-    'phone',          e.phone,
-    'specialization', e.specialization,
-    'daily_rate',     e.daily_rate,
-    'status',         e.status,
-    'user_id',        e.user_id
-  )
-  INTO result
-  FROM employees e
-  WHERE e.id = emp_id;
-  RETURN result;
+  IF auth.uid() IS NULL THEN
+    RETURN json_build_object('error', 'غير مصرح');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM employees WHERE id = emp_id AND user_id = auth.uid()) THEN
+    RETURN json_build_object('error', 'العامل غير موجود أو ليس لديك صلاحية');
+  END IF;
+
+  -- التحقق من أن اسم المستخدم غير مستخدم من عامل آخر
+  IF EXISTS (
+    SELECT 1 FROM employees
+    WHERE lower(worker_username) = lower(trim(username))
+      AND id != emp_id
+  ) THEN
+    RETURN json_build_object('error', 'اسم المستخدم مستخدم بالفعل');
+  END IF;
+
+  UPDATE employees
+  SET worker_username      = lower(trim(username)),
+      worker_password_hash = crypt(password, gen_salt('bf'))
+  WHERE id = emp_id AND user_id = auth.uid();
+
+  RETURN json_build_object('success', true);
 END;
 $$;
 
--- دالة: جلب المشاريع النشطة لصاحب العامل
+-- ─── دالة: تسجيل دخول العامل ────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION worker_login(p_username TEXT, p_password TEXT)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE emp employees%ROWTYPE;
+BEGIN
+  SELECT * INTO emp
+  FROM employees
+  WHERE lower(worker_username) = lower(trim(p_username))
+    AND worker_password_hash   = crypt(p_password, worker_password_hash);
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('error', 'اسم المستخدم أو كلمة المرور غير صحيحة');
+  END IF;
+
+  RETURN json_build_object(
+    'id',             emp.id,
+    'name',           emp.name,
+    'specialization', emp.specialization,
+    'daily_rate',     emp.daily_rate,
+    'status',         emp.status
+  );
+END;
+$$;
+
+-- ─── دالة: جلب المشاريع النشطة للعامل ──────────────────────────────────────
 CREATE OR REPLACE FUNCTION get_worker_projects(emp_id UUID)
 RETURNS json
 LANGUAGE plpgsql
@@ -52,7 +100,7 @@ BEGIN
 END;
 $$;
 
--- دالة: جلب أيام عمل العامل (آخر 60 يوم)
+-- ─── دالة: جلب أيام عمل العامل (كل الأيام) ─────────────────────────────────
 CREATE OR REPLACE FUNCTION get_worker_days(emp_id UUID)
 RETURNS json
 LANGUAGE plpgsql
@@ -69,12 +117,11 @@ BEGIN
   SELECT COALESCE(
     json_agg(
       json_build_object(
-        'id',         wd.id,
-        'date',       wd.date,
-        'day_type',   wd.day_type,
-        'hours',      wd.hours,
-        'amount',     wd.amount,
-        'project_id', wd.project_id,
+        'id',           wd.id,
+        'date',         wd.date,
+        'day_type',     wd.day_type,
+        'hours',        wd.hours,
+        'amount',       wd.amount,
         'project_name', p.name
       ) ORDER BY wd.date DESC
     ),
@@ -83,15 +130,13 @@ BEGIN
   INTO result
   FROM work_days wd
   LEFT JOIN projects p ON p.id = wd.project_id
-  WHERE wd.employee_id = emp_id
-    AND wd.user_id     = owner_id
-    AND wd.date        >= CURRENT_DATE - INTERVAL '60 days';
+  WHERE wd.employee_id = emp_id AND wd.user_id = owner_id;
 
   RETURN result;
 END;
 $$;
 
--- دالة: جلب الدفعات المستلمة للعامل
+-- ─── دالة: جلب الدفعات المستلمة للعامل ──────────────────────────────────────
 CREATE OR REPLACE FUNCTION get_worker_payments(emp_id UUID)
 RETURNS json
 LANGUAGE plpgsql
@@ -117,62 +162,5 @@ BEGIN
   WHERE employee_id = emp_id AND user_id = owner_id;
 
   RETURN result;
-END;
-$$;
-
--- دالة: تسجيل يوم عمل من قِبَل العامل
-CREATE OR REPLACE FUNCTION submit_worker_day(
-  emp_id     UUID,
-  p_date     TEXT,
-  p_day_type TEXT,
-  p_hours    NUMERIC,
-  p_proj_id  UUID DEFAULT NULL
-)
-RETURNS json
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  emp        employees%ROWTYPE;
-  day_amount NUMERIC;
-  new_id     UUID;
-BEGIN
-  SELECT * INTO emp FROM employees WHERE id = emp_id;
-  IF NOT FOUND OR emp.status != 'نشط' THEN
-    RETURN json_build_object('error', 'رمز العامل غير صحيح أو العامل غير نشط');
-  END IF;
-
-  -- التحقق من عدم تسجيل اليوم مسبقاً
-  IF EXISTS (
-    SELECT 1 FROM work_days
-    WHERE employee_id = emp_id AND date = p_date::DATE AND user_id = emp.user_id
-  ) THEN
-    RETURN json_build_object('error', 'تم تسجيل هذا اليوم مسبقاً');
-  END IF;
-
-  -- حساب المبلغ
-  day_amount := CASE
-    WHEN p_day_type = 'كامل'   THEN emp.daily_rate
-    WHEN p_day_type = 'نص يوم' THEN emp.daily_rate * 0.5
-    ELSE ROUND(emp.daily_rate * (p_hours / 8.0), 2)
-  END;
-
-  new_id := gen_random_uuid();
-
-  INSERT INTO work_days (id, user_id, employee_id, project_id, date, day_type, hours, amount, created_at)
-  VALUES (
-    new_id,
-    emp.user_id,
-    emp_id,
-    p_proj_id,
-    p_date::DATE,
-    p_day_type,
-    CASE WHEN p_day_type = 'كامل' THEN 8 WHEN p_day_type = 'نص يوم' THEN 4 ELSE p_hours END,
-    day_amount,
-    NOW()
-  );
-
-  RETURN json_build_object('success', true, 'id', new_id, 'amount', day_amount);
 END;
 $$;

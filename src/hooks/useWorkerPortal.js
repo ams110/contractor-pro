@@ -1,59 +1,105 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
 
-export function useWorkerPortal(empId) {
-  const [worker,   setWorker]   = useState(null)
-  const [projects, setProjects] = useState([])
-  const [workDays, setWorkDays] = useState([])
-  const [payments, setPayments] = useState([])
-  const [loading,  setLoading]  = useState(true)
-  const [error,    setError]    = useState('')
+const SESSION_KEY = 'worker_session'
 
-  const load = useCallback(async () => {
-    if (!empId) return
+function saveSession(data) {
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(data))
+}
+
+function loadSession() {
+  try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)) } catch { return null }
+}
+
+function clearSession() {
+  sessionStorage.removeItem(SESSION_KEY)
+}
+
+export function useWorkerPortal() {
+  const stored                      = loadSession()
+  const [worker,   setWorker]       = useState(stored)
+  const [workDays, setWorkDays]     = useState([])
+  const [payments, setPayments]     = useState([])
+  const [loading,  setLoading]      = useState(!!stored)
+  const [loginErr, setLoginErr]     = useState('')
+  const [loggingIn, setLoggingIn]   = useState(false)
+
+  const loadData = useCallback(async (empId) => {
     setLoading(true)
-    setError('')
     try {
-      const [wRes, pRes, dRes, pyRes] = await Promise.all([
-        supabase.rpc('get_worker_by_id',   { emp_id: empId }),
-        supabase.rpc('get_worker_projects', { emp_id: empId }),
-        supabase.rpc('get_worker_days',    { emp_id: empId }),
+      const [dRes, pyRes] = await Promise.all([
+        supabase.rpc('get_worker_days',     { emp_id: empId }),
         supabase.rpc('get_worker_payments', { emp_id: empId }),
       ])
-
-      if (wRes.error) throw new Error(wRes.error.message)
-      if (!wRes.data) { setError('رمز العامل غير صحيح'); setLoading(false); return }
-
-      setWorker(wRes.data)
-      setProjects(pRes.data || [])
       setWorkDays(dRes.data || [])
       setPayments(pyRes.data || [])
-    } catch (e) {
-      setError(e.message || 'خطأ في الاتصال')
     } finally {
       setLoading(false)
     }
-  }, [empId])
+  }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (stored?.id) loadData(stored.id)
+  }, []) // eslint-disable-line
 
-  async function submitDay(form) {
-    const { data, error: err } = await supabase.rpc('submit_worker_day', {
-      emp_id:     empId,
-      p_date:     form.date,
-      p_day_type: form.day_type,
-      p_hours:    parseFloat(form.hours) || 8,
-      p_proj_id:  form.project_id || null,
-    })
-    if (err) throw new Error(err.message)
-    if (data?.error) throw new Error(data.error)
-    await load()
-    return data
+  async function login(username, password) {
+    setLoggingIn(true)
+    setLoginErr('')
+    try {
+      const { data, error } = await supabase.rpc('worker_login', {
+        p_username: username,
+        p_password: password,
+      })
+      if (error) throw new Error(error.message)
+      if (data?.error) throw new Error(data.error)
+      saveSession(data)
+      setWorker(data)
+      await loadData(data.id)
+    } catch (e) {
+      setLoginErr(e.message)
+    } finally {
+      setLoggingIn(false)
+    }
   }
 
-  const earned = workDays.reduce((s, d) => s + (d.amount || 0), 0)
-  const paid   = payments.reduce((s, p) => s + (p.amount || 0), 0)
-  const owed   = Math.max(0, earned - paid)
+  function logout() {
+    clearSession()
+    setWorker(null)
+    setWorkDays([])
+    setPayments([])
+  }
 
-  return { worker, projects, workDays, payments, loading, error, submitDay, reload: load, earned, paid, owed }
+  // حساب الملخص الشهري
+  const monthlyBreakdown = (() => {
+    const map = {}
+    workDays.forEach(d => {
+      const month = String(d.date).substring(0, 7)
+      if (!map[month]) map[month] = { days: 0, amount: 0 }
+      map[month].days++
+      map[month].amount += d.amount || 0
+    })
+    return Object.entries(map).sort(([a], [b]) => b.localeCompare(a))
+  })()
+
+  const totalEarned = workDays.reduce((s, d) => s + (d.amount || 0), 0)
+  const totalPaid   = payments.reduce((s, p) => s + (p.amount || 0), 0)
+  const totalOwed   = Math.max(0, totalEarned - totalPaid)
+
+  return {
+    worker, workDays, payments, loading, loginErr, loggingIn,
+    login, logout,
+    monthlyBreakdown, totalEarned, totalPaid, totalOwed,
+  }
+}
+
+// دالة لتعيين بيانات دخول العامل (تستدعيها من شاشة الأدمن)
+export async function setWorkerCredentials(empId, username, password) {
+  const { data, error } = await supabase.rpc('set_worker_credentials', {
+    emp_id:   empId,
+    username,
+    password,
+  })
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(data.error)
+  return data
 }

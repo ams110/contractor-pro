@@ -29,13 +29,13 @@ const globalCSS = `
 `
 
 export default function App() {
-  // Worker portal: detect ?worker=EMPLOYEE_ID in URL
-  const workerParam = new URLSearchParams(window.location.search).get('worker')
-  if (workerParam) {
+  // Worker portal: detect ?portal in URL
+  const params = new URLSearchParams(window.location.search)
+  if (params.has('portal') || params.has('worker')) {
     return (
       <>
         <style>{globalCSS}</style>
-        <WorkerPortalScreen empId={workerParam} />
+        <WorkerPortalScreen />
       </>
     )
   }
