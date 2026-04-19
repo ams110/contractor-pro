@@ -1,29 +1,42 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { C, EXP_CATS, PAY_METHODS, VAT } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, EmptyState, TabBar, ConfirmDialog } from '../components/index.jsx'
+import { uploadReceipt } from '../lib/storage.js'
 
 const CAT_ICONS = { 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
 
-export default function ExpensesScreen({ expenses, projects, addExpense, deleteExpense }) {
-  const [showForm,   setShowForm]   = useState(false)
-  const [filter,     setFilter]     = useState('الكل')
-  const [confirmDel, setConfirmDel] = useState(null)
-  const [formError,  setFormError]  = useState('')
-  const [saving,     setSaving]     = useState(false)
+export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, userId, permissions }) {
+  const [showForm,    setShowForm]    = useState(false)
+  const [filter,      setFilter]      = useState('الكل')
+  const [confirmDel,  setConfirmDel]  = useState(null)
+  const [formError,   setFormError]   = useState('')
+  const [saving,      setSaving]      = useState(false)
+  const [receiptFile, setReceiptFile] = useState(null)
+  const [preview,     setPreview]     = useState('')
+  const fileRef = useRef()
 
   const emptyForm = { date: todayStr(), amount:'', category:'', project_id:'', vendor:'', payment_method:'' }
   const [form, setForm] = useState(emptyForm)
 
   function f(key) { return v => setForm(prev => ({ ...prev, [key]: v })) }
 
+  function pickFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setReceiptFile(file)
+    setPreview(URL.createObjectURL(file))
+  }
+
   async function save() {
     const err = validateExpense(form)
     if (err) return setFormError(err)
     setSaving(true)
     try {
-      await addExpense({ ...form, amount: parseFloat(form.amount) })
-      setForm(emptyForm)
+      let receipt_url = ''
+      if (receiptFile) receipt_url = await uploadReceipt(userId, receiptFile)
+      await addExpense({ ...form, amount: parseFloat(form.amount), receipt_url })
+      setForm(emptyForm); setReceiptFile(null); setPreview('')
       setShowForm(false)
     } catch (e) {
       setFormError(e.message)
@@ -40,7 +53,7 @@ export default function ExpensesScreen({ expenses, projects, addExpense, deleteE
     <div className="fade-in" style={{ padding:16 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
         <div style={{ fontSize:20, fontWeight:800, color:C.text }}>💸 المصاريف</div>
-        <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ مصروف</Btn>
+        {permissions?.addExpenses !== false && <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ مصروف</Btn>}
       </div>
 
       {/* إجمالي */}
@@ -80,6 +93,10 @@ export default function ExpensesScreen({ expenses, projects, addExpense, deleteE
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <div style={{ fontSize:14, fontWeight:700, color:C.accent, fontFamily:'monospace' }}>{fmt(ex.amount)}₪</div>
+                  {ex.receipt_url && (
+                    <a href={ex.receipt_url} target="_blank" rel="noreferrer"
+                      style={{ fontSize:16, textDecoration:'none' }} title="عرض الفاتورة">📎</a>
+                  )}
                   <button onClick={() => setConfirmDel(ex.id)} style={{ background:'none', border:'none', fontSize:12, cursor:'pointer' }}>🗑️</button>
                 </div>
               </div>
@@ -87,9 +104,9 @@ export default function ExpensesScreen({ expenses, projects, addExpense, deleteE
           })
       }
 
-      <Modal open={showForm} onClose={() => setShowForm(false)} title="مصروف جديد">
-        <Input label="التاريخ"    value={form.date}           onChange={f('date')}           type="date" required />
-        <Input label="المبلغ (₪)" value={form.amount}         onChange={f('amount')}         type="number" min="0.01" required />
+      <Modal open={showForm} onClose={() => { setShowForm(false); setReceiptFile(null); setPreview('') }} title="مصروف جديد">
+        <Input label="التاريخ"    value={form.date}   onChange={f('date')}   type="date" required />
+        <Input label="المبلغ (₪)" value={form.amount} onChange={f('amount')} type="number" min="0.01" required />
 
         {/* معاينة الضريبة */}
         {form.amount && parseFloat(form.amount) > 0 && (
@@ -99,7 +116,7 @@ export default function ExpensesScreen({ expenses, projects, addExpense, deleteE
           </div>
         )}
 
-        <Input label="التصنيف"       value={form.category}      onChange={f('category')}       options={EXP_CATS} required />
+        <Input label="التصنيف" value={form.category} onChange={f('category')} options={expCats || EXP_CATS} required />
 
         {/* اختيار المشروع */}
         {projects.length > 0 && (
@@ -116,8 +133,26 @@ export default function ExpensesScreen({ expenses, projects, addExpense, deleteE
           </div>
         )}
 
-        <Input label="المحل"         value={form.vendor}        onChange={f('vendor')} />
-        <Input label="طريقة الدفع"   value={form.payment_method}onChange={f('payment_method')} options={PAY_METHODS} />
+        <Input label="المحل / المورّد" value={form.vendor}         onChange={f('vendor')} />
+        <Input label="طريقة الدفع"    value={form.payment_method} onChange={f('payment_method')} options={PAY_METHODS} />
+
+        {/* رفع الفاتورة */}
+        <div style={{ marginBottom:14 }}>
+          <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>📎 فاتورة / إثبات الشراء (اختياري)</label>
+          <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={pickFile} />
+          {preview
+            ? <div style={{ position:'relative', display:'inline-block', width:'100%' }}>
+                <img src={preview} alt="فاتورة" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:10, border:`1px solid ${C.border}` }} />
+                <button onClick={() => { setReceiptFile(null); setPreview('') }}
+                  style={{ position:'absolute', top:4, left:4, background:`${C.accent}cc`, border:'none', borderRadius:'50%', width:22, height:22, color:'#fff', cursor:'pointer', fontSize:12 }}>×</button>
+              </div>
+            : <button onClick={() => fileRef.current.click()}
+                style={{ width:'100%', padding:'12px', borderRadius:10, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer' }}>
+                📷 اضغط لرفع صورة الفاتورة
+              </button>
+          }
+        </div>
+
         {formError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {formError}</div>}
         <Btn onClick={save} full disabled={saving || !form.amount || !form.category}>
           {saving ? 'جاري الحفظ...' : '✓ أضف المصروف'}

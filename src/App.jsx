@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { C, NAV } from './constants/index.js'
-import { useAuth }      from './hooks/useAuth.js'
+import { useAuth }           from './hooks/useAuth.js'
 import { useProjects }       from './hooks/useData.js'
 import { useEmployees }      from './hooks/useData.js'
 import { useWorkDays }       from './hooks/useData.js'
@@ -8,18 +8,18 @@ import { useExpenses }       from './hooks/useData.js'
 import { usePayments }       from './hooks/useData.js'
 import { useClientReceipts } from './hooks/useData.js'
 
-import LoginScreen      from './screens/LoginScreen.jsx'
+import LoginScreen        from './screens/LoginScreen.jsx'
 import WorkerPortalScreen from './screens/WorkerPortalScreen.jsx'
-import DashboardScreen from './screens/DashboardScreen.jsx'
-import ProjectsScreen  from './screens/ProjectsScreen.jsx'
-import WorkersScreen   from './screens/WorkersScreen.jsx'
-import WorkDaysScreen  from './screens/WorkDaysScreen.jsx'
-import ExpensesScreen  from './screens/ExpensesScreen.jsx'
-import PaymentsScreen  from './screens/PaymentsScreen.jsx'
-import SettingsScreen  from './screens/SettingsScreen.jsx'
+import DashboardScreen    from './screens/DashboardScreen.jsx'
+import ProjectsScreen     from './screens/ProjectsScreen.jsx'
+import WorkersScreen      from './screens/WorkersScreen.jsx'
+import WorkDaysScreen     from './screens/WorkDaysScreen.jsx'
+import ExpensesScreen     from './screens/ExpensesScreen.jsx'
+import PaymentsScreen     from './screens/PaymentsScreen.jsx'
+import SettingsScreen     from './screens/SettingsScreen.jsx'
+import SearchOverlay      from './components/SearchOverlay.jsx'
 import { LoadingSpinner } from './components/index.jsx'
 
-// ─── Animations CSS ───────────────────────────────────────────────────────────
 const globalCSS = `
   @keyframes fadeIn  { from { opacity:0; transform:translateY(8px)  } to { opacity:1; transform:translateY(0) } }
   @keyframes slideUp { from { transform:translateY(100%) }             to { transform:translateY(0) } }
@@ -41,7 +41,8 @@ export default function App() {
   }
 
   const { user, loading: authLoading } = useAuth()
-  const [screen, setScreen] = useState('dashboard')
+  const [screen,     setScreen]     = useState('dashboard')
+  const [showSearch, setShowSearch] = useState(false)
 
   const uid = user?.id
 
@@ -54,7 +55,6 @@ export default function App() {
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
-  // ─── شاشة التحميل الأولى ─────────────────────────────────────────────────
   if (authLoading) {
     return (
       <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
@@ -66,7 +66,6 @@ export default function App() {
     )
   }
 
-  // ─── تسجيل الدخول ────────────────────────────────────────────────────────
   if (!user) {
     return (
       <>
@@ -76,16 +75,15 @@ export default function App() {
     )
   }
 
-  // ─── الشاشة الحالية ──────────────────────────────────────────────────────
   function renderScreen() {
     const commonData = { projects, employees, workDays, expenses, payments, clientReceipts }
     switch (screen) {
       case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} />
-      case 'projects':  return <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} deleteReceipt={deleteReceipt} />
+      case 'projects':  return <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} deleteReceipt={deleteReceipt} userId={uid} />
       case 'workers':   return <WorkersScreen   employees={employees} workDays={workDays} payments={payments} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} />
       case 'workdays':  return <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} />
-      case 'expenses':  return <ExpensesScreen  expenses={expenses} projects={projects} addExpense={addExpense} deleteExpense={deleteExpense} />
-      case 'payments':  return <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} addPayment={addPayment} deletePayment={deletePayment} />
+      case 'expenses':  return <ExpensesScreen  expenses={expenses} projects={projects} addExpense={addExpense} deleteExpense={deleteExpense} userId={uid} />
+      case 'payments':  return <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} addPayment={addPayment} deletePayment={deletePayment} userId={uid} />
       case 'settings':  return <SettingsScreen  {...commonData} userId={uid} />
       default:          return <DashboardScreen {...commonData} onNav={setScreen} />
     }
@@ -101,8 +99,12 @@ export default function App() {
           <span style={{ fontSize:20 }}>🏗️</span>
           <span style={{ fontSize:15, fontWeight:800, color:C.primary }}>Contractor Pro</span>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           {dataLoading && <div style={{ width:14, height:14, border:`2px solid ${C.border}`, borderTopColor:C.primary, borderRadius:'50%', animation:'spin .8s linear infinite' }} />}
+          <button onClick={() => setShowSearch(true)}
+            style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', padding:'2px 4px', color:C.textDim }}>
+            🔍
+          </button>
           <div style={{ fontSize:12, color:C.textDim }}>{NAV.find(n => n.id === screen)?.label}</div>
         </div>
       </div>
@@ -127,6 +129,16 @@ export default function App() {
           </button>
         ))}
       </div>
+
+      {/* بحث */}
+      <SearchOverlay
+        open={showSearch}
+        onClose={() => setShowSearch(false)}
+        projects={projects} employees={employees}
+        expenses={expenses} payments={payments}
+        workDays={workDays}
+        onNav={nav => { setScreen(nav); setShowSearch(false) }}
+      />
     </div>
   )
 }

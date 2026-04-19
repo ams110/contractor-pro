@@ -1,13 +1,24 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { C, PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validatePayment } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
+import { uploadReceipt } from '../lib/storage.js'
 
-export default function PaymentsScreen({ payments, employees, workDays, addPayment, deletePayment }) {
-  const [showForm,   setShowForm]   = useState(false)
-  const [confirmDel, setConfirmDel] = useState(null)
-  const [formError,  setFormError]  = useState('')
-  const [saving,     setSaving]     = useState(false)
+function sendWhatsApp(phone, name, amount, date) {
+  if (!phone) return
+  const clean = phone.replace(/\D/g, '').replace(/^0/, '972')
+  const msg   = `السلام عليكم ${name}،\nتم صرف راتبك بمبلغ ${fmt(amount)}₪ بتاريخ ${fmtDate(date)}.\nشكراً 🏗️`
+  window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank')
+}
+
+export default function PaymentsScreen({ payments, employees, workDays, addPayment, deletePayment, userId }) {
+  const [showForm,    setShowForm]    = useState(false)
+  const [confirmDel,  setConfirmDel]  = useState(null)
+  const [formError,   setFormError]   = useState('')
+  const [saving,      setSaving]      = useState(false)
+  const [receiptFile, setReceiptFile] = useState(null)
+  const [preview,     setPreview]     = useState('')
+  const fileRef = useRef()
 
   const emptyForm = { date: todayStr(), employee_id:'', amount:'', method:'' }
   const [form, setForm] = useState(emptyForm)
@@ -30,8 +41,12 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
     if (err) return setFormError(err)
     setSaving(true)
     try {
-      await addPayment({ ...form, amount: parseFloat(form.amount) })
-      setForm(emptyForm)
+      let receipt_url = ''
+      if (receiptFile && form.method === 'تحويل بنكي') {
+        receipt_url = await uploadReceipt(userId, receiptFile)
+      }
+      await addPayment({ ...form, amount: parseFloat(form.amount), receipt_url })
+      setForm(emptyForm); setReceiptFile(null); setPreview('')
       setShowForm(false)
     } catch (e) {
       setFormError(e.message)
@@ -97,6 +112,16 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <div style={{ fontSize:14, fontWeight:700, color:C.success, fontFamily:'monospace' }}>{fmt(p.amount)}₪</div>
+                  {p.receipt_url && (
+                    <a href={p.receipt_url} target="_blank" rel="noreferrer"
+                      style={{ fontSize:16, textDecoration:'none' }} title="عرض الإثبات">📎</a>
+                  )}
+                  {emp?.phone && (
+                    <button onClick={() => sendWhatsApp(emp.phone, emp.name, p.amount, p.date)}
+                      style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }} title="إرسال إشعار واتساب">
+                      💬
+                    </button>
+                  )}
                   <button onClick={() => setConfirmDel(p.id)} style={{ background:'none', border:'none', fontSize:12, cursor:'pointer' }}>🗑️</button>
                 </div>
               </div>
