@@ -16,23 +16,28 @@ function clearSession() {
 }
 
 export function useWorkerPortal() {
-  const stored                      = loadSession()
-  const [worker,   setWorker]       = useState(stored)
-  const [workDays, setWorkDays]     = useState([])
-  const [payments, setPayments]     = useState([])
-  const [loading,  setLoading]      = useState(!!stored)
-  const [loginErr, setLoginErr]     = useState('')
-  const [loggingIn, setLoggingIn]   = useState(false)
+  const stored                        = loadSession()
+  const [worker,    setWorker]        = useState(stored)
+  const [workDays,  setWorkDays]      = useState([])
+  const [payments,  setPayments]      = useState([])
+  const [projects,  setProjects]      = useState([])
+  const [loading,   setLoading]       = useState(!!stored)
+  const [loginErr,  setLoginErr]      = useState('')
+  const [loggingIn, setLoggingIn]     = useState(false)
+  const [submitting, setSubmitting]   = useState(false)
+  const [submitErr,  setSubmitErr]    = useState('')
 
   const loadData = useCallback(async (empId) => {
     setLoading(true)
     try {
-      const [dRes, pyRes] = await Promise.all([
+      const [dRes, pyRes, prRes] = await Promise.all([
         supabase.rpc('get_worker_days',     { emp_id: empId }),
         supabase.rpc('get_worker_payments', { emp_id: empId }),
+        supabase.rpc('get_worker_projects', { emp_id: empId }),
       ])
-      setWorkDays(dRes.data || [])
+      setWorkDays(dRes.data  || [])
       setPayments(pyRes.data || [])
+      setProjects(prRes.data || [])
     } finally {
       setLoading(false)
     }
@@ -67,12 +72,39 @@ export function useWorkerPortal() {
     setWorker(null)
     setWorkDays([])
     setPayments([])
+    setProjects([])
   }
 
-  // حساب الملخص الشهري
+  async function submitWorkDay({ projectId, date, dayType, hours }) {
+    const session = loadSession()
+    if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
+    setSubmitting(true)
+    setSubmitErr('')
+    try {
+      const { data, error } = await supabase.rpc('worker_submit_day', {
+        p_emp_id:     session.id,
+        p_token:      session.token,
+        p_project_id: projectId,
+        p_date:       date,
+        p_day_type:   dayType,
+        p_hours:      parseFloat(hours) || 8,
+      })
+      if (error) throw new Error(error.message)
+      if (data?.error) throw new Error(data.error)
+      await loadData(session.id)
+      return data
+    } catch (e) {
+      setSubmitErr(e.message)
+      throw e
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // الملخص الشهري (الأيام الموافق عليها فقط)
   const monthlyBreakdown = (() => {
     const map = {}
-    workDays.forEach(d => {
+    workDays.filter(d => d.status === 'approved').forEach(d => {
       const month = String(d.date).substring(0, 7)
       if (!map[month]) map[month] = { days: 0, amount: 0 }
       map[month].days++
@@ -81,18 +113,19 @@ export function useWorkerPortal() {
     return Object.entries(map).sort(([a], [b]) => b.localeCompare(a))
   })()
 
-  const totalEarned = workDays.reduce((s, d) => s + (d.amount || 0), 0)
+  const totalEarned = workDays.filter(d => d.status === 'approved').reduce((s, d) => s + (d.amount || 0), 0)
   const totalPaid   = payments.reduce((s, p) => s + (p.amount || 0), 0)
   const totalOwed   = Math.max(0, totalEarned - totalPaid)
+  const pendingDays = workDays.filter(d => d.status === 'pending')
 
   return {
-    worker, workDays, payments, loading, loginErr, loggingIn,
-    login, logout,
-    monthlyBreakdown, totalEarned, totalPaid, totalOwed,
+    worker, workDays, payments, projects, loading, loginErr, loggingIn,
+    submitting, submitErr, setSubmitErr,
+    login, logout, submitWorkDay, refetch: () => worker?.id && loadData(worker.id),
+    monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
   }
 }
 
-// دالة لتعيين بيانات دخول العامل (تستدعيها من شاشة الأدمن)
 export async function setWorkerCredentials(empId, username, password) {
   const { data, error } = await supabase.rpc('set_worker_credentials', {
     emp_id:   empId,

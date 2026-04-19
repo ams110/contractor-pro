@@ -55,7 +55,7 @@ export default function App() {
 
   const { projects,       loading: pLoad,  addProject,    updateProject,    deleteProject   } = useProjects(uid)
   const { employees,      loading: eLoad,  addEmployee,   updateEmployee,   deleteEmployee  } = useEmployees(uid)
-  const { workDays,       loading: wLoad,  addWorkDay,                      deleteWorkDay   } = useWorkDays(uid)
+  const { workDays,       loading: wLoad,  addWorkDay,  deleteWorkDay, approveWorkDay, rejectWorkDay } = useWorkDays(uid)
   const { expenses,       loading: xLoad,  addExpense,                      deleteExpense   } = useExpenses(uid)
   const { payments,       loading: pyLoad, addPayment,                      deletePayment   } = usePayments(uid)
   const { clientReceipts, loading: crLoad, addReceipt,                      deleteReceipt   } = useClientReceipts(uid)
@@ -93,7 +93,7 @@ export default function App() {
       case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
       case 'projects':  return p.viewProjects  ? <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} /> : <NoAccess />
       case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={workDays} payments={payments} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} /> : <NoAccess />
-      case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} permissions={p} /> : <NoAccess />
+      case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={approveWorkDay} rejectWorkDay={rejectWorkDay} permissions={p} /> : <NoAccess />
       case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} userId={uid} permissions={p} /> : <NoAccess />
       case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} addPayment={addPayment} deletePayment={deletePayment} userId={uid} permissions={p} /> : <NoAccess />
       case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} inviteMember={inviteMember} updateMember={updateMember} removeMember={removeMember} />
