@@ -79,6 +79,24 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                   </div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: C.accent, fontFamily: 'monospace' }}>{fmt(ex.amount)}₪</div>
                 </div>
+
+                {/* صورة/ملف الفاتورة */}
+                {ex.receipt_url && (
+                  <div style={{ marginBottom: 10 }}>
+                    {ex.receipt_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                      <a href={ex.receipt_url} target="_blank" rel="noreferrer">
+                        <img src={ex.receipt_url} alt="فاتورة" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 10, border: `1px solid ${C.border}` }} />
+                      </a>
+                    ) : (
+                      <a href={ex.receipt_url} target="_blank" rel="noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: `${C.border}33`, borderRadius: 10, textDecoration: 'none' }}>
+                        <span style={{ fontSize: 20 }}>📄</span>
+                        <span style={{ fontSize: 12, color: C.primary, fontWeight: 600 }}>عرض الفاتورة (PDF)</span>
+                      </a>
+                    )}
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => approveExpense(ex.id)}
                     style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: `${C.success}22`, border: `1px solid ${C.success}55`, color: C.success, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>

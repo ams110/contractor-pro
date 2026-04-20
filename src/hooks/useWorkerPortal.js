@@ -113,20 +113,21 @@ export function useWorkerPortal() {
     }
   }
 
-  async function submitExpense({ projectId, date, amount, category, vendor }) {
+  async function submitExpense({ projectId, date, amount, category, vendor, receiptUrl }) {
     const session = loadSession()
     if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
     setSubmittingExp(true)
     setSubmitExpErr('')
     try {
       const { data, error } = await supabase.rpc('worker_submit_expense', {
-        p_emp_id:     session.id,
-        p_token:      session.token,
-        p_project_id: projectId || null,
-        p_date:       date,
-        p_amount:     parseFloat(amount),
-        p_category:   category,
-        p_vendor:     vendor || '',
+        p_emp_id:      session.id,
+        p_token:       session.token,
+        p_project_id:  projectId || null,
+        p_date:        date,
+        p_amount:      parseFloat(amount),
+        p_category:    category,
+        p_vendor:      vendor || '',
+        p_receipt_url: receiptUrl || '',
       })
       if (error) throw new Error(error.message)
       if (data?.error) throw new Error(data.error)

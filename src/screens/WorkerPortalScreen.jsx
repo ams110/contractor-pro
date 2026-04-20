@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { C, EXP_CATS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../lib/helpers.js'
 import { useWorkerPortal } from '../hooks/useWorkerPortal.js'
+import { uploadWorkerReceipt } from '../lib/storage.js'
 
 const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو',
                    'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
@@ -274,17 +275,50 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
 }
 
 // ─── فورم إرسال مصروف ────────────────────────────────────────────────────────
-function SubmitExpenseForm({ projects, onSubmit, submitting, submitErr, setSubmitErr }) {
-  const [form, setForm] = useState({ date: todayStr(), amount: '', category: '', projectId: '', vendor: '' })
-  const [done, setDone] = useState(false)
+function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, setSubmitErr }) {
+  const emptyForm = { date: todayStr(), amount: '', category: '', projectId: '', vendor: '' }
+  const [form,         setForm]         = useState(emptyForm)
+  const [receiptFile,  setReceiptFile]  = useState(null)
+  const [receiptPreview, setReceiptPreview] = useState('')
+  const [uploading,    setUploading]    = useState(false)
+  const [done,         setDone]         = useState(false)
   const [submittedAmt, setSubmittedAmt] = useState(0)
+  const fileRef = useRef()
+
+  function pickFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setReceiptFile(file)
+    if (file.type.startsWith('image/')) {
+      setReceiptPreview(URL.createObjectURL(file))
+    } else {
+      setReceiptPreview('pdf')
+    }
+  }
+
+  function clearFile() {
+    setReceiptFile(null)
+    setReceiptPreview('')
+    if (fileRef.current) fileRef.current.value = ''
+  }
 
   async function handleSubmit() {
-    if (!form.category) return setSubmitErr('اختر التصنيف')
+    if (!form.category)  return setSubmitErr('اختر التصنيف')
     if (!form.amount || parseFloat(form.amount) <= 0) return setSubmitErr('أدخل المبلغ')
+    if (!receiptFile)    return setSubmitErr('يجب رفع صورة الفاتورة')
     setSubmitErr('')
+    setUploading(true)
+    let receiptUrl = ''
     try {
-      await onSubmit({ projectId: form.projectId, date: form.date, amount: form.amount, category: form.category, vendor: form.vendor })
+      receiptUrl = await uploadWorkerReceipt(worker.id, receiptFile)
+    } catch (e) {
+      setSubmitErr('فشل رفع الفاتورة: ' + e.message)
+      setUploading(false)
+      return
+    }
+    setUploading(false)
+    try {
+      await onSubmit({ projectId: form.projectId, date: form.date, amount: form.amount, category: form.category, vendor: form.vendor, receiptUrl })
       setSubmittedAmt(parseFloat(form.amount))
       setDone(true)
     } catch { /* error shown via submitErr */ }
@@ -299,15 +333,17 @@ function SubmitExpenseForm({ projects, onSubmit, submitting, submitErr, setSubmi
         <div style={{ fontSize: 15, fontWeight: 800, color: C.accent, marginBottom: 16, fontFamily: 'monospace' }}>{fmt(submittedAmt)}₪</div>
         <div style={{ padding: '12px 16px', background: `${C.primary}12`, borderRadius: 12, marginBottom: 20, border: `1px solid ${C.primary}33` }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4 }}>🔔 وصل إشعار للمشرف</div>
-          <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب في التطبيق ويوافق عليه</div>
+          <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب والفاتورة ويوافق عليه</div>
         </div>
-        <button onClick={() => { setDone(false); setForm({ date: todayStr(), amount: '', category: '', projectId: '', vendor: '' }) }}
+        <button onClick={() => { setDone(false); setForm(emptyForm); clearFile() }}
           style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           + أضف مصروف آخر
         </button>
       </div>
     )
   }
+
+  const canSubmit = !submitting && !uploading && form.category && form.amount && receiptFile
 
   return (
     <div style={{ paddingBottom: 16 }}>
@@ -354,12 +390,48 @@ function SubmitExpenseForm({ projects, onSubmit, submitting, submitErr, setSubmi
         </div>
       )}
 
-      {/* ملاحظة / المورّد */}
+      {/* المحل / ملاحظة */}
       <div style={{ marginBottom: 14 }}>
         <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المحل / ملاحظة (اختياري)</label>
         <input value={form.vendor} onChange={e => setForm(p => ({ ...p, vendor: e.target.value }))}
           placeholder="مثال: مستودع الجابر"
           style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+      </div>
+
+      {/* صورة الفاتورة - إجبارية */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>
+          <span style={{ color: C.accent, fontWeight: 700 }}>📎 صورة الفاتورة *</span>
+          <span style={{ color: C.textDim, fontWeight: 400 }}> (إجباري)</span>
+        </label>
+        <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={pickFile} />
+
+        {receiptPreview ? (
+          <div style={{ position: 'relative' }}>
+            {receiptPreview === 'pdf' ? (
+              <div style={{ padding: '14px', borderRadius: 12, border: `1.5px solid ${C.success}55`, background: `${C.success}11`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 24 }}>📄</span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.success }}>تم رفع الملف</div>
+                  <div style={{ fontSize: 10, color: C.textDim }}>{receiptFile?.name}</div>
+                </div>
+              </div>
+            ) : (
+              <img src={receiptPreview} alt="فاتورة" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 12, border: `1.5px solid ${C.success}55` }} />
+            )}
+            <button onClick={clearFile}
+              style={{ position: 'absolute', top: 6, left: 6, width: 26, height: 26, borderRadius: '50%', background: `${C.accent}dd`, border: 'none', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              ✕
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => fileRef.current.click()}
+            style={{ width: '100%', padding: '18px 14px', borderRadius: 12, border: `2px dashed ${C.accent}66`, background: `${C.accent}08`, color: C.accent, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 28 }}>📷</span>
+            <span>اضغط لالتقاط صورة الفاتورة</span>
+            <span style={{ fontSize: 11, color: C.textDim, fontWeight: 400 }}>صورة أو PDF</span>
+          </button>
+        )}
       </div>
 
       {submitErr && (
@@ -368,9 +440,9 @@ function SubmitExpenseForm({ projects, onSubmit, submitting, submitErr, setSubmi
         </div>
       )}
 
-      <button onClick={handleSubmit} disabled={submitting || !form.category || !form.amount}
-        style={{ width: '100%', padding: 14, borderRadius: 14, background: submitting || !form.category || !form.amount ? C.border : C.accent, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: submitting || !form.category || !form.amount ? 'default' : 'pointer' }}>
-        {submitting ? 'جاري الإرسال...' : '💸 أرسل المصروف للمشرف'}
+      <button onClick={handleSubmit} disabled={!canSubmit}
+        style={{ width: '100%', padding: 14, borderRadius: 14, background: !canSubmit ? C.border : C.accent, border: 'none', color: !canSubmit ? C.textDim : '#fff', fontSize: 15, fontWeight: 800, cursor: !canSubmit ? 'default' : 'pointer' }}>
+        {uploading ? '⏳ جاري رفع الفاتورة...' : submitting ? 'جاري الإرسال...' : '💸 أرسل المصروف للمشرف'}
       </button>
     </div>
   )
@@ -464,6 +536,7 @@ export default function WorkerPortalScreen() {
         {tab === 'expense' && (
           <>
             <SubmitExpenseForm
+              worker={worker}
               projects={projects}
               onSubmit={submitExpense}
               submitting={submittingExp}
