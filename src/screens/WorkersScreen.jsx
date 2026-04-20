@@ -4,6 +4,7 @@ import { fmt, validateWorker } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { setWorkerCredentials } from '../hooks/useWorkerPortal.js'
 import WorkerStatsPanel from '../components/WorkerStatsPanel.jsx'
+import { exportWorkerSalaryPDF } from '../lib/export.js'
 
 export default function WorkersScreen({ employees, workDays, payments, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday }) {
   const [showForm,   setShowForm]   = useState(false)
@@ -154,6 +155,11 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
                       </div>
                     </div>
                     <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                      <button onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })}
+                        title="تصدير كشف راتب PDF"
+                        style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:13, cursor:'pointer' }}>
+                        📄
+                      </button>
                       <button onClick={() => setStatsWorker(w)}
                         title="إحصائيات الحضور"
                         style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:13, cursor:'pointer' }}>

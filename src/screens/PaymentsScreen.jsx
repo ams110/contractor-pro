@@ -3,6 +3,7 @@ import { C, PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validatePayment } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
+import { exportPaymentsToExcel } from '../lib/export.js'
 
 function sendWhatsApp(phone, name, amount, date) {
   if (!phone) return
@@ -72,7 +73,15 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
     <div className="fade-in" style={{ padding:16 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
         <div style={{ fontSize:20, fontWeight:800, color:C.text }}>💰 الدفعات</div>
-        {permissions?.addPayments !== false && <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ دفعة</Btn>}
+        <div style={{ display:'flex', gap:6 }}>
+          {payments.length > 0 && (
+            <button onClick={() => exportPaymentsToExcel(payments, employees)}
+              style={{ padding:'7px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, cursor:'pointer' }}>
+              📊 Excel
+            </button>
+          )}
+          {permissions?.addPayments !== false && <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ دفعة</Btn>}
+        </div>
       </div>
 
       {/* ملخص لكل عامل */}

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { C, DAY_TYPES } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, calcSalary, validateWorkDay } from '../lib/helpers.js'
 import { Modal, Input, Btn, EmptyState, ConfirmDialog } from '../components/index.jsx'
+import { exportWorkDaysToExcel } from '../lib/export.js'
 
 export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay }) {
   const [showForm,   setShowForm]   = useState(false)
@@ -70,7 +71,15 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             </div>
           )}
         </div>
-        <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ سجّل يوم</Btn>
+        <div style={{ display:'flex', gap:6 }}>
+          {workDays.length > 0 && (
+            <button onClick={() => exportWorkDaysToExcel(workDays, employees, projects)}
+              style={{ padding:'7px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, cursor:'pointer' }}>
+              📊 Excel
+            </button>
+          )}
+          <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ سجّل يوم</Btn>
+        </div>
       </div>
 
       {/* ─── قسم الأيام المعلقة ─── */}

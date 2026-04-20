@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { C } from '../constants/index.js'
 import { Btn, Card, ConfirmDialog } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
+import { exportFullReportToExcel } from '../lib/export.js'
 
 const PERM_LABELS = [
   ['can_view_projects',  'مشاهدة المشاريع'],
@@ -18,7 +19,7 @@ const PERM_LABELS = [
 
 const DEFAULT_NEW_PERMS = Object.fromEntries(PERM_LABELS.map(([k]) => [k, false]))
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember }) {
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember }) {
   const { signOut, registerPasskey, isPasskeySupported, user } = useAuth()
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [passkeyStatus,  setPasskeyStatus]  = useState('')
@@ -287,7 +288,11 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
       )}
 
       {/* تصدير البيانات */}
-      <div style={{ marginTop:8 }}>
+      <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:8 }}>
+        <button onClick={() => exportFullReportToExcel({ projects, employees, workDays, expenses, payments, clientReceipts: clientReceipts || [] })}
+          style={{ width:'100%', padding:'12px', borderRadius:12, border:`1.5px solid ${C.success}`, background:`${C.success}15`, color:C.success, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+          📊 تصدير تقرير Excel كامل
+        </button>
         <Btn onClick={exportData} variant="outline" color={C.blue} full>📥 تصدير نسخة احتياطية (JSON)</Btn>
       </div>
 

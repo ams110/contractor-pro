@@ -3,6 +3,7 @@ import { C, EXP_CATS, PAY_METHODS, VAT } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, EmptyState, TabBar, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
+import { exportExpensesToExcel } from '../lib/export.js'
 
 const CAT_ICONS = { 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
 
@@ -56,7 +57,15 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
     <div className="fade-in" style={{ padding:16 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
         <div style={{ fontSize:20, fontWeight:800, color:C.text }}>💸 المصاريف</div>
-        {permissions?.addExpenses !== false && <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ مصروف</Btn>}
+        <div style={{ display:'flex', gap:6 }}>
+          {approvedExpenses.length > 0 && (
+            <button onClick={() => exportExpensesToExcel(approvedExpenses, projects)}
+              style={{ padding:'7px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, cursor:'pointer' }}>
+              📊 Excel
+            </button>
+          )}
+          {permissions?.addExpenses !== false && <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ مصروف</Btn>}
+        </div>
       </div>
 
       {/* مصاريف معلقة */}

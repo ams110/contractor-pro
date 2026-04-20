@@ -3,8 +3,9 @@ import { C, SPECS, PROJECT_TYPES, PROJECT_STATUS, PAY_METHODS } from '../constan
 import { fmt, fmtDate, validateProject, todayStr } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, TabBar, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
+import { exportProjectToPDF } from '../lib/export.js'
 
-export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, addProject, updateProject, deleteProject, addReceipt, deleteReceipt, userId, permissions }) {
+export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, employees, addProject, updateProject, deleteProject, addReceipt, deleteReceipt, userId, permissions }) {
   const [showForm,        setShowForm]        = useState(false)
   const [showReceiptForm, setShowReceiptForm] = useState(false)
   const [editing,         setEditing]         = useState(null)
@@ -104,7 +105,13 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
 
     return (
       <div className="fade-in" style={{ padding:16 }}>
-        <button onClick={() => setDetail(null)} style={{ background:'none', border:'none', color:C.primary, fontSize:14, cursor:'pointer', padding:0, marginBottom:12 }}>← رجوع</button>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+          <button onClick={() => setDetail(null)} style={{ background:'none', border:'none', color:C.primary, fontSize:14, cursor:'pointer', padding:0 }}>← رجوع</button>
+          <button onClick={() => exportProjectToPDF({ project: proj, workDays, expenses, clientReceipts, employees: employees || [] })}
+            style={{ padding:'7px 14px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, cursor:'pointer' }}>
+            📄 PDF تقرير
+          </button>
+        </div>
         <div style={{ fontSize:20, fontWeight:800, color:C.text }}>{proj.name}</div>
         <div style={{ fontSize:13, color:C.textDim, marginBottom:16 }}>{proj.client_name} • {proj.client_phone || ''}</div>
 

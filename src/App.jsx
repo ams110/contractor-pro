@@ -25,6 +25,7 @@ import SearchOverlay        from './components/SearchOverlay.jsx'
 import NotificationsPanel   from './components/NotificationsPanel.jsx'
 import { LoadingSpinner }   from './components/index.jsx'
 import { useNotifications } from './hooks/useNotifications.js'
+import { useSalaryAlerts }  from './hooks/useSalaryAlerts.js'
 
 const globalCSS = `
   @keyframes fadeIn  { from { opacity:0; transform:translateY(8px)  } to { opacity:1; transform:translateY(0) } }
@@ -54,6 +55,15 @@ export default function App() {
   const [screen,      setScreen]      = useState('dashboard')
   const [showSearch,  setShowSearch]  = useState(false)
   const [showNotifs,  setShowNotifs]  = useState(false)
+  const [isOnline,    setIsOnline]    = useState(navigator.onLine)
+
+  React.useEffect(() => {
+    const on  = () => setIsOnline(true)
+    const off = () => setIsOnline(false)
+    window.addEventListener('online',  on)
+    window.addEventListener('offline', off)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
+  }, [])
 
   const uid = user?.id
 
@@ -68,6 +78,7 @@ export default function App() {
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar }                   = useProfile(uid)
   const { teamMembers, pendingInvite, permissions, effectiveOwnerId, acceptInvite, inviteMember, updateMember, removeMember } = useTeam(uid, user?.email)
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
+  useSalaryAlerts(uid, employees, workDays, payments)
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
@@ -97,7 +108,7 @@ export default function App() {
     const commonData = { projects, employees, workDays, expenses, payments, clientReceipts }
     switch (screen) {
       case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
-      case 'projects':  return p.viewProjects  ? <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} /> : <NoAccess />
+      case 'projects':  return p.viewProjects  ? <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} employees={employees} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} /> : <NoAccess />
       case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={workDays} payments={payments} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} /> : <NoAccess />
       case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={approveWorkDay} rejectWorkDay={rejectWorkDay} permissions={p} /> : <NoAccess />
       case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={approveExpense} rejectExpense={rejectExpense} employees={employees} userId={uid} permissions={p} /> : <NoAccess />
@@ -110,6 +121,13 @@ export default function App() {
   return (
     <div style={{ maxWidth:430, margin:'0 auto', background:C.bg, minHeight:'100vh', fontFamily:"'Segoe UI',Tahoma,sans-serif", direction:'rtl', position:'relative' }}>
       <style>{globalCSS}</style>
+
+      {/* بانر عدم الاتصال */}
+      {!isOnline && (
+        <div style={{ position:'sticky', top:0, zIndex:200, background:'#333', padding:'8px 16px', textAlign:'center' }}>
+          <span style={{ fontSize:12, color:'#fff', fontWeight:700 }}>📵 لا يوجد اتصال بالإنترنت — البيانات محفوظة محلياً</span>
+        </div>
+      )}
 
       {/* بانر الدعوة المعلقة */}
       {pendingInvite && (

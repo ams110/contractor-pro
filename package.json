@@ -10,9 +10,13 @@
   "dependencies": {
     "@simplewebauthn/browser": "^9.0.1",
     "@supabase/supabase-js": "^2.39.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "vite-plugin-pwa": "^1.2.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
