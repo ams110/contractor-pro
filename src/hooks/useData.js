@@ -135,7 +135,19 @@ export function useExpenses(userId) {
     await refetch()
   }
 
-  return { expenses: data, loading, error, addExpense, deleteExpense, refetch }
+  async function approveExpense(id) {
+    const { error } = await supabase.from('expenses').update({ status: 'approved' }).eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
+  async function rejectExpense(id) {
+    const { error } = await supabase.from('expenses').delete().eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
+  return { expenses: data, loading, error, addExpense, deleteExpense, approveExpense, rejectExpense, refetch }
 }
 
 /* ─── Payments ─── */

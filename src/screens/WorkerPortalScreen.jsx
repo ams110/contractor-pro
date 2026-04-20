@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { C } from '../constants/index.js'
+import { C, EXP_CATS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../lib/helpers.js'
 import { useWorkerPortal } from '../hooks/useWorkerPortal.js'
 
@@ -7,6 +7,11 @@ const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو
                    'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
 
 const DAY_TYPES = ['كامل', 'نص يوم', 'ساعات']
+
+const EXP_STATUS_BADGE = {
+  approved: { label: 'موافق',  color: C.success },
+  pending:  { label: 'معلق',   color: C.warning },
+}
 
 const STATUS_BADGE = {
   approved: { label: 'موافق',  bg: `${C.success}22`, color: C.success },
@@ -268,12 +273,116 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
   )
 }
 
+// ─── فورم إرسال مصروف ────────────────────────────────────────────────────────
+function SubmitExpenseForm({ projects, onSubmit, submitting, submitErr, setSubmitErr }) {
+  const [form, setForm] = useState({ date: todayStr(), amount: '', category: '', projectId: '', vendor: '' })
+  const [done, setDone] = useState(false)
+  const [submittedAmt, setSubmittedAmt] = useState(0)
+
+  async function handleSubmit() {
+    if (!form.category) return setSubmitErr('اختر التصنيف')
+    if (!form.amount || parseFloat(form.amount) <= 0) return setSubmitErr('أدخل المبلغ')
+    setSubmitErr('')
+    try {
+      await onSubmit({ projectId: form.projectId, date: form.date, amount: form.amount, category: form.category, vendor: form.vendor })
+      setSubmittedAmt(parseFloat(form.amount))
+      setDone(true)
+    } catch { /* error shown via submitErr */ }
+  }
+
+  if (done) {
+    return (
+      <div style={{ textAlign: 'center', padding: '30px 16px' }}>
+        <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم الإرسال!</div>
+        <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>{form.category}</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: C.accent, marginBottom: 16, fontFamily: 'monospace' }}>{fmt(submittedAmt)}₪</div>
+        <div style={{ padding: '12px 16px', background: `${C.primary}12`, borderRadius: 12, marginBottom: 20, border: `1px solid ${C.primary}33` }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4 }}>🔔 وصل إشعار للمشرف</div>
+          <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب في التطبيق ويوافق عليه</div>
+        </div>
+        <button onClick={() => { setDone(false); setForm({ date: todayStr(), amount: '', category: '', projectId: '', vendor: '' }) }}
+          style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+          + أضف مصروف آخر
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ paddingBottom: 16 }}>
+      {/* التاريخ */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>التاريخ *</label>
+        <input type="date" value={form.date} max={todayStr()} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
+          style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+      </div>
+
+      {/* المبلغ */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المبلغ (₪) *</label>
+        <input type="number" value={form.amount} min="0.01" step="0.01" placeholder="0.00"
+          onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
+          style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }} />
+      </div>
+
+      {/* التصنيف */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>التصنيف *</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {EXP_CATS.map(cat => (
+            <button key={cat} onClick={() => setForm(p => ({ ...p, category: cat }))}
+              style={{ padding: '8px 12px', borderRadius: 10, border: `1.5px solid ${form.category === cat ? C.accent : C.border}`, background: form.category === cat ? `${C.accent}22` : C.bg, color: form.category === cat ? C.accent : C.textDim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* المشروع (اختياري) */}
+      {projects.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المشروع (اختياري)</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {projects.map(p => (
+              <button key={p.id} onClick={() => setForm(prev => ({ ...prev, projectId: prev.projectId === p.id ? '' : p.id }))}
+                style={{ padding: '7px 12px', borderRadius: 10, border: `1.5px solid ${form.projectId === p.id ? C.primary : C.border}`, background: form.projectId === p.id ? `${C.primary}22` : C.bg, color: form.projectId === p.id ? C.primary : C.textDim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ملاحظة / المورّد */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المحل / ملاحظة (اختياري)</label>
+        <input value={form.vendor} onChange={e => setForm(p => ({ ...p, vendor: e.target.value }))}
+          placeholder="مثال: مستودع الجابر"
+          style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+      </div>
+
+      {submitErr && (
+        <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 12, fontSize: 13, color: C.accent }}>
+          ⚠ {submitErr}
+        </div>
+      )}
+
+      <button onClick={handleSubmit} disabled={submitting || !form.category || !form.amount}
+        style={{ width: '100%', padding: 14, borderRadius: 14, background: submitting || !form.category || !form.amount ? C.border : C.accent, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: submitting || !form.category || !form.amount ? 'default' : 'pointer' }}>
+        {submitting ? 'جاري الإرسال...' : '💸 أرسل المصروف للمشرف'}
+      </button>
+    </div>
+  )
+}
+
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
   const {
     worker, workDays, payments, projects, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
-    login, logout, submitWorkDay,
+    workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
+    login, logout, submitWorkDay, submitExpense,
     monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
   } = useWorkerPortal()
 
@@ -291,10 +400,13 @@ export default function WorkerPortalScreen() {
     return <LoginScreen onLogin={login} error={loginErr} loading={loggingIn} />
   }
 
+  const pendingExpenses = workerExpenses.filter(e => e.status === 'pending')
+
   const tabs = [
-    { id: 'submit',   label: '📤 أضف يوم' },
+    { id: 'submit',   label: '📤 يوم عمل' },
+    { id: 'expense',  label: '💸 مصروف' },
     { id: 'monthly',  label: '📅 شهري' },
-    { id: 'payments', label: '💰 المدفوعات' },
+    { id: 'payments', label: '💰 الرواتب' },
   ]
 
   return (
@@ -346,6 +458,39 @@ export default function WorkerPortalScreen() {
             submitErr={submitErr}
             setSubmitErr={setSubmitErr}
           />
+        )}
+
+        {/* تبويب إضافة مصروف */}
+        {tab === 'expense' && (
+          <>
+            <SubmitExpenseForm
+              projects={projects}
+              onSubmit={submitExpense}
+              submitting={submittingExp}
+              submitErr={submitExpErr}
+              setSubmitErr={setSubmitExpErr}
+            />
+            {workerExpenses.length > 0 && (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>مصاريفي السابقة</div>
+                {workerExpenses.map(ex => {
+                  const badge = EXP_STATUS_BADGE[ex.status] || EXP_STATUS_BADGE.approved
+                  return (
+                    <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: ex.status === 'pending' ? `${C.warning}11` : C.card, borderRadius: 10, border: `1px solid ${ex.status === 'pending' ? C.warning + '44' : C.border}`, marginBottom: 6 }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{ex.category}{ex.vendor ? ` • ${ex.vendor}` : ''}</div>
+                        <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(ex.date)}{ex.project_name ? ` • ${ex.project_name}` : ''}</div>
+                      </div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, fontFamily: 'monospace' }}>{fmt(ex.amount)}₪</div>
+                        <div style={{ fontSize: 9, color: badge.color, background: `${badge.color}22`, padding: '2px 6px', borderRadius: 4, marginTop: 2, textAlign: 'center' }}>{badge.label}</div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
 
         {/* تبويب شهري */}

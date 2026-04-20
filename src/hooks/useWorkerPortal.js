@@ -24,20 +24,25 @@ export function useWorkerPortal() {
   const [loading,   setLoading]       = useState(!!stored)
   const [loginErr,  setLoginErr]      = useState('')
   const [loggingIn, setLoggingIn]     = useState(false)
-  const [submitting, setSubmitting]   = useState(false)
-  const [submitErr,  setSubmitErr]    = useState('')
+  const [submitting,       setSubmitting]       = useState(false)
+  const [submitErr,        setSubmitErr]        = useState('')
+  const [workerExpenses,   setWorkerExpenses]   = useState([])
+  const [submittingExp,    setSubmittingExp]    = useState(false)
+  const [submitExpErr,     setSubmitExpErr]     = useState('')
 
   const loadData = useCallback(async (empId) => {
     setLoading(true)
     try {
-      const [dRes, pyRes, prRes] = await Promise.all([
+      const [dRes, pyRes, prRes, exRes] = await Promise.all([
         supabase.rpc('get_worker_days',     { emp_id: empId }),
         supabase.rpc('get_worker_payments', { emp_id: empId }),
         supabase.rpc('get_worker_projects', { emp_id: empId }),
+        supabase.rpc('get_worker_expenses', { emp_id: empId }),
       ])
       setWorkDays(dRes.data  || [])
       setPayments(pyRes.data || [])
       setProjects(prRes.data || [])
+      setWorkerExpenses(exRes.data || [])
     } finally {
       setLoading(false)
     }
@@ -108,6 +113,33 @@ export function useWorkerPortal() {
     }
   }
 
+  async function submitExpense({ projectId, date, amount, category, vendor }) {
+    const session = loadSession()
+    if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
+    setSubmittingExp(true)
+    setSubmitExpErr('')
+    try {
+      const { data, error } = await supabase.rpc('worker_submit_expense', {
+        p_emp_id:     session.id,
+        p_token:      session.token,
+        p_project_id: projectId || null,
+        p_date:       date,
+        p_amount:     parseFloat(amount),
+        p_category:   category,
+        p_vendor:     vendor || '',
+      })
+      if (error) throw new Error(error.message)
+      if (data?.error) throw new Error(data.error)
+      await loadData(session.id)
+      return data
+    } catch (e) {
+      setSubmitExpErr(e.message)
+      throw e
+    } finally {
+      setSubmittingExp(false)
+    }
+  }
+
   // الملخص الشهري (الأيام الموافق عليها فقط)
   const monthlyBreakdown = (() => {
     const map = {}
@@ -128,7 +160,8 @@ export function useWorkerPortal() {
   return {
     worker, workDays, payments, projects, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
-    login, logout, submitWorkDay, refetch: () => worker?.id && loadData(worker.id),
+    workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
+    login, logout, submitWorkDay, submitExpense, refetch: () => worker?.id && loadData(worker.id),
     monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
   }
 }

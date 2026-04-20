@@ -6,7 +6,7 @@ import { uploadReceipt } from '../lib/storage.js'
 
 const CAT_ICONS = { 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
 
-export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, userId, permissions }) {
+export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions }) {
   const [showForm,    setShowForm]    = useState(false)
   const [filter,      setFilter]      = useState('الكل')
   const [confirmDel,  setConfirmDel]  = useState(null)
@@ -45,8 +45,11 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
     }
   }
 
-  const total    = expenses.reduce((s, e) => s + e.amount, 0)
-  const filtered = expenses.filter(e => filter === 'الكل' || e.category?.includes(filter))
+  const pendingExpenses = expenses.filter(e => e.status === 'pending')
+  const approvedExpenses = expenses.filter(e => e.status !== 'pending')
+
+  const total    = approvedExpenses.reduce((s, e) => s + e.amount, 0)
+  const filtered = approvedExpenses.filter(e => filter === 'الكل' || e.category?.includes(filter))
   const sorted   = [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
 
   return (
@@ -56,8 +59,44 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         {permissions?.addExpenses !== false && <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ مصروف</Btn>}
       </div>
 
+      {/* مصاريف معلقة */}
+      {pendingExpenses.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: C.warning }}>⏳ بانتظار الموافقة</div>
+            <div style={{ minWidth: 20, height: 20, borderRadius: 10, background: C.warning, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: '#000' }}>{pendingExpenses.length}</div>
+          </div>
+          {pendingExpenses.map(ex => {
+            const worker = employees?.find(e => e.id === ex.employee_id)
+            const proj   = projects.find(p => p.id === ex.project_id)
+            return (
+              <div key={ex.id} style={{ padding: '12px 14px', background: `${C.warning}11`, borderRadius: 12, border: `1px solid ${C.warning}44`, marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{ex.category}</div>
+                    {worker && <div style={{ fontSize: 11, color: C.primary, fontWeight: 600 }}>👷 {worker.name}</div>}
+                    <div style={{ fontSize: 11, color: C.textDim }}>{ex.vendor || ''}{proj ? ` • ${proj.name}` : ''} • {fmtDate(ex.date)}</div>
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: C.accent, fontFamily: 'monospace' }}>{fmt(ex.amount)}₪</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => approveExpense(ex.id)}
+                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: `${C.success}22`, border: `1px solid ${C.success}55`, color: C.success, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                    ✓ موافقة
+                  </button>
+                  <button onClick={() => rejectExpense(ex.id)}
+                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: `${C.accent}22`, border: `1px solid ${C.accent}55`, color: C.accent, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                    ✗ رفض
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* إجمالي */}
-      {expenses.length > 0 && (
+      {approvedExpenses.length > 0 && (
         <Card>
           <div style={{ padding:14, display:'flex', justifyContent:'space-around' }}>
             <div style={{ textAlign:'center' }}>
@@ -74,8 +113,9 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
       <TabBar tabs={['الكل','مواد','عدد','وقود']} active={filter} onChange={setFilter} />
 
-      {sorted.length === 0
+      {sorted.length === 0 && pendingExpenses.length === 0
         ? <EmptyState icon="💸" text="ما في مصاريف" action="+ أضف مصروف" onAction={() => setShowForm(true)} />
+        : sorted.length === 0 ? null
         : sorted.map(ex => {
             const proj = projects.find(p => p.id === ex.project_id)
             const ck   = Object.keys(CAT_ICONS).find(k => ex.category?.includes(k)) || 'أخرى'
