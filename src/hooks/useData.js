@@ -157,7 +157,24 @@ export function usePayments(userId) {
   return { payments: data, loading, error, addPayment, deletePayment, refetch }
 }
 
-/* ─── Client Receipts (مقبوضات من العملاء) ─── */
+/* ─── Holidays ─── */
+export function useHolidays(userId) {
+  const { data, loading, error, refetch } = useTable('holidays', userId)
+
+  async function addHoliday(form) {
+    const { error } = await supabase.from('holidays').insert({ ...form, user_id: userId })
+    if (error) throw error
+    await refetch()
+  }
+
+  async function deleteHoliday(id) {
+    const { error } = await supabase.from('holidays').delete().eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
+  return { holidays: data, loading, error, addHoliday, deleteHoliday }
+}
 export function useClientReceipts(userId) {
   const { data, loading, error, refetch } = useTable('client_receipts', userId)
 

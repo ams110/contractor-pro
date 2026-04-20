@@ -3,8 +3,9 @@ import { C, SPECS } from '../constants/index.js'
 import { fmt, validateWorker } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { setWorkerCredentials } from '../hooks/useWorkerPortal.js'
+import WorkerStatsPanel from '../components/WorkerStatsPanel.jsx'
 
-export default function WorkersScreen({ employees, workDays, payments, specs, addEmployee, updateEmployee, deleteEmployee, permissions }) {
+export default function WorkersScreen({ employees, workDays, payments, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday }) {
   const [showForm,   setShowForm]   = useState(false)
   const [editing,    setEditing]    = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
@@ -17,6 +18,9 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
   const [credError,  setCredError]  = useState('')
   const [credSaving, setCredSaving] = useState(false)
   const [credDone,   setCredDone]   = useState(false)
+
+  // إحصائيات العامل
+  const [statsWorker, setStatsWorker] = useState(null)
 
   // نسخ رابط البوابة
   const [copied, setCopied] = useState(false)
@@ -150,6 +154,11 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
                       </div>
                     </div>
                     <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                      <button onClick={() => setStatsWorker(w)}
+                        title="إحصائيات الحضور"
+                        style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:13, cursor:'pointer' }}>
+                        📊
+                      </button>
                       <button onClick={() => openCreds(w)}
                         title="بيانات دخول العامل"
                         style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, fontWeight:700, cursor:'pointer' }}>
@@ -240,6 +249,16 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
       </Modal>
 
       <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={async () => { await deleteEmployee(confirmDel); setConfirmDel(null) }} message="حذف هالعامل؟" />
+
+      <WorkerStatsPanel
+        open={!!statsWorker}
+        onClose={() => setStatsWorker(null)}
+        worker={statsWorker}
+        workDays={workDays}
+        holidays={holidays || []}
+        addHoliday={addHoliday}
+        deleteHoliday={deleteHoliday}
+      />
     </div>
   )
 }
