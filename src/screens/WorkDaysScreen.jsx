@@ -42,7 +42,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       const amount = form.day_type === 'مبلغ مسكر'
         ? parseFloat(form.customAmount)
         : calcSalary(selectedEmp.daily_rate, form.day_type, form.hours)
-      await addWorkDay({ ...form, amount, hours: parseFloat(form.hours) || 8 })
+      const { customAmount: _skip, ...formData } = form
+      await addWorkDay({ ...formData, amount, hours: parseFloat(form.hours) || 8 })
       setForm(emptyForm)
       setShowForm(false)
     } catch (e) {
