@@ -135,8 +135,10 @@ export function useExpenses(userId) {
     await refetch()
   }
 
-  async function approveExpense(id) {
-    const { error } = await supabase.from('expenses').update({ status: 'approved' }).eq('id', id).eq('user_id', userId)
+  async function approveExpense(id, approverName) {
+    const { error } = await supabase.from('expenses')
+      .update({ status: 'approved', approved_by: approverName || null })
+      .eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
   }

@@ -362,7 +362,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
   async function handleSubmit() {
     if (!form.category)  return setSubmitErr('اختر التصنيف')
     if (!form.amount || parseFloat(form.amount) <= 0) return setSubmitErr('أدخل المبلغ')
-    if (!receiptFile)    return setSubmitErr('يجب رفع صورة الفاتورة')
+    if (!receiptFile)    return setSubmitErr('يجب رفع صورة الفاتورة أو ملف PDF')
     setSubmitErr('')
     setUploading(true)
     let receiptUrl = ''

@@ -177,7 +177,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                   )}
                   <div style={{ display:'flex', gap:8 }}>
                     <button onClick={() => approveExpense(ex.id)}
-                      style={{ flex:1, padding:'9px 0', borderRadius:10, background:`${C.success}20`, border:`1px solid ${C.success}55`, color:C.success, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                      style={{ flex:1, padding:'9px 0', borderRadius:10, background:GRAD.success, border:'none', color:'#000', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 2px 10px ${C.success}44` }}>
                       ✓ موافقة
                     </button>
                     <button onClick={() => rejectExpense(ex.id)}
@@ -218,13 +218,25 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
                   {/* المعلومات */}
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
+                      {ex.employee_id && (
+                        <div style={{ fontSize:9, fontWeight:700, color:C.primary, background:`${C.primary}18`, padding:'2px 6px', borderRadius:6, border:`1px solid ${C.primary}33`, flexShrink:0 }}>
+                          👷 عامل
+                        </div>
+                      )}
+                    </div>
                     <div style={{ fontSize:11, color:C.textDim, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                       {ex.vendor || ''}{proj ? ` • ${proj.name}` : ''}
                     </div>
                     <div style={{ fontSize:10, color:C.textMuted, marginTop:1 }}>
                       {fmtDate(ex.date)}{ex.payment_method ? ` • ${ex.payment_method}` : ''}
                     </div>
+                    {ex.approved_by && (
+                      <div style={{ fontSize:9, color:C.success, marginTop:3, fontWeight:700 }}>
+                        ✓ وافق عليه: {ex.approved_by}
+                      </div>
+                    )}
                   </div>
 
                   {/* المبلغ + أدوات */}

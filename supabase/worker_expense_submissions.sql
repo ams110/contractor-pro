@@ -3,19 +3,21 @@
 -- شغّل هذا الملف في Supabase > SQL Editor
 -- =====================================================
 
--- إضافة عمود الحالة ومعرّف العامل لجدول المصاريف
+-- إضافة الأعمدة المطلوبة لجدول المصاريف
 ALTER TABLE expenses ADD COLUMN IF NOT EXISTS status      TEXT DEFAULT 'approved';
 ALTER TABLE expenses ADD COLUMN IF NOT EXISTS employee_id UUID;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS approved_by TEXT;  -- اسم المشرف/المالك الذي وافق
 
 -- ─── دالة: إرسال مصروف من العامل (يُحفظ كـ pending) ─────────────────────────
 CREATE OR REPLACE FUNCTION worker_submit_expense(
-  p_emp_id     UUID,
-  p_token      TEXT,
-  p_project_id UUID,
-  p_date       DATE,
-  p_amount     NUMERIC,
-  p_category   TEXT,
-  p_vendor     TEXT DEFAULT ''
+  p_emp_id      UUID,
+  p_token       TEXT,
+  p_project_id  UUID,
+  p_date        DATE,
+  p_amount      NUMERIC,
+  p_category    TEXT,
+  p_vendor      TEXT    DEFAULT '',
+  p_receipt_url TEXT    DEFAULT ''
 )
 RETURNS json
 LANGUAGE plpgsql
@@ -45,8 +47,8 @@ BEGIN
     SELECT name INTO proj_name FROM projects WHERE id = p_project_id;
   END IF;
 
-  INSERT INTO expenses (user_id, employee_id, project_id, date, amount, category, vendor, payment_method, status)
-  VALUES (emp.user_id, p_emp_id, p_project_id, p_date, p_amount, p_category, p_vendor, 'كاش', 'pending')
+  INSERT INTO expenses (user_id, employee_id, project_id, date, amount, category, vendor, payment_method, status, receipt_url)
+  VALUES (emp.user_id, p_emp_id, p_project_id, p_date, p_amount, p_category, p_vendor, 'كاش', 'pending', p_receipt_url)
   RETURNING id INTO new_id;
 
   -- إشعار للمشرف
