@@ -93,37 +93,68 @@ export function calcVATNet(clientReceipts, expenses, fromDate, toDate) {
   return { vatOut: Math.round(vatOut), vatIn: Math.round(vatIn), net: Math.round(vatOut - vatIn) }
 }
 
+// ─── ثوابت الضرائب الإسرائيلية 2024 ─────────────────────────────────────────
+// ביטוח לאומי + ביטוח בריאות للعمل الحر (עצמאי)
+// شريحة 1: حتى 60% من الأجر المتوسط (₪7,522/شهر = ₪90,264/سنة)
+//   ضمان اجتماعي 6.72% + تأمين صحي 3.10% = 9.82%
+// شريحة 2: من ₪7,522 حتى سقف ₪47,465/شهر (₪569,580/سنة)
+//   ضمان اجتماعي 11.23% + تأمين صحي 5.00% = 16.23%
+const _BL_TIER1_M  = 7522     // شريحة 1 شهرية
+const _BL_CAP_M    = 47465    // سقف شهري
+const _BL_TIER1_Y  = 90264    // شريحة 1 سنوية
+const _BL_CAP_Y    = 569580   // سقف سنوي
+const _BL_R1       = 0.0982   // نسبة شريحة 1
+const _BL_R2       = 0.1623   // نسبة شريحة 2
+
+// شرائح מס הכנסה 2024 (أحجام الشرائح السنوية)
+const _IT_BRACKETS = [
+  [81480,    0.10],
+  [35280,    0.14],
+  [70680,    0.20],
+  [73080,    0.31],
+  [281640,   0.35],
+  [Infinity, 0.47],
+]
+const _IT_CREDIT = 6534  // نقاط زيكوي شخصية: 2.25 × ₪2,904
+
 /**
- * تقدير ביטוח לאומי الشهري بناءً على متوسط الدخل الشهري الصافي
+ * تقدير ביטוח לאומי + ביטוח בריאות الشهري للعمل الحر — شرائح 2024
  */
 export function calcBituachLeumi(monthlyNetProfit) {
   if (monthlyNetProfit <= 0) return 0
-  return Math.round(monthlyNetProfit * 0.105)
+  const income = Math.min(monthlyNetProfit, _BL_CAP_M)
+  const t1     = Math.min(income, _BL_TIER1_M) * _BL_R1
+  const t2     = Math.max(0, income - _BL_TIER1_M) * _BL_R2
+  return Math.round(t1 + t2)
 }
 
 /**
- * تقدير ضريبة الدخل السنوية (מס הכנסה) للعمل الحر — شرائح 2024
- * يطرح نقاط الزيكوي الشخصية (2.25 نقطة × 2,904₪)
+ * تقدير ביטוח לאומי + ביטוח בריאות السنوي — شرائح 2024
+ */
+export function calcBituachLeumiAnnual(annualNetProfit) {
+  if (annualNetProfit <= 0) return 0
+  const income = Math.min(annualNetProfit, _BL_CAP_Y)
+  const t1     = Math.min(income, _BL_TIER1_Y) * _BL_R1
+  const t2     = Math.max(0, income - _BL_TIER1_Y) * _BL_R2
+  return Math.round(t1 + t2)
+}
+
+/**
+ * تقدير מס הכנסה السنوي للعمل الحر — شرائح 2024
+ * مع خصم نقاط زيكوي شخصية (2.25 نقطة × ₪2,904 = ₪6,534 خصم من الضريبة)
+ * ملاحظة: لا يشمل خصم مساهمات الپنسيه (حتى 16% من الدخل قابل للخصم)
  */
 export function estimateIncomeTax(annualNetProfit) {
   if (annualNetProfit <= 0) return 0
-  const brackets = [
-    [81480,    0.10],
-    [35280,    0.14],
-    [70680,    0.20],
-    [73080,    0.31],
-    [281640,   0.35],
-    [Infinity, 0.47],
-  ]
   let tax = 0
   let remaining = annualNetProfit
-  for (const [size, rate] of brackets) {
+  for (const [size, rate] of _IT_BRACKETS) {
     const taxable = Math.min(remaining, size)
     tax += taxable * rate
     remaining -= taxable
     if (remaining <= 0) break
   }
-  return Math.max(0, Math.round(tax - 6534)) // طرح نقاط الزيكوي الشخصية
+  return Math.max(0, Math.round(tax - _IT_CREDIT))
 }
 
 /**

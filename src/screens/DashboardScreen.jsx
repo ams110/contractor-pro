@@ -1,17 +1,20 @@
 import React, { useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { C, EXP_CATS, VAT, OSEK_PATUR_THRESHOLD } from '../constants/index.js'
-import { fmt, fmtDate, todayStr, calcVATNet, calcBituachLeumi, estimateIncomeTax, isPaymentOverdue } from '../lib/helpers.js'
+import { fmt, fmtDate, todayStr, calcVATNet, calcBituachLeumi, calcBituachLeumiAnnual, estimateIncomeTax, isPaymentOverdue } from '../lib/helpers.js'
 import { StatCard, Card } from '../components/index.jsx'
 
-function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, onDelete, yearStr }) {
+function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, onDelete, hint }) {
   const [open, setOpen] = useState(false)
   const remaining = Math.max(0, estimate - paid)
   const pct = estimate > 0 ? Math.min(100, Math.round((paid / estimate) * 100)) : 0
   return (
     <div style={{ padding:'12px 14px', background:C.card, borderRadius:12, border:`1px solid ${C.border}` }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-        <div style={{ fontSize:12, fontWeight:700, color:C.text }}>{icon} {title}</div>
+        <div>
+          <div style={{ fontSize:12, fontWeight:700, color:C.text }}>{icon} {title}</div>
+          {hint && <div style={{ fontSize:9, color:C.textMuted, marginTop:1 }}>{hint}</div>}
+        </div>
         <button onClick={onAdd} style={{ padding:'4px 10px', borderRadius:8, border:`1px solid ${color}55`, background:`${color}15`, color, fontSize:11, fontWeight:700, cursor:'pointer' }}>+ دفعة</button>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6, marginBottom:10 }}>
@@ -27,17 +30,20 @@ function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, o
         ))}
       </div>
       {estimate > 0 && (
-        <div style={{ height:6, background:`${C.border}66`, borderRadius:3, overflow:'hidden', marginBottom:8 }}>
-          <div style={{ height:'100%', width:`${pct}%`, borderRadius:3, background:pct >= 100 ? C.success : color, transition:'width .4s' }} />
-        </div>
+        <>
+          <div style={{ height:6, background:`${C.border}66`, borderRadius:3, overflow:'hidden', marginBottom:4 }}>
+            <div style={{ height:'100%', width:`${pct}%`, borderRadius:3, background:pct >= 100 ? C.success : color, transition:'width .4s' }} />
+          </div>
+          <div style={{ fontSize:9, color:C.textMuted, textAlign:'center', marginBottom:6 }}>{pct}% مدفوع من التقدير</div>
+        </>
       )}
       {records.length > 0 && (
         <button onClick={() => setOpen(o => !o)}
           style={{ fontSize:10, color:C.textDim, background:'none', border:'none', cursor:'pointer', padding:0, marginBottom: open ? 6 : 0 }}>
-          {open ? '▲ إخفاء السجل' : `▼ عرض ${records.length} دفعة`}
+          {open ? '▲ إخفاء السجل' : `▼ عرض ${records.length} دفعة مسجلة`}
         </button>
       )}
-      {open && records.sort((a,b) => b.date.localeCompare(a.date)).map(r => (
+      {open && [...records].sort((a,b) => b.date.localeCompare(a.date)).map(r => (
         <div key={r.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 8px', background:`${C.border}22`, borderRadius:8, marginBottom:4 }}>
           <div>
             <span style={{ fontSize:12, fontWeight:700, color, fontFamily:'monospace' }}>{fmt(r.amount)}₪</span>
@@ -80,15 +86,17 @@ export default function DashboardScreen({ projects, employees, workDays, expense
     .reduce((s, r) => s + (r.amount || 0), 0)
   const thresholdPct = Math.min(100, Math.round((yearRevenue / OSEK_PATUR_THRESHOLD) * 100))
 
-  // تقدير ביטוח לאומי — متوسط صافي ربح آخر 3 أشهر
+  // متوسط الربح الشهري (لعرض التقدير الشهري فقط)
   const monthsData = {}
   ;(clientReceipts || []).forEach(r => { const m = (r.date || '').slice(0,7); if (m) monthsData[m] = (monthsData[m] || 0) + r.amount })
   const recentMonths = Object.keys(monthsData).sort().slice(-3)
   const avgMonthlyRevenue = recentMonths.length
     ? recentMonths.reduce((s, m) => s + monthsData[m], 0) / recentMonths.length : 0
-  const avgMonthlyExpenses = totalExp / Math.max(1, new Set(expenses.map(e => (e.date||'').slice(0,7))).size)
+  const activeExpMonths = new Set(expenses.map(e => (e.date||'').slice(0,7))).size
+  const avgMonthlyExpenses = totalExp / Math.max(1, activeExpMonths)
   const avgMonthlyNet = avgMonthlyRevenue - avgMonthlyExpenses
-  const bituachEstimate = calcBituachLeumi(avgMonthlyNet)
+  // للعرض الشهري فقط (في الـ hint)
+  const bituachMonthly = calcBituachLeumi(Math.max(0, avgMonthlyNet))
 
   // ─── أفضل مشروع هذا الشهر ─────────────────────────────────────────────────
   const thisMonth = todayStr().slice(0, 7)
@@ -105,11 +113,14 @@ export default function DashboardScreen({ projects, employees, workDays, expense
     .sort((a, b) => b.margin - a.margin)[0]
 
   // ─── مقدمات الضريبة ─────────────────────────────────────────────────────
-  const itPaidYear  = taxAdvances.filter(a => a.type === 'income_tax'    && (a.date||'').startsWith(thisYear)).reduce((s, a) => s + a.amount, 0)
-  const blPaidYear  = taxAdvances.filter(a => a.type === 'bituach_leumi' && (a.date||'').startsWith(thisYear)).reduce((s, a) => s + a.amount, 0)
-  const annualNet   = netProfit   // صافي الربح الكلي هو تقريب الدخل الخاضع للضريبة
-  const itEstimate  = estimateIncomeTax(Math.max(0, annualNet))
-  const blEstimate  = Math.round(bituachEstimate * 12)
+  const itPaidYear = taxAdvances.filter(a => a.type === 'income_tax'    && (a.date||'').startsWith(thisYear)).reduce((s, a) => s + a.amount, 0)
+  const blPaidYear = taxAdvances.filter(a => a.type === 'bituach_leumi' && (a.date||'').startsWith(thisYear)).reduce((s, a) => s + a.amount, 0)
+  // الدخل الخاضع للضريبة = صافي الربح (إيرادات - مصاريف - رواتب)
+  // تقدير سنوي: نستخدم ما هو موجود (YTD) — دقيق في نهاية السنة
+  const annualNet  = Math.max(0, netProfit)
+  const itEstimate = estimateIncomeTax(annualNet)
+  // ביטוח לאומי: نستخدم الحساب السنوي المرحلي الصحيح (شريحتين)
+  const blEstimate = calcBituachLeumiAnnual(annualNet)
 
   async function saveTaxAdvance() {
     if (!taxForm.amount || parseFloat(taxForm.amount) <= 0) return
@@ -308,7 +319,7 @@ export default function DashboardScreen({ projects, employees, workDays, expense
               )}
             </div>
 
-            {/* מקדמות מס הכנסה */}
+            {/* مقدمات מס הכנסה */}
             <TaxAdvanceBlock
               title="מס הכנסה — ضريبة الدخل"
               icon="📋"
@@ -316,22 +327,22 @@ export default function DashboardScreen({ projects, employees, workDays, expense
               estimate={itEstimate}
               paid={itPaidYear}
               records={taxAdvances.filter(a => a.type === 'income_tax' && (a.date||'').startsWith(thisYear))}
-              onAdd={() => { setAddingTax('income_tax'); setTaxForm({ amount: '', date: todayStr(), period: '', notes: '' }) }}
+              onAdd={() => { setAddingTax('income_tax'); setTaxForm({ amount: '', date: todayStr(), period: todayStr().slice(0,7), notes: '' }) }}
               onDelete={deleteTaxAdvance}
-              yearStr={thisYear}
+              hint={`شرائح 2024 • لا يشمل خصم الپنסيה`}
             />
 
-            {/* מקדמות ביטוח לאומי */}
+            {/* مقدمات ביטוח לאומי */}
             <TaxAdvanceBlock
-              title="ביטוח לאומי — ضمان اجتماعي"
+              title="ביטוח לאומי + בריאות"
               icon="🏥"
               color={C.warning}
               estimate={blEstimate}
               paid={blPaidYear}
               records={taxAdvances.filter(a => a.type === 'bituach_leumi' && (a.date||'').startsWith(thisYear))}
-              onAdd={() => { setAddingTax('bituach_leumi'); setTaxForm({ amount: '', date: todayStr(), period: '', notes: '' }) }}
+              onAdd={() => { setAddingTax('bituach_leumi'); setTaxForm({ amount: '', date: todayStr(), period: todayStr().slice(0,7), notes: '' }) }}
               onDelete={deleteTaxAdvance}
-              yearStr={thisYear}
+              hint={`أول ₪90k: 9.82% • فوق ₪90k: 16.23% • سقف ₪570k`}
             />
           </div>
         )}
