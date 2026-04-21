@@ -205,9 +205,10 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         ? <EmptyState icon="💸" text="ما في مصاريف" action="+ أضف مصروف" onAction={() => setShowForm(true)} />
         : sorted.length === 0 ? null
         : sorted.map(ex => {
-            const proj = projects.find(p => p.id === ex.project_id)
-            const col  = catColor(ex.category)
-            const ico  = catIcon(ex.category)
+            const proj   = projects.find(p => p.id === ex.project_id)
+            const worker = employees?.find(e => e.id === ex.employee_id)
+            const col    = catColor(ex.category)
+            const ico    = catIcon(ex.category)
             return (
               <GlassCard key={ex.id} style={{ overflow:'hidden', marginBottom:8, position:'relative' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px' }}>
@@ -218,23 +219,25 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
                   {/* المعلومات */}
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
-                      {ex.employee_id && (
-                        <div style={{ fontSize:9, fontWeight:700, color:C.primary, background:`${C.primary}18`, padding:'2px 6px', borderRadius:6, border:`1px solid ${C.primary}33`, flexShrink:0 }}>
-                          👷 عامل
-                        </div>
-                      )}
-                    </div>
+                    <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
                     <div style={{ fontSize:11, color:C.textDim, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                       {ex.vendor || ''}{proj ? ` • ${proj.name}` : ''}
                     </div>
                     <div style={{ fontSize:10, color:C.textMuted, marginTop:1 }}>
                       {fmtDate(ex.date)}{ex.payment_method ? ` • ${ex.payment_method}` : ''}
                     </div>
-                    {ex.approved_by && (
-                      <div style={{ fontSize:9, color:C.success, marginTop:3, fontWeight:700 }}>
-                        ✓ وافق عليه: {ex.approved_by}
+                    {(worker || ex.approved_by) && (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:4 }}>
+                        {worker && (
+                          <div style={{ fontSize:9, fontWeight:700, color:C.primary, background:`${C.primary}15`, padding:'2px 7px', borderRadius:6, border:`1px solid ${C.primary}33` }}>
+                            👷 {worker.name}
+                          </div>
+                        )}
+                        {ex.approved_by && (
+                          <div style={{ fontSize:9, fontWeight:700, color:C.success, background:`${C.success}15`, padding:'2px 7px', borderRadius:6, border:`1px solid ${C.success}33` }}>
+                            ✓ {ex.approved_by}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
