@@ -630,12 +630,108 @@ function ChangePasswordForm({ worker, onChangePassword }) {
 }
 
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
+// ─── فورم طلب راتب ───────────────────────────────────────────────────────────
+function RequestPaymentForm({ worker, projects, onRequest }) {
+  const PAY_M = ['كاش', 'تحويل بنكي', 'شيك']
+  const [form,    setForm]    = useState({ amount: '', projectId: '', method: 'كاش', notes: '' })
+  const [saving,  setSaving]  = useState(false)
+  const [err,     setErr]     = useState('')
+  const [done,    setDone]    = useState(false)
+  const [sentAmt, setSentAmt] = useState(0)
+
+  async function handleSubmit() {
+    if (!form.amount || parseFloat(form.amount) <= 0) return setErr('أدخل المبلغ')
+    setErr(''); setSaving(true)
+    try {
+      await onRequest({ amount: form.amount, projectId: form.projectId || null, method: form.method, notes: form.notes })
+      setSentAmt(parseFloat(form.amount)); setDone(true)
+    } catch (e) { setErr(e.message) } finally { setSaving(false) }
+  }
+
+  if (done) return (
+    <div style={{ textAlign:'center', padding:'30px 16px' }}>
+      <div style={{ fontSize:52, marginBottom:12 }}>✅</div>
+      <div style={{ fontSize:16, fontWeight:800, color:C.success, marginBottom:6 }}>تم إرسال الطلب!</div>
+      <div style={{ fontSize:15, fontWeight:800, color:C.primary, marginBottom:16, fontFamily:'monospace' }}>{fmt(sentAmt)}₪</div>
+      <div style={{ padding:'12px 16px', background:`${C.primary}12`, borderRadius:12, marginBottom:20, border:`1px solid ${C.primary}33` }}>
+        <div style={{ fontSize:13, fontWeight:700, color:C.primary, marginBottom:4 }}>🔔 وصل إشعار للمشرف</div>
+        <div style={{ fontSize:12, color:C.textDim }}>المشرف رح يراجع الطلب ويحدد من أي مشروع</div>
+      </div>
+      <button onClick={() => { setDone(false); setForm({ amount:'', projectId:'', method:'كاش', notes:'' }) }}
+        style={{ width:'100%', padding:'12px 0', borderRadius:12, background:C.primary, border:'none', color:'#000', fontSize:14, fontWeight:700, cursor:'pointer' }}>
+        + طلب آخر
+      </button>
+    </div>
+  )
+
+  return (
+    <div style={{ paddingBottom:16 }}>
+      <div style={{ padding:'12px 14px', background:`${C.warning}12`, borderRadius:12, marginBottom:16, border:`1px solid ${C.warning}33` }}>
+        <div style={{ fontSize:12, color:C.warning, fontWeight:700 }}>⚠ تنبيه</div>
+        <div style={{ fontSize:11, color:C.textDim, marginTop:4 }}>الطلب يذهب للمشرف للموافقة — الراتب لا يُسجَّل تلقائياً</div>
+      </div>
+
+      {/* المبلغ */}
+      <div style={{ marginBottom:14 }}>
+        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>المبلغ المطلوب (₪) *</label>
+        <input type="number" value={form.amount} min="1" step="1" placeholder="0"
+          onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
+          style={{ width:'100%', padding:'13px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:18, fontWeight:800, boxSizing:'border-box', outline:'none', fontFamily:'monospace' }} />
+      </div>
+
+      {/* المشروع (اختياري) */}
+      {projects.length > 0 && (
+        <div style={{ marginBottom:14 }}>
+          <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>🏗️ من أي مشروع؟ (اختياري)</label>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+            {projects.map(p => (
+              <button key={p.id} onClick={() => setForm(prev => ({ ...prev, projectId: prev.projectId === p.id ? '' : p.id }))}
+                style={{ padding:'8px 12px', borderRadius:10, border:`1.5px solid ${form.projectId === p.id ? C.primary : C.border}`, background:form.projectId === p.id ? `${C.primary}22` : C.bg, color:form.projectId === p.id ? C.primary : C.textDim, fontSize:12, fontWeight:600, cursor:'pointer' }}>
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* طريقة الدفع */}
+      <div style={{ marginBottom:14 }}>
+        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>طريقة الدفع المفضلة</label>
+        <div style={{ display:'flex', gap:8 }}>
+          {PAY_M.map(m => (
+            <button key={m} onClick={() => setForm(p => ({ ...p, method: m }))}
+              style={{ flex:1, padding:'9px 0', borderRadius:10, border:`1.5px solid ${form.method === m ? C.primary : C.border}`, background:form.method === m ? `${C.primary}22` : 'transparent', color:form.method === m ? C.primary : C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ملاحظة */}
+      <div style={{ marginBottom:16 }}>
+        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>ملاحظة (اختياري)</label>
+        <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+          placeholder="مثال: راتب شهر أبريل"
+          style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:14, boxSizing:'border-box', outline:'none' }} />
+      </div>
+
+      {err && <div style={{ padding:'10px 14px', background:`${C.accent}18`, borderRadius:10, marginBottom:12, fontSize:13, color:C.accent }}>⚠ {err}</div>}
+
+      <button onClick={handleSubmit} disabled={saving || !form.amount}
+        style={{ width:'100%', padding:14, borderRadius:14, background:saving || !form.amount ? C.border : GRAD.success, border:'none', color:saving || !form.amount ? C.textDim : '#000', fontSize:15, fontWeight:800, cursor:saving || !form.amount ? 'default' : 'pointer', boxShadow:form.amount ? `0 4px 20px ${C.success}44` : 'none' }}>
+        {saving ? 'جاري الإرسال...' : '💰 أرسل طلب الراتب للمشرف'}
+      </button>
+    </div>
+  )
+}
+
+// ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
   const {
     worker, workDays, payments, projects, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
-    login, logout, submitWorkDay, submitExpense, changePassword,
+    login, logout, submitWorkDay, submitExpense, changePassword, requestPayment,
     monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
   } = useWorkerPortal()
 
@@ -658,8 +754,8 @@ export default function WorkerPortalScreen() {
   const tabs = [
     { id: 'submit',   label: '📤 يوم' },
     { id: 'expense',  label: '💸 مصروف' },
+    { id: 'salary',   label: '💰 طلب راتب' },
     { id: 'monthly',  label: '📅 شهري' },
-    { id: 'payments', label: '💰 رواتب' },
     { id: 'account',  label: '⚙️ حساب' },
   ]
 
@@ -787,6 +883,15 @@ export default function WorkerPortalScreen() {
               ))
             )}
           </>
+        )}
+
+        {/* تبويب طلب راتب */}
+        {tab === 'salary' && (
+          <RequestPaymentForm
+            worker={worker}
+            projects={projects}
+            onRequest={requestPayment}
+          />
         )}
 
         {/* تبويب الحساب وتغيير كلمة المرور */}

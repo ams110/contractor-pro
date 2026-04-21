@@ -57,7 +57,7 @@ function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, o
   )
 }
 
-export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly }) {
+export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly, showTaxDashboard = true }) {
   const [alertsExpanded, setAlertsExpanded] = useState(true)
   const [showTax,        setShowTax]        = useState(false)
   const [addingTax,      setAddingTax]      = useState(null)  // 'income_tax' | 'bituach_leumi' | null
@@ -372,7 +372,7 @@ export default function DashboardScreen({ projects, employees, workDays, expense
       )}
 
       {/* ─── قسم الضرائب ─── */}
-      <div style={{ marginBottom:16 }}>
+      {showTaxDashboard && <div style={{ marginBottom:16 }}>
         <button onClick={() => setShowTax(t => !t)}
           style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'13px 16px', background:`linear-gradient(90deg,${C.purple}18,${C.blue}10)`, borderRadius:14, border:`1px solid ${C.purple}44`, cursor:'pointer', marginBottom: showTax ? 10 : 0, transition:'all .2s' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -480,7 +480,7 @@ export default function DashboardScreen({ projects, employees, workDays, expense
               onDelete={deleteTaxAdvance} hint="9.82% / 16.23%" />
           </div>
         )}
-      </div>
+      </div>}
 
       {/* ─── مودال مقدمة ضريبية ─── */}
       {addingTax && (

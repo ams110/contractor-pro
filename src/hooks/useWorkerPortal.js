@@ -141,6 +141,23 @@ export function useWorkerPortal() {
     }
   }
 
+  async function requestPayment({ amount, projectId, method, notes }) {
+    const session = loadSession()
+    if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
+    const { data, error } = await supabase.rpc('worker_request_payment', {
+      p_emp_id:     session.id,
+      p_token:      session.token,
+      p_amount:     parseFloat(amount),
+      p_project_id: projectId || null,
+      p_method:     method || 'كاش',
+      p_notes:      notes || '',
+    })
+    if (error) throw new Error(error.message)
+    if (data?.error) throw new Error(data.error)
+    await loadData(session.id)
+    return data
+  }
+
   // الملخص الشهري (الأيام الموافق عليها فقط)
   const monthlyBreakdown = (() => {
     const map = {}
@@ -176,7 +193,7 @@ export function useWorkerPortal() {
     worker, workDays, payments, projects, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
-    login, logout, submitWorkDay, submitExpense, changePassword,
+    login, logout, submitWorkDay, submitExpense, changePassword, requestPayment,
     refetch: () => worker?.id && loadData(worker.id),
     monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
   }

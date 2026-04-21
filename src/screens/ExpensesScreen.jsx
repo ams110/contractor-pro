@@ -10,7 +10,7 @@ const CAT_ICONS   = { 'بضاعة':'🛒', 'مواد':'🧱', 'عدد':'🔧', '
 const CAT_COLORS  = { 'بضاعة':C.pink, 'مواد':C.orange, 'عدد':C.blue, 'وقود':C.cyan, 'إيجار':C.purple, 'تأمين':C.success, 'أخرى':C.textDim }
 const FILTER_CATS = ['الكل', 'بضاعة', 'مواد', 'عدد', 'وقود', 'إيجار', 'تأمين', 'أخرى']
 
-export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions }) {
+export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions, showVatExpenses = true }) {
   const [showForm,    setShowForm]    = useState(false)
   const [filter,      setFilter]      = useState('الكل')
   const [confirmDel,  setConfirmDel]  = useState(null)
@@ -123,20 +123,29 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
           <div style={{ height:3, background:GRAD.danger }} />
           <div style={{ padding:'14px 16px', display:'flex', justifyContent:'space-around' }}>
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>شامل الضريبة</div>
-              <div style={{ fontSize:22, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(total)}₪</div>
-            </div>
-            <div style={{ width:1, background:C.border }} />
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>بدون ضريبة</div>
-              <div style={{ fontSize:22, fontWeight:900, color:C.text, fontFamily:'monospace' }}>{fmt(noVAT)}₪</div>
-            </div>
-            <div style={{ width:1, background:C.border }} />
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>ضريبة 17%</div>
-              <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace' }}>{fmt(total - noVAT)}₪</div>
-            </div>
+            {showVatExpenses ? (
+              <>
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>شامل الضريبة</div>
+                  <div style={{ fontSize:22, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(total)}₪</div>
+                </div>
+                <div style={{ width:1, background:C.border }} />
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>بدون ضريبة</div>
+                  <div style={{ fontSize:22, fontWeight:900, color:C.text, fontFamily:'monospace' }}>{fmt(noVAT)}₪</div>
+                </div>
+                <div style={{ width:1, background:C.border }} />
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>ضريبة 17%</div>
+                  <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace' }}>{fmt(total - noVAT)}₪</div>
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign:'center', width:'100%' }}>
+                <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>إجمالي المصاريف</div>
+                <div style={{ fontSize:26, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(total)}₪</div>
+              </div>
+            )}
           </div>
         </GlassCard>
       )}
@@ -266,7 +275,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         <Input label="التاريخ"    value={form.date}   onChange={f('date')}   type="date" required />
         <Input label="المبلغ (₪)" value={form.amount} onChange={f('amount')} type="number" min="0.01" required />
 
-        {form.amount && parseFloat(form.amount) > 0 && (
+        {showVatExpenses && form.amount && parseFloat(form.amount) > 0 && (
           <div style={{ marginTop:-8, marginBottom:14, padding:'8px 12px', background:`${C.border}33`, borderRadius:10, display:'flex', justifyContent:'space-between' }}>
             <span style={{ fontSize:11, color:C.textDim }}>بدون ضريبة: {fmt(Math.round(parseFloat(form.amount) / (1 + VAT)))}₪</span>
             <span style={{ fontSize:11, color:C.textDim }}>ضريبة: {fmt(Math.round(parseFloat(form.amount) - parseFloat(form.amount) / (1 + VAT)))}₪</span>

@@ -19,7 +19,7 @@ const PERM_LABELS = [
 
 const DEFAULT_NEW_PERMS = Object.fromEntries(PERM_LABELS.map(([k]) => [k, false]))
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat, pensionMonthly, setPensionMonthly, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember }) {
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat, pensionMonthly, setPensionMonthly, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember, showVatExpenses, showTaxDashboard, setFeature }) {
   const { signOut, registerPasskey, isPasskeySupported, user } = useAuth()
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [passkeyStatus,  setPasskeyStatus]  = useState('')
@@ -154,6 +154,32 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
           )}
         </div>
       )}
+
+      {/* ── ميزات التطبيق ── */}
+      <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
+        <div style={{ height:3, background:GRAD.brand }} />
+        <div style={{ padding:'14px 16px' }}>
+          <SectionLabel color={C.primary}>⚙️ ميزات التطبيق</SectionLabel>
+          <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+            {[
+              { key:'showVatExpenses',  val: showVatExpenses,  label:'💰 ضريبة VAT في المصاريف',        sub:'الأعمدة الثلاثة (شامل / بدون / ضريبة 17%)' },
+              { key:'showTaxDashboard', val: showTaxDashboard, label:'📊 لوحة الضرائب الإسرائيلية',      sub:'מע"מ • עוסק פטור • ביטוח לאומי • ضريبة دخل' },
+            ].map(({ key, val, label, sub }) => (
+              <div key={key} onClick={() => setFeature?.(key, !val)}
+                style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0', borderBottom:`1px solid ${C.border}`, cursor:'pointer' }}>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:700, color: val ? C.text : C.textDim }}>{label}</div>
+                  <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>{sub}</div>
+                </div>
+                {/* Toggle */}
+                <div style={{ width:44, height:24, borderRadius:12, background: val ? GRAD.brand : `${C.border}88`, position:'relative', transition:'background .2s', flexShrink:0 }}>
+                  <div style={{ position:'absolute', top:3, left: val ? 23 : 3, width:18, height:18, borderRadius:'50%', background:'#fff', transition:'left .2s', boxShadow:'0 1px 4px rgba(0,0,0,0.3)' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </GlassCard>
 
       {/* ── التخصصات ── */}
       <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>

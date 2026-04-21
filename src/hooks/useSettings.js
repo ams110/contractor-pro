@@ -48,6 +48,13 @@ export function useSettings(userId) {
     save({ ...settings, pensionMonthly: parseFloat(amount) || 0 })
   }
 
+  function setFeature(name, value) {
+    save({ ...settings, [name]: value })
+  }
+
+  const showVatExpenses  = settings.showVatExpenses  ?? true
+  const showTaxDashboard = settings.showTaxDashboard ?? true
+
   return {
     specs:    settings.specs,
     expCats:  settings.expCats,
@@ -55,5 +62,8 @@ export function useSettings(userId) {
     addSpec,  removeSpec,
     addExpCat, removeExpCat,
     setPensionMonthly,
+    showVatExpenses,
+    showTaxDashboard,
+    setFeature,
   }
 }
