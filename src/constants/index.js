@@ -53,6 +53,7 @@ export const SPECS = [
 ]
 
 export const EXP_CATS = [
+  'بضاعة',
   'مواد بناء / خامات',
   'عدد وأدوات',
   'وقود وتنقلات',

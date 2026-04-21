@@ -6,9 +6,9 @@ import { uploadReceipt } from '../lib/storage.js'
 import { exportExpensesToExcel } from '../lib/export.js'
 import { supabase } from '../lib/supabase.js'
 
-const CAT_ICONS   = { 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
-const CAT_COLORS  = { 'مواد':C.orange, 'عدد':C.blue, 'وقود':C.cyan, 'إيجار':C.purple, 'تأمين':C.success, 'أخرى':C.textDim }
-const FILTER_CATS = ['الكل', 'مواد', 'عدد', 'وقود', 'إيجار', 'تأمين', 'أخرى']
+const CAT_ICONS   = { 'بضاعة':'🛒', 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
+const CAT_COLORS  = { 'بضاعة':C.pink, 'مواد':C.orange, 'عدد':C.blue, 'وقود':C.cyan, 'إيجار':C.purple, 'تأمين':C.success, 'أخرى':C.textDim }
+const FILTER_CATS = ['الكل', 'بضاعة', 'مواد', 'عدد', 'وقود', 'إيجار', 'تأمين', 'أخرى']
 
 export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions }) {
   const [showForm,    setShowForm]    = useState(false)
