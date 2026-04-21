@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { C, EXP_CATS, VAT, OSEK_PATUR_THRESHOLD } from '../constants/index.js'
-import { fmt, fmtDate, todayStr, calcVATNet, calcBituachLeumi, calcBituachLeumiAnnual, estimateIncomeTax, isPaymentOverdue } from '../lib/helpers.js'
+import { fmt, fmtDate, todayStr, calcVATNet, calcBituachLeumi, calcBituachLeumiAnnual, estimateIncomeTax, pensionTaxSaving, isPaymentOverdue } from '../lib/helpers.js'
 import { StatCard, Card } from '../components/index.jsx'
 
 function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, onDelete, hint }) {
@@ -57,7 +57,7 @@ function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, o
   )
 }
 
-export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, taxAdvances = [], addTaxAdvance, deleteTaxAdvance }) {
+export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly }) {
   const [alertsExpanded, setAlertsExpanded] = useState(true)
   const [showTax,        setShowTax]        = useState(false)
   const [addingTax,      setAddingTax]      = useState(null)  // 'income_tax' | 'bituach_leumi' | null
@@ -112,15 +112,19 @@ export default function DashboardScreen({ projects, employees, workDays, expense
     .filter(p => p.received > 0 && p.margin !== null)
     .sort((a, b) => b.margin - a.margin)[0]
 
-  // ─── مقدمات الضريبة ─────────────────────────────────────────────────────
+  // ─── پنسيه وضرائب ───────────────────────────────────────────────────────
+  const annualNet       = Math.max(0, netProfit)
+  const pensionAnnual   = (pensionMonthly || 0) * 12
+  const pensionMaxAllowed = Math.round(annualNet * 0.16)           // حد 16%
+  const pensionActual   = Math.min(pensionAnnual, pensionMaxAllowed) // المبلغ المعترف به
+  const itWithPension   = estimateIncomeTax(annualNet, pensionActual) // مع خصم
+  const itWithoutPension= estimateIncomeTax(annualNet, 0)             // بدون خصم
+  const pensionSaving   = pensionTaxSaving(annualNet, pensionActual)  // الوفر
+  const itEstimate      = itWithPension
+  const blEstimate      = calcBituachLeumiAnnual(annualNet)
+
   const itPaidYear = taxAdvances.filter(a => a.type === 'income_tax'    && (a.date||'').startsWith(thisYear)).reduce((s, a) => s + a.amount, 0)
   const blPaidYear = taxAdvances.filter(a => a.type === 'bituach_leumi' && (a.date||'').startsWith(thisYear)).reduce((s, a) => s + a.amount, 0)
-  // الدخل الخاضع للضريبة = صافي الربح (إيرادات - مصاريف - رواتب)
-  // تقدير سنوي: نستخدم ما هو موجود (YTD) — دقيق في نهاية السنة
-  const annualNet  = Math.max(0, netProfit)
-  const itEstimate = estimateIncomeTax(annualNet)
-  // ביטוח לאומי: نستخدم الحساب السنوي المرحلي الصحيح (شريحتين)
-  const blEstimate = calcBituachLeumiAnnual(annualNet)
 
   async function saveTaxAdvance() {
     if (!taxForm.amount || parseFloat(taxForm.amount) <= 0) return
@@ -319,7 +323,56 @@ export default function DashboardScreen({ projects, employees, workDays, expense
               )}
             </div>
 
-            {/* مقدمات מס הכנסה */}
+            {/* פנסיה — خصم الپنسيه من الضريبة */}
+            <div style={{ padding:'12px 14px', background:C.card, borderRadius:12, border:`1px solid ${C.purple}44` }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:700, color:C.text }}>🏦 פנסיה — خصم من ضريبة الدخل</div>
+                  <div style={{ fontSize:9, color:C.textMuted }}>حتى 16% من الدخل قابل للخصم (תקרת ניכוי 2024)</div>
+                </div>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                <label style={{ fontSize:11, color:C.textDim, whiteSpace:'nowrap' }}>قسط شهري:</label>
+                <input
+                  type="number" min="0" value={pensionMonthly || ''}
+                  onChange={e => setPensionMonthly && setPensionMonthly(e.target.value)}
+                  placeholder="0"
+                  style={{ flex:1, padding:'8px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:14, fontWeight:700, fontFamily:'monospace', outline:'none' }}
+                />
+                <span style={{ fontSize:11, color:C.textDim }}>₪/شهر</span>
+              </div>
+              {pensionAnnual > 0 && (
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
+                  {[
+                    { l:'سنوياً',     v:`${fmt(pensionAnnual)}₪`,   c:C.text },
+                    { l:'معترف به',   v:`${fmt(pensionActual)}₪`,   c:pensionActual < pensionAnnual ? C.warning : C.success },
+                    { l:'وفر ضريبي', v:`${fmt(pensionSaving)}₪`,   c:C.success },
+                  ].map(s => (
+                    <div key={s.l} style={{ textAlign:'center', padding:'7px 4px', background:`${C.border}33`, borderRadius:8 }}>
+                      <div style={{ fontSize:9, color:C.textDim }}>{s.l}</div>
+                      <div style={{ fontSize:12, fontWeight:800, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {pensionAnnual > 0 && pensionActual < pensionAnnual && (
+                <div style={{ marginTop:8, padding:'6px 10px', background:`${C.warning}15`, borderRadius:8, fontSize:10, color:C.warning }}>
+                  ⚠ الحد الأقصى المعترف به هو 16% من دخلك ({fmt(pensionMaxAllowed)}₪) — الباقي لا يُخصم ضريبياً
+                </div>
+              )}
+              {pensionAnnual > 0 && pensionSaving > 0 && (
+                <div style={{ marginTop:6, padding:'6px 10px', background:`${C.success}15`, borderRadius:8, fontSize:10, color:C.success, fontWeight:600 }}>
+                  ✓ الپنسيه توفّر لك {fmt(pensionSaving)}₪ من ضريبة الدخل (بدلاً من {fmt(itWithoutPension)}₪ صار {fmt(itWithPension)}₪)
+                </div>
+              )}
+              {!pensionMonthly && (
+                <div style={{ padding:'6px 10px', background:`${C.blue}15`, borderRadius:8, fontSize:10, color:C.blue }}>
+                  💡 لو بتدفع پنسيه، أدخل المبلغ وشوف كم بتوفر من الضريبة
+                </div>
+              )}
+            </div>
+
+            {/* מקדמות מס הכנסה */}
             <TaxAdvanceBlock
               title="מס הכנסה — ضريبة الدخل"
               icon="📋"

@@ -141,13 +141,17 @@ export function calcBituachLeumiAnnual(annualNetProfit) {
 
 /**
  * تقدير מס הכנסה السنوي للعمل الحر — شرائح 2024
- * مع خصم نقاط زيكوي شخصية (2.25 نقطة × ₪2,904 = ₪6,534 خصم من الضريبة)
- * ملاحظة: لا يشمل خصم مساهمات الپنسيه (حتى 16% من الدخل قابل للخصم)
+ * @param annualNetProfit  - صافي الربح السنوي (إيرادات - مصاريف - رواتب عمال)
+ * @param pensionDeduction - مساهمات الپنסيה السنوية المدفوعة (تُخصم من الوعاء الضريبي)
+ *   الحد الأقصى للخصم: 16% من الدخل (תקרת ניכוי לעצמאי 2024)
+ * نقاط زيكوي شخصية: 2.25 × ₪2,904 = ₪6,534 خصم من الضريبة المحسوبة
  */
-export function estimateIncomeTax(annualNetProfit) {
+export function estimateIncomeTax(annualNetProfit, pensionDeduction = 0) {
   if (annualNetProfit <= 0) return 0
+  const maxPension  = Math.min(pensionDeduction, annualNetProfit * 0.16)
+  const taxableIncome = Math.max(0, annualNetProfit - maxPension)
   let tax = 0
-  let remaining = annualNetProfit
+  let remaining = taxableIncome
   for (const [size, rate] of _IT_BRACKETS) {
     const taxable = Math.min(remaining, size)
     tax += taxable * rate
@@ -155,6 +159,13 @@ export function estimateIncomeTax(annualNetProfit) {
     if (remaining <= 0) break
   }
   return Math.max(0, Math.round(tax - _IT_CREDIT))
+}
+
+/**
+ * حساب الوفر الضريبي من مساهمات الپנסיה
+ */
+export function pensionTaxSaving(annualNetProfit, pensionDeduction) {
+  return estimateIncomeTax(annualNetProfit, 0) - estimateIncomeTax(annualNetProfit, pensionDeduction)
 }
 
 /**

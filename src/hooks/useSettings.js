@@ -44,10 +44,16 @@ export function useSettings(userId) {
     save({ ...settings, expCats: settings.expCats.filter(c => c !== cat) })
   }
 
+  function setPensionMonthly(amount) {
+    save({ ...settings, pensionMonthly: parseFloat(amount) || 0 })
+  }
+
   return {
     specs:    settings.specs,
     expCats:  settings.expCats,
+    pensionMonthly: settings.pensionMonthly || 0,
     addSpec,  removeSpec,
     addExpCat, removeExpCat,
+    setPensionMonthly,
   }
 }

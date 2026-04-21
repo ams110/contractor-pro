@@ -19,7 +19,7 @@ const PERM_LABELS = [
 
 const DEFAULT_NEW_PERMS = Object.fromEntries(PERM_LABELS.map(([k]) => [k, false]))
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember }) {
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat, pensionMonthly, setPensionMonthly, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember }) {
   const { signOut, registerPasskey, isPasskeySupported, user } = useAuth()
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [passkeyStatus,  setPasskeyStatus]  = useState('')
@@ -288,6 +288,23 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
       )}
 
       {/* تصدير البيانات */}
+      {/* إعداد الپنסيه */}
+      <div style={{ marginTop:16, marginBottom:4 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:10 }}>🏦 פנסיה — إعداد القسط الشهري</div>
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 14px', background:C.card, borderRadius:12, border:`1px solid ${C.border}` }}>
+          <label style={{ fontSize:12, color:C.textDim, whiteSpace:'nowrap' }}>القسط الشهري (₪):</label>
+          <input
+            type="number" min="0" value={pensionMonthly || ''}
+            onChange={e => setPensionMonthly && setPensionMonthly(e.target.value)}
+            placeholder="0"
+            style={{ flex:1, padding:'8px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:15, fontWeight:700, fontFamily:'monospace', outline:'none' }}
+          />
+        </div>
+        <div style={{ fontSize:10, color:C.textDim, marginTop:6, padding:'0 4px' }}>
+          يُستخدم لحساب الخصم الضريبي تلقائياً في لوحة الضرائب
+        </div>
+      </div>
+
       <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:8 }}>
         <button onClick={() => exportFullReportToExcel({ projects, employees, workDays, expenses, payments, clientReceipts: clientReceipts || [] })}
           style={{ width:'100%', padding:'12px', borderRadius:12, border:`1.5px solid ${C.success}`, background:`${C.success}15`, color:C.success, fontSize:13, fontWeight:700, cursor:'pointer' }}>
