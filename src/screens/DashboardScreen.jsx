@@ -216,21 +216,42 @@ export default function DashboardScreen({ projects, employees, workDays, expense
 
   const urgentCount = alerts.filter(a => a.urgent).length
 
+
   return (
     <div className="fade-in" style={{ padding:16 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-        <div>
-          <div style={{ fontSize:22, fontWeight:800, color:C.text }}>مرحبا 👋</div>
-          <div style={{ fontSize:12, color:C.textDim }}>{fmtDate(todayStr())}</div>
-        </div>
-        {urgentCount > 0 && (
-          <div style={{ background:C.accent, borderRadius:20, padding:'4px 12px', fontSize:12, fontWeight:800, color:'#fff' }}>
-            {urgentCount} تنبيه عاجل
+
+      {/* ─── Hero ─── */}
+      <div style={{ marginBottom:20, borderRadius:22, background:`linear-gradient(135deg, ${C.surface} 0%, #1e2d3d 100%)`, border:`1px solid ${C.border}`, overflow:'hidden', position:'relative' }}>
+        <div style={{ position:'absolute', top:-30, left:-30, width:120, height:120, borderRadius:'50%', background:`${C.primary}0d`, pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom:-20, right:-20, width:90, height:90, borderRadius:'50%', background:`${C.blue}0d`, pointerEvents:'none' }} />
+        <div style={{ padding:'18px 18px 14px', position:'relative' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16 }}>
+            <div>
+              <div style={{ fontSize:11, color:C.textDim, fontWeight:600, letterSpacing:'0.04em', marginBottom:3 }}>{fmtDate(todayStr())}</div>
+              <div style={{ fontSize:22, fontWeight:900, color:C.text }}>{'مرحبا 👋'}</div>
+            </div>
+            {urgentCount > 0 && (
+              <div style={{ background:`linear-gradient(135deg,${C.accent},#FF8A80)`, borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:800, color:'#fff', boxShadow:`0 4px 14px ${C.accent}55` }}>
+                {urgentCount} تنبيه عاجل
+              </div>
+            )}
           </div>
-        )}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+            {[
+              { l:'إجمالي المقبوض', v:`${fmt(totalReceived)}₪`, c:C.success },
+              { l:'صافي الربح',     v:`${fmt(netProfit)}₪`,     c:netProfit >= 0 ? C.primary : C.accent },
+              { l:'للتحصيل',        v:`${fmt(Math.max(0,totalPending))}₪`, c:C.warning },
+            ].map(s => (
+              <div key={s.l} style={{ textAlign:'center', padding:'10px 4px', background:'rgba(255,255,255,0.04)', borderRadius:12, border:'1px solid rgba(255,255,255,0.07)' }}>
+                <div style={{ fontSize:8, color:C.textMuted, marginBottom:4, fontWeight:600 }}>{s.l}</div>
+                <div style={{ fontSize:13, fontWeight:900, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* إحصائيات */}
+      {/* ─── إحصائيات ─── */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:20 }}>
         <StatCard icon="💰" label="المقبوض من العملاء" value={`${fmt(totalReceived)}₪`} color={C.success} />
         <StatCard icon="💸" label="إجمالي التكاليف"    value={`${fmt(totalExp + totalLabor)}₪`} color={C.accent} />
@@ -238,268 +259,258 @@ export default function DashboardScreen({ projects, employees, workDays, expense
         <StatCard icon="⏳" label="متبقي للتحصيل"      value={`${fmt(Math.max(0, totalPending))}₪`} color={totalPending > 0 ? C.warning : C.success} />
       </div>
 
+      {/* ─── أزرار سريعة ─── */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:20 }}>
+        {[
+          { icon:'📅', label:'يوم عمل',  nav:'workdays', color:C.primary },
+          { icon:'💸', label:'مصروف',    nav:'expenses', color:C.blue   },
+          { icon:'🏗️', label:'مشروع',    nav:'projects', color:C.purple },
+          { icon:'💵', label:'دفعة',     nav:'projects', color:C.success },
+        ].map(a => (
+          <button key={a.label} onClick={() => onNav(a.nav)}
+            style={{ padding:'12px 4px', borderRadius:16, border:`1px solid ${a.color}33`, background:`${a.color}12`, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:6, transition:'all .2s' }}>
+            <div style={{ width:38, height:38, borderRadius:12, background:`${a.color}22`, border:`1px solid ${a.color}44`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>
+              {a.icon}
+            </div>
+            <span style={{ fontSize:9, fontWeight:800, color:a.color }}>+ {a.label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* ─── عملاء متأخرون ─── */}
       {overdueClients.length > 0 && (
         <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:13, fontWeight:800, color:C.accent, marginBottom:8 }}>🔴 عملاء متأخرون بالدفع</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+            <div style={{ width:28, height:28, borderRadius:8, background:`${C.accent}22`, border:`1px solid ${C.accent}44`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13 }}>🔴</div>
+            <span style={{ fontSize:13, fontWeight:800, color:C.accent }}>عملاء متأخرون بالدفع</span>
+          </div>
           {overdueClients.map(p => (
             <button key={p.id} onClick={() => onNav('projects')}
-              style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', background:`${C.accent}11`, borderRadius:10, border:`1px solid ${C.accent}33`, marginBottom:6, cursor:'pointer', textAlign:'right' }}>
+              style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 14px', background:`linear-gradient(90deg,${C.accent}0f,${C.accent}08)`, borderRadius:14, border:`1px solid ${C.accent}44`, marginBottom:8, cursor:'pointer', textAlign:'right', transition:'all .2s' }}>
               <div style={{ textAlign:'right' }}>
-                <div style={{ fontSize:12, fontWeight:700, color:C.text }}>{p.client_name || p.name}</div>
-                <div style={{ fontSize:10, color:C.textDim }}>{p.name} • {p.daysSince} يوم بدون دفعة</div>
+                <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{p.client_name || p.name}</div>
+                <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>{p.name} - {p.daysSince} يوم بدون دفعة</div>
               </div>
-              <div style={{ fontSize:14, fontWeight:800, color:C.accent, fontFamily:'monospace' }}>{fmt(p.balance)}₪</div>
+              <div>
+                <div style={{ fontSize:15, fontWeight:900, color:C.accent, fontFamily:'monospace', textAlign:'left' }}>{fmt(p.balance)}₪</div>
+                <div style={{ fontSize:9, color:C.accent, textAlign:'left', opacity:0.7 }}>مستحق</div>
+              </div>
             </button>
           ))}
         </div>
       )}
 
-      {/* ─── أفضل مشروع هذا الشهر ─── */}
+      {/* ─── أفضل مشروع ─── */}
       {bestProject && (
-        <Card>
-          <div style={{ padding:'12px 14px' }}>
-            <div style={{ fontSize:11, color:C.textDim, marginBottom:6 }}>⭐ أفضل مشروع هذا الشهر</div>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <div>
-                <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{bestProject.name}</div>
-                <div style={{ fontSize:11, color:C.textDim }}>{bestProject.client_name || ''}</div>
-              </div>
-              <div style={{ textAlign:'center' }}>
-                <div style={{ fontSize:20, fontWeight:900, color:C.success }}>{bestProject.margin}%</div>
-                <div style={{ fontSize:9, color:C.textDim }}>هامش ربح</div>
-              </div>
+        <div style={{ marginBottom:16, borderRadius:18, background:`linear-gradient(135deg,${C.success}18,${C.primary}10)`, border:`1px solid ${C.success}44`, padding:'14px 16px', position:'relative', overflow:'hidden' }}>
+          <div style={{ position:'absolute', top:-10, left:-10, width:70, height:70, borderRadius:'50%', background:`${C.success}0f` }} />
+          <div style={{ fontSize:10, color:C.success, fontWeight:700, letterSpacing:'0.04em', marginBottom:8 }}>{'⭐ أفضل مشروع هذا الشهر'}</div>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <div>
+              <div style={{ fontSize:15, fontWeight:800, color:C.text }}>{bestProject.name}</div>
+              <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{bestProject.client_name || ''}</div>
+            </div>
+            <div style={{ textAlign:'center', background:`${C.success}20`, borderRadius:14, padding:'8px 14px', border:`1px solid ${C.success}44` }}>
+              <div style={{ fontSize:24, fontWeight:900, color:C.success, lineHeight:1 }}>{bestProject.margin}%</div>
+              <div style={{ fontSize:9, color:C.textDim, marginTop:2 }}>هامش ربح</div>
             </div>
           </div>
-        </Card>
+        </div>
       )}
 
-      {/* ─── قسم الضرائب الإسرائيلية ─── */}
+      {/* ─── التنبيهات ─── */}
+      {alerts.length > 0 && (
+        <div style={{ marginBottom:16 }}>
+          <button onClick={() => setAlertsExpanded(e => !e)}
+            style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', background:`linear-gradient(90deg,${C.warning}15,${C.warning}08)`, borderRadius:14, border:`1px solid ${C.warning}44`, marginBottom:6, cursor:'pointer' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ width:26, height:26, borderRadius:8, background:`${C.warning}25`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12 }}>⚠️</div>
+              <span style={{ fontSize:13, fontWeight:800, color:C.text }}>التنبيهات</span>
+              <span style={{ fontSize:11, background:`${C.warning}30`, color:C.warning, borderRadius:10, padding:'2px 8px', fontWeight:700 }}>{alerts.length}</span>
+            </div>
+            <span style={{ fontSize:11, color:C.textDim }}>{alertsExpanded ? '▲' : '▼'}</span>
+          </button>
+          {alertsExpanded && alerts.map((a, i) => (
+            <button key={i} onClick={() => a.nav && onNav(a.nav)}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 14px', marginBottom:5, background:`${a.color}0f`, borderRadius:12, border:`1px solid ${a.color}33`, cursor:'pointer', textAlign:'right', transition:'all .2s' }}>
+              <span style={{ fontSize:14 }}>{a.icon}</span>
+              <span style={{ fontSize:12, color:C.text, flex:1, lineHeight:1.4 }}>{a.text}</span>
+              {a.nav && <span style={{ fontSize:13, color:a.color, opacity:0.8 }}>{'‹'}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ─── رسم بياني ─── */}
+      {expByCat.length > 0 && (
+        <div style={{ marginBottom:16, background:C.card, borderRadius:18, border:`1px solid ${C.border}`, overflow:'hidden' }}>
+          <div style={{ padding:'14px 16px 0' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+              <div style={{ width:28, height:28, borderRadius:8, background:`${C.purple}22`, border:`1px solid ${C.purple}44`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13 }}>📊</div>
+              <span style={{ fontSize:14, fontWeight:800, color:C.text }}>توزيع المصاريف</span>
+            </div>
+          </div>
+          <div style={{ height:180 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={expByCat} cx="50%" cy="50%" innerRadius={50} outerRadius={78} dataKey="value" paddingAngle={4}>
+                  {expByCat.map((_, i) => <Cell key={i} fill={pieColors[i % pieColors.length]} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, color:C.text, fontSize:12, boxShadow:'0 8px 24px rgba(0,0,0,0.4)' }} formatter={v => `${fmt(v)}₪`} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6, padding:'10px 16px 14px', justifyContent:'center' }}>
+            {expByCat.map((e, i) => (
+              <div key={e.name} style={{ display:'flex', alignItems:'center', gap:5, fontSize:10, color:C.textDim, background:`${pieColors[i%pieColors.length]}15`, borderRadius:20, padding:'3px 10px', border:`1px solid ${pieColors[i%pieColors.length]}33` }}>
+                <div style={{ width:6, height:6, borderRadius:'50%', background:pieColors[i % pieColors.length] }} />
+                {e.name} ({fmt(e.value)}₪)
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── قسم الضرائب ─── */}
       <div style={{ marginBottom:16 }}>
         <button onClick={() => setShowTax(t => !t)}
-          style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', background:`${C.purple}11`, borderRadius:12, border:`1px solid ${C.purple}33`, cursor:'pointer', marginBottom: showTax ? 8 : 0 }}>
-          <span style={{ fontSize:13, fontWeight:700, color:C.text }}>🇮🇱 ملخص الضرائب</span>
-          <span style={{ fontSize:12, color:C.textDim }}>{showTax ? '▲ إخفاء' : '▼ عرض'}</span>
+          style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'13px 16px', background:`linear-gradient(90deg,${C.purple}18,${C.blue}10)`, borderRadius:14, border:`1px solid ${C.purple}44`, cursor:'pointer', marginBottom: showTax ? 10 : 0, transition:'all .2s' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:28, height:28, borderRadius:8, background:`${C.purple}25`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>🇮🇱</div>
+            <span style={{ fontSize:13, fontWeight:800, color:C.text }}>ملخص الضرائب الإسرائيلية</span>
+          </div>
+          <span style={{ fontSize:11, color:C.textDim, background:`${C.border}88`, borderRadius:8, padding:'3px 8px' }}>{showTax ? '▲ إخفاء' : '▼ عرض'}</span>
         </button>
 
         {showTax && (
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            {/* VAT נטו */}
-            <div style={{ padding:'12px 14px', background:C.card, borderRadius:12, border:`1px solid ${C.border}` }}>
-              <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:10 }}>💳 מע"מ לתשלום (شهرين الأخيرين)</div>
+            {/* VAT */}
+            <div style={{ padding:'14px', background:C.card, borderRadius:14, border:`1px solid ${C.border}`, position:'relative', overflow:'hidden' }}>
+              <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg,${C.success},${C.primary})` }} />
+              <div style={{ fontSize:12, fontWeight:800, color:C.text, marginBottom:12 }}>
+                {'💳 מע"מ לתשלום'} <span style={{ fontSize:10, color:C.textDim, fontWeight:500 }}>(شهرين الأخيرين)</span>
+              </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
                 {[
-                  { l:'VAT محصّل',  v:`${fmt(vatData.vatOut)}₪`, c:C.success },
-                  { l:'VAT مدفوع',  v:`${fmt(vatData.vatIn)}₪`,  c:C.primary },
-                  { l:'الصافي',     v:`${fmt(vatData.net)}₪`,    c:vatData.net > 0 ? C.accent : C.success },
+                  { l:'VAT محصّل', v:`${fmt(vatData.vatOut)}₪`, c:C.success },
+                  { l:'VAT مدفوع', v:`${fmt(vatData.vatIn)}₪`,  c:C.primary },
+                  { l:'الصافي',    v:`${fmt(vatData.net)}₪`,    c:vatData.net > 0 ? C.accent : C.success },
                 ].map(s => (
-                  <div key={s.l} style={{ textAlign:'center', padding:'8px 4px', background:`${C.border}33`, borderRadius:8 }}>
-                    <div style={{ fontSize:9, color:C.textDim }}>{s.l}</div>
-                    <div style={{ fontSize:13, fontWeight:800, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
+                  <div key={s.l} style={{ textAlign:'center', padding:'9px 4px', background:'rgba(255,255,255,0.04)', borderRadius:10, border:'1px solid rgba(255,255,255,0.07)' }}>
+                    <div style={{ fontSize:9, color:C.textDim, marginBottom:4, fontWeight:600 }}>{s.l}</div>
+                    <div style={{ fontSize:13, fontWeight:900, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
                   </div>
                 ))}
               </div>
               {vatData.net > 0 && (
-                <div style={{ marginTop:8, padding:'6px 10px', background:`${C.accent}15`, borderRadius:8, fontSize:11, color:C.accent, fontWeight:600 }}>
-                  ⚠ يجب دفع {fmt(vatData.net)}₪ مع"מ للضريبة
+                <div style={{ marginTop:10, padding:'8px 12px', background:`${C.accent}15`, borderRadius:10, fontSize:11, color:C.accent, fontWeight:600 }}>
+                  {'⚠ يجب دفع '}{fmt(vatData.net)}{'₪ מע"מ للضريبة'}
                 </div>
               )}
             </div>
 
-            {/* عتبة עוסק פטור */}
-            <div style={{ padding:'12px 14px', background:C.card, borderRadius:12, border:`1px solid ${C.border}` }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-                <div style={{ fontSize:12, fontWeight:700, color:C.text }}>עוסק פטור — الحد السنوي</div>
-                <div style={{ fontSize:11, color: thresholdPct >= 95 ? C.accent : thresholdPct >= 80 ? C.warning : C.textDim, fontWeight:700 }}>{fmt(yearRevenue)}₪ / {fmt(OSEK_PATUR_THRESHOLD)}₪</div>
-              </div>
-              <div style={{ height:8, background:`${C.border}66`, borderRadius:4, overflow:'hidden' }}>
-                <div style={{ height:'100%', width:`${thresholdPct}%`, borderRadius:4, background: thresholdPct >= 95 ? C.accent : thresholdPct >= 80 ? C.warning : C.success, transition:'width .4s' }} />
-              </div>
-              <div style={{ marginTop:6, fontSize:10, color:C.textDim, textAlign:'center' }}>{thresholdPct}% من الحد</div>
-              {thresholdPct >= 80 && (
-                <div style={{ marginTop:8, padding:'6px 10px', background:`${thresholdPct >= 95 ? C.accent : C.warning}15`, borderRadius:8, fontSize:11, color: thresholdPct >= 95 ? C.accent : C.warning, fontWeight:600 }}>
-                  {thresholdPct >= 95 ? '🚨 وصلت للحد! استشر محاسبك لتحويل לעוסק מורשה' : '⚠ اقتربت من حد עוסק פטור — تنبّه'}
-                </div>
-              )}
-            </div>
-
-            {/* פנסיה — خصم الپنسيه من الضريبة */}
-            <div style={{ padding:'12px 14px', background:C.card, borderRadius:12, border:`1px solid ${C.purple}44` }}>
+            {/* עוסק פטור */}
+            <div style={{ padding:'14px', background:C.card, borderRadius:14, border:`1px solid ${C.border}` }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-                <div>
-                  <div style={{ fontSize:12, fontWeight:700, color:C.text }}>🏦 פנסיה — خصم من ضريبة الدخل</div>
-                  <div style={{ fontSize:9, color:C.textMuted }}>حتى 16% من الدخل قابل للخصم (תקרת ניכוי 2024)</div>
-                </div>
+                <div style={{ fontSize:12, fontWeight:800, color:C.text }}>{'עוסק פטור'} — الحد السنوي</div>
+                <div style={{ fontSize:11, color: thresholdPct >= 95 ? C.accent : thresholdPct >= 80 ? C.warning : C.textDim, fontWeight:700 }}>{thresholdPct}%</div>
               </div>
+              <div style={{ height:10, background:`${C.border}66`, borderRadius:5, overflow:'hidden' }}>
+                <div style={{ height:'100%', width:`${thresholdPct}%`, borderRadius:5, background: thresholdPct >= 95 ? `linear-gradient(90deg,${C.accent},#FF8A80)` : thresholdPct >= 80 ? `linear-gradient(90deg,${C.warning},${C.orange})` : `linear-gradient(90deg,${C.success},${C.primary})`, transition:'width .6s cubic-bezier(0.34,1.56,0.64,1)' }} />
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', marginTop:6, fontSize:10, color:C.textDim }}>
+                <span>{fmt(yearRevenue)}₪</span><span>/ {fmt(OSEK_PATUR_THRESHOLD)}₪</span>
+              </div>
+              {thresholdPct >= 80 && (
+                <div style={{ marginTop:8, padding:'8px 12px', background:`${thresholdPct >= 95 ? C.accent : C.warning}15`, borderRadius:10, fontSize:11, color: thresholdPct >= 95 ? C.accent : C.warning, fontWeight:600 }}>
+                  {thresholdPct >= 95 ? '🚨 وصلت للحد! استشر محاسبك' : '⚠ اقتربت من الحد — تنبّه'}
+                </div>
+              )}
+            </div>
+
+            {/* פנסיה */}
+            <div style={{ padding:'14px', background:C.card, borderRadius:14, border:`1px solid ${C.purple}55` }}>
+              <div style={{ fontSize:12, fontWeight:800, color:C.text, marginBottom:4 }}>{'🏦 פנסיה'} — خصم من ضريبة الدخل</div>
+              <div style={{ fontSize:9, color:C.textMuted, marginBottom:12 }}>حتى 16% من الدخل قابل للخصم (2024)</div>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                <label style={{ fontSize:11, color:C.textDim, whiteSpace:'nowrap' }}>قسط شهري:</label>
-                <input
-                  type="number" min="0" value={pensionMonthly || ''}
-                  onChange={e => setPensionMonthly && setPensionMonthly(e.target.value)}
-                  placeholder="0"
-                  style={{ flex:1, padding:'8px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:14, fontWeight:700, fontFamily:'monospace', outline:'none' }}
-                />
+                <label style={{ fontSize:11, color:C.textDim, whiteSpace:'nowrap', fontWeight:600 }}>قسط شهري:</label>
+                <input type="number" min="0" value={pensionMonthly || ''} onChange={e => setPensionMonthly && setPensionMonthly(e.target.value)} placeholder="0"
+                  style={{ flex:1, padding:'9px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:14, fontWeight:700, fontFamily:'monospace', outline:'none', boxSizing:'border-box' }} />
                 <span style={{ fontSize:11, color:C.textDim }}>₪/شهر</span>
               </div>
               {pensionAnnual > 0 && (
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
                   {[
-                    { l:'سنوياً',     v:`${fmt(pensionAnnual)}₪`,   c:C.text },
-                    { l:'معترف به',   v:`${fmt(pensionActual)}₪`,   c:pensionActual < pensionAnnual ? C.warning : C.success },
-                    { l:'وفر ضريبي', v:`${fmt(pensionSaving)}₪`,   c:C.success },
+                    { l:'سنوياً',    v:`${fmt(pensionAnnual)}₪`, c:C.text },
+                    { l:'معترف به', v:`${fmt(pensionActual)}₪`, c:pensionActual < pensionAnnual ? C.warning : C.success },
+                    { l:'وفر ضريبي', v:`${fmt(pensionSaving)}₪`, c:C.success },
                   ].map(s => (
-                    <div key={s.l} style={{ textAlign:'center', padding:'7px 4px', background:`${C.border}33`, borderRadius:8 }}>
-                      <div style={{ fontSize:9, color:C.textDim }}>{s.l}</div>
-                      <div style={{ fontSize:12, fontWeight:800, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
+                    <div key={s.l} style={{ textAlign:'center', padding:'9px 4px', background:'rgba(255,255,255,0.04)', borderRadius:10, border:'1px solid rgba(255,255,255,0.07)' }}>
+                      <div style={{ fontSize:9, color:C.textDim, marginBottom:4, fontWeight:600 }}>{s.l}</div>
+                      <div style={{ fontSize:12, fontWeight:900, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
                     </div>
                   ))}
                 </div>
               )}
               {pensionAnnual > 0 && pensionActual < pensionAnnual && (
-                <div style={{ marginTop:8, padding:'6px 10px', background:`${C.warning}15`, borderRadius:8, fontSize:10, color:C.warning }}>
-                  ⚠ الحد الأقصى المعترف به هو 16% من دخلك ({fmt(pensionMaxAllowed)}₪) — الباقي لا يُخصم ضريبياً
+                <div style={{ marginTop:8, padding:'8px 12px', background:`${C.warning}15`, borderRadius:10, fontSize:10, color:C.warning }}>
+                  {'⚠ الحد المعترف به 16% من دخلك ('}{fmt(pensionMaxAllowed)}{'₪)'}
                 </div>
               )}
               {pensionAnnual > 0 && pensionSaving > 0 && (
-                <div style={{ marginTop:6, padding:'6px 10px', background:`${C.success}15`, borderRadius:8, fontSize:10, color:C.success, fontWeight:600 }}>
-                  ✓ الپنسيه توفّر لك {fmt(pensionSaving)}₪ من ضريبة الدخل (بدلاً من {fmt(itWithoutPension)}₪ صار {fmt(itWithPension)}₪)
+                <div style={{ marginTop:6, padding:'8px 12px', background:`${C.success}15`, borderRadius:10, fontSize:10, color:C.success, fontWeight:600 }}>
+                  {'✓ الپنسيه توفّر لك '}{fmt(pensionSaving)}{'₪ من الضريبة'}
                 </div>
               )}
               {!pensionMonthly && (
-                <div style={{ padding:'6px 10px', background:`${C.blue}15`, borderRadius:8, fontSize:10, color:C.blue }}>
-                  💡 لو بتدفع پنسيه، أدخل المبلغ وشوف كم بتوفر من الضريبة
+                <div style={{ padding:'8px 12px', background:`${C.blue}15`, borderRadius:10, fontSize:10, color:C.blue }}>
+                  {'💡 لو بتدفع پنسيه، أدخل المبلغ وشوف كم بتوفر'}
                 </div>
               )}
             </div>
 
-            {/* מקדמות מס הכנסה */}
-            <TaxAdvanceBlock
-              title="מס הכנסה — ضريبة الدخل"
-              icon="📋"
-              color={C.blue}
-              estimate={itEstimate}
-              paid={itPaidYear}
+            <TaxAdvanceBlock title="מס הכנסה — ضريبة الدخل" icon="📋" color={C.blue} estimate={itEstimate} paid={itPaidYear}
               records={taxAdvances.filter(a => a.type === 'income_tax' && (a.date||'').startsWith(thisYear))}
               onAdd={() => { setAddingTax('income_tax'); setTaxForm({ amount: '', date: todayStr(), period: todayStr().slice(0,7), notes: '' }) }}
-              onDelete={deleteTaxAdvance}
-              hint={`شرائح 2024 • لا يشمل خصم الپنסيה`}
-            />
+              onDelete={deleteTaxAdvance} hint="شرائح 2024" />
 
-            {/* مقدمات ביטוח לאומי */}
-            <TaxAdvanceBlock
-              title="ביטוח לאומי + בריאות"
-              icon="🏥"
-              color={C.warning}
-              estimate={blEstimate}
-              paid={blPaidYear}
+            <TaxAdvanceBlock title="ביטוח לאומי + בריאות" icon="🏥" color={C.warning} estimate={blEstimate} paid={blPaidYear}
               records={taxAdvances.filter(a => a.type === 'bituach_leumi' && (a.date||'').startsWith(thisYear))}
               onAdd={() => { setAddingTax('bituach_leumi'); setTaxForm({ amount: '', date: todayStr(), period: todayStr().slice(0,7), notes: '' }) }}
-              onDelete={deleteTaxAdvance}
-              hint={`أول ₪90k: 9.82% • فوق ₪90k: 16.23% • سقف ₪570k`}
-            />
+              onDelete={deleteTaxAdvance} hint="9.82% / 16.23%" />
           </div>
         )}
       </div>
 
-      {/* مودال إضافة مقدمة ضريبية */}
+      {/* ─── مودال مقدمة ضريبية ─── */}
       {addingTax && (
-        <div style={{ position:'fixed', inset:0, background:'#000a', zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setAddingTax(null)}>
-          <div style={{ width:'100%', maxWidth:430, background:C.surface, borderRadius:'20px 20px 0 0', padding:24, paddingBottom:36 }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize:15, fontWeight:800, color:C.text, marginBottom:16 }}>
-              {addingTax === 'income_tax' ? '📋 دفعة מס הכנסה' : '🏥 دفعة ביטוח לאומי'}
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(10px)', zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setAddingTax(null)}>
+          <div className="slide-up" style={{ width:'100%', maxWidth:430, background:C.surface, borderRadius:'28px 28px 0 0', padding:24, paddingBottom:36, boxShadow:'0 -12px 50px rgba(0,0,0,0.6)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display:'flex', justifyContent:'center', marginBottom:12 }}>
+              <div style={{ width:40, height:4, borderRadius:2, background:C.border }} />
             </div>
-            <div style={{ marginBottom:12 }}>
-              <label style={{ fontSize:11, color:C.textDim, display:'block', marginBottom:5 }}>المبلغ (₪) *</label>
-              <input type="number" value={taxForm.amount} min="1" placeholder="0"
-                onChange={e => setTaxForm(p => ({ ...p, amount: e.target.value }))}
-                style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:16, fontWeight:700, boxSizing:'border-box' }} />
+            <div style={{ fontSize:15, fontWeight:800, color:C.text, marginBottom:20 }}>
+              {addingTax === 'income_tax' ? '📋 دفعة מס הכנסה' : '🏥 דפعة ביטוח לאומי'}
             </div>
-            <div style={{ marginBottom:12 }}>
-              <label style={{ fontSize:11, color:C.textDim, display:'block', marginBottom:5 }}>التاريخ</label>
-              <input type="date" value={taxForm.date}
-                onChange={e => setTaxForm(p => ({ ...p, date: e.target.value }))}
-                style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:14, boxSizing:'border-box' }} />
-            </div>
-            <div style={{ marginBottom:16 }}>
-              <label style={{ fontSize:11, color:C.textDim, display:'block', marginBottom:5 }}>الفترة (مثال: 2024-01)</label>
-              <input type="text" value={taxForm.period} placeholder="YYYY-MM"
-                onChange={e => setTaxForm(p => ({ ...p, period: e.target.value }))}
-                style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:14, boxSizing:'border-box' }} />
-            </div>
+            {[
+              { label:'المبلغ (₪) *', key:'amount', type:'number', placeholder:'0' },
+              { label:'التاريخ',      key:'date',   type:'date' },
+              { label:'الفترة (2024-01)', key:'period', type:'text', placeholder:'YYYY-MM' },
+            ].map(f => (
+              <div key={f.key} style={{ marginBottom:12 }}>
+                <label style={{ fontSize:11, color:C.textDim, display:'block', marginBottom:5, fontWeight:600 }}>{f.label}</label>
+                <input type={f.type} value={taxForm[f.key]} placeholder={f.placeholder} min={f.type === 'number' ? 1 : undefined}
+                  onChange={e => setTaxForm(p => ({ ...p, [f.key]: e.target.value }))}
+                  style={{ width:'100%', padding:'12px 14px', borderRadius:12, border:`1.5px solid ${C.border}`, background:C.card, color:C.text, fontSize:15, fontWeight:700, boxSizing:'border-box', outline:'none' }} />
+              </div>
+            ))}
             <button onClick={saveTaxAdvance} disabled={taxSaving || !taxForm.amount}
-              style={{ width:'100%', padding:14, borderRadius:14, background: !taxForm.amount ? C.border : C.primary, border:'none', color: !taxForm.amount ? C.textDim : '#000', fontSize:15, fontWeight:800, cursor: taxForm.amount ? 'pointer' : 'default' }}>
+              style={{ width:'100%', padding:14, borderRadius:14, background: !taxForm.amount ? C.border : `linear-gradient(135deg,${C.primary},#0EA5E9)`, border:'none', color: !taxForm.amount ? C.textDim : C.bg, fontSize:15, fontWeight:800, cursor: taxForm.amount ? 'pointer' : 'default', boxShadow: taxForm.amount ? `0 6px 20px ${C.primary}44` : 'none', transition:'all .2s' }}>
               {taxSaving ? 'جاري الحفظ...' : '✓ سجّل الدفعة'}
             </button>
           </div>
         </div>
       )}
-
-      {/* التنبيهات */}
-      {alerts.length > 0 && (
-        <div style={{ marginBottom:16 }}>
-          <button onClick={() => setAlertsExpanded(e => !e)}
-            style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', background:`${C.warning}11`, borderRadius:12, border:`1px solid ${C.warning}33`, marginBottom:4, cursor:'pointer' }}>
-            <span style={{ fontSize:13, fontWeight:700, color:C.text }}>⚠️ التنبيهات ({alerts.length})</span>
-            <span style={{ fontSize:12, color:C.textDim }}>{alertsExpanded ? '▲ إخفاء' : '▼ عرض'}</span>
-          </button>
-          {alertsExpanded && alerts.map((a, i) => (
-            <button key={i} onClick={() => a.nav && onNav(a.nav)}
-              style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 14px', marginBottom:4, background:`${a.color}11`, borderRadius:10, border:`1px solid ${a.color}33`, cursor:'pointer', textAlign:'right' }}>
-              <span>{a.icon}</span>
-              <span style={{ fontSize:12, color:C.text, flex:1 }}>{a.text}</span>
-              {a.nav && <span style={{ fontSize:10, color:a.color }}>←</span>}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* رسم بياني للمصاريف */}
-      {expByCat.length > 0 && (
-        <Card>
-          <div style={{ padding:16 }}>
-            <div style={{ fontSize:14, fontWeight:700, color:C.text, marginBottom:12 }}>📊 توزيع المصاريف</div>
-            <div style={{ height:180 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={expByCat} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value" paddingAngle={3}>
-                    {expByCat.map((_, i) => <Cell key={i} fill={pieColors[i % pieColors.length]} />)}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, fontSize:12 }}
-                    formatter={v => `${fmt(v)}₪`}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:10, justifyContent:'center' }}>
-              {expByCat.map((e, i) => (
-                <div key={e.name} style={{ display:'flex', alignItems:'center', gap:4, fontSize:10, color:C.textDim }}>
-                  <div style={{ width:8, height:8, borderRadius:'50%', background:pieColors[i % pieColors.length] }} />
-                  {`${e.name} (${fmt(e.value)}₪)`}
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* أزرار الاختصارات */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:20 }}>
-        {[
-          { icon:'📅', label:'يوم عمل',  nav:'workdays', color:C.primary },
-          { icon:'💸', label:'مصروف',    nav:'expenses', color:C.blue   },
-          { icon:'🏗️', label:'مشروع',    nav:'projects', color:C.purple },
-          { icon:'💵', label:'قبض دفعة', nav:'projects', color:C.success },
-        ].map(a => (
-          <button
-            key={a.label} onClick={() => onNav(a.nav)}
-            style={{ padding:'14px 8px', borderRadius:14, border:`2px solid ${a.color}`, background:`${a.color}12`, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}
-          >
-            <span style={{ fontSize:22 }}>{a.icon}</span>
-            <span style={{ fontSize:11, fontWeight:700, color:a.color }}>+ {a.label}</span>
-          </button>
-        ))}
-      </div>
     </div>
   )
 }
