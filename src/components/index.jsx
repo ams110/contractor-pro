@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { C, GRAD } from '../constants/index.js'
 
 /* ─── AnimatedNumber ─── */
@@ -96,20 +97,19 @@ export function StatCard({ icon, label, value, color = C.primary, sub, onClick }
   )
 }
 
-/* ─── Modal (Bottom Sheet) ─── */
+/* ─── Modal (Bottom Sheet via Portal) ─── */
 export function Modal({ open, onClose, title, children }) {
   if (!open) return null
-  return (
+  const sheet = (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }} onClick={onClose} />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }} onClick={onClose} />
       <div className="slide-up" style={{ position: 'relative', width: '100%', maxWidth: 430, maxHeight: '92vh', background: C.surface, borderRadius: '28px 28px 0 0', overflow: 'hidden', boxShadow: '0 -16px 60px rgba(0,0,0,0.7)', border: `1px solid ${C.border}`, borderBottom: 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
           <div style={{ width: 44, height: 4, borderRadius: 2, background: C.borderMid }} />
         </div>
-        {/* gradient line */}
         <div style={{ height: 1, background: GRAD.brand, margin: '10px 20px 0', borderRadius: 1 }} />
         <div style={{ padding: '14px 20px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{title}</span>
@@ -121,6 +121,7 @@ export function Modal({ open, onClose, title, children }) {
       </div>
     </div>
   )
+  return createPortal(sheet, document.body)
 }
 
 /* ─── Input ─── */
@@ -256,9 +257,9 @@ export function EmptyState({ icon, text, action, onAction }) {
 /* ─── ConfirmDialog ─── */
 export function ConfirmDialog({ open, onClose, onConfirm, message }) {
   if (!open) return null
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(12px)' }} onClick={onClose} />
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(14px)' }} onClick={onClose} />
       <div className="fade-in" style={{ position: 'relative', background: C.surface, borderRadius: 24, padding: 28, maxWidth: 310, width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.6)', border: `1px solid ${C.border}` }}>
         <div style={{ fontSize: 15, color: C.text, marginBottom: 24, textAlign: 'center', lineHeight: 1.7 }}>{message}</div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -266,7 +267,8 @@ export function ConfirmDialog({ open, onClose, onConfirm, message }) {
           <Btn onClick={onConfirm} color={C.accent} full>حذف</Btn>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
