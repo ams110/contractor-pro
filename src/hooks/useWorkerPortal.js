@@ -158,11 +158,26 @@ export function useWorkerPortal() {
   const totalOwed   = Math.max(0, totalEarned - totalPaid)
   const pendingDays = workDays.filter(d => d.status === 'pending')
 
+  async function changePassword(oldPass, newPass) {
+    const session = loadSession()
+    if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
+    const { data, error } = await supabase.rpc('worker_change_password', {
+      p_emp_id:   session.id,
+      p_token:    session.token,
+      p_old_pass: oldPass,
+      p_new_pass: newPass,
+    })
+    if (error) throw new Error(error.message)
+    if (data?.error) throw new Error(data.error)
+    return data
+  }
+
   return {
     worker, workDays, payments, projects, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
-    login, logout, submitWorkDay, submitExpense, refetch: () => worker?.id && loadData(worker.id),
+    login, logout, submitWorkDay, submitExpense, changePassword,
+    refetch: () => worker?.id && loadData(worker.id),
     monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
   }
 }
@@ -172,6 +187,16 @@ export async function setWorkerCredentials(empId, username, password) {
     emp_id:   empId,
     username,
     password,
+  })
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(data.error)
+  return data
+}
+
+export async function resetWorkerPassword(empId, newPassword) {
+  const { data, error } = await supabase.rpc('reset_worker_password', {
+    emp_id:       empId,
+    new_password: newPassword,
   })
   if (error) throw new Error(error.message)
   if (data?.error) throw new Error(data.error)

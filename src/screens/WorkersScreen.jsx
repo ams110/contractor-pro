@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { C, GRAD, SPECS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validateWorker } from '../lib/helpers.js'
 import { GlassCard, Card, StatCard, Modal, Input, Btn, Badge, EmptyState, ConfirmDialog, AnimatedNumber } from '../components/index.jsx'
-import { setWorkerCredentials } from '../hooks/useWorkerPortal.js'
+import { setWorkerCredentials, resetWorkerPassword } from '../hooks/useWorkerPortal.js'
 import WorkerStatsPanel from '../components/WorkerStatsPanel.jsx'
 import { exportWorkerSalaryPDF } from '../lib/export.js'
 
@@ -39,11 +39,12 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
   const [saving,     setSaving]     = useState(false)
 
   // بيانات دخول العامل
-  const [credWorker, setCredWorker] = useState(null)
-  const [credForm,   setCredForm]   = useState({ username: '', password: '', confirm: '' })
-  const [credError,  setCredError]  = useState('')
-  const [credSaving, setCredSaving] = useState(false)
-  const [credDone,   setCredDone]   = useState(false)
+  const [credWorker,   setCredWorker]   = useState(null)
+  const [credForm,     setCredForm]     = useState({ username: '', password: '', confirm: '' })
+  const [credError,    setCredError]    = useState('')
+  const [credSaving,   setCredSaving]   = useState(false)
+  const [credDone,     setCredDone]     = useState(false)
+  const [credResetMode, setCredResetMode] = useState(false) // وضع إعادة تعيين كلمة المرور فقط
 
   // إحصائيات العامل
   const [statsWorker, setStatsWorker] = useState(null)
@@ -68,19 +69,27 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
 
   function openCreds(w) {
     setCredWorker(w)
-    setCredForm({ username: '', password: '', confirm: '' })
+    const hasCredentials = !!w.worker_username
+    setCredForm({ username: w.worker_username || '', password: '', confirm: '' })
+    setCredResetMode(hasCredentials)
     setCredError('')
     setCredDone(false)
   }
 
   async function saveCreds() {
-    if (!credForm.username.trim()) return setCredError('اسم المستخدم مطلوب')
-    if (credForm.password.length < 4) return setCredError('كلمة المرور 4 أحرف على الأقل')
-    if (credForm.password !== credForm.confirm) return setCredError('كلمة المرور غير متطابقة')
     setCredSaving(true)
     setCredError('')
     try {
-      await setWorkerCredentials(credWorker.id, credForm.username, credForm.password)
+      if (credResetMode) {
+        if (credForm.password.length < 4) return setCredError('كلمة المرور 4 أحرف على الأقل')
+        if (credForm.password !== credForm.confirm) return setCredError('كلمة المرور غير متطابقة')
+        await resetWorkerPassword(credWorker.id, credForm.password)
+      } else {
+        if (!credForm.username.trim()) return setCredError('اسم المستخدم مطلوب')
+        if (credForm.password.length < 4) return setCredError('كلمة المرور 4 أحرف على الأقل')
+        if (credForm.password !== credForm.confirm) return setCredError('كلمة المرور غير متطابقة')
+        await setWorkerCredentials(credWorker.id, credForm.username, credForm.password)
+      }
       setCredDone(true)
     } catch (e) {
       setCredError(e.message)
@@ -407,14 +416,43 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
           </div>
         ) : (
           <>
-            <GlassCard style={{ marginBottom: 16, borderRadius: 14 }}>
-              <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
-                🔒 العامل سيستخدم هذه البيانات لتسجيل الدخول في بوابة العمال ومشاهدة راتبه
+            {/* وضع إعادة التعيين / الإنشاء الأول */}
+            {credResetMode ? (
+              <GlassCard style={{ marginBottom: 16, borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ height: 3, background: GRAD.warm }} />
+                <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
+                  🔑 اسم المستخدم الحالي: <b style={{ color: C.primary }}>{credWorker?.worker_username}</b>
+                  <br />سيتم تغيير كلمة المرور فقط — اسم المستخدم يبقى كما هو
+                </div>
+              </GlassCard>
+            ) : (
+              <GlassCard style={{ marginBottom: 16, borderRadius: 14 }}>
+                <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
+                  🔒 العامل سيستخدم هذه البيانات لتسجيل الدخول في بوابة العمال ومشاهدة راتبه
+                </div>
+              </GlassCard>
+            )}
+
+            {/* تبديل الوضع إذا كان لديه بيانات مسبقة */}
+            {credWorker?.worker_username && (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                {[
+                  { id: true,  label: '🔄 تغيير كلمة المرور' },
+                  { id: false, label: '✏️ تعديل كل البيانات' },
+                ].map(opt => (
+                  <button key={String(opt.id)} onClick={() => { setCredResetMode(opt.id); setCredError('') }}
+                    style={{ flex: 1, padding: '8px 6px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${credResetMode === opt.id ? C.primary : C.border}`, background: credResetMode === opt.id ? `${C.primary}22` : 'transparent', color: credResetMode === opt.id ? C.primary : C.textDim, transition: 'all .2s' }}>
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-            </GlassCard>
-            <Input label="اسم المستخدم" value={credForm.username}
-              onChange={v => setCredForm(p => ({ ...p, username: v }))} required />
-            <Input label="كلمة المرور (4 أحرف على الأقل)" value={credForm.password}
+            )}
+
+            {!credResetMode && (
+              <Input label="اسم المستخدم" value={credForm.username}
+                onChange={v => setCredForm(p => ({ ...p, username: v }))} required />
+            )}
+            <Input label="كلمة المرور الجديدة (4 أحرف على الأقل)" value={credForm.password}
               onChange={v => setCredForm(p => ({ ...p, password: v }))} type="password" required />
             <Input label="تأكيد كلمة المرور" value={credForm.confirm}
               onChange={v => setCredForm(p => ({ ...p, confirm: v }))} type="password" required />
@@ -429,7 +467,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
               </div>
             )}
             <Btn onClick={saveCreds} full disabled={credSaving}>
-              {credSaving ? 'جاري الحفظ...' : '✓ حفظ بيانات الدخول'}
+              {credSaving ? 'جاري الحفظ...' : credResetMode ? '🔐 تعيين كلمة المرور الجديدة' : '✓ حفظ بيانات الدخول'}
             </Btn>
           </>
         )}

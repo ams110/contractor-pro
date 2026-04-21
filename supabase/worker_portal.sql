@@ -164,3 +164,73 @@ BEGIN
   RETURN result;
 END;
 $$;
+
+-- ─── دالة: تغيير كلمة مرور العامل من داخل البورتال ──────────────────────────
+CREATE OR REPLACE FUNCTION worker_change_password(
+  p_emp_id   UUID,
+  p_token    TEXT,
+  p_old_pass TEXT,
+  p_new_pass TEXT
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE emp employees%ROWTYPE;
+BEGIN
+  SELECT * INTO emp FROM employees
+  WHERE id = p_emp_id AND worker_session_token = p_token;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('error', 'جلسة غير صالحة، أعد تسجيل الدخول');
+  END IF;
+
+  IF emp.worker_password_hash IS NULL OR
+     emp.worker_password_hash != crypt(p_old_pass, emp.worker_password_hash) THEN
+    RETURN json_build_object('error', 'كلمة المرور الحالية غير صحيحة');
+  END IF;
+
+  IF length(trim(p_new_pass)) < 4 THEN
+    RETURN json_build_object('error', 'كلمة المرور الجديدة يجب أن تكون 4 أحرف على الأقل');
+  END IF;
+
+  UPDATE employees
+  SET worker_password_hash = crypt(p_new_pass, gen_salt('bf'))
+  WHERE id = p_emp_id;
+
+  RETURN json_build_object('success', true);
+END;
+$$;
+
+-- ─── دالة: إعادة تعيين كلمة مرور عامل (يستدعيها المشرف/المالك فقط) ──────────
+CREATE OR REPLACE FUNCTION reset_worker_password(
+  emp_id       UUID,
+  new_password TEXT
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN json_build_object('error', 'غير مصرح');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM employees WHERE id = emp_id AND user_id = auth.uid()) THEN
+    RETURN json_build_object('error', 'العامل غير موجود أو ليس لديك صلاحية');
+  END IF;
+
+  IF length(trim(new_password)) < 4 THEN
+    RETURN json_build_object('error', 'كلمة المرور يجب أن تكون 4 أحرف على الأقل');
+  END IF;
+
+  UPDATE employees
+  SET worker_password_hash  = crypt(new_password, gen_salt('bf')),
+      worker_session_token  = NULL
+  WHERE id = emp_id AND user_id = auth.uid();
+
+  RETURN json_build_object('success', true);
+END;
+$$;

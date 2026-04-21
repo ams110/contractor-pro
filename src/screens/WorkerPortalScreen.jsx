@@ -102,9 +102,10 @@ function MonthRow({ month, data, payments }) {
 
 // ─── شاشة تسجيل الدخول ───────────────────────────────────────────────────────
 function LoginScreen({ onLogin, error, loading }) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPass, setShowPass] = useState(false)
+  const [username,   setUsername]   = useState('')
+  const [password,   setPassword]   = useState('')
+  const [showPass,   setShowPass]   = useState(false)
+  const [showForgot, setShowForgot] = useState(false)
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, direction: 'rtl', position: 'relative', overflow: 'hidden', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
@@ -151,6 +152,21 @@ function LoginScreen({ onLogin, error, loading }) {
           style={{ width: '100%', padding: 14, borderRadius: 16, background: loading || !username || !password ? C.border : GRAD.brand, border: 'none', color: loading || !username || !password ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: loading || !username || !password ? 'default' : 'pointer', boxShadow: !loading && username && password ? '0 4px 20px #00DDB344' : 'none', transition: 'all .2s' }}>
           {loading ? 'جاري التحقق...' : '→ دخول'}
         </button>
+
+        <button onClick={() => setShowForgot(s => !s)}
+          style={{ width: '100%', marginTop: 12, background: 'none', border: 'none', color: C.textDim, fontSize: 12, cursor: 'pointer', textAlign: 'center', textDecoration: 'underline', padding: 4 }}>
+          نسيت كلمة المرور؟
+        </button>
+
+        {showForgot && (
+          <div style={{ marginTop: 10, padding: '14px 16px', background: `${C.primary}12`, borderRadius: 14, border: `1px solid ${C.primary}33` }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 6 }}>🔑 كيف تعيد كلمة مرورك؟</div>
+            <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
+              تواصل مع المشرف أو صاحب العمل وأطلب منه إعادة تعيين كلمة مرورك.<br />
+              بإمكانه تغييرها من تطبيق <span style={{ color: C.primary, fontWeight: 700 }}>Contractor Pro</span> مباشرةً.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -500,13 +516,126 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
   )
 }
 
+// ─── فورم تغيير كلمة المرور ──────────────────────────────────────────────────
+function ChangePasswordForm({ worker, onChangePassword }) {
+  const [oldPass,  setOldPass]  = useState('')
+  const [newPass,  setNewPass]  = useState('')
+  const [confirm,  setConfirm]  = useState('')
+  const [showOld,  setShowOld]  = useState(false)
+  const [showNew,  setShowNew]  = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [err,      setErr]      = useState('')
+  const [success,  setSuccess]  = useState(false)
+
+  async function handleSubmit() {
+    setErr('')
+    if (!oldPass) return setErr('أدخل كلمة المرور الحالية')
+    if (newPass.length < 4) return setErr('كلمة المرور الجديدة يجب أن تكون 4 أحرف على الأقل')
+    if (newPass !== confirm) return setErr('كلمة المرور الجديدة غير متطابقة')
+    setSaving(true)
+    try {
+      await onChangePassword(oldPass, newPass)
+      setSuccess(true)
+      setOldPass(''); setNewPass(''); setConfirm('')
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inputStyle = { width: '100%', padding: '12px 44px 12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }
+  const labelStyle = { fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }
+
+  return (
+    <div>
+      {/* بطاقة الملف الشخصي */}
+      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.borderMid}`, padding: '18px 16px', marginBottom: 20, overflow: 'hidden' }}>
+        <div style={{ height: 3, background: GRAD.brand, margin: '-18px -16px 16px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ padding: 2, borderRadius: '50%', background: GRAD.brand, flexShrink: 0 }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: C.primary }}>
+              {worker.name?.[0] || '?'}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 900, color: C.text }}>{worker.name}</div>
+            {worker.specialization && (
+              <div style={{ fontSize: 11, color: C.primary, marginTop: 2 }}>{worker.specialization.split(',')[0]}</div>
+            )}
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>معدل يومي: <span style={{ color: C.success, fontWeight: 700, fontFamily: 'monospace' }}>{worker.daily_rate || 0}₪</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* فورم تغيير كلمة المرور */}
+      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.borderMid}`, padding: '18px 16px', overflow: 'hidden' }}>
+        <div style={{ height: 3, background: GRAD.purple, margin: '-18px -16px 16px' }} />
+        <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 16 }}>🔑 تغيير كلمة المرور</div>
+
+        {success && (
+          <div style={{ padding: '12px 14px', background: `${C.success}18`, borderRadius: 12, marginBottom: 16, fontSize: 13, color: C.success, textAlign: 'center', border: `1px solid ${C.success}33`, fontWeight: 700 }}>
+            ✓ تم تغيير كلمة المرور بنجاح
+          </div>
+        )}
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelStyle}>كلمة المرور الحالية</label>
+          <div style={{ position: 'relative' }}>
+            <input type={showOld ? 'text' : 'password'} value={oldPass} onChange={e => { setOldPass(e.target.value); setSuccess(false) }}
+              placeholder="••••••••" style={inputStyle} />
+            <button onClick={() => setShowOld(s => !s)}
+              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 15, padding: 0 }}>
+              {showOld ? '🙈' : '👁️'}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelStyle}>كلمة المرور الجديدة</label>
+          <div style={{ position: 'relative' }}>
+            <input type={showNew ? 'text' : 'password'} value={newPass} onChange={e => { setNewPass(e.target.value); setSuccess(false) }}
+              placeholder="4 أحرف على الأقل" style={inputStyle} />
+            <button onClick={() => setShowNew(s => !s)}
+              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 15, padding: 0 }}>
+              {showNew ? '🙈' : '👁️'}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <label style={labelStyle}>تأكيد كلمة المرور الجديدة</label>
+          <input type="password" value={confirm} onChange={e => { setConfirm(e.target.value); setSuccess(false) }}
+            placeholder="••••••••" style={{ ...inputStyle, paddingLeft: 14 }} />
+          {confirm && newPass && (
+            <div style={{ marginTop: 6, fontSize: 11, fontWeight: 600, color: confirm === newPass ? C.success : C.accent }}>
+              {confirm === newPass ? '✓ متطابقة' : '✗ غير متطابقة'}
+            </div>
+          )}
+        </div>
+
+        {err && (
+          <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 14, fontSize: 13, color: C.accent, border: `1px solid ${C.accent}33`, fontWeight: 600 }}>
+            ⚠ {err}
+          </div>
+        )}
+
+        <button onClick={handleSubmit} disabled={saving || !oldPass || !newPass || !confirm}
+          style={{ width: '100%', padding: 14, borderRadius: 14, background: saving || !oldPass || !newPass || !confirm ? C.border : GRAD.purple, border: 'none', color: saving || !oldPass || !newPass || !confirm ? C.textDim : '#fff', fontSize: 15, fontWeight: 800, cursor: saving || !oldPass || !newPass || !confirm ? 'default' : 'pointer', transition: 'all .2s', boxShadow: oldPass && newPass && confirm ? '0 4px 20px #6366F144' : 'none' }}>
+          {saving ? 'جاري الحفظ...' : '🔐 حفظ كلمة المرور الجديدة'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
   const {
     worker, workDays, payments, projects, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
-    login, logout, submitWorkDay, submitExpense,
+    login, logout, submitWorkDay, submitExpense, changePassword,
     monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
   } = useWorkerPortal()
 
@@ -527,10 +656,11 @@ export default function WorkerPortalScreen() {
   const pendingExpenses = workerExpenses.filter(e => e.status === 'pending')
 
   const tabs = [
-    { id: 'submit',   label: '📤 يوم عمل' },
+    { id: 'submit',   label: '📤 يوم' },
     { id: 'expense',  label: '💸 مصروف' },
     { id: 'monthly',  label: '📅 شهري' },
-    { id: 'payments', label: '💰 الرواتب' },
+    { id: 'payments', label: '💰 رواتب' },
+    { id: 'account',  label: '⚙️ حساب' },
   ]
 
   return (
@@ -657,6 +787,11 @@ export default function WorkerPortalScreen() {
               ))
             )}
           </>
+        )}
+
+        {/* تبويب الحساب وتغيير كلمة المرور */}
+        {tab === 'account' && (
+          <ChangePasswordForm worker={worker} onChangePassword={changePassword} />
         )}
 
         {/* تبويب المدفوعات */}
