@@ -3,6 +3,7 @@ import { C, EXP_CATS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../lib/helpers.js'
 import { useWorkerPortal } from '../hooks/useWorkerPortal.js'
 import { uploadWorkerReceipt } from '../lib/storage.js'
+import { supabase } from '../lib/supabase.js'
 
 const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو',
                    'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
@@ -283,16 +284,49 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
   const [uploading,    setUploading]    = useState(false)
   const [done,         setDone]         = useState(false)
   const [submittedAmt, setSubmittedAmt] = useState(0)
+  const [scanning,     setScanning]     = useState(false)
+  const [scanMsg,      setScanMsg]      = useState('')
   const fileRef = useRef()
 
   function pickFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
     setReceiptFile(file)
+    setScanMsg('')
     if (file.type.startsWith('image/')) {
       setReceiptPreview(URL.createObjectURL(file))
     } else {
       setReceiptPreview('pdf')
+    }
+  }
+
+  async function scanReceipt() {
+    if (!receiptFile || !receiptFile.type.startsWith('image/')) return
+    setScanning(true); setScanMsg('')
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result.split(',')[1])
+        reader.onerror = reject
+        reader.readAsDataURL(receiptFile)
+      })
+      const { data, error } = await supabase.functions.invoke('scan-receipt', {
+        body: { imageBase64: base64, mimeType: receiptFile.type },
+      })
+      if (error) throw new Error(error.message)
+      const r = data?.result || {}
+      setForm(prev => ({
+        ...prev,
+        amount:   r.amount   ? String(r.amount)   : prev.amount,
+        vendor:   r.vendor   || prev.vendor,
+        date:     r.date     || prev.date,
+        category: r.category || prev.category,
+      }))
+      setScanMsg('✓ تم استخراج البيانات تلقائياً')
+    } catch (e) {
+      setScanMsg(`⚠ ${e.message}`)
+    } finally {
+      setScanning(false)
     }
   }
 
@@ -400,10 +434,18 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
 
       {/* صورة الفاتورة - إجبارية */}
       <div style={{ marginBottom: 16 }}>
-        <label style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>
-          <span style={{ color: C.accent, fontWeight: 700 }}>📎 صورة الفاتورة *</span>
-          <span style={{ color: C.textDim, fontWeight: 400 }}> (إجباري)</span>
-        </label>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <label style={{ fontSize: 12 }}>
+            <span style={{ color: C.accent, fontWeight: 700 }}>📎 صورة الفاتورة *</span>
+            <span style={{ color: C.textDim, fontWeight: 400 }}> (إجباري)</span>
+          </label>
+          {receiptFile && receiptFile.type.startsWith('image/') && (
+            <button onClick={scanReceipt} disabled={scanning}
+              style={{ padding: '4px 10px', borderRadius: 8, border: `1px solid ${C.primary}55`, background: `${C.primary}15`, color: C.primary, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+              {scanning ? '⏳ مسح...' : '🤖 مسح AI'}
+            </button>
+          )}
+        </div>
         <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={pickFile} />
 
         {receiptPreview ? (
@@ -431,6 +473,9 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
             <span>اضغط لالتقاط صورة الفاتورة</span>
             <span style={{ fontSize: 11, color: C.textDim, fontWeight: 400 }}>صورة أو PDF</span>
           </button>
+        )}
+        {scanMsg && (
+          <div style={{ marginTop: 6, fontSize: 11, color: scanMsg.startsWith('✓') ? C.success : C.accent, fontWeight: 600 }}>{scanMsg}</div>
         )}
       </div>
 

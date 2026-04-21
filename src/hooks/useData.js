@@ -187,6 +187,25 @@ export function useHolidays(userId) {
 
   return { holidays: data, loading, error, addHoliday, deleteHoliday }
 }
+/* ─── Advances (سلف) ─── */
+export function useAdvances(userId) {
+  const { data, loading, error, refetch } = useTable('advances', userId)
+
+  async function addAdvance(form) {
+    const { error } = await supabase.from('advances').insert({ ...form, user_id: userId })
+    if (error) throw error
+    await refetch()
+  }
+
+  async function deleteAdvance(id) {
+    const { error } = await supabase.from('advances').delete().eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
+  return { advances: data, loading, error, addAdvance, deleteAdvance }
+}
+
 export function useClientReceipts(userId) {
   const { data, loading, error, refetch } = useTable('client_receipts', userId)
 

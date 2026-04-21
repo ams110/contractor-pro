@@ -4,6 +4,7 @@ import { fmt, fmtDate, todayStr, validateExpense } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, EmptyState, TabBar, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
 import { exportExpensesToExcel } from '../lib/export.js'
+import { supabase } from '../lib/supabase.js'
 
 const CAT_ICONS = { 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
 
@@ -15,6 +16,8 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
   const [saving,      setSaving]      = useState(false)
   const [receiptFile, setReceiptFile] = useState(null)
   const [preview,     setPreview]     = useState('')
+  const [scanning,    setScanning]    = useState(false)
+  const [scanMsg,     setScanMsg]     = useState('')
   const fileRef = useRef()
 
   const emptyForm = { date: todayStr(), amount:'', category:'', project_id:'', vendor:'', payment_method:'' }
@@ -26,7 +29,39 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
     const file = e.target.files?.[0]
     if (!file) return
     setReceiptFile(file)
-    setPreview(URL.createObjectURL(file))
+    setScanMsg('')
+    if (file.type.startsWith('image/')) setPreview(URL.createObjectURL(file))
+    else setPreview('')
+  }
+
+  async function scanReceipt() {
+    if (!receiptFile || !receiptFile.type.startsWith('image/')) return
+    setScanning(true); setScanMsg('')
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result.split(',')[1])
+        reader.onerror = reject
+        reader.readAsDataURL(receiptFile)
+      })
+      const { data, error } = await supabase.functions.invoke('scan-receipt', {
+        body: { imageBase64: base64, mimeType: receiptFile.type },
+      })
+      if (error) throw new Error(error.message)
+      const r = data?.result || {}
+      setForm(prev => ({
+        ...prev,
+        amount:   r.amount   ? String(r.amount)   : prev.amount,
+        vendor:   r.vendor   || prev.vendor,
+        date:     r.date     || prev.date,
+        category: r.category || prev.category,
+      }))
+      setScanMsg('✓ تم استخراج البيانات تلقائياً')
+    } catch (e) {
+      setScanMsg(`⚠ ${e.message}`)
+    } finally {
+      setScanning(false)
+    }
   }
 
   async function save() {
@@ -203,21 +238,34 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         <Input label="المحل / المورّد" value={form.vendor}         onChange={f('vendor')} />
         <Input label="طريقة الدفع"    value={form.payment_method} onChange={f('payment_method')} options={PAY_METHODS} />
 
-        {/* رفع الفاتورة */}
+        {/* رفع الفاتورة + AI scan */}
         <div style={{ marginBottom:14 }}>
-          <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>📎 فاتورة / إثبات الشراء (اختياري)</label>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+            <label style={{ fontSize:12, color:C.textDim }}>📎 فاتورة / إثبات الشراء (اختياري)</label>
+            {receiptFile && receiptFile.type.startsWith('image/') && (
+              <button onClick={scanReceipt} disabled={scanning}
+                style={{ padding:'4px 10px', borderRadius:8, border:`1px solid ${C.primary}55`, background:`${C.primary}15`, color:C.primary, fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                {scanning ? '⏳ جاري المسح...' : '🤖 مسح AI'}
+              </button>
+            )}
+          </div>
           <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={pickFile} />
           {preview
             ? <div style={{ position:'relative', display:'inline-block', width:'100%' }}>
                 <img src={preview} alt="فاتورة" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:10, border:`1px solid ${C.border}` }} />
-                <button onClick={() => { setReceiptFile(null); setPreview('') }}
+                <button onClick={() => { setReceiptFile(null); setPreview(''); setScanMsg('') }}
                   style={{ position:'absolute', top:4, left:4, background:`${C.accent}cc`, border:'none', borderRadius:'50%', width:22, height:22, color:'#fff', cursor:'pointer', fontSize:12 }}>×</button>
               </div>
+            : receiptFile
+            ? <div style={{ padding:'10px 14px', background:`${C.border}33`, borderRadius:10, fontSize:12, color:C.text }}>📄 {receiptFile.name}</div>
             : <button onClick={() => fileRef.current.click()}
                 style={{ width:'100%', padding:'12px', borderRadius:10, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer' }}>
                 📷 اضغط لرفع صورة الفاتورة
               </button>
           }
+          {scanMsg && (
+            <div style={{ marginTop:6, fontSize:11, color: scanMsg.startsWith('✓') ? C.success : C.accent, fontWeight:600 }}>{scanMsg}</div>
+          )}
         </div>
 
         {formError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {formError}</div>}

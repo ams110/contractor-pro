@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import { C, SPECS } from '../constants/index.js'
-import { fmt, validateWorker } from '../lib/helpers.js'
+import { fmt, fmtDate, todayStr, validateWorker } from '../lib/helpers.js'
 import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { setWorkerCredentials } from '../hooks/useWorkerPortal.js'
 import WorkerStatsPanel from '../components/WorkerStatsPanel.jsx'
 import { exportWorkerSalaryPDF } from '../lib/export.js'
 
-export default function WorkersScreen({ employees, workDays, payments, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday }) {
+export default function WorkersScreen({ employees, workDays, payments, advances = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday }) {
   const [showForm,   setShowForm]   = useState(false)
   const [editing,    setEditing]    = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
@@ -22,6 +22,13 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
 
   // إحصائيات العامل
   const [statsWorker, setStatsWorker] = useState(null)
+
+  // سلفة
+  const [advWorker,  setAdvWorker]  = useState(null)
+  const [advForm,    setAdvForm]    = useState({ amount: '', date: todayStr(), notes: '' })
+  const [advError,   setAdvError]   = useState('')
+  const [advSaving,  setAdvSaving]  = useState(false)
+  const [advHistory, setAdvHistory] = useState(null)
 
   // نسخ رابط البوابة
   const [copied, setCopied] = useState(false)
@@ -95,8 +102,22 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
     }
   }
 
-  const totalE = workDays.reduce((s, w) => s + w.amount, 0)
-  const totalP = payments.reduce((s, p) => s + p.amount, 0)
+  async function saveAdvance() {
+    if (!advForm.amount || parseFloat(advForm.amount) <= 0) return setAdvError('أدخل مبلغ السلفة')
+    setAdvSaving(true); setAdvError('')
+    try {
+      await addAdvance({ employee_id: advWorker.id, amount: parseFloat(advForm.amount), date: advForm.date, notes: advForm.notes })
+      setAdvWorker(null); setAdvForm({ amount: '', date: todayStr(), notes: '' })
+    } catch (e) {
+      setAdvError(e.message)
+    } finally {
+      setAdvSaving(false)
+    }
+  }
+
+  const totalE   = workDays.reduce((s, w) => s + w.amount, 0)
+  const totalP   = payments.reduce((s, p) => s + p.amount, 0)
+  const totalAdv = advances.reduce((s, a) => s + a.amount, 0)
 
   return (
     <div className="fade-in" style={{ padding:16 }}>
@@ -115,11 +136,12 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
       {/* ملخص الرواتب */}
       {employees.length > 0 && (
         <Card>
-          <div style={{ padding:14, display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+          <div style={{ padding:14, display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:8 }}>
             {[
-              { label:'مستحق', value:`${fmt(totalE)}₪`, color:C.text    },
-              { label:'مدفوع', value:`${fmt(totalP)}₪`, color:C.success },
-              { label:'متبقي', value:`${fmt(Math.max(0, totalE-totalP))}₪`, color:totalE-totalP>0?C.accent:C.success },
+              { label:'مستحق',  value:`${fmt(totalE)}₪`,   color:C.text    },
+              { label:'مدفوع',  value:`${fmt(totalP)}₪`,   color:C.success },
+              { label:'سلف',    value:`${fmt(totalAdv)}₪`, color:C.warning },
+              { label:'متبقي',  value:`${fmt(Math.max(0, totalE-totalP-totalAdv))}₪`, color:totalE-totalP-totalAdv>0?C.accent:C.success },
             ].map((s, i) => (
               <div key={i} style={{ textAlign:'center' }}>
                 <div style={{ fontSize:10, color:C.textDim }}>{s.label}</div>
@@ -133,9 +155,10 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
       {employees.length === 0
         ? <EmptyState icon="👷" text="ما في عمال بعد" action="+ أضف عامل" onAction={openNew} />
         : employees.map(w => {
-            const earned = workDays.filter(wd => wd.employee_id === w.id).reduce((s, wd) => s + wd.amount, 0)
-            const paid   = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
-            const owed   = Math.max(0, earned - paid)
+            const earned  = workDays.filter(wd => wd.employee_id === w.id).reduce((s, wd) => s + wd.amount, 0)
+            const paid    = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
+            const wAdv    = advances.filter(a  => a.employee_id  === w.id).reduce((s, a)  => s + a.amount,  0)
+            const owed    = Math.max(0, earned - paid - wAdv)
             return (
               <Card key={w.id}>
                 <div style={{ padding:14 }}>
@@ -155,6 +178,18 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
                       </div>
                     </div>
                     <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                      {permissions?.editWorkers !== false && (
+                        <button onClick={() => { setAdvWorker(w); setAdvForm({ amount: '', date: todayStr(), notes: '' }); setAdvError('') }}
+                          title="منح سلفة"
+                          style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.warning}55`, background:`${C.warning}15`, color:C.warning, fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                          💵 سلفة
+                        </button>
+                      )}
+                      <button onClick={() => setAdvHistory(w)}
+                        title="سجل السلف"
+                        style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, cursor:'pointer' }}>
+                        📋
+                      </button>
                       <button onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })}
                         title="تصدير كشف راتب PDF"
                         style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:13, cursor:'pointer' }}>
@@ -175,10 +210,11 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
                     </div>
                   </div>
 
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:6 }}>
                     {[
                       { l:'مستحق', v:`${fmt(earned)}₪`, c:C.text },
                       { l:'مدفوع', v:`${fmt(paid)}₪`,   c:C.success },
+                      { l:'سلف',   v:`${fmt(wAdv)}₪`,   c:C.warning },
                       { l:'متبقي', v:`${fmt(owed)}₪`,   c:owed>0?C.accent:C.success },
                     ].map((s, i) => (
                       <div key={i} style={{ textAlign:'center', padding:'5px 0', background:`${C.border}22`, borderRadius:8 }}>
@@ -255,6 +291,38 @@ export default function WorkersScreen({ employees, workDays, payments, specs, ad
       </Modal>
 
       <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={async () => { await deleteEmployee(confirmDel); setConfirmDel(null) }} message="حذف هالعامل؟" />
+
+      {/* مودال منح سلفة */}
+      <Modal open={!!advWorker} onClose={() => setAdvWorker(null)} title={`💵 سلفة لـ ${advWorker?.name || ''}`}>
+        <div style={{ padding:'10px 12px', background:`${C.border}22`, borderRadius:10, marginBottom:14, fontSize:12, color:C.textDim }}>
+          السلف تُخصم تلقائياً من الراتب المستحق للعامل
+        </div>
+        <Input label="المبلغ (₪)" value={advForm.amount} onChange={v => setAdvForm(p => ({ ...p, amount: v }))} type="number" min="1" required />
+        <Input label="التاريخ"    value={advForm.date}   onChange={v => setAdvForm(p => ({ ...p, date: v }))}   type="date" required />
+        <Input label="ملاحظات"   value={advForm.notes}  onChange={v => setAdvForm(p => ({ ...p, notes: v }))} />
+        {advError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {advError}</div>}
+        <Btn onClick={saveAdvance} full disabled={advSaving}>{advSaving ? 'جاري الحفظ...' : '✓ تسجيل السلفة'}</Btn>
+      </Modal>
+
+      {/* مودال سجل السلف */}
+      <Modal open={!!advHistory} onClose={() => setAdvHistory(null)} title={`📋 سلف ${advHistory?.name || ''}`}>
+        {advances.filter(a => a.employee_id === advHistory?.id).length === 0
+          ? <div style={{ textAlign:'center', padding:'30px 0', color:C.textDim, fontSize:13 }}>لا يوجد سلف مسجلة</div>
+          : advances.filter(a => a.employee_id === advHistory?.id)
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .map(a => (
+                <div key={a.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 12px', background:C.card, borderRadius:10, border:`1px solid ${C.border}`, marginBottom:8 }}>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color:C.warning, fontFamily:'monospace' }}>{fmt(a.amount)}₪</div>
+                    <div style={{ fontSize:11, color:C.textDim }}>{fmtDate(a.date)}{a.notes ? ` — ${a.notes}` : ''}</div>
+                  </div>
+                  {permissions?.canDelete !== false && (
+                    <button onClick={async () => { await deleteAdvance(a.id) }} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>🗑️</button>
+                  )}
+                </div>
+              ))
+        }
+      </Modal>
 
       <WorkerStatsPanel
         open={!!statsWorker}
