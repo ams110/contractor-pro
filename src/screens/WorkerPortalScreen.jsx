@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { C, EXP_CATS } from '../constants/index.js'
+import { C, GRAD, EXP_CATS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../lib/helpers.js'
 import { useWorkerPortal } from '../hooks/useWorkerPortal.js'
 import { uploadWorkerReceipt } from '../lib/storage.js'
@@ -28,30 +28,33 @@ function fmtMonth(yyyymm) {
 
 function SummaryCard({ earned, paid, owed, pendingCount }) {
   return (
-    <div style={{ background: C.card, borderRadius: 16, padding: 16, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-      <div style={{ fontSize: 12, color: C.textDim, marginBottom: 12, fontWeight: 700 }}>الملخص المالي الإجمالي</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-        {[
-          { l: 'مستحق إجمالي', v: `${fmt(earned)}₪`, c: C.text },
-          { l: 'واصل',         v: `${fmt(paid)}₪`,   c: C.success },
-          { l: 'ضايل',         v: `${fmt(owed)}₪`,   c: owed > 0 ? C.warning : C.success },
-        ].map(s => (
-          <div key={s.l} style={{ textAlign: 'center', padding: '10px 4px', background: `${C.border}33`, borderRadius: 10 }}>
-            <div style={{ fontSize: 9, color: C.textDim, marginBottom: 4 }}>{s.l}</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: s.c, fontFamily: 'monospace' }}>{s.v}</div>
+    <div style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderRadius: 20, border: `1px solid ${C.borderMid}`, marginBottom: 16, overflow: 'hidden' }}>
+      <div style={{ height: 3, background: owed > 0 ? GRAD.danger : GRAD.success }} />
+      <div style={{ padding: '14px 16px' }}>
+        <div style={{ fontSize: 11, color: C.textDim, marginBottom: 12, fontWeight: 700, letterSpacing: '0.04em' }}>الملخص المالي الإجمالي</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          {[
+            { l: 'مستحق إجمالي', v: `${fmt(earned)}₪`, c: C.text },
+            { l: 'واصل',         v: `${fmt(paid)}₪`,   c: C.success },
+            { l: 'ضايل',         v: `${fmt(owed)}₪`,   c: owed > 0 ? C.accent : C.success },
+          ].map(s => (
+            <div key={s.l} style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 9, color: C.textDim, marginBottom: 4, fontWeight: 600 }}>{s.l}</div>
+              <div style={{ fontSize: 15, fontWeight: 900, color: s.c, fontFamily: 'monospace' }}>{s.v}</div>
+            </div>
+          ))}
+        </div>
+        {pendingCount > 0 && (
+          <div style={{ marginTop: 10, padding: '8px 12px', background: `${C.warning}18`, borderRadius: 10, fontSize: 12, color: C.warning, fontWeight: 700, textAlign: 'center', border: `1px solid ${C.warning}33` }}>
+            ⏳ {pendingCount} يوم بانتظار موافقة المشرف
           </div>
-        ))}
+        )}
+        {owed === 0 && earned > 0 && pendingCount === 0 && (
+          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12, color: C.success, fontWeight: 700 }}>
+            ✓ مسدد بالكامل
+          </div>
+        )}
       </div>
-      {pendingCount > 0 && (
-        <div style={{ marginTop: 10, padding: '8px 12px', background: `${C.warning}18`, borderRadius: 8, fontSize: 12, color: C.warning, fontWeight: 700, textAlign: 'center' }}>
-          ⏳ {pendingCount} يوم بانتظار موافقة المشرف
-        </div>
-      )}
-      {owed === 0 && earned > 0 && pendingCount === 0 && (
-        <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12, color: C.success, fontWeight: 700 }}>
-          ✓ مسدد بالكامل
-        </div>
-      )}
     </div>
   )
 }
@@ -61,24 +64,24 @@ function MonthRow({ month, data, payments }) {
   const monthPayments = payments.filter(p => String(p.date).substring(0, 7) === month)
 
   return (
-    <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 8, overflow: 'hidden' }}>
+    <div style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)', borderRadius: 16, border: `1px solid ${C.border}`, marginBottom: 8, overflow: 'hidden' }}>
       <button onClick={() => setOpen(o => !o)}
-        style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        style={{ width: '100%', padding: '13px 16px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmtMonth(month)}</span>
-          <span style={{ fontSize: 10, color: C.textDim, background: `${C.border}66`, padding: '2px 6px', borderRadius: 6 }}>{data.days} يوم</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{fmtMonth(month)}</span>
+          <span style={{ fontSize: 10, color: C.textDim, background: `${C.border}88`, padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>{data.days} يوم</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>
+          <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>
           <span style={{ fontSize: 10, color: C.textDim }}>{open ? '▲' : '▼'}</span>
         </div>
       </button>
 
       {open && (
-        <div style={{ padding: '0 14px 12px', borderTop: `1px solid ${C.border}` }}>
+        <div style={{ padding: '0 16px 14px', borderTop: `1px solid ${C.border}` }}>
           {monthPayments.length > 0 && (
             <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6 }}>المدفوعات هذا الشهر:</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6, fontWeight: 600 }}>المدفوعات هذا الشهر:</div>
               {monthPayments.map(p => (
                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}33` }}>
                   <span style={{ fontSize: 11, color: C.textDim }}>{fmtDate(p.date)} • {p.method || 'كاش'}</span>
@@ -87,9 +90,9 @@ function MonthRow({ month, data, payments }) {
               ))}
             </div>
           )}
-          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: `${C.border}33`, borderRadius: 8 }}>
-            <span style={{ fontSize: 11, color: C.textDim }}>مستحق الشهر</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>
+          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', padding: '9px 12px', background: `${C.primary}15`, borderRadius: 10, border: `1px solid ${C.primary}33` }}>
+            <span style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>مستحق الشهر</span>
+            <span style={{ fontSize: 14, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>
           </div>
         </div>
       )}
@@ -104,28 +107,32 @@ function LoginScreen({ onLogin, error, loading }) {
   const [showPass, setShowPass] = useState(false)
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, direction: 'rtl' }}>
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, direction: 'rtl', position: 'relative', overflow: 'hidden', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
+      {/* blobs */}
+      <div style={{ position: 'absolute', top: '-15%', right: '-15%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, #00DDB322 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-15%', left: '-15%', width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, #6366F122 0%, transparent 70%)', pointerEvents: 'none' }} />
+
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ fontSize: 56, marginBottom: 8 }}>👷</div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: C.primary }}>بوابة العمال</div>
-        <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Contractor Pro</div>
+        <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38, margin: '0 auto 14px', boxShadow: '0 12px 36px #00DDB355', animation: 'float 3s ease-in-out infinite' }}>👷</div>
+        <div style={{ fontSize: 24, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>بوابة العمال</div>
+        <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, letterSpacing: '0.06em' }}>Contractor Pro</div>
       </div>
 
-      <div style={{ width: '100%', maxWidth: 360, background: C.card, borderRadius: 20, padding: 24, border: `1px solid ${C.border}` }}>
+      <div style={{ width: '100%', maxWidth: 380, background: 'rgba(13,17,23,0.9)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: 28, padding: 28, border: `1px solid ${C.borderMid}`, boxShadow: '0 24px 80px rgba(0,0,0,0.5)' }}>
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>اسم المستخدم</label>
+          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }}>اسم المستخدم</label>
           <input value={username} onChange={e => setUsername(e.target.value)}
             placeholder="أدخل اسم المستخدم" autoComplete="username"
-            style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+            style={{ width: '100%', padding: '13px 14px', borderRadius: 14, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>كلمة المرور</label>
+          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }}>كلمة المرور</label>
           <div style={{ position: 'relative' }}>
             <input value={password} onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && onLogin(username, password)}
               type={showPass ? 'text' : 'password'} placeholder="••••••••" autoComplete="current-password"
-              style={{ width: '100%', padding: '12px 44px 12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+              style={{ width: '100%', padding: '13px 44px 13px 14px', borderRadius: 14, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
             <button onClick={() => setShowPass(s => !s)}
               style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 16, padding: 0 }}>
               {showPass ? '🙈' : '👁️'}
@@ -134,14 +141,14 @@ function LoginScreen({ onLogin, error, loading }) {
         </div>
 
         {error && (
-          <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 16, fontSize: 13, color: C.accent, textAlign: 'center' }}>
+          <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 12, marginBottom: 16, fontSize: 13, color: C.accent, textAlign: 'center', border: `1px solid ${C.accent}33`, fontWeight: 600 }}>
             ⚠ {error}
           </div>
         )}
 
         <button onClick={() => onLogin(username, password)}
           disabled={loading || !username || !password}
-          style={{ width: '100%', padding: 14, borderRadius: 14, background: loading || !username || !password ? C.border : C.primary, border: 'none', color: '#000', fontSize: 15, fontWeight: 800, cursor: loading || !username || !password ? 'default' : 'pointer', transition: 'background .2s' }}>
+          style={{ width: '100%', padding: 14, borderRadius: 16, background: loading || !username || !password ? C.border : GRAD.brand, border: 'none', color: loading || !username || !password ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: loading || !username || !password ? 'default' : 'pointer', boxShadow: !loading && username && password ? '0 4px 20px #00DDB344' : 'none', transition: 'all .2s' }}>
           {loading ? 'جاري التحقق...' : '→ دخول'}
         </button>
       </div>
@@ -527,26 +534,28 @@ export default function WorkerPortalScreen() {
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, direction: 'rtl', fontFamily: "'Segoe UI',Tahoma,sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: C.bg, direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
       {/* Header */}
-      <div style={{ background: `linear-gradient(135deg, ${C.primary}22, ${C.surface})`, padding: '20px 16px 14px', borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ background: 'rgba(7,9,13,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', padding: '16px 16px 14px', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 50 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 46, height: 46, borderRadius: '50%', background: `${C.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: C.primary }}>
-              {worker.name?.[0] || '?'}
+            <div style={{ padding: 2, borderRadius: '50%', background: GRAD.brand }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, color: C.primary }}>
+                {worker.name?.[0] || '?'}
+              </div>
             </div>
             <div>
-              <div style={{ fontSize: 10, color: C.textDim }}>أهلاً 👋</div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{worker.name}</div>
+              <div style={{ fontSize: 10, color: C.textDim, fontWeight: 600 }}>أهلاً 👋</div>
+              <div style={{ fontSize: 16, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{worker.name}</div>
               {worker.specialization && (
-                <div style={{ fontSize: 11, color: C.primary }}>{worker.specialization.split(',')[0]}</div>
+                <div style={{ fontSize: 10, color: C.primary, fontWeight: 600 }}>{worker.specialization.split(',')[0]}</div>
               )}
             </div>
           </div>
           <button onClick={logout}
-            style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 11, cursor: 'pointer' }}>
-            خروج
+            style={{ padding: '7px 14px', borderRadius: 10, border: `1px solid ${C.accent}44`, background: `${C.accent}15`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+            🚪 خروج
           </button>
         </div>
       </div>
@@ -556,10 +565,14 @@ export default function WorkerPortalScreen() {
         <SummaryCard earned={totalEarned} paid={totalPaid} owed={totalOwed} pendingCount={pendingDays.length} />
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 4 }}>
           {tabs.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: `1.5px solid ${tab === t.id ? C.primary : C.border}`, background: tab === t.id ? `${C.primary}22` : 'transparent', color: tab === t.id ? C.primary : C.textDim, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+              style={{ flex: 1, padding: '9px 2px', borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 11, transition: 'all .2s',
+                background: tab === t.id ? GRAD.brand : 'transparent',
+                color: tab === t.id ? '#000' : C.textDim,
+                boxShadow: tab === t.id ? '0 4px 14px #00DDB344' : 'none',
+              }}>
               {t.label}
             </button>
           ))}

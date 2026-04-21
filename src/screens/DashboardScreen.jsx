@@ -243,7 +243,7 @@ export default function DashboardScreen({ projects, employees, workDays, expense
               { l:'للتحصيل',        v:`${fmt(Math.max(0,totalPending))}₪`, c:C.warning },
             ].map(s => (
               <div key={s.l} style={{ textAlign:'center', padding:'10px 4px', background:'rgba(255,255,255,0.04)', borderRadius:12, border:'1px solid rgba(255,255,255,0.07)' }}>
-                <div style={{ fontSize:8, color:C.textMuted, marginBottom:4, fontWeight:600 }}>{s.l}</div>
+                <div style={{ fontSize:9, color:C.textDim, marginBottom:4, fontWeight:600 }}>{s.l}</div>
                 <div style={{ fontSize:13, fontWeight:900, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
               </div>
             ))}
