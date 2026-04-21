@@ -1,12 +1,62 @@
 import React, { useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { C, EXP_CATS, VAT, OSEK_PATUR_THRESHOLD } from '../constants/index.js'
-import { fmt, fmtDate, todayStr, calcVATNet, calcBituachLeumi, isPaymentOverdue } from '../lib/helpers.js'
+import { fmt, fmtDate, todayStr, calcVATNet, calcBituachLeumi, estimateIncomeTax, isPaymentOverdue } from '../lib/helpers.js'
 import { StatCard, Card } from '../components/index.jsx'
 
-export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav }) {
+function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, onDelete, yearStr }) {
+  const [open, setOpen] = useState(false)
+  const remaining = Math.max(0, estimate - paid)
+  const pct = estimate > 0 ? Math.min(100, Math.round((paid / estimate) * 100)) : 0
+  return (
+    <div style={{ padding:'12px 14px', background:C.card, borderRadius:12, border:`1px solid ${C.border}` }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:C.text }}>{icon} {title}</div>
+        <button onClick={onAdd} style={{ padding:'4px 10px', borderRadius:8, border:`1px solid ${color}55`, background:`${color}15`, color, fontSize:11, fontWeight:700, cursor:'pointer' }}>+ دفعة</button>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6, marginBottom:10 }}>
+        {[
+          { l:'تقدير السنة', v:`${fmt(estimate)}₪`, c:C.textDim },
+          { l:'مدفوع',       v:`${fmt(paid)}₪`,     c:C.success },
+          { l:'متبقي',       v:`${fmt(remaining)}₪`, c:remaining > 0 ? color : C.success },
+        ].map(s => (
+          <div key={s.l} style={{ textAlign:'center', padding:'7px 4px', background:`${C.border}33`, borderRadius:8 }}>
+            <div style={{ fontSize:9, color:C.textDim }}>{s.l}</div>
+            <div style={{ fontSize:12, fontWeight:800, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+      {estimate > 0 && (
+        <div style={{ height:6, background:`${C.border}66`, borderRadius:3, overflow:'hidden', marginBottom:8 }}>
+          <div style={{ height:'100%', width:`${pct}%`, borderRadius:3, background:pct >= 100 ? C.success : color, transition:'width .4s' }} />
+        </div>
+      )}
+      {records.length > 0 && (
+        <button onClick={() => setOpen(o => !o)}
+          style={{ fontSize:10, color:C.textDim, background:'none', border:'none', cursor:'pointer', padding:0, marginBottom: open ? 6 : 0 }}>
+          {open ? '▲ إخفاء السجل' : `▼ عرض ${records.length} دفعة`}
+        </button>
+      )}
+      {open && records.sort((a,b) => b.date.localeCompare(a.date)).map(r => (
+        <div key={r.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 8px', background:`${C.border}22`, borderRadius:8, marginBottom:4 }}>
+          <div>
+            <span style={{ fontSize:12, fontWeight:700, color, fontFamily:'monospace' }}>{fmt(r.amount)}₪</span>
+            {r.period && <span style={{ fontSize:10, color:C.textDim, marginRight:6 }}>({r.period})</span>}
+            <span style={{ fontSize:10, color:C.textDim }}> • {r.date}</span>
+          </div>
+          <button onClick={() => onDelete(r.id)} style={{ background:'none', border:'none', fontSize:12, cursor:'pointer', color:C.textDim }}>🗑️</button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, taxAdvances = [], addTaxAdvance, deleteTaxAdvance }) {
   const [alertsExpanded, setAlertsExpanded] = useState(true)
   const [showTax,        setShowTax]        = useState(false)
+  const [addingTax,      setAddingTax]      = useState(null)  // 'income_tax' | 'bituach_leumi' | null
+  const [taxForm,        setTaxForm]        = useState({ amount: '', date: todayStr(), period: '', notes: '' })
+  const [taxSaving,      setTaxSaving]      = useState(false)
   const pieColors = [C.primary, C.blue, C.purple, C.orange, C.pink, C.cyan]
 
   const totalLabor    = workDays.reduce((s, w) => s + (w.amount || 0), 0)
@@ -53,6 +103,23 @@ export default function DashboardScreen({ projects, employees, workDays, expense
     })
     .filter(p => p.received > 0 && p.margin !== null)
     .sort((a, b) => b.margin - a.margin)[0]
+
+  // ─── مقدمات الضريبة ─────────────────────────────────────────────────────
+  const itPaidYear  = taxAdvances.filter(a => a.type === 'income_tax'    && (a.date||'').startsWith(thisYear)).reduce((s, a) => s + a.amount, 0)
+  const blPaidYear  = taxAdvances.filter(a => a.type === 'bituach_leumi' && (a.date||'').startsWith(thisYear)).reduce((s, a) => s + a.amount, 0)
+  const annualNet   = netProfit   // صافي الربح الكلي هو تقريب الدخل الخاضع للضريبة
+  const itEstimate  = estimateIncomeTax(Math.max(0, annualNet))
+  const blEstimate  = Math.round(bituachEstimate * 12)
+
+  async function saveTaxAdvance() {
+    if (!taxForm.amount || parseFloat(taxForm.amount) <= 0) return
+    setTaxSaving(true)
+    try {
+      await addTaxAdvance({ type: addingTax, amount: parseFloat(taxForm.amount), date: taxForm.date, period: taxForm.period, notes: taxForm.notes })
+      setAddingTax(null); setTaxForm({ amount: '', date: todayStr(), period: '', notes: '' })
+    } catch(e) { /* ignore */ }
+    finally { setTaxSaving(false) }
+  }
 
   // ─── عملاء متأخرون بالدفع ─────────────────────────────────────────────────
   const overdueClients = projects
@@ -241,27 +308,67 @@ export default function DashboardScreen({ projects, employees, workDays, expense
               )}
             </div>
 
-            {/* ביטוח לאומי */}
-            {bituachEstimate > 0 && (
-              <div style={{ padding:'12px 14px', background:C.card, borderRadius:12, border:`1px solid ${C.border}` }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <div>
-                    <div style={{ fontSize:12, fontWeight:700, color:C.text }}>ביטוח לאומי (ضمان اجتماعي)</div>
-                    <div style={{ fontSize:10, color:C.textDim }}>تقدير بناءً على متوسط ربحك الشهري</div>
-                  </div>
-                  <div style={{ textAlign:'center' }}>
-                    <div style={{ fontSize:18, fontWeight:800, color:C.warning, fontFamily:'monospace' }}>{fmt(bituachEstimate)}₪</div>
-                    <div style={{ fontSize:9, color:C.textDim }}>/شهر</div>
-                  </div>
-                </div>
-                <div style={{ marginTop:8, padding:'6px 10px', background:`${C.warning}15`, borderRadius:8, fontSize:11, color:C.warning, fontWeight:600 }}>
-                  💡 ادّخر {fmt(bituachEstimate)}₪ شهرياً للضمان الاجتماعي
-                </div>
-              </div>
-            )}
+            {/* מקדמות מס הכנסה */}
+            <TaxAdvanceBlock
+              title="מס הכנסה — ضريبة الدخل"
+              icon="📋"
+              color={C.blue}
+              estimate={itEstimate}
+              paid={itPaidYear}
+              records={taxAdvances.filter(a => a.type === 'income_tax' && (a.date||'').startsWith(thisYear))}
+              onAdd={() => { setAddingTax('income_tax'); setTaxForm({ amount: '', date: todayStr(), period: '', notes: '' }) }}
+              onDelete={deleteTaxAdvance}
+              yearStr={thisYear}
+            />
+
+            {/* מקדמות ביטוח לאומי */}
+            <TaxAdvanceBlock
+              title="ביטוח לאומי — ضمان اجتماعي"
+              icon="🏥"
+              color={C.warning}
+              estimate={blEstimate}
+              paid={blPaidYear}
+              records={taxAdvances.filter(a => a.type === 'bituach_leumi' && (a.date||'').startsWith(thisYear))}
+              onAdd={() => { setAddingTax('bituach_leumi'); setTaxForm({ amount: '', date: todayStr(), period: '', notes: '' }) }}
+              onDelete={deleteTaxAdvance}
+              yearStr={thisYear}
+            />
           </div>
         )}
       </div>
+
+      {/* مودال إضافة مقدمة ضريبية */}
+      {addingTax && (
+        <div style={{ position:'fixed', inset:0, background:'#000a', zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setAddingTax(null)}>
+          <div style={{ width:'100%', maxWidth:430, background:C.surface, borderRadius:'20px 20px 0 0', padding:24, paddingBottom:36 }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize:15, fontWeight:800, color:C.text, marginBottom:16 }}>
+              {addingTax === 'income_tax' ? '📋 دفعة מס הכנסה' : '🏥 دفعة ביטוח לאומי'}
+            </div>
+            <div style={{ marginBottom:12 }}>
+              <label style={{ fontSize:11, color:C.textDim, display:'block', marginBottom:5 }}>المبلغ (₪) *</label>
+              <input type="number" value={taxForm.amount} min="1" placeholder="0"
+                onChange={e => setTaxForm(p => ({ ...p, amount: e.target.value }))}
+                style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:16, fontWeight:700, boxSizing:'border-box' }} />
+            </div>
+            <div style={{ marginBottom:12 }}>
+              <label style={{ fontSize:11, color:C.textDim, display:'block', marginBottom:5 }}>التاريخ</label>
+              <input type="date" value={taxForm.date}
+                onChange={e => setTaxForm(p => ({ ...p, date: e.target.value }))}
+                style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:14, boxSizing:'border-box' }} />
+            </div>
+            <div style={{ marginBottom:16 }}>
+              <label style={{ fontSize:11, color:C.textDim, display:'block', marginBottom:5 }}>الفترة (مثال: 2024-01)</label>
+              <input type="text" value={taxForm.period} placeholder="YYYY-MM"
+                onChange={e => setTaxForm(p => ({ ...p, period: e.target.value }))}
+                style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:14, boxSizing:'border-box' }} />
+            </div>
+            <button onClick={saveTaxAdvance} disabled={taxSaving || !taxForm.amount}
+              style={{ width:'100%', padding:14, borderRadius:14, background: !taxForm.amount ? C.border : C.primary, border:'none', color: !taxForm.amount ? C.textDim : '#000', fontSize:15, fontWeight:800, cursor: taxForm.amount ? 'pointer' : 'default' }}>
+              {taxSaving ? 'جاري الحفظ...' : '✓ سجّل الدفعة'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* التنبيهات */}
       {alerts.length > 0 && (

@@ -102,6 +102,31 @@ export function calcBituachLeumi(monthlyNetProfit) {
 }
 
 /**
+ * تقدير ضريبة الدخل السنوية (מס הכנסה) للعمل الحر — شرائح 2024
+ * يطرح نقاط الزيكوي الشخصية (2.25 نقطة × 2,904₪)
+ */
+export function estimateIncomeTax(annualNetProfit) {
+  if (annualNetProfit <= 0) return 0
+  const brackets = [
+    [81480,    0.10],
+    [35280,    0.14],
+    [70680,    0.20],
+    [73080,    0.31],
+    [281640,   0.35],
+    [Infinity, 0.47],
+  ]
+  let tax = 0
+  let remaining = annualNetProfit
+  for (const [size, rate] of brackets) {
+    const taxable = Math.min(remaining, size)
+    tax += taxable * rate
+    remaining -= taxable
+    if (remaining <= 0) break
+  }
+  return Math.max(0, Math.round(tax - 6534)) // طرح نقاط الزيكوي الشخصية
+}
+
+/**
  * هل الدفعة متأخرة؟ (آخر إيصال + رصيد مفتوح + N يوم)
  */
 export function isPaymentOverdue(project, clientReceipts, overdueDays = 30) {

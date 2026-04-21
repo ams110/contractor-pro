@@ -9,6 +9,7 @@ import { usePayments }       from './hooks/useData.js'
 import { useClientReceipts } from './hooks/useData.js'
 import { useHolidays }       from './hooks/useData.js'
 import { useAdvances }       from './hooks/useData.js'
+import { useTaxAdvances }    from './hooks/useData.js'
 import { useSettings }       from './hooks/useSettings.js'
 import { useProfile }        from './hooks/useProfile.js'
 import { useTeam }           from './hooks/useTeam.js'
@@ -74,6 +75,7 @@ export default function App() {
   const { expenses,       loading: xLoad,  addExpense, deleteExpense, approveExpense, rejectExpense } = useExpenses(uid)
   const { payments,       loading: pyLoad, addPayment,                      deletePayment   } = usePayments(uid)
   const { advances,                        addAdvance,                      deleteAdvance   } = useAdvances(uid)
+  const { taxAdvances,                     addTaxAdvance,                   deleteTaxAdvance } = useTaxAdvances(uid)
   const { clientReceipts, loading: crLoad, addReceipt,                      deleteReceipt   } = useClientReceipts(uid)
   const { specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat }                      = useSettings(uid)
   const { holidays, addHoliday, deleteHoliday }                                               = useHolidays(uid)
@@ -109,7 +111,7 @@ export default function App() {
   function renderScreen() {
     const commonData = { projects, employees, workDays, expenses, payments, clientReceipts }
     switch (screen) {
-      case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
+      case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} />
       case 'projects':  return p.viewProjects  ? <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} employees={employees} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} /> : <NoAccess />
       case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={workDays} payments={payments} advances={advances} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} /> : <NoAccess />
       case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={approveWorkDay} rejectWorkDay={rejectWorkDay} permissions={p} /> : <NoAccess />
