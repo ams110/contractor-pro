@@ -111,6 +111,65 @@ export function exportFullReportToExcel({ projects, employees, workDays, expense
   XLSX.writeFile(wb, `تقرير-contractor-pro-${new Date().toISOString().slice(0,10)}.xlsx`)
 }
 
+// ─── تصدير ضريبي للمحاسب ──────────────────────────────────────────────────────
+export function exportTaxSummary({ year, clientReceipts, expenses, projects }) {
+  const wb = XLSX.utils.book_new()
+  const yearStr = String(year || new Date().getFullYear())
+  const VAT_RATE = 0.17
+
+  // ورقة 1: الإيرادات
+  const incomeRows = clientReceipts
+    .filter(r => (r.date || '').startsWith(yearStr))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(r => ({
+      'التاريخ':        fmtDate(r.date),
+      'المشروع':        projects.find(p => p.id === r.project_id)?.name || '',
+      'اسم الزبون':     projects.find(p => p.id === r.project_id)?.client_name || '',
+      'المبلغ الكلي (₪)': r.amount,
+      'بدون VAT (₪)':   Math.round(r.amount / 1.17),
+      'VAT محصّل (₪)':  Math.round(r.amount * VAT_RATE / (1 + VAT_RATE)),
+      'ملاحظات':        r.notes || '',
+    }))
+  const totalIncome    = incomeRows.reduce((s, r) => s + r['المبلغ الكلي (₪)'], 0)
+  const totalVATOut    = incomeRows.reduce((s, r) => s + r['VAT محصّل (₪)'], 0)
+  incomeRows.push({ 'التاريخ': 'الإجمالي', 'المبلغ الكلي (₪)': totalIncome, 'VAT محصّل (₪)': totalVATOut })
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(incomeRows), 'إيرادات')
+
+  // ورقة 2: المصاريف القابلة للخصم
+  const expRows = expenses
+    .filter(e => (e.date || '').startsWith(yearStr) && e.status !== 'pending')
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(e => ({
+      'التاريخ':          fmtDate(e.date),
+      'التصنيف':          e.category || '',
+      'المحل/المورّد':     e.vendor || '',
+      'المشروع':          projects.find(p => p.id === e.project_id)?.name || '',
+      'المبلغ الكلي (₪)': e.amount,
+      'بدون VAT (₪)':     Math.round(e.amount / 1.17),
+      'VAT مدفوع (₪)':    Math.round(e.amount * VAT_RATE / (1 + VAT_RATE)),
+    }))
+  const totalExpenses = expRows.reduce((s, r) => s + r['المبلغ الكلي (₪)'], 0)
+  const totalVATIn    = expRows.reduce((s, r) => s + r['VAT مدفوع (₪)'], 0)
+  expRows.push({ 'التاريخ': 'الإجمالي', 'المبلغ الكلي (₪)': totalExpenses, 'VAT مدفوع (₪)': totalVATIn })
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expRows), 'مصاريف-خصم-ضريبي')
+
+  // ورقة 3: ملخص VAT بالفترات الثنائية (كل شهرين)
+  const vatPeriods = []
+  for (let m = 1; m <= 12; m += 2) {
+    const m1 = String(m).padStart(2, '0')
+    const m2 = String(m + 1).padStart(2, '0')
+    const periodLabel = `${yearStr}-${m1} / ${yearStr}-${m2}`
+    const pIncome  = clientReceipts.filter(r => { const mo = (r.date||'').slice(5,7); return (r.date||'').startsWith(yearStr) && (mo === m1 || mo === m2) })
+    const pExpense = expenses.filter(e => { const mo = (e.date||'').slice(5,7); return (e.date||'').startsWith(yearStr) && (mo === m1 || mo === m2) && e.status !== 'pending' })
+    const vatOut = Math.round(pIncome.reduce((s,r) => s + r.amount, 0) * VAT_RATE / (1 + VAT_RATE))
+    const vatIn  = Math.round(pExpense.reduce((s,e) => s + e.amount, 0) * VAT_RATE / (1 + VAT_RATE))
+    vatPeriods.push({ 'الفترة': periodLabel, 'VAT محصّل (₪)': vatOut, 'VAT مدفوع (₪)': vatIn, 'صافي للدفع (₪)': Math.max(0, vatOut - vatIn), 'استرداد (₪)': Math.max(0, vatIn - vatOut) })
+  }
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(vatPeriods), 'ملخص-מע״מ')
+
+  XLSX.writeFile(wb, `ملخص-ضريبي-${yearStr}.xlsx`)
+}
+
 function _downloadXlsx(rows, name) {
   const ws = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()

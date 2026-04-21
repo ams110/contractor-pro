@@ -89,7 +89,22 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     setConfirmDelR(null)
   }
 
-  const filtered = projects.filter(p => filter === 'الكل' || p.status === filter)
+  const [sortBy, setSortBy] = useState('date') // 'date' | 'profit'
+
+  const filtered = projects
+    .filter(p => filter === 'الكل' || p.status === filter)
+    .map(p => {
+      const labor    = workDays.filter(w => w.project_id === p.id).reduce((s, w) => s + w.amount, 0)
+      const exp      = expenses.filter(e => e.project_id === p.id).reduce((s, e) => s + e.amount, 0)
+      const received = (clientReceipts || []).filter(r => r.project_id === p.id).reduce((s, r) => s + r.amount, 0)
+      const profit   = received - labor - exp
+      const margin   = received > 0 ? Math.round((profit / received) * 100) : null
+      return { ...p, _profit: profit, _margin: margin, _spent: labor + exp }
+    })
+    .sort((a, b) => sortBy === 'profit'
+      ? (b._margin ?? -999) - (a._margin ?? -999)
+      : (b.created_at || '').localeCompare(a.created_at || ''))
+
   const proj = detail ? projects.find(p => p.id === detail) : null
 
   // ─── تفاصيل مشروع ───
@@ -212,7 +227,13 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     <div className="fade-in" style={{ padding:16 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
         <div style={{ fontSize:20, fontWeight:800, color:C.text }}>🏗️ المشاريع</div>
-        {permissions?.editProjects !== false && <Btn onClick={openNew}>+ جديد</Btn>}
+        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+          <button onClick={() => setSortBy(s => s === 'profit' ? 'date' : 'profit')}
+            style={{ padding:'6px 10px', borderRadius:8, border:`1px solid ${sortBy==='profit'?C.success:C.border}`, background:sortBy==='profit'?`${C.success}18`:'transparent', color:sortBy==='profit'?C.success:C.textDim, fontSize:11, fontWeight:700, cursor:'pointer' }}>
+            {sortBy === 'profit' ? '📈 الأكثر ربحاً' : '📅 الأحدث'}
+          </button>
+          {permissions?.editProjects !== false && <Btn onClick={openNew}>+ جديد</Btn>}
+        </div>
       </div>
 
       <TabBar tabs={['الكل','نشط','مكتمل']} active={filter} onChange={setFilter} />
@@ -220,21 +241,23 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
       {filtered.length === 0
         ? <EmptyState icon="🏗️" text="ما في مشاريع بعد" action="+ أضف مشروع" onAction={openNew} />
         : filtered.map(pr => {
-            const spent = workDays.filter(w => w.project_id === pr.id).reduce((s, w) => s + w.amount, 0)
-                        + expenses.filter(e => e.project_id === pr.id).reduce((s, e) => s + e.amount, 0)
-            const profit = (pr.price || 0) - spent
             return (
               <Card key={pr.id} onClick={() => setDetail(pr.id)}>
                 <div style={{ padding:14 }}>
                   <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
                     <div style={{ fontSize:15, fontWeight:700, color:C.text }}>{pr.name}</div>
-                    <Badge text={pr.status} color={pr.status==='نشط'?C.primary:pr.status==='مكتمل'?C.blue:C.warning} />
+                    <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                      {pr._margin !== null && (
+                        <span style={{ fontSize:11, fontWeight:800, color: pr._margin >= 30 ? C.success : pr._margin >= 0 ? C.warning : C.accent, fontFamily:'monospace' }}>{pr._margin}%</span>
+                      )}
+                      <Badge text={pr.status} color={pr.status==='نشط'?C.primary:pr.status==='مكتمل'?C.blue:C.warning} />
+                    </div>
                   </div>
                   <div style={{ fontSize:12, color:C.textDim, marginBottom:4 }}>{pr.client_name} • {pr.type}</div>
                   {pr.price > 0 && (
                     <div style={{ display:'flex', justifyContent:'space-between', marginTop:6 }}>
                       <span style={{ fontSize:12, color:C.textDim }}>{fmt(pr.price)}₪</span>
-                      <span style={{ fontSize:12, fontWeight:700, color:profit>=0?C.success:C.accent, fontFamily:'monospace' }}>ربح: {fmt(profit)}₪</span>
+                      <span style={{ fontSize:12, fontWeight:700, color:pr._profit>=0?C.success:C.accent, fontFamily:'monospace' }}>ربح: {fmt(pr._profit)}₪</span>
                     </div>
                   )}
                 </div>

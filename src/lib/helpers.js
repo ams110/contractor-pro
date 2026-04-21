@@ -79,6 +79,45 @@ export function validatePayment(form) {
 }
 
 /**
+ * حساب VAT الصافي المستحق للضريبة لفترة زمنية معينة
+ * VAT محصّل من العملاء - VAT مدفوع في المشتريات
+ */
+export function calcVATNet(clientReceipts, expenses, fromDate, toDate) {
+  const inRange = (d) => (!fromDate || d >= fromDate) && (!toDate || d <= toDate)
+  const vatOut = clientReceipts
+    .filter(r => inRange(r.date || ''))
+    .reduce((s, r) => s + (r.amount || 0), 0) * (0.17 / 1.17)
+  const vatIn = expenses
+    .filter(e => (e.status !== 'pending') && inRange(e.date || ''))
+    .reduce((s, e) => s + (e.amount || 0), 0) * (0.17 / 1.17)
+  return { vatOut: Math.round(vatOut), vatIn: Math.round(vatIn), net: Math.round(vatOut - vatIn) }
+}
+
+/**
+ * تقدير ביטוח לאומי الشهري بناءً على متوسط الدخل الشهري الصافي
+ */
+export function calcBituachLeumi(monthlyNetProfit) {
+  if (monthlyNetProfit <= 0) return 0
+  return Math.round(monthlyNetProfit * 0.105)
+}
+
+/**
+ * هل الدفعة متأخرة؟ (آخر إيصال + رصيد مفتوح + N يوم)
+ */
+export function isPaymentOverdue(project, clientReceipts, overdueDays = 30) {
+  if (!project.price || project.price <= 0) return false
+  const projReceipts = clientReceipts.filter(r => r.project_id === project.id)
+  const received     = projReceipts.reduce((s, r) => s + (r.amount || 0), 0)
+  const balance      = (parseFloat(project.price) || 0) - received
+  if (balance <= 0) return false
+  if (projReceipts.length === 0) return false
+  const lastDate = projReceipts.map(r => r.date || '').sort().at(-1)
+  if (!lastDate) return false
+  const daysSince = Math.floor((Date.now() - new Date(lastDate)) / 86400000)
+  return daysSince >= overdueDays ? { balance, daysSince } : false
+}
+
+/**
  * التحقق من صحة نموذج يوم العمل
  */
 export function validateWorkDay(form) {

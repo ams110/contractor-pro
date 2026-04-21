@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { C } from '../constants/index.js'
 import { Btn, Card, ConfirmDialog } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
-import { exportFullReportToExcel } from '../lib/export.js'
+import { exportFullReportToExcel, exportTaxSummary } from '../lib/export.js'
 
 const PERM_LABELS = [
   ['can_view_projects',  'مشاهدة المشاريع'],
@@ -292,6 +292,10 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
         <button onClick={() => exportFullReportToExcel({ projects, employees, workDays, expenses, payments, clientReceipts: clientReceipts || [] })}
           style={{ width:'100%', padding:'12px', borderRadius:12, border:`1.5px solid ${C.success}`, background:`${C.success}15`, color:C.success, fontSize:13, fontWeight:700, cursor:'pointer' }}>
           📊 تصدير تقرير Excel كامل
+        </button>
+        <button onClick={() => exportTaxSummary({ year: new Date().getFullYear(), clientReceipts: clientReceipts || [], expenses, projects })}
+          style={{ width:'100%', padding:'12px', borderRadius:12, border:`1.5px solid ${C.purple}`, background:`${C.purple}15`, color:C.purple, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+          🇮🇱 تصدير ملخص ضريبي للمحاسب
         </button>
         <Btn onClick={exportData} variant="outline" color={C.blue} full>📥 تصدير نسخة احتياطية (JSON)</Btn>
       </div>

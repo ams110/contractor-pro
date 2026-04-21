@@ -48,6 +48,10 @@ export const PROJECT_STATUS = ['عرض سعر', 'موافق عليه', 'نشط',
 
 export const VAT = 0.17
 
+// ضرائب إسرائيل
+export const OSEK_PATUR_THRESHOLD = 120000   // عتبة عוסק פטור السنوية (₪)
+export const BITUACH_LEUMI_RATE   = 0.105    // نسبة ביטוח לאומי للمستقل (تقريبية)
+
 export const NAV = [
   { id: 'dashboard', icon: '📊', label: 'الرئيسية' },
   { id: 'projects',  icon: '🏗️', label: 'المشاريع' },
