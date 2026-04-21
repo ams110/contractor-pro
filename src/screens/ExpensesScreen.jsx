@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react'
-import { C, EXP_CATS, PAY_METHODS, VAT } from '../constants/index.js'
+import { C, GRAD, EXP_CATS, PAY_METHODS, VAT } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense } from '../lib/helpers.js'
-import { Modal, Input, Btn, Card, EmptyState, TabBar, ConfirmDialog } from '../components/index.jsx'
+import { GlassCard, Modal, Input, Btn, FilterChip, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
 import { exportExpensesToExcel } from '../lib/export.js'
 import { supabase } from '../lib/supabase.js'
 
-const CAT_ICONS = { 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
+const CAT_ICONS   = { 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
+const CAT_COLORS  = { 'مواد':C.orange, 'عدد':C.blue, 'وقود':C.cyan, 'إيجار':C.purple, 'تأمين':C.success, 'أخرى':C.textDim }
+const FILTER_CATS = ['الكل', 'مواد', 'عدد', 'وقود', 'إيجار', 'تأمين', 'أخرى']
 
 export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions }) {
   const [showForm,    setShowForm]    = useState(false)
@@ -22,7 +24,6 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
   const emptyForm = { date: todayStr(), amount:'', category:'', project_id:'', vendor:'', payment_method:'' }
   const [form, setForm] = useState(emptyForm)
-
   function f(key) { return v => setForm(prev => ({ ...prev, [key]: v })) }
 
   function pickFile(e) {
@@ -51,17 +52,14 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
       const r = data?.result || {}
       setForm(prev => ({
         ...prev,
-        amount:   r.amount   ? String(r.amount)   : prev.amount,
+        amount:   r.amount   ? String(r.amount) : prev.amount,
         vendor:   r.vendor   || prev.vendor,
         date:     r.date     || prev.date,
         category: r.category || prev.category,
       }))
       setScanMsg('✓ تم استخراج البيانات تلقائياً')
-    } catch (e) {
-      setScanMsg(`⚠ ${e.message}`)
-    } finally {
-      setScanning(false)
-    }
+    } catch (e) { setScanMsg(`⚠ ${e.message}`) }
+    finally     { setScanning(false) }
   }
 
   async function save() {
@@ -72,147 +70,189 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
       let receipt_url = ''
       if (receiptFile) receipt_url = await uploadReceipt(userId, receiptFile)
       await addExpense({ ...form, amount: parseFloat(form.amount), receipt_url })
-      setForm(emptyForm); setReceiptFile(null); setPreview('')
-      setShowForm(false)
-    } catch (e) {
-      setFormError(e.message)
-    } finally {
-      setSaving(false)
-    }
+      setForm(emptyForm); setReceiptFile(null); setPreview(''); setShowForm(false)
+    } catch (e) { setFormError(e.message) }
+    finally     { setSaving(false) }
   }
 
-  const pendingExpenses = expenses.filter(e => e.status === 'pending')
+  const pendingExpenses  = expenses.filter(e => e.status === 'pending')
   const approvedExpenses = expenses.filter(e => e.status !== 'pending')
-
-  const total    = approvedExpenses.reduce((s, e) => s + e.amount, 0)
+  const total  = approvedExpenses.reduce((s, e) => s + e.amount, 0)
+  const noVAT  = Math.round(total / (1 + VAT))
   const filtered = approvedExpenses.filter(e => filter === 'الكل' || e.category?.includes(filter))
   const sorted   = [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
 
+  function catColor(cat) {
+    const k = Object.keys(CAT_COLORS).find(k => cat?.includes(k)) || 'أخرى'
+    return CAT_COLORS[k]
+  }
+  function catIcon(cat) {
+    const k = Object.keys(CAT_ICONS).find(k => cat?.includes(k)) || 'أخرى'
+    return CAT_ICONS[k]
+  }
+
   return (
-    <div className="fade-in" style={{ padding:16 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-        <div style={{ fontSize:20, fontWeight:800, color:C.text }}>💸 المصاريف</div>
-        <div style={{ display:'flex', gap:6 }}>
+    <div className="fade-up" style={{ padding:16, paddingBottom:100 }}>
+
+      {/* ── Header ── */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+        <div>
+          <div style={{ fontSize:22, fontWeight:900, background:GRAD.danger, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
+            💸 المصاريف
+          </div>
+          <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{approvedExpenses.length} سجل</div>
+        </div>
+        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
           {approvedExpenses.length > 0 && (
             <button onClick={() => exportExpensesToExcel(approvedExpenses, projects)}
-              style={{ padding:'7px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, cursor:'pointer' }}>
-              📊 Excel
+              style={{ padding:'8px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, fontSize:12, cursor:'pointer', fontWeight:600 }}>
+              📊
             </button>
           )}
-          {permissions?.addExpenses !== false && <Btn onClick={() => { setFormError(''); setShowForm(true) }}>+ مصروف</Btn>}
+          {permissions?.addExpenses !== false && (
+            <button onClick={() => { setFormError(''); setShowForm(true) }}
+              style={{ padding:'10px 18px', borderRadius:14, background:GRAD.danger, color:'#fff', border:'none', cursor:'pointer', fontWeight:800, fontSize:13, boxShadow:'0 4px 16px rgba(244,63,94,0.4)' }}>
+              + مصروف
+            </button>
+          )}
         </div>
       </div>
 
-      {/* مصاريف معلقة */}
-      {pendingExpenses.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: C.warning }}>⏳ بانتظار الموافقة</div>
-            <div style={{ minWidth: 20, height: 20, borderRadius: 10, background: C.warning, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: '#000' }}>{pendingExpenses.length}</div>
+      {/* ── إجماليات ── */}
+      {approvedExpenses.length > 0 && (
+        <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
+          <div style={{ height:3, background:GRAD.danger }} />
+          <div style={{ padding:'14px 16px', display:'flex', justifyContent:'space-around' }}>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>شامل الضريبة</div>
+              <div style={{ fontSize:22, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(total)}₪</div>
+            </div>
+            <div style={{ width:1, background:C.border }} />
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>بدون ضريبة</div>
+              <div style={{ fontSize:22, fontWeight:900, color:C.text, fontFamily:'monospace' }}>{fmt(noVAT)}₪</div>
+            </div>
+            <div style={{ width:1, background:C.border }} />
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>ضريبة 17%</div>
+              <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace' }}>{fmt(total - noVAT)}₪</div>
+            </div>
           </div>
+        </GlassCard>
+      )}
+
+      {/* ── مصاريف معلقة ── */}
+      {pendingExpenses.length > 0 && (
+        <div style={{ marginBottom:16 }}>
+          <SectionLabel color={C.warning}>⏳ بانتظار الموافقة ({pendingExpenses.length})</SectionLabel>
           {pendingExpenses.map(ex => {
             const worker = employees?.find(e => e.id === ex.employee_id)
             const proj   = projects.find(p => p.id === ex.project_id)
             return (
-              <div key={ex.id} style={{ padding: '12px 14px', background: `${C.warning}11`, borderRadius: 12, border: `1px solid ${C.warning}44`, marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{ex.category}</div>
-                    {worker && <div style={{ fontSize: 11, color: C.primary, fontWeight: 600 }}>👷 {worker.name}</div>}
-                    <div style={{ fontSize: 11, color: C.textDim }}>{ex.vendor || ''}{proj ? ` • ${proj.name}` : ''} • {fmtDate(ex.date)}</div>
+              <GlassCard key={ex.id} style={{ overflow:'hidden', marginBottom:10 }}>
+                <div style={{ height:3, background:GRAD.warm }} />
+                <div style={{ padding:'12px 14px' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
+                    <div>
+                      <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
+                      {worker && <div style={{ fontSize:11, color:C.primary, fontWeight:600, marginTop:2 }}>👷 {worker.name}</div>}
+                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{ex.vendor || ''}{proj ? ` • ${proj.name}` : ''} • {fmtDate(ex.date)}</div>
+                    </div>
+                    <div style={{ fontSize:18, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(ex.amount)}₪</div>
                   </div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: C.accent, fontFamily: 'monospace' }}>{fmt(ex.amount)}₪</div>
-                </div>
-
-                {/* صورة/ملف الفاتورة */}
-                {ex.receipt_url && (
-                  <div style={{ marginBottom: 10 }}>
-                    {ex.receipt_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                      <a href={ex.receipt_url} target="_blank" rel="noreferrer">
-                        <img src={ex.receipt_url} alt="فاتورة" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 10, border: `1px solid ${C.border}` }} />
-                      </a>
-                    ) : (
-                      <a href={ex.receipt_url} target="_blank" rel="noreferrer"
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: `${C.border}33`, borderRadius: 10, textDecoration: 'none' }}>
-                        <span style={{ fontSize: 20 }}>📄</span>
-                        <span style={{ fontSize: 12, color: C.primary, fontWeight: 600 }}>عرض الفاتورة (PDF)</span>
-                      </a>
-                    )}
+                  {ex.receipt_url && (
+                    <div style={{ marginBottom:10 }}>
+                      {ex.receipt_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                        <a href={ex.receipt_url} target="_blank" rel="noreferrer">
+                          <img src={ex.receipt_url} alt="فاتورة" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:10, border:`1px solid ${C.border}` }} />
+                        </a>
+                      ) : (
+                        <a href={ex.receipt_url} target="_blank" rel="noreferrer"
+                          style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:`${C.border}33`, borderRadius:10, textDecoration:'none' }}>
+                          <span style={{ fontSize:20 }}>📄</span>
+                          <span style={{ fontSize:12, color:C.primary, fontWeight:600 }}>عرض الفاتورة (PDF)</span>
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  <div style={{ display:'flex', gap:8 }}>
+                    <button onClick={() => approveExpense(ex.id)}
+                      style={{ flex:1, padding:'9px 0', borderRadius:10, background:`${C.success}20`, border:`1px solid ${C.success}55`, color:C.success, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                      ✓ موافقة
+                    </button>
+                    <button onClick={() => rejectExpense(ex.id)}
+                      style={{ flex:1, padding:'9px 0', borderRadius:10, background:`${C.accent}20`, border:`1px solid ${C.accent}55`, color:C.accent, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                      ✗ رفض
+                    </button>
                   </div>
-                )}
-
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => approveExpense(ex.id)}
-                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: `${C.success}22`, border: `1px solid ${C.success}55`, color: C.success, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                    ✓ موافقة
-                  </button>
-                  <button onClick={() => rejectExpense(ex.id)}
-                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: `${C.accent}22`, border: `1px solid ${C.accent}55`, color: C.accent, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                    ✗ رفض
-                  </button>
                 </div>
-              </div>
+              </GlassCard>
             )
           })}
         </div>
       )}
 
-      {/* إجمالي */}
-      {approvedExpenses.length > 0 && (
-        <Card>
-          <div style={{ padding:14, display:'flex', justifyContent:'space-around' }}>
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontSize:10, color:C.textDim }}>شامل الضريبة</div>
-              <div style={{ fontSize:18, fontWeight:800, color:C.accent, fontFamily:'monospace' }}>{fmt(total)}₪</div>
-            </div>
-            <div style={{ textAlign:'center' }}>
-              <div style={{ fontSize:10, color:C.textDim }}>بدون ضريبة</div>
-              <div style={{ fontSize:18, fontWeight:800, color:C.text, fontFamily:'monospace' }}>{fmt(Math.round(total / (1 + VAT)))}₪</div>
-            </div>
-          </div>
-        </Card>
-      )}
+      {/* ── فلتر التصنيف ── */}
+      <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:4, marginBottom:16, scrollbarWidth:'none' }}>
+        {FILTER_CATS.map(cat => (
+          <FilterChip key={cat} label={cat} active={filter === cat} onClick={() => setFilter(cat)}
+            color={cat === 'الكل' ? C.primary : catColor(cat)} />
+        ))}
+      </div>
 
-      <TabBar tabs={['الكل','مواد','عدد','وقود']} active={filter} onChange={setFilter} />
-
+      {/* ── قائمة المصاريف ── */}
       {sorted.length === 0 && pendingExpenses.length === 0
         ? <EmptyState icon="💸" text="ما في مصاريف" action="+ أضف مصروف" onAction={() => setShowForm(true)} />
         : sorted.length === 0 ? null
         : sorted.map(ex => {
             const proj = projects.find(p => p.id === ex.project_id)
-            const ck   = Object.keys(CAT_ICONS).find(k => ex.category?.includes(k)) || 'أخرى'
+            const col  = catColor(ex.category)
+            const ico  = catIcon(ex.category)
             return (
-              <div key={ex.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 14px', background:C.card, borderRadius:12, border:`1px solid ${C.border}`, marginBottom:8 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ width:34, height:34, borderRadius:10, background:`${C.accent}22`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15 }}>
-                    {CAT_ICONS[ck]}
+              <GlassCard key={ex.id} style={{ overflow:'hidden', marginBottom:8, position:'relative' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px' }}>
+                  {/* أيقونة ملونة */}
+                  <div style={{ width:44, height:44, borderRadius:14, background:`${col}20`, border:`1px solid ${col}44`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>
+                    {ico}
                   </div>
-                  <div>
-                    <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{ex.category}</div>
-                    <div style={{ fontSize:11, color:C.textDim }}>{ex.vendor || ''}{proj ? ` • ${proj.name}` : ''}</div>
-                    <div style={{ fontSize:10, color:C.textMuted }}>{fmtDate(ex.date)}{ex.payment_method ? ` • ${ex.payment_method}` : ''}</div>
+
+                  {/* المعلومات */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
+                    <div style={{ fontSize:11, color:C.textDim, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {ex.vendor || ''}{proj ? ` • ${proj.name}` : ''}
+                    </div>
+                    <div style={{ fontSize:10, color:C.textMuted, marginTop:1 }}>
+                      {fmtDate(ex.date)}{ex.payment_method ? ` • ${ex.payment_method}` : ''}
+                    </div>
+                  </div>
+
+                  {/* المبلغ + أدوات */}
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
+                    <div style={{ fontSize:16, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(ex.amount)}₪</div>
+                    <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                      {ex.receipt_url && (
+                        <a href={ex.receipt_url} target="_blank" rel="noreferrer" style={{ textDecoration:'none', fontSize:16 }} title="عرض الفاتورة">📎</a>
+                      )}
+                      <button onClick={() => setConfirmDel(ex.id)}
+                        style={{ background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', fontSize:12 }}>🗑️</button>
+                    </div>
                   </div>
                 </div>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <div style={{ fontSize:14, fontWeight:700, color:C.accent, fontFamily:'monospace' }}>{fmt(ex.amount)}₪</div>
-                  {ex.receipt_url && (
-                    <a href={ex.receipt_url} target="_blank" rel="noreferrer"
-                      style={{ fontSize:16, textDecoration:'none' }} title="عرض الفاتورة">📎</a>
-                  )}
-                  <button onClick={() => setConfirmDel(ex.id)} style={{ background:'none', border:'none', fontSize:12, cursor:'pointer' }}>🗑️</button>
-                </div>
-              </div>
+                {/* شريط لوني جانبي */}
+                <div style={{ position:'absolute', top:0, right:0, width:3, height:'100%', background:col, borderRadius:'0 20px 20px 0' }} />
+              </GlassCard>
             )
           })
       }
 
+      {/* ── Modal إضافة مصروف ── */}
       <Modal open={showForm} onClose={() => { setShowForm(false); setReceiptFile(null); setPreview('') }} title="مصروف جديد">
         <Input label="التاريخ"    value={form.date}   onChange={f('date')}   type="date" required />
         <Input label="المبلغ (₪)" value={form.amount} onChange={f('amount')} type="number" min="0.01" required />
 
-        {/* معاينة الضريبة */}
         {form.amount && parseFloat(form.amount) > 0 && (
-          <div style={{ marginTop:-10, marginBottom:14, padding:'8px 12px', background:`${C.border}33`, borderRadius:8, display:'flex', justifyContent:'space-between' }}>
+          <div style={{ marginTop:-8, marginBottom:14, padding:'8px 12px', background:`${C.border}33`, borderRadius:10, display:'flex', justifyContent:'space-between' }}>
             <span style={{ fontSize:11, color:C.textDim }}>بدون ضريبة: {fmt(Math.round(parseFloat(form.amount) / (1 + VAT)))}₪</span>
             <span style={{ fontSize:11, color:C.textDim }}>ضريبة: {fmt(Math.round(parseFloat(form.amount) - parseFloat(form.amount) / (1 + VAT)))}₪</span>
           </div>
@@ -220,14 +260,13 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
         <Input label="التصنيف" value={form.category} onChange={f('category')} options={expCats || EXP_CATS} required />
 
-        {/* اختيار المشروع */}
         {projects.length > 0 && (
           <div style={{ marginBottom:14 }}>
-            <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:5 }}>المشروع</label>
+            <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>المشروع</label>
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
               {projects.map(p => (
                 <button key={p.id} onClick={() => setForm(prev => ({ ...prev, project_id: p.id }))}
-                  style={{ padding:'6px 12px', borderRadius:8, border:`1px solid ${form.project_id===p.id?C.primary:C.border}`, background:form.project_id===p.id?`${C.primary}22`:'transparent', color:form.project_id===p.id?C.primary:C.textDim, fontSize:12, cursor:'pointer' }}>
+                  style={{ padding:'6px 12px', borderRadius:10, border:`1.5px solid ${form.project_id===p.id ? C.primary : C.border}`, background:form.project_id===p.id ? `${C.primary}20` : 'transparent', color:form.project_id===p.id ? C.primary : C.textDim, fontSize:12, fontWeight:600, cursor:'pointer', transition:'all .2s' }}>
                   {p.name}
                 </button>
               ))}
@@ -241,40 +280,39 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         {/* رفع الفاتورة + AI scan */}
         <div style={{ marginBottom:14 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-            <label style={{ fontSize:12, color:C.textDim }}>📎 فاتورة / إثبات الشراء (اختياري)</label>
+            <label style={{ fontSize:12, color:C.textDim, fontWeight:600 }}>📎 فاتورة / إثبات (اختياري)</label>
             {receiptFile && receiptFile.type.startsWith('image/') && (
               <button onClick={scanReceipt} disabled={scanning}
                 style={{ padding:'4px 10px', borderRadius:8, border:`1px solid ${C.primary}55`, background:`${C.primary}15`, color:C.primary, fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                {scanning ? '⏳ جاري المسح...' : '🤖 مسح AI'}
+                {scanning ? '⏳' : '🤖 AI مسح'}
               </button>
             )}
           </div>
           <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={pickFile} />
           {preview
-            ? <div style={{ position:'relative', display:'inline-block', width:'100%' }}>
-                <img src={preview} alt="فاتورة" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:10, border:`1px solid ${C.border}` }} />
+            ? <div style={{ position:'relative' }}>
+                <img src={preview} alt="فاتورة" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:12, border:`1px solid ${C.border}` }} />
                 <button onClick={() => { setReceiptFile(null); setPreview(''); setScanMsg('') }}
-                  style={{ position:'absolute', top:4, left:4, background:`${C.accent}cc`, border:'none', borderRadius:'50%', width:22, height:22, color:'#fff', cursor:'pointer', fontSize:12 }}>×</button>
+                  style={{ position:'absolute', top:6, left:6, background:`${C.accent}dd`, border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
               </div>
             : receiptFile
-            ? <div style={{ padding:'10px 14px', background:`${C.border}33`, borderRadius:10, fontSize:12, color:C.text }}>📄 {receiptFile.name}</div>
+            ? <div style={{ padding:'10px 14px', background:`${C.border}33`, borderRadius:12, fontSize:12, color:C.text }}>📄 {receiptFile.name}</div>
             : <button onClick={() => fileRef.current.click()}
-                style={{ width:'100%', padding:'12px', borderRadius:10, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer' }}>
+                style={{ width:'100%', padding:'14px', borderRadius:12, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer' }}>
                 📷 اضغط لرفع صورة الفاتورة
               </button>
           }
-          {scanMsg && (
-            <div style={{ marginTop:6, fontSize:11, color: scanMsg.startsWith('✓') ? C.success : C.accent, fontWeight:600 }}>{scanMsg}</div>
-          )}
+          {scanMsg && <div style={{ marginTop:6, fontSize:11, color: scanMsg.startsWith('✓') ? C.success : C.accent, fontWeight:600 }}>{scanMsg}</div>}
         </div>
 
-        {formError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {formError}</div>}
+        {formError && <div style={{ padding:'10px 12px', background:`${C.accent}18`, borderRadius:10, fontSize:12, color:C.accent, marginBottom:14, fontWeight:600 }}>⚠ {formError}</div>}
         <Btn onClick={save} full disabled={saving || !form.amount || !form.category}>
           {saving ? 'جاري الحفظ...' : '✓ أضف المصروف'}
         </Btn>
       </Modal>
 
-      <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={async () => { await deleteExpense(confirmDel); setConfirmDel(null) }} message="حذف هالمصروف؟" />
+      <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)}
+        onConfirm={async () => { await deleteExpense(confirmDel); setConfirmDel(null) }} message="حذف هالمصروف؟" />
     </div>
   )
 }

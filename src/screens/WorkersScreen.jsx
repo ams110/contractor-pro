@@ -1,10 +1,35 @@
 import React, { useState } from 'react'
-import { C, SPECS } from '../constants/index.js'
+import { C, GRAD, SPECS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validateWorker } from '../lib/helpers.js'
-import { Modal, Input, Btn, Card, Badge, EmptyState, ConfirmDialog } from '../components/index.jsx'
+import { GlassCard, Card, StatCard, Modal, Input, Btn, Badge, EmptyState, ConfirmDialog, AnimatedNumber } from '../components/index.jsx'
 import { setWorkerCredentials } from '../hooks/useWorkerPortal.js'
 import WorkerStatsPanel from '../components/WorkerStatsPanel.jsx'
 import { exportWorkerSalaryPDF } from '../lib/export.js'
+
+/* ── tiny icon button helper ── */
+function IconBtn({ icon, label, onClick, color = C.textDim, active, activeColor }) {
+  const [hov, setHov] = useState(false)
+  const col = (hov || active) ? (activeColor || color) : C.textDim
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+        padding: '6px 8px', borderRadius: 10,
+        border: `1px solid ${(hov || active) ? (activeColor || color) + '44' : C.border}`,
+        background: (hov || active) ? `${activeColor || color}18` : 'transparent',
+        color: col, fontSize: 14, cursor: 'pointer',
+        transition: 'all .18s',
+      }}
+    >
+      <span>{icon}</span>
+      <span style={{ fontSize: 9, fontWeight: 700, color: col, lineHeight: 1 }}>{label}</span>
+    </button>
+  )
+}
 
 export default function WorkersScreen({ employees, workDays, payments, advances = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday }) {
   const [showForm,   setShowForm]   = useState(false)
@@ -118,132 +143,216 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
   const totalE   = workDays.reduce((s, w) => s + w.amount, 0)
   const totalP   = payments.reduce((s, p) => s + p.amount, 0)
   const totalAdv = advances.reduce((s, a) => s + a.amount, 0)
+  const totalOwed = Math.max(0, totalE - totalP - totalAdv)
 
   return (
-    <div className="fade-in" style={{ padding:16 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-        <div style={{ fontSize:20, fontWeight:800, color:C.text }}>👷 العمال</div>
-        <div style={{ display:'flex', gap:6 }}>
-          <button onClick={copyPortalLink}
+    <div className="fade-in" style={{ padding: 16, maxWidth: 520, margin: '0 auto' }}>
+
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 14,
+            background: GRAD.brand,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, boxShadow: `0 4px 16px #00DDB344`,
+          }}>👷</div>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>العمال</div>
+            <div style={{ fontSize: 11, color: C.textDim }}>{employees.length} عامل مسجّل</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            onClick={copyPortalLink}
             title="نسخ رابط بوابة العمال"
-            style={{ padding:'7px 12px', borderRadius:10, border:`1px solid ${copied?C.success:C.border}`, background:copied?`${C.success}22`:'transparent', color:copied?C.success:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', transition:'all .2s' }}>
-            {copied ? '✓ تم النسخ' : '🔗 رابط البوابة'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '8px 13px', borderRadius: 12,
+              border: `1px solid ${copied ? C.success + '66' : C.border}`,
+              background: copied ? `${C.success}18` : 'rgba(255,255,255,0.04)',
+              color: copied ? C.success : C.textDim,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              transition: 'all .2s',
+              boxShadow: copied ? `0 0 16px ${C.success}33` : 'none',
+            }}
+          >
+            <span>{copied ? '✓' : '🔗'}</span>
+            <span>{copied ? 'تم النسخ' : 'رابط البوابة'}</span>
           </button>
-          {permissions?.editWorkers !== false && <Btn onClick={openNew}>+ جديد</Btn>}
+          {permissions?.editWorkers !== false && (
+            <Btn onClick={openNew}>+ جديد</Btn>
+          )}
         </div>
       </div>
 
-      {/* ملخص الرواتب */}
+      {/* ── Summary Bar ── */}
       {employees.length > 0 && (
-        <Card>
-          <div style={{ padding:14, display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:8 }}>
-            {[
-              { label:'مستحق',  value:`${fmt(totalE)}₪`,   color:C.text    },
-              { label:'مدفوع',  value:`${fmt(totalP)}₪`,   color:C.success },
-              { label:'سلف',    value:`${fmt(totalAdv)}₪`, color:C.warning },
-              { label:'متبقي',  value:`${fmt(Math.max(0, totalE-totalP-totalAdv))}₪`, color:totalE-totalP-totalAdv>0?C.accent:C.success },
-            ].map((s, i) => (
-              <div key={i} style={{ textAlign:'center' }}>
-                <div style={{ fontSize:10, color:C.textDim }}>{s.label}</div>
-                <div style={{ fontSize:16, fontWeight:800, color:s.color, fontFamily:'monospace' }}>{s.value}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
+          {[
+            { label: 'إجمالي مستحق', value: totalE,   grad: GRAD.brand,   glow: C.primary   },
+            { label: 'إجمالي مدفوع', value: totalP,   grad: GRAD.success, glow: C.success   },
+            { label: 'إجمالي متبقي', value: totalOwed, grad: totalOwed > 0 ? GRAD.purple : GRAD.success, glow: totalOwed > 0 ? C.accent : C.success },
+          ].map((s, i) => (
+            <GlassCard key={i} style={{ marginBottom: 0, borderRadius: 16 }}>
+              <div style={{ padding: '12px 10px 10px' }}>
+                <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, marginBottom: 6, textAlign: 'center', letterSpacing: '0.04em' }}>{s.label}</div>
+                <div style={{
+                  fontSize: 15, fontWeight: 900, fontFamily: 'monospace',
+                  background: s.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text', textAlign: 'center', letterSpacing: '-0.5px',
+                }}>
+                  <AnimatedNumber value={s.value} suffix="₪" />
+                </div>
               </div>
-            ))}
-          </div>
-        </Card>
+              <div style={{ height: 2, background: s.grad, borderRadius: '0 0 16px 16px' }} />
+            </GlassCard>
+          ))}
+        </div>
       )}
 
+      {/* ── Worker List ── */}
       {employees.length === 0
-        ? <EmptyState icon="👷" text="ما في عمال بعد" action="+ أضف عامل" onAction={openNew} />
+        ? <EmptyState icon="👷" text="ما في عمال بعد — أضف أول عامل الآن" action="+ أضف عامل" onAction={openNew} />
         : employees.map(w => {
-            const earned  = workDays.filter(wd => wd.employee_id === w.id).reduce((s, wd) => s + wd.amount, 0)
-            const paid    = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
-            const wAdv    = advances.filter(a  => a.employee_id  === w.id).reduce((s, a)  => s + a.amount,  0)
-            const owed    = Math.max(0, earned - paid - wAdv)
+            const earned = workDays.filter(wd => wd.employee_id === w.id).reduce((s, wd) => s + wd.amount, 0)
+            const paid   = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
+            const wAdv   = advances.filter(a  => a.employee_id  === w.id).reduce((s, a)  => s + a.amount,  0)
+            const owed   = Math.max(0, earned - paid - wAdv)
+            const specs_ = w.specialization ? w.specialization.split(',').map(s => s.trim()).filter(Boolean) : []
+
             return (
-              <Card key={w.id}>
-                <div style={{ padding:14 }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                      <div style={{ width:38, height:38, borderRadius:'50%', background:`${C.primary}33`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:700, color:C.primary }}>
-                        {w.name[0]}
-                      </div>
-                      <div>
-                        <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{w.name}</div>
-                        <div style={{ display:'flex', gap:4, alignItems:'center', flexWrap:'wrap' }}>
-                          {w.specialization
-                            ? w.specialization.split(',').map(s => <Badge key={s} text={s.trim()} color={C.blue} />)
-                            : <Badge text="عام" color={C.blue} />}
-                          <span style={{ fontSize:11, color:C.textDim }}>{w.daily_rate}₪/يوم</span>
-                        </div>
-                      </div>
+              <GlassCard key={w.id} style={{ marginBottom: 12, borderRadius: 20, overflow: 'hidden' }}>
+                {/* top gradient accent bar */}
+                <div style={{ height: 3, background: owed > 0 ? GRAD.purple : GRAD.brand }} />
+
+                <div style={{ padding: '14px 16px 12px' }}>
+
+                  {/* ── Worker Identity Row ── */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+                    {/* Avatar */}
+                    <div style={{
+                      width: 48, height: 48, borderRadius: 16, flexShrink: 0,
+                      background: GRAD.brand,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 19, fontWeight: 900, color: '#000',
+                      boxShadow: `0 4px 18px #00DDB344`,
+                    }}>
+                      {w.name[0]}
                     </div>
-                    <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-                      {permissions?.editWorkers !== false && (
-                        <button onClick={() => { setAdvWorker(w); setAdvForm({ amount: '', date: todayStr(), notes: '' }); setAdvError('') }}
-                          title="منح سلفة"
-                          style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.warning}55`, background:`${C.warning}15`, color:C.warning, fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                          💵 سلفة
-                        </button>
+
+                    {/* Name + rate + specs */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{w.name}</span>
+                        {owed > 0 && (
+                          <span style={{
+                            fontSize: 11, fontWeight: 800,
+                            background: GRAD.purple,
+                            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                          }}>
+                            {fmt(owed)}₪ متبقي
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: C.textDim, marginBottom: 6 }}>
+                        {w.daily_rate}₪ / يوم
+                        {w.phone ? <span style={{ marginRight: 8, color: C.textDim }}>{w.phone}</span> : null}
+                      </div>
+                      {specs_.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {specs_.map(s => (
+                            <Badge key={s} text={s} color={C.secondary} />
+                          ))}
+                        </div>
                       )}
-                      <button onClick={() => setAdvHistory(w)}
-                        title="سجل السلف"
-                        style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, cursor:'pointer' }}>
-                        📋
-                      </button>
-                      <button onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })}
-                        title="تصدير كشف راتب PDF"
-                        style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:13, cursor:'pointer' }}>
-                        📄
-                      </button>
-                      <button onClick={() => setStatsWorker(w)}
-                        title="إحصائيات الحضور"
-                        style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:13, cursor:'pointer' }}>
-                        📊
-                      </button>
-                      <button onClick={() => openCreds(w)}
-                        title="بيانات دخول العامل"
-                        style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                        🔑
-                      </button>
-                      {permissions?.editWorkers !== false && <button onClick={() => openEdit(w)} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>✏️</button>}
-                      {permissions?.canDelete   !== false && <button onClick={() => setConfirmDel(w.id)} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>🗑️</button>}
+                      {specs_.length === 0 && <Badge text="عام" color={C.blue} />}
                     </div>
                   </div>
 
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:6 }}>
+                  {/* ── Stats Mini Grid ── */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
+                    marginBottom: 12,
+                  }}>
                     {[
-                      { l:'مستحق', v:`${fmt(earned)}₪`, c:C.text },
-                      { l:'مدفوع', v:`${fmt(paid)}₪`,   c:C.success },
-                      { l:'سلف',   v:`${fmt(wAdv)}₪`,   c:C.warning },
-                      { l:'متبقي', v:`${fmt(owed)}₪`,   c:owed>0?C.accent:C.success },
+                      { l: 'مستحق', v: earned, c: C.text,    bg: 'rgba(248,250,252,0.05)' },
+                      { l: 'مدفوع', v: paid,   c: C.success, bg: `${C.success}12` },
+                      { l: 'سلف',   v: wAdv,   c: C.warning, bg: `${C.warning}12` },
+                      { l: 'متبقي', v: owed,   c: owed > 0 ? C.accent : C.success, bg: owed > 0 ? `${C.accent}12` : `${C.success}12` },
                     ].map((s, i) => (
-                      <div key={i} style={{ textAlign:'center', padding:'5px 0', background:`${C.border}22`, borderRadius:8 }}>
-                        <div style={{ fontSize:9,  color:C.textDim }}>{s.l}</div>
-                        <div style={{ fontSize:12, fontWeight:700, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
+                      <div key={i} style={{
+                        textAlign: 'center', padding: '7px 4px',
+                        background: s.bg,
+                        borderRadius: 10,
+                        border: `1px solid ${s.c}22`,
+                      }}>
+                        <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, marginBottom: 3 }}>{s.l}</div>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: s.c, fontFamily: 'monospace', letterSpacing: '-0.3px' }}>
+                          {fmt(s.v)}₪
+                        </div>
                       </div>
                     ))}
                   </div>
+
+                  {/* ── Action Row ── */}
+                  <div style={{
+                    display: 'flex', gap: 5, flexWrap: 'wrap',
+                    paddingTop: 10,
+                    borderTop: `1px solid ${C.border}`,
+                  }}>
+                    {permissions?.editWorkers !== false && (
+                      <IconBtn
+                        icon="💵" label="سلفة"
+                        color={C.warning} activeColor={C.warning}
+                        onClick={() => { setAdvWorker(w); setAdvForm({ amount: '', date: todayStr(), notes: '' }); setAdvError('') }}
+                      />
+                    )}
+                    <IconBtn icon="📋" label="سجل" onClick={() => setAdvHistory(w)} />
+                    <IconBtn icon="📄" label="PDF" onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })} />
+                    <IconBtn icon="📊" label="إحصاء" onClick={() => setStatsWorker(w)} color={C.blue} activeColor={C.blue} />
+                    <IconBtn icon="🔑" label="بيانات" onClick={() => openCreds(w)} color={C.purple} activeColor={C.purple} />
+                    {permissions?.editWorkers !== false && (
+                      <IconBtn icon="✏️" label="تعديل" onClick={() => openEdit(w)} color={C.secondary} activeColor={C.secondary} />
+                    )}
+                    {permissions?.canDelete !== false && (
+                      <IconBtn icon="🗑️" label="حذف" onClick={() => setConfirmDel(w.id)} color={C.accent} activeColor={C.accent} />
+                    )}
+                  </div>
                 </div>
-              </Card>
+              </GlassCard>
             )
           })
       }
 
-      {/* فورم إضافة/تعديل عامل */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'تعديل عامل' : 'عامل جديد'}>
+      {/* ════════════════════════════════════
+          Modal: إضافة / تعديل عامل
+      ════════════════════════════════════ */}
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? '✏️ تعديل عامل' : '👷 عامل جديد'}>
         <Input label="الاسم"             value={form.name}       onChange={f('name')}       required />
         <Input label="التلفون"           value={form.phone}      onChange={f('phone')}      type="tel" />
         <Input label="الأجر اليومي (₪)" value={form.daily_rate} onChange={f('daily_rate')} type="number" min="1" required />
 
-        {/* اختيار التخصصات - متعدد */}
-        <div style={{ marginBottom:14 }}>
-          <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:8 }}>التخصصات (يمكن اختيار أكثر من واحد)</label>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+        {/* اختيار التخصصات */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'block', marginBottom: 10, letterSpacing: '0.03em' }}>
+            التخصصات <span style={{ fontWeight: 400 }}>(يمكن أكثر من واحد)</span>
+          </label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
             {(specs || SPECS).map(spec => {
               const selected = form.specialization?.split(',').map(s => s.trim()).includes(spec)
               return (
                 <button key={spec} onClick={() => toggleSpec(spec)}
-                  style={{ padding:'7px 12px', borderRadius:20, border:`1.5px solid ${selected ? C.primary : C.border}`, background: selected ? `${C.primary}22` : 'transparent', color: selected ? C.primary : C.textDim, fontSize:12, fontWeight:600, cursor:'pointer', transition:'all .15s' }}>
+                  style={{
+                    padding: '7px 13px', borderRadius: 22,
+                    border: `1.5px solid ${selected ? C.primary : C.border}`,
+                    background: selected ? `${C.primary}20` : 'transparent',
+                    color: selected ? C.primary : C.textDim,
+                    fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    transition: 'all .15s',
+                    boxShadow: selected ? `0 0 12px ${C.primary}33` : 'none',
+                  }}>
                   {selected ? '✓ ' : ''}{spec}
                 </button>
               )
@@ -251,38 +360,74 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
           </div>
         </div>
 
-        {formError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {formError}</div>}
-        <Btn onClick={save} full disabled={saving}>{saving ? 'جاري الحفظ...' : editing ? 'حفظ' : 'أضف العامل'}</Btn>
+        {formError && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 14px', borderRadius: 12, marginBottom: 14,
+            background: `${C.accent}15`, border: `1px solid ${C.accent}44`,
+            fontSize: 12, color: C.accent, fontWeight: 600,
+          }}>
+            ⚠ {formError}
+          </div>
+        )}
+        <Btn onClick={save} full disabled={saving}>
+          {saving ? 'جاري الحفظ...' : editing ? '✓ حفظ التعديلات' : '+ أضف العامل'}
+        </Btn>
       </Modal>
 
-      {/* فورم بيانات الدخول */}
+      {/* ════════════════════════════════════
+          Modal: بيانات الدخول
+      ════════════════════════════════════ */}
       <Modal open={!!credWorker} onClose={() => setCredWorker(null)} title={`🔑 بيانات دخول ${credWorker?.name || ''}`}>
         {credDone ? (
-          <div style={{ textAlign:'center', padding:'20px 0' }}>
-            <div style={{ fontSize:40, marginBottom:10 }}>✅</div>
-            <div style={{ fontSize:15, fontWeight:700, color:C.success, marginBottom:6 }}>تم الحفظ!</div>
-            <div style={{ fontSize:12, color:C.textDim, marginBottom:16 }}>
-              اسم المستخدم: <b style={{ color:C.primary }}>{credForm.username}</b>
+          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: GRAD.success,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 28, margin: '0 auto 16px',
+              boxShadow: `0 8px 28px ${C.success}44`,
+            }}>✓</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم الحفظ بنجاح!</div>
+            <div style={{ fontSize: 12, color: C.textDim, marginBottom: 18 }}>
+              اسم المستخدم: <b style={{ color: C.primary }}>{credForm.username}</b>
             </div>
-            <div style={{ padding:'10px 14px', background:`${C.border}33`, borderRadius:10, fontSize:12, color:C.textDim, marginBottom:16, textAlign:'right' }}>
-              أرسل رابط البوابة وبيانات الدخول للعامل عبر واتساب:
-              <br/><b style={{ color:C.text }}>رابط: </b>
-              <span style={{ color:C.primary, fontSize:11 }}>{window.location.origin}{window.location.pathname}?portal</span>
-            </div>
+            <GlassCard style={{ marginBottom: 18, borderRadius: 14 }}>
+              <div style={{ padding: '12px 14px', fontSize: 12, color: C.textDim, textAlign: 'right', lineHeight: 1.8 }}>
+                أرسل رابط البوابة وبيانات الدخول للعامل عبر واتساب:
+                <div style={{ marginTop: 6 }}>
+                  <b style={{ color: C.text }}>الرابط: </b>
+                  <span style={{ color: C.primary, fontSize: 11, wordBreak: 'break-all' }}>
+                    {window.location.origin}{window.location.pathname}?portal
+                  </span>
+                </div>
+              </div>
+            </GlassCard>
             <Btn onClick={() => setCredWorker(null)} full>إغلاق</Btn>
           </div>
         ) : (
           <>
-            <div style={{ padding:'10px 12px', background:`${C.border}22`, borderRadius:10, marginBottom:14, fontSize:12, color:C.textDim }}>
-              العامل سيستخدم هذه البيانات لتسجيل الدخول في بوابة العمال ومشاهدة راتبه
-            </div>
+            <GlassCard style={{ marginBottom: 16, borderRadius: 14 }}>
+              <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
+                🔒 العامل سيستخدم هذه البيانات لتسجيل الدخول في بوابة العمال ومشاهدة راتبه
+              </div>
+            </GlassCard>
             <Input label="اسم المستخدم" value={credForm.username}
               onChange={v => setCredForm(p => ({ ...p, username: v }))} required />
             <Input label="كلمة المرور (4 أحرف على الأقل)" value={credForm.password}
               onChange={v => setCredForm(p => ({ ...p, password: v }))} type="password" required />
             <Input label="تأكيد كلمة المرور" value={credForm.confirm}
               onChange={v => setCredForm(p => ({ ...p, confirm: v }))} type="password" required />
-            {credError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {credError}</div>}
+            {credError && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 14px', borderRadius: 12, marginBottom: 14,
+                background: `${C.accent}15`, border: `1px solid ${C.accent}44`,
+                fontSize: 12, color: C.accent, fontWeight: 600,
+              }}>
+                ⚠ {credError}
+              </div>
+            )}
             <Btn onClick={saveCreds} full disabled={credSaving}>
               {credSaving ? 'جاري الحفظ...' : '✓ حفظ بيانات الدخول'}
             </Btn>
@@ -290,40 +435,106 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         )}
       </Modal>
 
-      <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={async () => { await deleteEmployee(confirmDel); setConfirmDel(null) }} message="حذف هالعامل؟" />
+      {/* ════════════════════════════════════
+          Confirm Delete
+      ════════════════════════════════════ */}
+      <ConfirmDialog
+        open={!!confirmDel}
+        onClose={() => setConfirmDel(null)}
+        onConfirm={async () => { await deleteEmployee(confirmDel); setConfirmDel(null) }}
+        message="حذف هذا العامل؟ لا يمكن التراجع عن هذا الإجراء."
+      />
 
-      {/* مودال منح سلفة */}
+      {/* ════════════════════════════════════
+          Modal: منح سلفة
+      ════════════════════════════════════ */}
       <Modal open={!!advWorker} onClose={() => setAdvWorker(null)} title={`💵 سلفة لـ ${advWorker?.name || ''}`}>
-        <div style={{ padding:'10px 12px', background:`${C.border}22`, borderRadius:10, marginBottom:14, fontSize:12, color:C.textDim }}>
-          السلف تُخصم تلقائياً من الراتب المستحق للعامل
-        </div>
-        <Input label="المبلغ (₪)" value={advForm.amount} onChange={v => setAdvForm(p => ({ ...p, amount: v }))} type="number" min="1" required />
-        <Input label="التاريخ"    value={advForm.date}   onChange={v => setAdvForm(p => ({ ...p, date: v }))}   type="date" required />
-        <Input label="ملاحظات"   value={advForm.notes}  onChange={v => setAdvForm(p => ({ ...p, notes: v }))} />
-        {advError && <div style={{ fontSize:12, color:C.accent, marginBottom:12 }}>⚠ {advError}</div>}
-        <Btn onClick={saveAdvance} full disabled={advSaving}>{advSaving ? 'جاري الحفظ...' : '✓ تسجيل السلفة'}</Btn>
+        <GlassCard style={{ marginBottom: 16, borderRadius: 14 }}>
+          <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
+            💡 السلف تُخصم تلقائياً من الراتب المستحق للعامل
+          </div>
+        </GlassCard>
+        <Input label="المبلغ (₪)" value={advForm.amount}
+          onChange={v => setAdvForm(p => ({ ...p, amount: v }))} type="number" min="1" required />
+        <Input label="التاريخ"    value={advForm.date}
+          onChange={v => setAdvForm(p => ({ ...p, date: v }))}   type="date" required />
+        <Input label="ملاحظات"   value={advForm.notes}
+          onChange={v => setAdvForm(p => ({ ...p, notes: v }))} />
+        {advError && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 14px', borderRadius: 12, marginBottom: 14,
+            background: `${C.accent}15`, border: `1px solid ${C.accent}44`,
+            fontSize: 12, color: C.accent, fontWeight: 600,
+          }}>
+            ⚠ {advError}
+          </div>
+        )}
+        <Btn onClick={saveAdvance} full disabled={advSaving} color={C.warning}>
+          {advSaving ? 'جاري الحفظ...' : '✓ تسجيل السلفة'}
+        </Btn>
       </Modal>
 
-      {/* مودال سجل السلف */}
-      <Modal open={!!advHistory} onClose={() => setAdvHistory(null)} title={`📋 سلف ${advHistory?.name || ''}`}>
-        {advances.filter(a => a.employee_id === advHistory?.id).length === 0
-          ? <div style={{ textAlign:'center', padding:'30px 0', color:C.textDim, fontSize:13 }}>لا يوجد سلف مسجلة</div>
-          : advances.filter(a => a.employee_id === advHistory?.id)
+      {/* ════════════════════════════════════
+          Modal: سجل السلف
+      ════════════════════════════════════ */}
+      <Modal open={!!advHistory} onClose={() => setAdvHistory(null)} title={`📋 سجل سلف ${advHistory?.name || ''}`}>
+        {advances.filter(a => a.employee_id === advHistory?.id).length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '36px 0' }}>
+            <div style={{ fontSize: 40, marginBottom: 10, opacity: 0.4 }}>📋</div>
+            <div style={{ fontSize: 13, color: C.textDim }}>لا يوجد سلف مسجلة لهذا العامل</div>
+          </div>
+        ) : (
+          <>
+            {/* total */}
+            <GlassCard style={{ marginBottom: 14, borderRadius: 14 }}>
+              <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: C.textDim, fontWeight: 700 }}>إجمالي السلف</span>
+                <span style={{ fontSize: 16, fontWeight: 900, color: C.warning, fontFamily: 'monospace' }}>
+                  {fmt(advances.filter(a => a.employee_id === advHistory?.id).reduce((s, a) => s + a.amount, 0))}₪
+                </span>
+              </div>
+            </GlassCard>
+            {advances
+              .filter(a => a.employee_id === advHistory?.id)
               .sort((a, b) => b.date.localeCompare(a.date))
               .map(a => (
-                <div key={a.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 12px', background:C.card, borderRadius:10, border:`1px solid ${C.border}`, marginBottom:8 }}>
-                  <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:C.warning, fontFamily:'monospace' }}>{fmt(a.amount)}₪</div>
-                    <div style={{ fontSize:11, color:C.textDim }}>{fmtDate(a.date)}{a.notes ? ` — ${a.notes}` : ''}</div>
+                <GlassCard key={a.id} style={{ marginBottom: 8, borderRadius: 14 }}>
+                  <div style={{ padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: C.warning, fontFamily: 'monospace' }}>
+                        {fmt(a.amount)}₪
+                      </div>
+                      <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
+                        {fmtDate(a.date)}{a.notes ? ` — ${a.notes}` : ''}
+                      </div>
+                    </div>
+                    {permissions?.canDelete !== false && (
+                      <button
+                        onClick={async () => { await deleteAdvance(a.id) }}
+                        style={{
+                          width: 32, height: 32, borderRadius: 10,
+                          border: `1px solid ${C.accent}44`,
+                          background: `${C.accent}12`,
+                          color: C.accent, fontSize: 14, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all .2s',
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    )}
                   </div>
-                  {permissions?.canDelete !== false && (
-                    <button onClick={async () => { await deleteAdvance(a.id) }} style={{ background:'none', border:'none', fontSize:14, cursor:'pointer' }}>🗑️</button>
-                  )}
-                </div>
+                </GlassCard>
               ))
-        }
+            }
+          </>
+        )}
       </Modal>
 
+      {/* ════════════════════════════════════
+          Worker Stats Panel
+      ════════════════════════════════════ */}
       <WorkerStatsPanel
         open={!!statsWorker}
         onClose={() => setStatsWorker(null)}

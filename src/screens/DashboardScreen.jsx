@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
-import { C, EXP_CATS, VAT, OSEK_PATUR_THRESHOLD } from '../constants/index.js'
+import { C, GRAD, EXP_CATS, VAT, OSEK_PATUR_THRESHOLD } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, calcVATNet, calcBituachLeumi, calcBituachLeumiAnnual, estimateIncomeTax, pensionTaxSaving, isPaymentOverdue } from '../lib/helpers.js'
-import { StatCard, Card } from '../components/index.jsx'
+import { StatCard, GlassCard, AnimatedNumber } from '../components/index.jsx'
 
 function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, onDelete, hint }) {
   const [open, setOpen] = useState(false)

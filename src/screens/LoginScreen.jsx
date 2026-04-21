@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { C } from '../constants/index.js'
+import { C, GRAD } from '../constants/index.js'
 import { Btn, Input } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { supabase } from '../lib/supabase.js'
@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase.js'
 export default function LoginScreen() {
   const { signIn, signUp, signInWithPasskey, isPasskeySupported } = useAuth()
 
-  const [mode,     setMode]     = useState('login')   // 'login' | 'register' | 'forgot'
+  const [mode,     setMode]     = useState('login')
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [name,     setName]     = useState('')
@@ -16,7 +16,6 @@ export default function LoginScreen() {
   const [info,     setInfo]     = useState('')
 
   const passkeyOk = isPasskeySupported()
-
   function clearMsg() { setError(''); setInfo('') }
 
   async function handleForgotPassword() {
@@ -24,30 +23,22 @@ export default function LoginScreen() {
     if (!email.trim()) return setError('أدخل بريدك الإلكتروني أولاً')
     setLoading(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: 'https://app.linko.services',
-      })
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: 'https://app.linko.services' })
       if (error) throw error
       setInfo('تم إرسال رابط تغيير كلمة المرور لبريدك ✓')
       setMode('login')
-    } catch (e) {
-      setError('تأكد من البريد الإلكتروني وحاول مجدداً')
-    } finally {
-      setLoading(false)
-    }
+    } catch { setError('تأكد من البريد الإلكتروني وحاول مجدداً') }
+    finally { setLoading(false) }
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     clearMsg()
-
-    // ─── Validation ───
-    if (!email.trim())    return setError('البريد الإلكتروني مطلوب')
+    if (!email.trim())        return setError('البريد الإلكتروني مطلوب')
     if (!email.includes('@')) return setError('البريد الإلكتروني غير صحيح')
-    if (!password)        return setError('كلمة المرور مطلوبة')
-    if (password.length < 6) return setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
+    if (!password)            return setError('كلمة المرور مطلوبة')
+    if (password.length < 6)  return setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
     if (mode === 'register' && !name.trim()) return setError('الاسم الكامل مطلوب')
-
     setLoading(true)
     try {
       if (mode === 'login') {
@@ -62,114 +53,98 @@ export default function LoginScreen() {
       else if (msg.includes('Email already registered')) setError('البريد مسجّل مسبقاً')
       else if (msg.includes('Email not confirmed')) setError('يجب تأكيد البريد الإلكتروني أولاً')
       else setError(msg || 'حدث خطأ، حاول مجدداً')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   async function handlePasskey() {
     clearMsg()
     if (!email.trim()) return setError('أدخل البريد الإلكتروني أولاً')
     setLoading(true)
-    try {
-      await signInWithPasskey(email.trim())
-    } catch (err) {
-      setError(err.message || 'لم تنجح عملية البصمة')
-    } finally {
-      setLoading(false)
-    }
+    try { await signInWithPasskey(email.trim()) }
+    catch (err) { setError(err.message || 'لم تنجح عملية البصمة') }
+    finally { setLoading(false) }
   }
 
+  const TABS = [['login','دخول'],['register','حساب جديد'],['forgot','نسيت كلمة المرور']]
+
   return (
-    <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24 }}>
+    <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, position:'relative', overflow:'hidden' }}>
+
+      {/* Mesh background blobs */}
+      <div style={{ position:'absolute', top:'-20%', right:'-20%', width:400, height:400, borderRadius:'50%', background:`radial-gradient(circle, #00DDB322 0%, transparent 70%)`, pointerEvents:'none' }} />
+      <div style={{ position:'absolute', bottom:'-15%', left:'-15%', width:350, height:350, borderRadius:'50%', background:`radial-gradient(circle, #6366F122 0%, transparent 70%)`, pointerEvents:'none' }} />
 
       {/* Logo */}
-      <div style={{ textAlign:'center', marginBottom:32 }}>
-        <div style={{ fontSize:64, marginBottom:12 }}>🏗️</div>
-        <div style={{ fontSize:26, fontWeight:800, color:C.primary }}>Contractor Pro</div>
-        <div style={{ fontSize:13, color:C.textDim, marginTop:6 }}>إدارة مشاريع المقاولات</div>
+      <div className="fade-up" style={{ textAlign:'center', marginBottom:36 }}>
+        <div style={{ width:88, height:88, borderRadius:28, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:44, margin:'0 auto 16px', boxShadow:'0 16px 48px #00DDB344', animation:'float 3s ease-in-out infinite' }}>🏗️</div>
+        <div style={{ fontSize:28, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>Contractor Pro</div>
+        <div style={{ fontSize:13, color:C.textDim, marginTop:6, letterSpacing:'0.04em' }}>إدارة مشاريع المقاولات</div>
       </div>
 
       {/* Card */}
-      <div style={{ width:'100%', maxWidth:400, background:C.surface, borderRadius:24, border:`1px solid ${C.border}`, padding:28 }}>
+      <div className="fade-up" style={{ width:'100%', maxWidth:400, background:'rgba(13,17,23,0.9)', backdropFilter:'blur(24px)', borderRadius:28, border:`1px solid ${C.borderMid}`, padding:28, boxShadow:'0 24px 80px rgba(0,0,0,0.5)' }}>
 
         {/* Tabs */}
-        <div style={{ display:'flex', marginBottom:24, background:C.bg, borderRadius:14, padding:4 }}>
-          {[['login','تسجيل دخول'],['register','حساب جديد'],['forgot','نسيت كلمة المرور']].map(([m, label]) => (
-            <button
-              key={m} onClick={() => { setMode(m); clearMsg() }}
-              style={{ flex:1, padding:'10px', borderRadius:10, border:'none', cursor:'pointer', fontWeight:700, fontSize:13, transition:'all .2s',
-                background: mode === m ? C.primary : 'transparent',
-                color:      mode === m ? C.bg      : C.textDim,
-              }}
-            >
+        <div style={{ display:'flex', gap:4, marginBottom:24, background:'rgba(255,255,255,0.04)', borderRadius:16, padding:4 }}>
+          {TABS.map(([m, label]) => (
+            <button key={m} onClick={() => { setMode(m); clearMsg() }}
+              style={{ flex:1, padding:'10px 4px', borderRadius:12, border:'none', cursor:'pointer', fontWeight:700, fontSize:12, transition:'all .2s',
+                background: mode === m ? GRAD.brand : 'transparent',
+                color: mode === m ? '#000' : C.textDim,
+                boxShadow: mode === m ? '0 4px 14px #00DDB344' : 'none',
+              }}>
               {label}
             </button>
           ))}
         </div>
 
-        {/* شاشة نسيت كلمة المرور */}
         {mode === 'forgot' && (
           <div>
             <Input label="البريد الإلكتروني" value={email} onChange={setEmail} type="email" placeholder="example@email.com" required />
-            {error && <div style={{ padding:'10px 14px', background:`${C.accent}18`, border:`1px solid ${C.accent}44`, borderRadius:10, fontSize:12, color:C.accent, marginBottom:14 }}>⚠ {error}</div>}
-            {info  && <div style={{ padding:'10px 14px', background:`${C.success}18`, border:`1px solid ${C.success}44`, borderRadius:10, fontSize:12, color:C.success, marginBottom:14 }}>✓ {info}</div>}
+            {error && <Alert type="error">{error}</Alert>}
+            {info  && <Alert type="success">{info}</Alert>}
             <Btn onClick={handleForgotPassword} full disabled={loading}>{loading ? '...' : 'إرسال رابط التغيير'}</Btn>
           </div>
         )}
 
         <form onSubmit={handleSubmit} style={{ display: mode === 'forgot' ? 'none' : 'block' }}>
-          {mode === 'register' && (
-            <Input label="الاسم الكامل" value={name} onChange={setName} placeholder="محمد علي" required />
-          )}
-          <Input
-            label="البريد الإلكتروني" value={email} onChange={setEmail}
-            type="email" placeholder="example@email.com" required
-          />
-          <Input
-            label="كلمة المرور" value={password} onChange={setPassword}
-            type="password" placeholder="••••••••" required
-            error={password.length > 0 && password.length < 6 ? 'أقل من 6 أحرف' : ''}
-          />
+          {mode === 'register' && <Input label="الاسم الكامل" value={name} onChange={setName} placeholder="محمد علي" required />}
+          <Input label="البريد الإلكتروني" value={email} onChange={setEmail} type="email" placeholder="example@email.com" required />
+          <Input label="كلمة المرور" value={password} onChange={setPassword} type="password" placeholder="••••••••" required
+            error={password.length > 0 && password.length < 6 ? 'أقل من 6 أحرف' : ''} />
 
-          {/* رسائل */}
-          {error && (
-            <div style={{ padding:'10px 14px', background:`${C.accent}18`, border:`1px solid ${C.accent}44`, borderRadius:10, fontSize:12, color:C.accent, marginBottom:14 }}>
-              ⚠ {error}
-            </div>
-          )}
-          {info && (
-            <div style={{ padding:'10px 14px', background:`${C.success}18`, border:`1px solid ${C.success}44`, borderRadius:10, fontSize:12, color:C.success, marginBottom:14 }}>
-              ✓ {info}
-            </div>
-          )}
+          {error && <Alert type="error">{error}</Alert>}
+          {info  && <Alert type="success">{info}</Alert>}
 
           <Btn full disabled={loading}>
-            {loading ? '...' : mode === 'login' ? 'دخول' : 'إنشاء حساب'}
+            {loading ? '⏳ جاري التحميل...' : mode === 'login' ? '→ دخول' : '✓ إنشاء حساب'}
           </Btn>
         </form>
 
-        {/* الدخول بالبصمة */}
         {mode === 'login' && passkeyOk && (
           <div style={{ marginTop:16 }}>
-            <div style={{ textAlign:'center', fontSize:11, color:C.textMuted, marginBottom:10 }}>أو</div>
-            <button
-              onClick={handlePasskey}
-              disabled={loading}
-              style={{
-                width:'100%', padding:'13px', borderRadius:14,
-                border:`1.5px solid ${C.border}`, background:'transparent',
-                color:C.text, fontSize:14, fontWeight:700, cursor:'pointer',
-                display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-                opacity: loading ? 0.6 : 1,
-              }}
-            >
+            <div style={{ textAlign:'center', fontSize:11, color:C.textDim, marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ flex:1, height:1, background:C.border }} />
+              <span>أو</span>
+              <div style={{ flex:1, height:1, background:C.border }} />
+            </div>
+            <button onClick={handlePasskey} disabled={loading}
+              style={{ width:'100%', padding:'13px', borderRadius:14, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.04)', color:C.text, fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'all .2s', opacity: loading ? 0.5 : 1 }}>
               <span style={{ fontSize:22 }}>👆</span>
               دخول بالبصمة / Face ID
             </button>
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function Alert({ type, children }) {
+  const isErr = type === 'error'
+  return (
+    <div style={{ padding:'10px 14px', background:isErr ? '#F43F5E18' : '#22C55E18', border:`1px solid ${isErr ? '#F43F5E44' : '#22C55E44'}`, borderRadius:12, fontSize:12, color: isErr ? '#F43F5E' : '#22C55E', marginBottom:14, fontWeight:600 }}>
+      {isErr ? '⚠ ' : '✓ '}{children}
     </div>
   )
 }
