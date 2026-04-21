@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase.js'
 const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو',
                    'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
 
-const DAY_TYPES = ['كامل', 'نص يوم', 'ساعات']
+const DAY_TYPES = ['كامل', 'نص يوم', 'ساعات', 'مبلغ مسكر']
 
 const EXP_STATUS_BADGE = {
   approved: { label: 'موافق',  color: C.success },
@@ -174,7 +174,7 @@ function LoginScreen({ onLogin, error, loading }) {
 
 // ─── فورم إرسال يوم عمل ──────────────────────────────────────────────────────
 function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, setSubmitErr }) {
-  const [form, setForm]         = useState({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8' })
+  const [form, setForm]         = useState({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8', customAmount: '' })
   const [done, setDone]         = useState(false)
   const [amount, setAmount]     = useState(0)
   const [projName, setProjName] = useState('')
@@ -186,6 +186,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
   }
 
   function preview() {
+    if (form.dayType === 'مبلغ مسكر') return parseFloat(form.customAmount) || 0
     const h = parseFloat(form.hours) || 8
     if (form.dayType === 'كامل')    return dailyRate
     if (form.dayType === 'نص يوم') return dailyRate * 0.5
@@ -194,9 +195,17 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
 
   async function handleSubmit() {
     if (!form.projectId) return setSubmitErr('اختر المشروع')
+    if (form.dayType === 'مبلغ مسكر' && (!form.customAmount || parseFloat(form.customAmount) <= 0))
+      return setSubmitErr('أدخل المبلغ المسكر')
     setSubmitErr('')
     try {
-      const res  = await onSubmit({ projectId: form.projectId, date: form.date, dayType: form.dayType, hours: form.hours })
+      const res  = await onSubmit({
+        projectId:    form.projectId,
+        date:         form.date,
+        dayType:      form.dayType,
+        hours:        form.hours,
+        customAmount: form.dayType === 'مبلغ مسكر' ? form.customAmount : null,
+      })
       const proj = projects.find(p => p.id === form.projectId)
       setAmount(res.amount)
       setProjName(proj?.name || '')
@@ -204,6 +213,9 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
       setDone(true)
     } catch { /* error shown via submitErr */ }
   }
+
+  const canSubmit = !submitting && !!form.projectId &&
+    (form.dayType !== 'مبلغ مسكر' || (!!form.customAmount && parseFloat(form.customAmount) > 0))
 
   if (done) {
     return (
@@ -216,7 +228,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
           <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4 }}>🔔 وصل إشعار للمشرف</div>
           <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب في التطبيق ويوافق عليه</div>
         </div>
-        <button onClick={() => { setDone(false); setForm({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8' }) }}
+        <button onClick={() => { setDone(false); setForm({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8', customAmount: '' }) }}
           style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           + أضف يوم آخر
         </button>
@@ -276,11 +288,22 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
             </div>
           )}
 
+          {form.dayType === 'مبلغ مسكر' && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المبلغ المسكر (₪) *</label>
+              <input type="number" value={form.customAmount} min="1" step="1" placeholder="0"
+                onChange={e => setForm(p => ({ ...p, customAmount: e.target.value }))}
+                style={{ width: '100%', padding: '13px 14px', borderRadius: 12, border: `1.5px solid ${C.primary}77`, background: C.surface, color: C.text, fontSize: 20, fontWeight: 800, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }} />
+            </div>
+          )}
+
           {/* معاينة المبلغ */}
-          <div style={{ padding: '12px 16px', background: `${C.primary}15`, borderRadius: 12, marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13, color: C.textDim }}>المبلغ المحسوب</span>
-            <span style={{ fontSize: 20, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>{fmt(preview())}₪</span>
-          </div>
+          {form.dayType !== 'مبلغ مسكر' && (
+            <div style={{ padding: '12px 16px', background: `${C.primary}15`, borderRadius: 12, marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: C.textDim }}>المبلغ المحسوب</span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>{fmt(preview())}₪</span>
+            </div>
+          )}
 
           {submitErr && (
             <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 12, fontSize: 13, color: C.accent }}>
@@ -288,8 +311,8 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
             </div>
           )}
 
-          <button onClick={handleSubmit} disabled={submitting || !form.projectId}
-            style={{ width: '100%', padding: 14, borderRadius: 14, background: submitting || !form.projectId ? C.border : C.primary, border: 'none', color: '#000', fontSize: 15, fontWeight: 800, cursor: submitting || !form.projectId ? 'default' : 'pointer' }}>
+          <button onClick={handleSubmit} disabled={!canSubmit}
+            style={{ width: '100%', padding: 14, borderRadius: 14, background: !canSubmit ? C.border : C.primary, border: 'none', color: !canSubmit ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: !canSubmit ? 'default' : 'pointer' }}>
             {submitting ? 'جاري الإرسال...' : '📤 أرسل اليوم للمشرف'}
           </button>
         </>
@@ -631,9 +654,9 @@ function ChangePasswordForm({ worker, onChangePassword }) {
 
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 // ─── فورم طلب راتب ───────────────────────────────────────────────────────────
-function RequestPaymentForm({ worker, projects, onRequest }) {
+function RequestPaymentForm({ worker, onRequest }) {
   const PAY_M = ['كاش', 'تحويل بنكي', 'شيك']
-  const [form,    setForm]    = useState({ amount: '', projectId: '', method: 'كاش', notes: '' })
+  const [form,    setForm]    = useState({ amount: '', method: 'كاش', notes: '' })
   const [saving,  setSaving]  = useState(false)
   const [err,     setErr]     = useState('')
   const [done,    setDone]    = useState(false)
@@ -643,7 +666,7 @@ function RequestPaymentForm({ worker, projects, onRequest }) {
     if (!form.amount || parseFloat(form.amount) <= 0) return setErr('أدخل المبلغ')
     setErr(''); setSaving(true)
     try {
-      await onRequest({ amount: form.amount, projectId: form.projectId || null, method: form.method, notes: form.notes })
+      await onRequest({ amount: form.amount, projectId: null, method: form.method, notes: form.notes })
       setSentAmt(parseFloat(form.amount)); setDone(true)
     } catch (e) { setErr(e.message) } finally { setSaving(false) }
   }
@@ -657,7 +680,7 @@ function RequestPaymentForm({ worker, projects, onRequest }) {
         <div style={{ fontSize:13, fontWeight:700, color:C.primary, marginBottom:4 }}>🔔 وصل إشعار للمشرف</div>
         <div style={{ fontSize:12, color:C.textDim }}>المشرف رح يراجع الطلب ويحدد من أي مشروع</div>
       </div>
-      <button onClick={() => { setDone(false); setForm({ amount:'', projectId:'', method:'كاش', notes:'' }) }}
+      <button onClick={() => { setDone(false); setForm({ amount:'', method:'كاش', notes:'' }) }}
         style={{ width:'100%', padding:'12px 0', borderRadius:12, background:C.primary, border:'none', color:'#000', fontSize:14, fontWeight:700, cursor:'pointer' }}>
         + طلب آخر
       </button>
@@ -678,21 +701,6 @@ function RequestPaymentForm({ worker, projects, onRequest }) {
           onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
           style={{ width:'100%', padding:'13px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:18, fontWeight:800, boxSizing:'border-box', outline:'none', fontFamily:'monospace' }} />
       </div>
-
-      {/* المشروع (اختياري) */}
-      {projects.length > 0 && (
-        <div style={{ marginBottom:14 }}>
-          <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>🏗️ من أي مشروع؟ (اختياري)</label>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-            {projects.map(p => (
-              <button key={p.id} onClick={() => setForm(prev => ({ ...prev, projectId: prev.projectId === p.id ? '' : p.id }))}
-                style={{ padding:'8px 12px', borderRadius:10, border:`1.5px solid ${form.projectId === p.id ? C.primary : C.border}`, background:form.projectId === p.id ? `${C.primary}22` : C.bg, color:form.projectId === p.id ? C.primary : C.textDim, fontSize:12, fontWeight:600, cursor:'pointer' }}>
-                {p.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* طريقة الدفع */}
       <div style={{ marginBottom:14 }}>
@@ -889,7 +897,6 @@ export default function WorkerPortalScreen() {
         {tab === 'salary' && (
           <RequestPaymentForm
             worker={worker}
-            projects={projects}
             onRequest={requestPayment}
           />
         )}
