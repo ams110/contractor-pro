@@ -14,29 +14,29 @@ ALTER TABLE advances ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "users_own_advances" ON advances
   FOR ALL USING (auth.uid() = user_id);
 
--- RPC: يتحقق من رصيد السلف لعامل معين (مشابه لاستعلام العامل في بوابة العمال)
+-- RPC: يتحقق من رصيد السلف لعامل معين
 CREATE OR REPLACE FUNCTION get_worker_advances(emp_id UUID)
 RETURNS JSONB
-LANGUAGE plpgsql
+LANGUAGE sql
 SECURITY DEFINER
 AS $$
-DECLARE
-  result JSONB;
-BEGIN
   SELECT COALESCE(
-    jsonb_agg(
-      jsonb_build_object(
-        'id',         a.id,
-        'amount',     a.amount,
-        'date',       a.date,
-        'notes',      a.notes,
-        'created_at', a.created_at
-      ) ORDER BY a.date DESC
-    ), '[]'::JSONB
-  ) INTO result
-  FROM advances a
-  WHERE a.employee_id = emp_id;
-
-  RETURN result;
-END;
+    (
+      SELECT jsonb_agg(
+        jsonb_build_object(
+          'id',         a.id,
+          'amount',     a.amount,
+          'date',       a.date,
+          'notes',      a.notes,
+          'created_at', a.created_at
+        )
+      )
+      FROM (
+        SELECT * FROM advances
+        WHERE employee_id = emp_id
+        ORDER BY date DESC
+      ) a
+    ),
+    '[]'::JSONB
+  )
 $$;
