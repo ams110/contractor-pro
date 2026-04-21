@@ -196,5 +196,9 @@ export function validateWorkDay(form) {
     if (!h || h <= 0)    return 'عدد الساعات يجب أن يكون أكبر من صفر'
     if (h > 24)          return 'عدد الساعات لا يمكن أن يتجاوز 24'
   }
+  if (form.day_type === 'مبلغ مسكر') {
+    const a = parseFloat(form.customAmount)
+    if (!a || a <= 0)    return 'أدخل المبلغ المسكر'
+  }
   return null
 }

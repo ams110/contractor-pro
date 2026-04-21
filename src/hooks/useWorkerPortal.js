@@ -87,20 +87,19 @@ export function useWorkerPortal() {
     setProjects([])
   }
 
-  async function submitWorkDay({ projectId, date, dayType, hours, customAmount }) {
+  async function submitWorkDay({ projectId, date, dayType, hours }) {
     const session = loadSession()
     if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
     setSubmitting(true)
     setSubmitErr('')
     try {
       const { data, error } = await supabase.rpc('worker_submit_day', {
-        p_emp_id:        session.id,
-        p_token:         session.token,
-        p_project_id:    projectId,
-        p_date:          date,
-        p_day_type:      dayType,
-        p_hours:         parseFloat(hours) || 8,
-        p_custom_amount: customAmount ? parseFloat(customAmount) : null,
+        p_emp_id:     session.id,
+        p_token:      session.token,
+        p_project_id: projectId,
+        p_date:       date,
+        p_day_type:   dayType,
+        p_hours:      parseFloat(hours) || 8,
       })
       if (error) throw new Error(error.message)
       if (data?.error) throw new Error(data.error)

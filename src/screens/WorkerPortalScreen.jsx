@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase.js'
 const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو',
                    'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
 
-const DAY_TYPES = ['كامل', 'نص يوم', 'ساعات', 'مبلغ مسكر']
+const DAY_TYPES = ['كامل', 'نص يوم', 'ساعات']
 
 const EXP_STATUS_BADGE = {
   approved: { label: 'موافق',  color: C.success },
@@ -174,7 +174,7 @@ function LoginScreen({ onLogin, error, loading }) {
 
 // ─── فورم إرسال يوم عمل ──────────────────────────────────────────────────────
 function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, setSubmitErr }) {
-  const [form, setForm]         = useState({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8', customAmount: '' })
+  const [form, setForm]         = useState({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8' })
   const [done, setDone]         = useState(false)
   const [amount, setAmount]     = useState(0)
   const [projName, setProjName] = useState('')
@@ -186,7 +186,6 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
   }
 
   function preview() {
-    if (form.dayType === 'مبلغ مسكر') return parseFloat(form.customAmount) || 0
     const h = parseFloat(form.hours) || 8
     if (form.dayType === 'كامل')    return dailyRate
     if (form.dayType === 'نص يوم') return dailyRate * 0.5
@@ -195,17 +194,9 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
 
   async function handleSubmit() {
     if (!form.projectId) return setSubmitErr('اختر المشروع')
-    if (form.dayType === 'مبلغ مسكر' && (!form.customAmount || parseFloat(form.customAmount) <= 0))
-      return setSubmitErr('أدخل المبلغ المسكر')
     setSubmitErr('')
     try {
-      const res  = await onSubmit({
-        projectId:    form.projectId,
-        date:         form.date,
-        dayType:      form.dayType,
-        hours:        form.hours,
-        customAmount: form.dayType === 'مبلغ مسكر' ? form.customAmount : null,
-      })
+      const res  = await onSubmit({ projectId: form.projectId, date: form.date, dayType: form.dayType, hours: form.hours })
       const proj = projects.find(p => p.id === form.projectId)
       setAmount(res.amount)
       setProjName(proj?.name || '')
@@ -214,8 +205,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
     } catch { /* error shown via submitErr */ }
   }
 
-  const canSubmit = !submitting && !!form.projectId &&
-    (form.dayType !== 'مبلغ مسكر' || (!!form.customAmount && parseFloat(form.customAmount) > 0))
+  const canSubmit = !submitting && !!form.projectId
 
   if (done) {
     return (
@@ -228,7 +218,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
           <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4 }}>🔔 وصل إشعار للمشرف</div>
           <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب في التطبيق ويوافق عليه</div>
         </div>
-        <button onClick={() => { setDone(false); setForm({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8', customAmount: '' }) }}
+        <button onClick={() => { setDone(false); setForm({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8' }) }}
           style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           + أضف يوم آخر
         </button>
@@ -288,22 +278,11 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
             </div>
           )}
 
-          {form.dayType === 'مبلغ مسكر' && (
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المبلغ المسكر (₪) *</label>
-              <input type="number" value={form.customAmount} min="1" step="1" placeholder="0"
-                onChange={e => setForm(p => ({ ...p, customAmount: e.target.value }))}
-                style={{ width: '100%', padding: '13px 14px', borderRadius: 12, border: `1.5px solid ${C.primary}77`, background: C.surface, color: C.text, fontSize: 20, fontWeight: 800, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }} />
-            </div>
-          )}
-
           {/* معاينة المبلغ */}
-          {form.dayType !== 'مبلغ مسكر' && (
-            <div style={{ padding: '12px 16px', background: `${C.primary}15`, borderRadius: 12, marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, color: C.textDim }}>المبلغ المحسوب</span>
-              <span style={{ fontSize: 20, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>{fmt(preview())}₪</span>
-            </div>
-          )}
+          <div style={{ padding: '12px 16px', background: `${C.primary}15`, borderRadius: 12, marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: C.textDim }}>المبلغ المحسوب</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>{fmt(preview())}₪</span>
+          </div>
 
           {submitErr && (
             <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 12, fontSize: 13, color: C.accent }}>
@@ -311,8 +290,8 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
             </div>
           )}
 
-          <button onClick={handleSubmit} disabled={!canSubmit}
-            style={{ width: '100%', padding: 14, borderRadius: 14, background: !canSubmit ? C.border : C.primary, border: 'none', color: !canSubmit ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: !canSubmit ? 'default' : 'pointer' }}>
+          <button onClick={handleSubmit} disabled={submitting || !form.projectId}
+            style={{ width: '100%', padding: 14, borderRadius: 14, background: submitting || !form.projectId ? C.border : C.primary, border: 'none', color: submitting || !form.projectId ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: submitting || !form.projectId ? 'default' : 'pointer' }}>
             {submitting ? 'جاري الإرسال...' : '📤 أرسل اليوم للمشرف'}
           </button>
         </>
@@ -385,6 +364,8 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
   async function handleSubmit() {
     if (!form.category)  return setSubmitErr('اختر التصنيف')
     if (!form.amount || parseFloat(form.amount) <= 0) return setSubmitErr('أدخل المبلغ')
+    if (!form.projectId) return setSubmitErr('اختر المشروع')
+    if (!form.vendor?.trim()) return setSubmitErr('أدخل اسم المحل أو المزود')
     if (!receiptFile)    return setSubmitErr('يجب رفع صورة الفاتورة أو ملف PDF')
     setSubmitErr('')
     setUploading(true)
@@ -423,7 +404,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
     )
   }
 
-  const canSubmit = !submitting && !uploading && form.category && form.amount && receiptFile
+  const canSubmit = !submitting && !uploading && form.category && form.amount && form.projectId && form.vendor?.trim() && receiptFile
 
   return (
     <div style={{ paddingBottom: 16 }}>
@@ -455,10 +436,10 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
         </div>
       </div>
 
-      {/* المشروع (اختياري) */}
+      {/* المشروع - إجباري */}
       {projects.length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المشروع (اختياري)</label>
+          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المشروع *</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {projects.map(p => (
               <button key={p.id} onClick={() => setForm(prev => ({ ...prev, projectId: prev.projectId === p.id ? '' : p.id }))}
@@ -470,9 +451,9 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
         </div>
       )}
 
-      {/* المحل / ملاحظة */}
+      {/* المحل / المزود - إجباري */}
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المحل / ملاحظة (اختياري)</label>
+        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المحل / المزود *</label>
         <input value={form.vendor} onChange={e => setForm(p => ({ ...p, vendor: e.target.value }))}
           placeholder="مثال: مستودع الجابر"
           style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
@@ -664,6 +645,7 @@ function RequestPaymentForm({ worker, onRequest }) {
 
   async function handleSubmit() {
     if (!form.amount || parseFloat(form.amount) <= 0) return setErr('أدخل المبلغ')
+    if (!form.notes?.trim()) return setErr('أدخل ملاحظة (مثال: راتب شهر أبريل)')
     setErr(''); setSaving(true)
     try {
       await onRequest({ amount: form.amount, projectId: null, method: form.method, notes: form.notes })
@@ -717,16 +699,16 @@ function RequestPaymentForm({ worker, onRequest }) {
 
       {/* ملاحظة */}
       <div style={{ marginBottom:16 }}>
-        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>ملاحظة (اختياري)</label>
+        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>ملاحظة * <span style={{ fontWeight:400, color:C.textDim, fontSize:10 }}>(مثال: راتب شهر أبريل)</span></label>
         <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-          placeholder="مثال: راتب شهر أبريل"
+          placeholder="راتب شهر أبريل"
           style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:14, boxSizing:'border-box', outline:'none' }} />
       </div>
 
       {err && <div style={{ padding:'10px 14px', background:`${C.accent}18`, borderRadius:10, marginBottom:12, fontSize:13, color:C.accent }}>⚠ {err}</div>}
 
-      <button onClick={handleSubmit} disabled={saving || !form.amount}
-        style={{ width:'100%', padding:14, borderRadius:14, background:saving || !form.amount ? C.border : GRAD.success, border:'none', color:saving || !form.amount ? C.textDim : '#000', fontSize:15, fontWeight:800, cursor:saving || !form.amount ? 'default' : 'pointer', boxShadow:form.amount ? `0 4px 20px ${C.success}44` : 'none' }}>
+      <button onClick={handleSubmit} disabled={saving || !form.amount || !form.notes?.trim()}
+        style={{ width:'100%', padding:14, borderRadius:14, background:saving || !form.amount || !form.notes?.trim() ? C.border : GRAD.success, border:'none', color:saving || !form.amount || !form.notes?.trim() ? C.textDim : '#000', fontSize:15, fontWeight:800, cursor:saving || !form.amount || !form.notes?.trim() ? 'default' : 'pointer', boxShadow:form.amount && form.notes ? `0 4px 20px ${C.success}44` : 'none' }}>
         {saving ? 'جاري الإرسال...' : '💰 أرسل طلب الراتب للمشرف'}
       </button>
     </div>
