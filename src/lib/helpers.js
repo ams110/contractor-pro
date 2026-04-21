@@ -72,9 +72,9 @@ export function validateExpense(form) {
  * التحقق من صحة نموذج الدفعة
  */
 export function validatePayment(form) {
-  if (!form.employeeId)                 return 'اختر العامل'
-  if (!form.amount)                     return 'المبلغ مطلوب'
-  if (parseFloat(form.amount) <= 0)     return 'المبلغ يجب أن يكون أكبر من صفر'
+  if (!form.employee_id)                 return 'اختر العامل'
+  if (!form.amount)                      return 'المبلغ مطلوب'
+  if (parseFloat(form.amount) <= 0)      return 'المبلغ يجب أن يكون أكبر من صفر'
   return null
 }
 
