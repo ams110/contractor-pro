@@ -254,11 +254,17 @@ export function useClientReceipts(userId) {
     await refetch()
   }
 
+  async function updateReceipt(id, form) {
+    const { error } = await supabase.from('client_receipts').update(form).eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
   async function deleteReceipt(id) {
     const { error } = await supabase.from('client_receipts').delete().eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
   }
 
-  return { clientReceipts: data, loading, error, addReceipt, deleteReceipt, refetch }
+  return { clientReceipts: data, loading, error, addReceipt, updateReceipt, deleteReceipt, refetch }
 }

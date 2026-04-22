@@ -74,10 +74,11 @@ function MarginPill({ margin }) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────── */
-export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, employees, addProject, updateProject, deleteProject, addReceipt, deleteReceipt, userId, permissions }) {
+export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, employees, addProject, updateProject, deleteProject, addReceipt, updateReceipt, deleteReceipt, userId, permissions }) {
   const [showForm,        setShowForm]        = useState(false)
   const [showReceiptForm, setShowReceiptForm] = useState(false)
   const [editing,         setEditing]         = useState(null)
+  const [editingReceiptId, setEditingReceiptId] = useState(null)
   const [filter,          setFilter]          = useState('الكل')
   const [detail,          setDetail]          = useState(null)
   const [confirmDel,      setConfirmDel]      = useState(null)
@@ -109,6 +110,14 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
 
   function openReceiptForm() {
     setReceiptForm(emptyReceipt)
+    setEditingReceiptId(null)
+    setReceiptError('')
+    setShowReceiptForm(true)
+  }
+
+  function openEditReceipt(r) {
+    setReceiptForm({ amount: String(r.amount), date: r.date, notes: r.notes || '', payment_method: r.payment_method || 'كاش' })
+    setEditingReceiptId(r.id)
     setReceiptError('')
     setShowReceiptForm(true)
   }
@@ -138,8 +147,13 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
       if (receiptFile && receiptForm.payment_method === 'تحويل بنكي') {
         receipt_url = await uploadReceipt(userId, receiptFile)
       }
-      await addReceipt({ ...receiptForm, amount: parseFloat(receiptForm.amount), project_id: detail, receipt_url })
-      setShowReceiptForm(false); setReceiptFile(null); setReceiptPreview('')
+      const payload = { ...receiptForm, amount: parseFloat(receiptForm.amount) }
+      if (editingReceiptId) {
+        await updateReceipt(editingReceiptId, payload)
+      } else {
+        await addReceipt({ ...payload, project_id: detail, receipt_url })
+      }
+      setShowReceiptForm(false); setReceiptFile(null); setReceiptPreview(''); setEditingReceiptId(null)
     } catch (e) {
       setReceiptError(e.message)
     } finally {
@@ -341,7 +355,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                     {fmtDate(r.date)} • {r.payment_method}{r.notes ? ` • ${r.notes}` : ''}
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {r.receipt_url && (
                     <a href={r.receipt_url} target="_blank" rel="noreferrer"
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 10, background: `${C.secondary}18`, border: `1px solid ${C.secondary}33`, textDecoration: 'none', fontSize: 14 }}
@@ -350,14 +364,26 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                       📎
                     </a>
                   )}
-                  <button onClick={() => setConfirmDelR(r.id)} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 32, height: 32, borderRadius: 10,
-                    background: `${C.accent}15`, border: `1px solid ${C.accent}33`,
-                    color: C.accent, cursor: 'pointer', fontSize: 14,
-                  }}>
-                    ✕
-                  </button>
+                  {permissions?.editProjects !== false && (
+                    <button onClick={() => openEditReceipt(r)} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 32, height: 32, borderRadius: 10,
+                      background: `${C.primary}15`, border: `1px solid ${C.primary}33`,
+                      color: C.primary, cursor: 'pointer', fontSize: 14,
+                    }}>
+                      ✏️
+                    </button>
+                  )}
+                  {permissions?.canDelete !== false && (
+                    <button onClick={() => setConfirmDelR(r.id)} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 32, height: 32, borderRadius: 10,
+                      background: `${C.accent}15`, border: `1px solid ${C.accent}33`,
+                      color: C.accent, cursor: 'pointer', fontSize: 14,
+                    }}>
+                      ✕
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -383,8 +409,8 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
         {/* ── Receipt modal ── */}
         <Modal
           open={showReceiptForm}
-          onClose={() => { setShowReceiptForm(false); setReceiptFile(null); setReceiptPreview('') }}
-          title="تسجيل دفعة مقبوضة"
+          onClose={() => { setShowReceiptForm(false); setReceiptFile(null); setReceiptPreview(''); setEditingReceiptId(null) }}
+          title={editingReceiptId ? 'تعديل الدفعة المقبوضة' : 'تسجيل دفعة مقبوضة'}
         >
           <Input label="المبلغ المقبوض (₪)" value={receiptForm.amount} onChange={fr('amount')} type="number" min="0" required />
           <Input label="التاريخ"             value={receiptForm.date}   onChange={fr('date')}   type="date" required />
@@ -434,7 +460,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
             </div>
           )}
           <Btn onClick={saveReceipt} full disabled={saving}>
-            {saving ? 'جاري الحفظ...' : 'حفظ الدفعة'}
+            {saving ? 'جاري الحفظ...' : editingReceiptId ? '✓ حفظ التعديل' : '✓ تسجيل الدفعة'}
           </Btn>
         </Modal>
 
