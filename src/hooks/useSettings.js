@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
-import { SPECS, EXP_CATS } from '../constants/index.js'
+import { SPECS, EXP_CATS, PAY_METHODS } from '../constants/index.js'
 
 export function useSettings(userId) {
   const key = userId ? `settings_${userId}` : null
 
   function load() {
-    if (!key) return { specs: SPECS, expCats: EXP_CATS }
+    if (!key) return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS }
     try {
       const saved = localStorage.getItem(key)
-      if (saved) return JSON.parse(saved)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        return { payMethods: PAY_METHODS, ...parsed }
+      }
     } catch {}
-    return { specs: SPECS, expCats: EXP_CATS }
+    return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS }
   }
 
   const [settings, setSettings] = useState(load)
@@ -48,12 +51,24 @@ export function useSettings(userId) {
     save({ ...settings, pensionMonthly: parseFloat(amount) || 0 })
   }
 
+  function addPayMethod(method) {
+    const m = method.trim()
+    if (!m || settings.payMethods.includes(m)) return
+    save({ ...settings, payMethods: [...settings.payMethods, m] })
+  }
+
+  function removePayMethod(method) {
+    save({ ...settings, payMethods: settings.payMethods.filter(m => m !== method) })
+  }
+
   return {
-    specs:    settings.specs,
-    expCats:  settings.expCats,
+    specs:      settings.specs,
+    expCats:    settings.expCats,
+    payMethods: settings.payMethods || PAY_METHODS,
     pensionMonthly: settings.pensionMonthly || 0,
-    addSpec,  removeSpec,
-    addExpCat, removeExpCat,
+    addSpec,        removeSpec,
+    addExpCat,      removeExpCat,
+    addPayMethod,   removePayMethod,
     setPensionMonthly,
   }
 }

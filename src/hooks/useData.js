@@ -160,6 +160,12 @@ export function usePayments(userId) {
     await refetch()
   }
 
+  async function updatePayment(id, form) {
+    const { error } = await supabase.from('payments').update(form).eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
   async function deletePayment(id) {
     const { error } = await supabase.from('payments').delete().eq('id', id).eq('user_id', userId)
     if (error) throw error
@@ -180,7 +186,7 @@ export function usePayments(userId) {
     await refetch()
   }
 
-  return { payments: data, loading, error, addPayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, refetch }
+  return { payments: data, loading, error, addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, refetch }
 }
 
 /* ─── Holidays ─── */

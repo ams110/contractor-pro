@@ -100,11 +100,11 @@ export default function App() {
   const { employees,      loading: eLoad,  addEmployee,   updateEmployee,   deleteEmployee  } = useEmployees(uid)
   const { workDays,       loading: wLoad,  addWorkDay,  deleteWorkDay, approveWorkDay, rejectWorkDay } = useWorkDays(uid)
   const { expenses,       loading: xLoad,  addExpense, deleteExpense, approveExpense, rejectExpense } = useExpenses(uid)
-  const { payments,       loading: pyLoad, addPayment, deletePayment, approvePaymentRequest, rejectPaymentRequest } = usePayments(uid)
+  const { payments,       loading: pyLoad, addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest } = usePayments(uid)
   const { advances,                        addAdvance,                      deleteAdvance   } = useAdvances(uid)
   const { taxAdvances,                     addTaxAdvance,                   deleteTaxAdvance } = useTaxAdvances(uid)
   const { clientReceipts, loading: crLoad, addReceipt,                      deleteReceipt   } = useClientReceipts(uid)
-  const { specs, expCats, pensionMonthly, addSpec, removeSpec, addExpCat, removeExpCat, setPensionMonthly } = useSettings(uid)
+  const { specs, expCats, payMethods, pensionMonthly, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly } = useSettings(uid)
   const { holidays, addHoliday, deleteHoliday }                                               = useHolidays(uid)
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar }                   = useProfile(uid)
   const { teamMembers, pendingInvite, permissions, effectiveOwnerId, acceptInvite, inviteMember, updateMember, removeMember, isBlocked, blockMember, getActivity } = useTeam(uid, user?.email)
@@ -164,8 +164,8 @@ export default function App() {
       case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={workDays} payments={payments} advances={advances} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} /> : <NoAccess />
       case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={approveWorkDay} rejectWorkDay={rejectWorkDay} permissions={p} /> : <NoAccess />
       case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={approveExpense} rejectExpense={rejectExpense} employees={employees} userId={uid} permissions={p} /> : <NoAccess />
-      case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} projects={projects} addPayment={addPayment} deletePayment={deletePayment} approvePaymentRequest={approvePaymentRequest} rejectPaymentRequest={rejectPaymentRequest} userId={uid} permissions={p} /> : <NoAccess />
-      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} inviteMember={inviteMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} />
+      case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} projects={projects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={approvePaymentRequest} rejectPaymentRequest={rejectPaymentRequest} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />
+      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} inviteMember={inviteMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} />
       default:          return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
     }
   }

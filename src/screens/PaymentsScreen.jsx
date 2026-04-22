@@ -12,18 +12,33 @@ function sendWhatsApp(phone, name, amount, date) {
   window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank')
 }
 
-export default function PaymentsScreen({ payments, employees, workDays, addPayment, deletePayment, userId, permissions }) {
+export default function PaymentsScreen({ payments, employees, workDays, projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods }) {
+  const methods = payMethods?.length ? payMethods : PAY_METHODS
+
   const [showForm,    setShowForm]    = useState(false)
+  const [editingId,   setEditingId]   = useState(null)
   const [confirmDel,  setConfirmDel]  = useState(null)
   const [formError,   setFormError]   = useState('')
   const [saving,      setSaving]      = useState(false)
   const [receiptFile, setReceiptFile] = useState(null)
   const [preview,     setPreview]     = useState('')
+  const [approvingId,    setApprovingId]    = useState(null)
+  const [approveProject, setApproveProject] = useState('')
+  const [approvingSaving, setApprovingSaving] = useState(false)
   const fileRef = useRef()
 
-  const emptyForm = { date: todayStr(), employee_id:'', amount:'', method:'' }
+  const emptyForm = { date: todayStr(), employee_id:'', amount:'', method:'', project_id:'' }
   const [form, setForm] = useState(emptyForm)
   function f(key) { return v => setForm(prev => ({ ...prev, [key]: v })) }
+
+  function openEdit(p) {
+    setEditingId(p.id)
+    setForm({ date: p.date, employee_id: p.employee_id, amount: String(p.amount), method: p.method || '', project_id: p.project_id || '' })
+    setFormError('')
+    setReceiptFile(null)
+    setPreview(p.receipt_url || '')
+    setShowForm(true)
+  }
 
   function calcOwed(empId) {
     const earned = workDays.filter(w => w.employee_id === empId).reduce((s, w) => s + w.amount, 0)
@@ -48,12 +63,25 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
     if (err) return setFormError(err)
     setSaving(true)
     try {
-      let receipt_url = ''
-      if (receiptFile && form.method === 'تحويل بنكي') receipt_url = await uploadReceipt(userId, receiptFile)
-      await addPayment({ ...form, amount: parseFloat(form.amount), receipt_url })
-      setForm(emptyForm); setReceiptFile(null); setPreview(''); setShowForm(false)
+      let receipt_url = preview && !receiptFile ? preview : ''
+      if (receiptFile) receipt_url = await uploadReceipt(userId, receiptFile)
+      const payload = { ...form, amount: parseFloat(form.amount), receipt_url, project_id: form.project_id || null }
+      if (editingId) {
+        await updatePayment(editingId, { date: payload.date, amount: payload.amount, method: payload.method, project_id: payload.project_id, receipt_url: payload.receipt_url })
+      } else {
+        await addPayment(payload)
+      }
+      setForm(emptyForm); setReceiptFile(null); setPreview(''); setShowForm(false); setEditingId(null)
     } catch (e) { setFormError(e.message) }
     finally     { setSaving(false) }
+  }
+
+  async function doApprove() {
+    if (!approvingId) return
+    setApprovingSaving(true)
+    try { await approvePaymentRequest?.(approvingId, approveProject || null); setApprovingId(null); setApproveProject('') }
+    catch (e) { alert(e.message) }
+    finally { setApprovingSaving(false) }
   }
 
   const activeEmployees = employees.filter(emp => {
@@ -84,7 +112,7 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
             </button>
           )}
           {permissions?.addPayments !== false && (
-            <button onClick={() => { setFormError(''); setShowForm(true) }}
+            <button onClick={() => { setFormError(''); setEditingId(null); setForm(emptyForm); setPreview(''); setShowForm(true) }}
               style={{ padding:'10px 18px', borderRadius:14, background:GRAD.success, color:'#fff', border:'none', cursor:'pointer', fontWeight:800, fontSize:13, boxShadow:`0 4px 16px ${C.success}44` }}>
               + دفعة
             </button>
@@ -206,6 +234,12 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
                             💬
                           </button>
                         )}
+                        {permissions?.addPayments !== false && (
+                          <button onClick={() => openEdit(p)}
+                            style={{ background:`${C.primary}15`, border:`1px solid ${C.primary}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', fontSize:12 }}>
+                            ✏️
+                          </button>
+                        )}
                         <button onClick={() => setConfirmDel(p.id)}
                           style={{ background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', fontSize:12 }}>
                           🗑️
@@ -220,27 +254,29 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
         </div>
       )}
 
-      {/* ── Modal دفعة جديدة ── */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title="دفعة جديدة">
+      {/* ── Modal دفعة جديدة / تعديل ── */}
+      <Modal open={showForm} onClose={() => { setShowForm(false); setEditingId(null) }} title={editingId ? 'تعديل الدفعة' : 'دفعة جديدة'}>
         <Input label="التاريخ" value={form.date} onChange={f('date')} type="date" />
 
-        <div style={{ marginBottom:14 }}>
-          <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>العامل *</label>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-            {employees.map(e => {
-              const owed = calcOwed(e.id)
-              return (
-                <button key={e.id} onClick={() => selectEmployee(e)}
-                  style={{ padding:'8px 14px', borderRadius:12, border:`1.5px solid ${form.employee_id===e.id ? C.primary : C.border}`, background:form.employee_id===e.id ? `${C.primary}22` : C.bg, color:form.employee_id===e.id ? C.primary : C.textDim, fontSize:13, fontWeight:600, cursor:'pointer', transition:'all .2s' }}>
-                  {e.name}{owed > 0 ? ` (${fmt(owed)}₪)` : ''}
-                </button>
-              )
-            })}
+        {!editingId && (
+          <div style={{ marginBottom:14 }}>
+            <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>العامل *</label>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {employees.map(e => {
+                const owed = calcOwed(e.id)
+                return (
+                  <button key={e.id} onClick={() => selectEmployee(e)}
+                    style={{ padding:'8px 14px', borderRadius:12, border:`1.5px solid ${form.employee_id===e.id ? C.primary : C.border}`, background:form.employee_id===e.id ? `${C.primary}22` : C.bg, color:form.employee_id===e.id ? C.primary : C.textDim, fontSize:13, fontWeight:600, cursor:'pointer', transition:'all .2s' }}>
+                    {e.name}{owed > 0 ? ` (${fmt(owed)}₪)` : ''}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         <Input label="المبلغ (₪)" value={form.amount} onChange={f('amount')} type="number" min="0.01" required />
-        <Input label="طريقة الدفع" value={form.method} onChange={f('method')} options={PAY_METHODS} />
+        <Input label="طريقة الدفع" value={form.method} onChange={f('method')} options={methods} />
 
         {form.method === 'تحويل بنكي' && (
           <div style={{ marginBottom:14 }}>
@@ -261,8 +297,8 @@ export default function PaymentsScreen({ payments, employees, workDays, addPayme
         )}
 
         {formError && <div style={{ padding:'10px 12px', background:`${C.accent}18`, borderRadius:10, fontSize:12, color:C.accent, marginBottom:14, fontWeight:600 }}>⚠ {formError}</div>}
-        <Btn onClick={save} full disabled={saving || !form.employee_id || !form.amount}>
-          {saving ? 'جاري الحفظ...' : '✓ سجّل الدفعة'}
+        <Btn onClick={save} full disabled={saving || (!editingId && !form.employee_id) || !form.amount}>
+          {saving ? 'جاري الحفظ...' : editingId ? '✓ حفظ التعديل' : '✓ سجّل الدفعة'}
         </Btn>
       </Modal>
 

@@ -42,13 +42,14 @@ const TBL_AR    = {
 const ACTION_ICON = { insert: '➕', update: '✏️', delete: '🗑️', view: '👁️' }
 const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, view: C.textDim }
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat, pensionMonthly, setPensionMonthly, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember, blockMember, getActivity }) {
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember, blockMember, getActivity }) {
   const { signOut, registerPasskey, isPasskeySupported, user } = useAuth()
   const [confirmSignOut,  setConfirmSignOut]  = useState(false)
   const [passkeyStatus,   setPasskeyStatus]   = useState('')
   const [passkeyLoading,  setPasskeyLoading]  = useState(false)
   const [newSpec,         setNewSpec]         = useState('')
   const [newExpCat,       setNewExpCat]       = useState('')
+  const [newPayMethod,    setNewPayMethod]    = useState('')
   const [editingName,     setEditingName]     = useState(false)
   const [nameInput,       setNameInput]       = useState('')
   const [uploadError,     setUploadError]     = useState('')
@@ -248,6 +249,31 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
             />
             <button onClick={() => { if (newExpCat.trim()) { addExpCat(newExpCat); setNewExpCat('') } }}
               style={{ padding:'9px 14px', borderRadius:10, background:GRAD.warm, color:'#000', border:'none', cursor:'pointer', fontSize:14, fontWeight:800 }}>+</button>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ── طرق الدفع ── */}
+      <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
+        <div style={{ height:3, background:GRAD.success }} />
+        <div style={{ padding:'14px 16px' }}>
+          <SectionLabel color={C.success}>💳 طرق الدفع</SectionLabel>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
+            {(payMethods || []).map(m => (
+              <div key={m} style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 12px', borderRadius:20, background:`${C.success}18`, border:`1px solid ${C.success}33` }}>
+                <span style={{ color:C.success, fontSize:11, fontWeight:600 }}>{m}</span>
+                <button onClick={() => removePayMethod(m)} style={{ background:'none', border:'none', color:C.accent, cursor:'pointer', fontSize:13, padding:0, lineHeight:1 }}>×</button>
+              </div>
+            ))}
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            <input value={newPayMethod} onChange={e => setNewPayMethod(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && newPayMethod.trim()) { addPayMethod(newPayMethod); setNewPayMethod('') } }}
+              placeholder="طريقة دفع جديدة (فيزا، ביט، PayPal...)"
+              style={{ flex:1, padding:'9px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:12, outline:'none' }}
+            />
+            <button onClick={() => { if (newPayMethod.trim()) { addPayMethod(newPayMethod); setNewPayMethod('') } }}
+              style={{ padding:'9px 14px', borderRadius:10, background:GRAD.success, color:'#fff', border:'none', cursor:'pointer', fontSize:14, fontWeight:800 }}>+</button>
           </div>
         </div>
       </GlassCard>
