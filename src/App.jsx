@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { supabase } from './lib/supabase.js'
 import { C, NAV } from './constants/index.js'
 import { useAuth }           from './hooks/useAuth.js'
 import { useProjects }       from './hooks/useData.js'
@@ -99,14 +100,14 @@ export default function App() {
   const { employees,      loading: eLoad,  addEmployee,   updateEmployee,   deleteEmployee  } = useEmployees(uid)
   const { workDays,       loading: wLoad,  addWorkDay,  deleteWorkDay, approveWorkDay, rejectWorkDay } = useWorkDays(uid)
   const { expenses,       loading: xLoad,  addExpense, deleteExpense, approveExpense, rejectExpense } = useExpenses(uid)
-  const { payments,       loading: pyLoad, addPayment,                      deletePayment   } = usePayments(uid)
+  const { payments,       loading: pyLoad, addPayment, deletePayment, approvePaymentRequest, rejectPaymentRequest } = usePayments(uid)
   const { advances,                        addAdvance,                      deleteAdvance   } = useAdvances(uid)
   const { taxAdvances,                     addTaxAdvance,                   deleteTaxAdvance } = useTaxAdvances(uid)
   const { clientReceipts, loading: crLoad, addReceipt,                      deleteReceipt   } = useClientReceipts(uid)
   const { specs, expCats, pensionMonthly, addSpec, removeSpec, addExpCat, removeExpCat, setPensionMonthly } = useSettings(uid)
   const { holidays, addHoliday, deleteHoliday }                                               = useHolidays(uid)
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar }                   = useProfile(uid)
-  const { teamMembers, pendingInvite, permissions, effectiveOwnerId, acceptInvite, inviteMember, updateMember, removeMember } = useTeam(uid, user?.email)
+  const { teamMembers, pendingInvite, permissions, effectiveOwnerId, acceptInvite, inviteMember, updateMember, removeMember, isBlocked, blockMember, getActivity } = useTeam(uid, user?.email)
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
   useSalaryAlerts(uid, employees, workDays, payments)
 
@@ -133,6 +134,26 @@ export default function App() {
     )
   }
 
+  if (isBlocked) {
+    return (
+      <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:0, direction:'rtl', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", padding:32 }}>
+        <style>{globalCSS}</style>
+        <div style={{ fontSize:64, marginBottom:16 }}>🚫</div>
+        <div style={{ fontSize:20, fontWeight:900, color:C.accent, marginBottom:8 }}>تم إيقاف وصولك</div>
+        <div style={{ fontSize:13, color:C.textDim, textAlign:'center', lineHeight:1.7 }}>
+          تواصل مع صاحب الحساب لإعادة تفعيل صلاحياتك
+        </div>
+      </div>
+    )
+  }
+
+  // ─── تسجيل الصفحات التي يشاهدها أعضاء الفريق ───────────────────────────
+  React.useEffect(() => {
+    if (!permissions?.isOwner && uid && effectiveOwnerId && uid !== effectiveOwnerId) {
+      supabase.rpc('log_screen_view', { p_owner_id: effectiveOwnerId, p_screen: screen })
+    }
+  }, [screen])
+
   // ─── الشاشة الحالية ──────────────────────────────────────────────────────
   const p = permissions
   function renderScreen() {
@@ -143,8 +164,8 @@ export default function App() {
       case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={workDays} payments={payments} advances={advances} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} /> : <NoAccess />
       case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={approveWorkDay} rejectWorkDay={rejectWorkDay} permissions={p} /> : <NoAccess />
       case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={approveExpense} rejectExpense={rejectExpense} employees={employees} userId={uid} permissions={p} /> : <NoAccess />
-      case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} addPayment={addPayment} deletePayment={deletePayment} userId={uid} permissions={p} /> : <NoAccess />
-      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} inviteMember={inviteMember} updateMember={updateMember} removeMember={removeMember} />
+      case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} projects={projects} addPayment={addPayment} deletePayment={deletePayment} approvePaymentRequest={approvePaymentRequest} rejectPaymentRequest={rejectPaymentRequest} userId={uid} permissions={p} /> : <NoAccess />
+      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} inviteMember={inviteMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} />
       default:          return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
     }
   }

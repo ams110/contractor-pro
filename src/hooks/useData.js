@@ -166,7 +166,21 @@ export function usePayments(userId) {
     await refetch()
   }
 
-  return { payments: data, loading, error, addPayment, deletePayment, refetch }
+  async function approvePaymentRequest(paymentId, projectId = null) {
+    const { data, error } = await supabase.rpc('approve_payment_request', { p_payment_id: paymentId, p_project_id: projectId || null })
+    if (error) throw error
+    if (data?.error) throw new Error(data.error)
+    await refetch()
+  }
+
+  async function rejectPaymentRequest(paymentId) {
+    const { data, error } = await supabase.rpc('reject_payment_request', { p_payment_id: paymentId })
+    if (error) throw error
+    if (data?.error) throw new Error(data.error)
+    await refetch()
+  }
+
+  return { payments: data, loading, error, addPayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, refetch }
 }
 
 /* ─── Holidays ─── */
