@@ -181,8 +181,12 @@ CREATE TABLE IF NOT EXISTS passkey_challenges (
   PRIMARY KEY (user_id, type)
 );
 
--- ─── 2. أعمدة إضافية (ADD COLUMN IF NOT EXISTS — آمنة) ──────────────────────
--- (تُضاف فقط إذا لم تكن موجودة، لا تخرّب شيء)
+CREATE TABLE IF NOT EXISTS profiles (
+  id         UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name  TEXT DEFAULT '',
+  avatar_url TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
 -- ─── 3. RLS ──────────────────────────────────────────────────────────────────
 ALTER TABLE projects             ENABLE ROW LEVEL SECURITY;
@@ -199,6 +203,7 @@ ALTER TABLE team_members         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE passkey_credentials  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE passkey_challenges   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles             ENABLE ROW LEVEL SECURITY;
 
 -- حذف القديم وإعادة الإنشاء (لتفادي التكرار)
 DROP POLICY IF EXISTS "user_projects"          ON projects;
@@ -216,6 +221,7 @@ DROP POLICY IF EXISTS "user_passkeys"          ON passkey_credentials;
 DROP POLICY IF EXISTS "user_challenges"        ON passkey_challenges;
 DROP POLICY IF EXISTS "team_member_select"     ON team_members;
 DROP POLICY IF EXISTS "team_owner_all"         ON team_members;
+DROP POLICY IF EXISTS "user_profile"           ON profiles;
 
 CREATE POLICY "user_projects"          ON projects           FOR ALL USING (user_id = auth.uid());
 CREATE POLICY "user_employees"         ON employees          FOR ALL USING (user_id = auth.uid());
@@ -233,6 +239,7 @@ CREATE POLICY "user_challenges"        ON passkey_challenges  FOR ALL USING (use
 -- المالك يرى أعضاءه، والعضو يرى سجله
 CREATE POLICY "team_owner_all"    ON team_members FOR ALL    USING (owner_id  = auth.uid());
 CREATE POLICY "team_member_select" ON team_members FOR SELECT USING (member_id = auth.uid());
+CREATE POLICY "user_profile"       ON profiles     FOR ALL    USING (id = auth.uid());
 
 -- ─── 4. Indexes ──────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_projects_user    ON projects        (user_id);
@@ -253,18 +260,18 @@ CREATE INDEX IF NOT EXISTS idx_team_member      ON team_members    (member_id);
 CREATE INDEX IF NOT EXISTS idx_team_email       ON team_members    (email);
 
 -- ─── 5. Storage Buckets ───────────────────────────────────────────────────────
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('worker-receipts', 'worker-receipts', true)
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('worker-receipts', 'worker-receipts', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;
 
 DROP POLICY IF EXISTS "anon_worker_receipt_upload" ON storage.objects;
 DROP POLICY IF EXISTS "public_worker_receipt_read"  ON storage.objects;
+DROP POLICY IF EXISTS "avatar_upload"               ON storage.objects;
+DROP POLICY IF EXISTS "avatar_read"                 ON storage.objects;
 
-CREATE POLICY "anon_worker_receipt_upload" ON storage.objects
-  FOR INSERT TO anon WITH CHECK (bucket_id = 'worker-receipts');
-
-CREATE POLICY "public_worker_receipt_read" ON storage.objects
-  FOR SELECT USING (bucket_id = 'worker-receipts');
+CREATE POLICY "anon_worker_receipt_upload" ON storage.objects FOR INSERT TO anon WITH CHECK (bucket_id = 'worker-receipts');
+CREATE POLICY "public_worker_receipt_read" ON storage.objects FOR SELECT USING (bucket_id = 'worker-receipts');
+CREATE POLICY "avatar_upload" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avatars');
+CREATE POLICY "avatar_read"   ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
 
 -- ─── 6. Functions ────────────────────────────────────────────────────────────
 
