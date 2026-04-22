@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { C, EXP_CATS } from '../constants/index.js'
+import { C, GRAD, EXP_CATS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../lib/helpers.js'
 import { useWorkerPortal } from '../hooks/useWorkerPortal.js'
 import { uploadWorkerReceipt } from '../lib/storage.js'
@@ -28,30 +28,33 @@ function fmtMonth(yyyymm) {
 
 function SummaryCard({ earned, paid, owed, pendingCount }) {
   return (
-    <div style={{ background: C.card, borderRadius: 16, padding: 16, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-      <div style={{ fontSize: 12, color: C.textDim, marginBottom: 12, fontWeight: 700 }}>الملخص المالي الإجمالي</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-        {[
-          { l: 'مستحق إجمالي', v: `${fmt(earned)}₪`, c: C.text },
-          { l: 'واصل',         v: `${fmt(paid)}₪`,   c: C.success },
-          { l: 'ضايل',         v: `${fmt(owed)}₪`,   c: owed > 0 ? C.warning : C.success },
-        ].map(s => (
-          <div key={s.l} style={{ textAlign: 'center', padding: '10px 4px', background: `${C.border}33`, borderRadius: 10 }}>
-            <div style={{ fontSize: 9, color: C.textDim, marginBottom: 4 }}>{s.l}</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: s.c, fontFamily: 'monospace' }}>{s.v}</div>
+    <div style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderRadius: 20, border: `1px solid ${C.borderMid}`, marginBottom: 16, overflow: 'hidden' }}>
+      <div style={{ height: 3, background: owed > 0 ? GRAD.danger : GRAD.success }} />
+      <div style={{ padding: '14px 16px' }}>
+        <div style={{ fontSize: 11, color: C.textDim, marginBottom: 12, fontWeight: 700, letterSpacing: '0.04em' }}>الملخص المالي الإجمالي</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          {[
+            { l: 'مستحق إجمالي', v: `${fmt(earned)}₪`, c: C.text },
+            { l: 'واصل',         v: `${fmt(paid)}₪`,   c: C.success },
+            { l: 'ضايل',         v: `${fmt(owed)}₪`,   c: owed > 0 ? C.accent : C.success },
+          ].map(s => (
+            <div key={s.l} style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 9, color: C.textDim, marginBottom: 4, fontWeight: 600 }}>{s.l}</div>
+              <div style={{ fontSize: 15, fontWeight: 900, color: s.c, fontFamily: 'monospace' }}>{s.v}</div>
+            </div>
+          ))}
+        </div>
+        {pendingCount > 0 && (
+          <div style={{ marginTop: 10, padding: '8px 12px', background: `${C.warning}18`, borderRadius: 10, fontSize: 12, color: C.warning, fontWeight: 700, textAlign: 'center', border: `1px solid ${C.warning}33` }}>
+            ⏳ {pendingCount} يوم بانتظار موافقة المشرف
           </div>
-        ))}
+        )}
+        {owed === 0 && earned > 0 && pendingCount === 0 && (
+          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12, color: C.success, fontWeight: 700 }}>
+            ✓ مسدد بالكامل
+          </div>
+        )}
       </div>
-      {pendingCount > 0 && (
-        <div style={{ marginTop: 10, padding: '8px 12px', background: `${C.warning}18`, borderRadius: 8, fontSize: 12, color: C.warning, fontWeight: 700, textAlign: 'center' }}>
-          ⏳ {pendingCount} يوم بانتظار موافقة المشرف
-        </div>
-      )}
-      {owed === 0 && earned > 0 && pendingCount === 0 && (
-        <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12, color: C.success, fontWeight: 700 }}>
-          ✓ مسدد بالكامل
-        </div>
-      )}
     </div>
   )
 }
@@ -61,24 +64,24 @@ function MonthRow({ month, data, payments }) {
   const monthPayments = payments.filter(p => String(p.date).substring(0, 7) === month)
 
   return (
-    <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 8, overflow: 'hidden' }}>
+    <div style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)', borderRadius: 16, border: `1px solid ${C.border}`, marginBottom: 8, overflow: 'hidden' }}>
       <button onClick={() => setOpen(o => !o)}
-        style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        style={{ width: '100%', padding: '13px 16px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmtMonth(month)}</span>
-          <span style={{ fontSize: 10, color: C.textDim, background: `${C.border}66`, padding: '2px 6px', borderRadius: 6 }}>{data.days} يوم</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{fmtMonth(month)}</span>
+          <span style={{ fontSize: 10, color: C.textDim, background: `${C.border}88`, padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>{data.days} يوم</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>
+          <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>
           <span style={{ fontSize: 10, color: C.textDim }}>{open ? '▲' : '▼'}</span>
         </div>
       </button>
 
       {open && (
-        <div style={{ padding: '0 14px 12px', borderTop: `1px solid ${C.border}` }}>
+        <div style={{ padding: '0 16px 14px', borderTop: `1px solid ${C.border}` }}>
           {monthPayments.length > 0 && (
             <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6 }}>المدفوعات هذا الشهر:</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6, fontWeight: 600 }}>المدفوعات هذا الشهر:</div>
               {monthPayments.map(p => (
                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}33` }}>
                   <span style={{ fontSize: 11, color: C.textDim }}>{fmtDate(p.date)} • {p.method || 'كاش'}</span>
@@ -87,9 +90,9 @@ function MonthRow({ month, data, payments }) {
               ))}
             </div>
           )}
-          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: `${C.border}33`, borderRadius: 8 }}>
-            <span style={{ fontSize: 11, color: C.textDim }}>مستحق الشهر</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>
+          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', padding: '9px 12px', background: `${C.primary}15`, borderRadius: 10, border: `1px solid ${C.primary}33` }}>
+            <span style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>مستحق الشهر</span>
+            <span style={{ fontSize: 14, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>
           </div>
         </div>
       )}
@@ -99,33 +102,38 @@ function MonthRow({ month, data, payments }) {
 
 // ─── شاشة تسجيل الدخول ───────────────────────────────────────────────────────
 function LoginScreen({ onLogin, error, loading }) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPass, setShowPass] = useState(false)
+  const [username,   setUsername]   = useState('')
+  const [password,   setPassword]   = useState('')
+  const [showPass,   setShowPass]   = useState(false)
+  const [showForgot, setShowForgot] = useState(false)
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, direction: 'rtl' }}>
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, direction: 'rtl', position: 'relative', overflow: 'hidden', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
+      {/* blobs */}
+      <div style={{ position: 'absolute', top: '-15%', right: '-15%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, #00DDB322 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-15%', left: '-15%', width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, #6366F122 0%, transparent 70%)', pointerEvents: 'none' }} />
+
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ fontSize: 56, marginBottom: 8 }}>👷</div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: C.primary }}>بوابة العمال</div>
-        <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Contractor Pro</div>
+        <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38, margin: '0 auto 14px', boxShadow: '0 12px 36px #00DDB355', animation: 'float 3s ease-in-out infinite' }}>👷</div>
+        <div style={{ fontSize: 24, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>بوابة العمال</div>
+        <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, letterSpacing: '0.06em' }}>Contractor Pro</div>
       </div>
 
-      <div style={{ width: '100%', maxWidth: 360, background: C.card, borderRadius: 20, padding: 24, border: `1px solid ${C.border}` }}>
+      <div style={{ width: '100%', maxWidth: 380, background: 'rgba(13,17,23,0.9)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: 28, padding: 28, border: `1px solid ${C.borderMid}`, boxShadow: '0 24px 80px rgba(0,0,0,0.5)' }}>
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>اسم المستخدم</label>
+          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }}>اسم المستخدم</label>
           <input value={username} onChange={e => setUsername(e.target.value)}
             placeholder="أدخل اسم المستخدم" autoComplete="username"
-            style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+            style={{ width: '100%', padding: '13px 14px', borderRadius: 14, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>كلمة المرور</label>
+          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }}>كلمة المرور</label>
           <div style={{ position: 'relative' }}>
             <input value={password} onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && onLogin(username, password)}
               type={showPass ? 'text' : 'password'} placeholder="••••••••" autoComplete="current-password"
-              style={{ width: '100%', padding: '12px 44px 12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+              style={{ width: '100%', padding: '13px 44px 13px 14px', borderRadius: 14, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
             <button onClick={() => setShowPass(s => !s)}
               style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 16, padding: 0 }}>
               {showPass ? '🙈' : '👁️'}
@@ -134,16 +142,31 @@ function LoginScreen({ onLogin, error, loading }) {
         </div>
 
         {error && (
-          <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 16, fontSize: 13, color: C.accent, textAlign: 'center' }}>
+          <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 12, marginBottom: 16, fontSize: 13, color: C.accent, textAlign: 'center', border: `1px solid ${C.accent}33`, fontWeight: 600 }}>
             ⚠ {error}
           </div>
         )}
 
         <button onClick={() => onLogin(username, password)}
           disabled={loading || !username || !password}
-          style={{ width: '100%', padding: 14, borderRadius: 14, background: loading || !username || !password ? C.border : C.primary, border: 'none', color: '#000', fontSize: 15, fontWeight: 800, cursor: loading || !username || !password ? 'default' : 'pointer', transition: 'background .2s' }}>
+          style={{ width: '100%', padding: 14, borderRadius: 16, background: loading || !username || !password ? C.border : GRAD.brand, border: 'none', color: loading || !username || !password ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: loading || !username || !password ? 'default' : 'pointer', boxShadow: !loading && username && password ? '0 4px 20px #00DDB344' : 'none', transition: 'all .2s' }}>
           {loading ? 'جاري التحقق...' : '→ دخول'}
         </button>
+
+        <button onClick={() => setShowForgot(s => !s)}
+          style={{ width: '100%', marginTop: 12, background: 'none', border: 'none', color: C.textDim, fontSize: 12, cursor: 'pointer', textAlign: 'center', textDecoration: 'underline', padding: 4 }}>
+          نسيت كلمة المرور؟
+        </button>
+
+        {showForgot && (
+          <div style={{ marginTop: 10, padding: '14px 16px', background: `${C.primary}12`, borderRadius: 14, border: `1px solid ${C.primary}33` }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 6 }}>🔑 كيف تعيد كلمة مرورك؟</div>
+            <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
+              تواصل مع المشرف أو صاحب العمل وأطلب منه إعادة تعيين كلمة مرورك.<br />
+              بإمكانه تغييرها من تطبيق <span style={{ color: C.primary, fontWeight: 700 }}>Contractor Pro</span> مباشرةً.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -181,6 +204,8 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
       setDone(true)
     } catch { /* error shown via submitErr */ }
   }
+
+  const canSubmit = !submitting && !!form.projectId
 
   if (done) {
     return (
@@ -266,7 +291,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
           )}
 
           <button onClick={handleSubmit} disabled={submitting || !form.projectId}
-            style={{ width: '100%', padding: 14, borderRadius: 14, background: submitting || !form.projectId ? C.border : C.primary, border: 'none', color: '#000', fontSize: 15, fontWeight: 800, cursor: submitting || !form.projectId ? 'default' : 'pointer' }}>
+            style={{ width: '100%', padding: 14, borderRadius: 14, background: submitting || !form.projectId ? C.border : C.primary, border: 'none', color: submitting || !form.projectId ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: submitting || !form.projectId ? 'default' : 'pointer' }}>
             {submitting ? 'جاري الإرسال...' : '📤 أرسل اليوم للمشرف'}
           </button>
         </>
@@ -339,7 +364,9 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
   async function handleSubmit() {
     if (!form.category)  return setSubmitErr('اختر التصنيف')
     if (!form.amount || parseFloat(form.amount) <= 0) return setSubmitErr('أدخل المبلغ')
-    if (!receiptFile)    return setSubmitErr('يجب رفع صورة الفاتورة')
+    if (!form.projectId) return setSubmitErr('اختر المشروع')
+    if (!form.vendor?.trim()) return setSubmitErr('أدخل اسم المحل أو المزود')
+    if (!receiptFile)    return setSubmitErr('يجب رفع صورة الفاتورة أو ملف PDF')
     setSubmitErr('')
     setUploading(true)
     let receiptUrl = ''
@@ -377,7 +404,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
     )
   }
 
-  const canSubmit = !submitting && !uploading && form.category && form.amount && receiptFile
+  const canSubmit = !submitting && !uploading && form.category && form.amount && form.projectId && form.vendor?.trim() && receiptFile
 
   return (
     <div style={{ paddingBottom: 16 }}>
@@ -409,10 +436,10 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
         </div>
       </div>
 
-      {/* المشروع (اختياري) */}
+      {/* المشروع - إجباري */}
       {projects.length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المشروع (اختياري)</label>
+          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المشروع *</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {projects.map(p => (
               <button key={p.id} onClick={() => setForm(prev => ({ ...prev, projectId: prev.projectId === p.id ? '' : p.id }))}
@@ -424,9 +451,9 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
         </div>
       )}
 
-      {/* المحل / ملاحظة */}
+      {/* المحل / المزود - إجباري */}
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المحل / ملاحظة (اختياري)</label>
+        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المحل / المزود *</label>
         <input value={form.vendor} onChange={e => setForm(p => ({ ...p, vendor: e.target.value }))}
           placeholder="مثال: مستودع الجابر"
           style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
@@ -493,13 +520,208 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
   )
 }
 
+// ─── فورم تغيير كلمة المرور ──────────────────────────────────────────────────
+function ChangePasswordForm({ worker, onChangePassword }) {
+  const [oldPass,  setOldPass]  = useState('')
+  const [newPass,  setNewPass]  = useState('')
+  const [confirm,  setConfirm]  = useState('')
+  const [showOld,  setShowOld]  = useState(false)
+  const [showNew,  setShowNew]  = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [err,      setErr]      = useState('')
+  const [success,  setSuccess]  = useState(false)
+
+  async function handleSubmit() {
+    setErr('')
+    if (!oldPass) return setErr('أدخل كلمة المرور الحالية')
+    if (newPass.length < 4) return setErr('كلمة المرور الجديدة يجب أن تكون 4 أحرف على الأقل')
+    if (newPass !== confirm) return setErr('كلمة المرور الجديدة غير متطابقة')
+    setSaving(true)
+    try {
+      await onChangePassword(oldPass, newPass)
+      setSuccess(true)
+      setOldPass(''); setNewPass(''); setConfirm('')
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inputStyle = { width: '100%', padding: '12px 44px 12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }
+  const labelStyle = { fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }
+
+  return (
+    <div>
+      {/* بطاقة الملف الشخصي */}
+      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.borderMid}`, padding: '18px 16px', marginBottom: 20, overflow: 'hidden' }}>
+        <div style={{ height: 3, background: GRAD.brand, margin: '-18px -16px 16px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ padding: 2, borderRadius: '50%', background: GRAD.brand, flexShrink: 0 }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: C.primary }}>
+              {worker.name?.[0] || '?'}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 900, color: C.text }}>{worker.name}</div>
+            {worker.specialization && (
+              <div style={{ fontSize: 11, color: C.primary, marginTop: 2 }}>{worker.specialization.split(',')[0]}</div>
+            )}
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>معدل يومي: <span style={{ color: C.success, fontWeight: 700, fontFamily: 'monospace' }}>{worker.daily_rate || 0}₪</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* فورم تغيير كلمة المرور */}
+      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.borderMid}`, padding: '18px 16px', overflow: 'hidden' }}>
+        <div style={{ height: 3, background: GRAD.purple, margin: '-18px -16px 16px' }} />
+        <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 16 }}>🔑 تغيير كلمة المرور</div>
+
+        {success && (
+          <div style={{ padding: '12px 14px', background: `${C.success}18`, borderRadius: 12, marginBottom: 16, fontSize: 13, color: C.success, textAlign: 'center', border: `1px solid ${C.success}33`, fontWeight: 700 }}>
+            ✓ تم تغيير كلمة المرور بنجاح
+          </div>
+        )}
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelStyle}>كلمة المرور الحالية</label>
+          <div style={{ position: 'relative' }}>
+            <input type={showOld ? 'text' : 'password'} value={oldPass} onChange={e => { setOldPass(e.target.value); setSuccess(false) }}
+              placeholder="••••••••" style={inputStyle} />
+            <button onClick={() => setShowOld(s => !s)}
+              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 15, padding: 0 }}>
+              {showOld ? '🙈' : '👁️'}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelStyle}>كلمة المرور الجديدة</label>
+          <div style={{ position: 'relative' }}>
+            <input type={showNew ? 'text' : 'password'} value={newPass} onChange={e => { setNewPass(e.target.value); setSuccess(false) }}
+              placeholder="4 أحرف على الأقل" style={inputStyle} />
+            <button onClick={() => setShowNew(s => !s)}
+              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 15, padding: 0 }}>
+              {showNew ? '🙈' : '👁️'}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <label style={labelStyle}>تأكيد كلمة المرور الجديدة</label>
+          <input type="password" value={confirm} onChange={e => { setConfirm(e.target.value); setSuccess(false) }}
+            placeholder="••••••••" style={{ ...inputStyle, paddingLeft: 14 }} />
+          {confirm && newPass && (
+            <div style={{ marginTop: 6, fontSize: 11, fontWeight: 600, color: confirm === newPass ? C.success : C.accent }}>
+              {confirm === newPass ? '✓ متطابقة' : '✗ غير متطابقة'}
+            </div>
+          )}
+        </div>
+
+        {err && (
+          <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 14, fontSize: 13, color: C.accent, border: `1px solid ${C.accent}33`, fontWeight: 600 }}>
+            ⚠ {err}
+          </div>
+        )}
+
+        <button onClick={handleSubmit} disabled={saving || !oldPass || !newPass || !confirm}
+          style={{ width: '100%', padding: 14, borderRadius: 14, background: saving || !oldPass || !newPass || !confirm ? C.border : GRAD.purple, border: 'none', color: saving || !oldPass || !newPass || !confirm ? C.textDim : '#fff', fontSize: 15, fontWeight: 800, cursor: saving || !oldPass || !newPass || !confirm ? 'default' : 'pointer', transition: 'all .2s', boxShadow: oldPass && newPass && confirm ? '0 4px 20px #6366F144' : 'none' }}>
+          {saving ? 'جاري الحفظ...' : '🔐 حفظ كلمة المرور الجديدة'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
+// ─── فورم طلب راتب ───────────────────────────────────────────────────────────
+function RequestPaymentForm({ worker, onRequest }) {
+  const PAY_M = ['كاش', 'تحويل بنكي', 'شيك']
+  const [form,    setForm]    = useState({ amount: '', method: 'كاش', notes: '' })
+  const [saving,  setSaving]  = useState(false)
+  const [err,     setErr]     = useState('')
+  const [done,    setDone]    = useState(false)
+  const [sentAmt, setSentAmt] = useState(0)
+
+  async function handleSubmit() {
+    if (!form.amount || parseFloat(form.amount) <= 0) return setErr('أدخل المبلغ')
+    if (!form.notes?.trim()) return setErr('أدخل ملاحظة (مثال: راتب شهر أبريل)')
+    setErr(''); setSaving(true)
+    try {
+      await onRequest({ amount: form.amount, projectId: null, method: form.method, notes: form.notes })
+      setSentAmt(parseFloat(form.amount)); setDone(true)
+    } catch (e) { setErr(e.message) } finally { setSaving(false) }
+  }
+
+  if (done) return (
+    <div style={{ textAlign:'center', padding:'30px 16px' }}>
+      <div style={{ fontSize:52, marginBottom:12 }}>✅</div>
+      <div style={{ fontSize:16, fontWeight:800, color:C.success, marginBottom:6 }}>تم إرسال الطلب!</div>
+      <div style={{ fontSize:15, fontWeight:800, color:C.primary, marginBottom:16, fontFamily:'monospace' }}>{fmt(sentAmt)}₪</div>
+      <div style={{ padding:'12px 16px', background:`${C.primary}12`, borderRadius:12, marginBottom:20, border:`1px solid ${C.primary}33` }}>
+        <div style={{ fontSize:13, fontWeight:700, color:C.primary, marginBottom:4 }}>🔔 وصل إشعار للمشرف</div>
+        <div style={{ fontSize:12, color:C.textDim }}>المشرف رح يراجع الطلب ويحدد من أي مشروع</div>
+      </div>
+      <button onClick={() => { setDone(false); setForm({ amount:'', method:'كاش', notes:'' }) }}
+        style={{ width:'100%', padding:'12px 0', borderRadius:12, background:C.primary, border:'none', color:'#000', fontSize:14, fontWeight:700, cursor:'pointer' }}>
+        + طلب آخر
+      </button>
+    </div>
+  )
+
+  return (
+    <div style={{ paddingBottom:16 }}>
+      <div style={{ padding:'12px 14px', background:`${C.warning}12`, borderRadius:12, marginBottom:16, border:`1px solid ${C.warning}33` }}>
+        <div style={{ fontSize:12, color:C.warning, fontWeight:700 }}>⚠ تنبيه</div>
+        <div style={{ fontSize:11, color:C.textDim, marginTop:4 }}>الطلب يذهب للمشرف للموافقة — الراتب لا يُسجَّل تلقائياً</div>
+      </div>
+
+      {/* المبلغ */}
+      <div style={{ marginBottom:14 }}>
+        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>المبلغ المطلوب (₪) *</label>
+        <input type="number" value={form.amount} min="1" step="1" placeholder="0"
+          onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
+          style={{ width:'100%', padding:'13px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:18, fontWeight:800, boxSizing:'border-box', outline:'none', fontFamily:'monospace' }} />
+      </div>
+
+      {/* طريقة الدفع */}
+      <div style={{ marginBottom:14 }}>
+        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>طريقة الدفع المفضلة</label>
+        <div style={{ display:'flex', gap:8 }}>
+          {PAY_M.map(m => (
+            <button key={m} onClick={() => setForm(p => ({ ...p, method: m }))}
+              style={{ flex:1, padding:'9px 0', borderRadius:10, border:`1.5px solid ${form.method === m ? C.primary : C.border}`, background:form.method === m ? `${C.primary}22` : 'transparent', color:form.method === m ? C.primary : C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ملاحظة */}
+      <div style={{ marginBottom:16 }}>
+        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>ملاحظة * <span style={{ fontWeight:400, color:C.textDim, fontSize:10 }}>(مثال: راتب شهر أبريل)</span></label>
+        <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+          placeholder="راتب شهر أبريل"
+          style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:14, boxSizing:'border-box', outline:'none' }} />
+      </div>
+
+      {err && <div style={{ padding:'10px 14px', background:`${C.accent}18`, borderRadius:10, marginBottom:12, fontSize:13, color:C.accent }}>⚠ {err}</div>}
+
+      <button onClick={handleSubmit} disabled={saving || !form.amount || !form.notes?.trim()}
+        style={{ width:'100%', padding:14, borderRadius:14, background:saving || !form.amount || !form.notes?.trim() ? C.border : GRAD.success, border:'none', color:saving || !form.amount || !form.notes?.trim() ? C.textDim : '#000', fontSize:15, fontWeight:800, cursor:saving || !form.amount || !form.notes?.trim() ? 'default' : 'pointer', boxShadow:form.amount && form.notes ? `0 4px 20px ${C.success}44` : 'none' }}>
+        {saving ? 'جاري الإرسال...' : '💰 أرسل طلب الراتب للمشرف'}
+      </button>
+    </div>
+  )
+}
+
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
   const {
     worker, workDays, payments, projects, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
-    login, logout, submitWorkDay, submitExpense,
+    login, logout, submitWorkDay, submitExpense, changePassword, requestPayment,
     monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
   } = useWorkerPortal()
 
@@ -520,33 +742,36 @@ export default function WorkerPortalScreen() {
   const pendingExpenses = workerExpenses.filter(e => e.status === 'pending')
 
   const tabs = [
-    { id: 'submit',   label: '📤 يوم عمل' },
+    { id: 'submit',   label: '📤 يوم' },
     { id: 'expense',  label: '💸 مصروف' },
+    { id: 'salary',   label: '💰 طلب راتب' },
     { id: 'monthly',  label: '📅 شهري' },
-    { id: 'payments', label: '💰 الرواتب' },
+    { id: 'account',  label: '⚙️ حساب' },
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, direction: 'rtl', fontFamily: "'Segoe UI',Tahoma,sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: C.bg, direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
       {/* Header */}
-      <div style={{ background: `linear-gradient(135deg, ${C.primary}22, ${C.surface})`, padding: '20px 16px 14px', borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ background: 'rgba(7,9,13,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', padding: '16px 16px 14px', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 50 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 46, height: 46, borderRadius: '50%', background: `${C.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: C.primary }}>
-              {worker.name?.[0] || '?'}
+            <div style={{ padding: 2, borderRadius: '50%', background: GRAD.brand }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, color: C.primary }}>
+                {worker.name?.[0] || '?'}
+              </div>
             </div>
             <div>
-              <div style={{ fontSize: 10, color: C.textDim }}>أهلاً 👋</div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{worker.name}</div>
+              <div style={{ fontSize: 10, color: C.textDim, fontWeight: 600 }}>أهلاً 👋</div>
+              <div style={{ fontSize: 16, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{worker.name}</div>
               {worker.specialization && (
-                <div style={{ fontSize: 11, color: C.primary }}>{worker.specialization.split(',')[0]}</div>
+                <div style={{ fontSize: 10, color: C.primary, fontWeight: 600 }}>{worker.specialization.split(',')[0]}</div>
               )}
             </div>
           </div>
           <button onClick={logout}
-            style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 11, cursor: 'pointer' }}>
-            خروج
+            style={{ padding: '7px 14px', borderRadius: 10, border: `1px solid ${C.accent}44`, background: `${C.accent}15`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+            🚪 خروج
           </button>
         </div>
       </div>
@@ -556,10 +781,14 @@ export default function WorkerPortalScreen() {
         <SummaryCard earned={totalEarned} paid={totalPaid} owed={totalOwed} pendingCount={pendingDays.length} />
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 4 }}>
           {tabs.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: `1.5px solid ${tab === t.id ? C.primary : C.border}`, background: tab === t.id ? `${C.primary}22` : 'transparent', color: tab === t.id ? C.primary : C.textDim, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+              style={{ flex: 1, padding: '9px 2px', borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 11, transition: 'all .2s',
+                background: tab === t.id ? GRAD.brand : 'transparent',
+                color: tab === t.id ? '#000' : C.textDim,
+                boxShadow: tab === t.id ? '0 4px 14px #00DDB344' : 'none',
+              }}>
               {t.label}
             </button>
           ))}
@@ -644,6 +873,19 @@ export default function WorkerPortalScreen() {
               ))
             )}
           </>
+        )}
+
+        {/* تبويب طلب راتب */}
+        {tab === 'salary' && (
+          <RequestPaymentForm
+            worker={worker}
+            onRequest={requestPayment}
+          />
+        )}
+
+        {/* تبويب الحساب وتغيير كلمة المرور */}
+        {tab === 'account' && (
+          <ChangePasswordForm worker={worker} onChangePassword={changePassword} />
         )}
 
         {/* تبويب المدفوعات */}

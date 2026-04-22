@@ -44,13 +44,15 @@ END;
 $$;
 
 -- ─── دالة: إرسال يوم عمل من العامل (يُحفظ كـ pending) ───────────────────────
+-- p_custom_amount: إذا أُرسل قيمة موجبة يُستخدم مباشرةً بدل الحساب من المعدل اليومي
 CREATE OR REPLACE FUNCTION worker_submit_day(
-  p_emp_id     UUID,
-  p_token      TEXT,
-  p_project_id UUID,
-  p_date       DATE,
-  p_day_type   TEXT,
-  p_hours      NUMERIC DEFAULT 8
+  p_emp_id        UUID,
+  p_token         TEXT,
+  p_project_id    UUID,
+  p_date          DATE,
+  p_day_type      TEXT,
+  p_hours         NUMERIC DEFAULT 8,
+  p_custom_amount NUMERIC DEFAULT NULL
 )
 RETURNS json
 LANGUAGE plpgsql
@@ -80,7 +82,10 @@ BEGIN
     RETURN json_build_object('error', 'يوجد يوم عمل مسجل بهذا التاريخ مسبقاً');
   END IF;
 
-  IF p_day_type = 'كامل' THEN
+  -- إذا أُرسل مبلغ مسكر يُستخدم مباشرةً
+  IF p_custom_amount IS NOT NULL AND p_custom_amount > 0 THEN
+    calculated_amount := p_custom_amount;
+  ELSIF p_day_type = 'كامل' THEN
     calculated_amount := emp.daily_rate;
   ELSIF p_day_type IN ('نص يوم', 'نصف') THEN
     calculated_amount := emp.daily_rate * 0.5;

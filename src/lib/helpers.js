@@ -72,9 +72,9 @@ export function validateExpense(form) {
  * التحقق من صحة نموذج الدفعة
  */
 export function validatePayment(form) {
-  if (!form.employeeId)                 return 'اختر العامل'
-  if (!form.amount)                     return 'المبلغ مطلوب'
-  if (parseFloat(form.amount) <= 0)     return 'المبلغ يجب أن يكون أكبر من صفر'
+  if (!form.employee_id)                 return 'اختر العامل'
+  if (!form.amount)                      return 'المبلغ مطلوب'
+  if (parseFloat(form.amount) <= 0)      return 'المبلغ يجب أن يكون أكبر من صفر'
   return null
 }
 
@@ -195,6 +195,10 @@ export function validateWorkDay(form) {
     const h = parseFloat(form.hours)
     if (!h || h <= 0)    return 'عدد الساعات يجب أن يكون أكبر من صفر'
     if (h > 24)          return 'عدد الساعات لا يمكن أن يتجاوز 24'
+  }
+  if (form.day_type === 'مبلغ مسكر') {
+    const a = parseFloat(form.customAmount)
+    if (!a || a <= 0)    return 'أدخل المبلغ المسكر'
   }
   return null
 }

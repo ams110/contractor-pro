@@ -11,7 +11,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const [saving,     setSaving]     = useState(false)
   const [approving,  setApproving]  = useState(null)
 
-  const emptyForm = { date: todayStr(), employee_id: '', project_id: '', day_type: 'كامل', hours: '8' }
+  const emptyForm = { date: todayStr(), employee_id: '', project_id: '', day_type: 'كامل', hours: '8', customAmount: '' }
   const [form, setForm] = useState(emptyForm)
 
   function f(key) { return v => setForm(prev => ({ ...prev, [key]: v })) }
@@ -19,7 +19,11 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const activeEmps  = employees.filter(e => e.status === 'نشط')
   const activeProjs = projects.filter(p => p.status === 'نشط')
   const selectedEmp = form.employee_id ? employees.find(e => e.id === form.employee_id) : null
-  const preview     = selectedEmp ? calcSalary(selectedEmp.daily_rate, form.day_type, form.hours) : 0
+  const preview     = selectedEmp
+    ? (form.day_type === 'مبلغ مسكر'
+        ? parseFloat(form.customAmount) || 0
+        : calcSalary(selectedEmp.daily_rate, form.day_type, form.hours))
+    : 0
 
   const pendingDays  = workDays.filter(wd => wd.status === 'pending')
   const approvedDays = workDays.filter(wd => wd.status !== 'pending')
@@ -35,8 +39,11 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     if (!selectedEmp) return setFormError('العامل غير موجود')
     setSaving(true)
     try {
-      const amount = calcSalary(selectedEmp.daily_rate, form.day_type, form.hours)
-      await addWorkDay({ ...form, amount, hours: parseFloat(form.hours) || 8 })
+      const amount = form.day_type === 'مبلغ مسكر'
+        ? parseFloat(form.customAmount)
+        : calcSalary(selectedEmp.daily_rate, form.day_type, form.hours)
+      const { customAmount: _skip, ...formData } = form
+      await addWorkDay({ ...formData, amount, hours: parseFloat(form.hours) || 8 })
       setForm(emptyForm)
       setShowForm(false)
     } catch (e) {
@@ -58,7 +65,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
   const sorted = [...approvedDays].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
 
-  const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue }
+  const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange }
 
   return (
     <div className="fade-in" style={{ padding: '16px 16px 40px', background: C.bg, minHeight: '100%' }}>
@@ -323,7 +330,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   {DAY_TYPES.map(t => {
                     const sel   = form.day_type === t
                     const color = DAY_TYPE_COLOR[t] || C.primary
-                    const icons = { 'كامل': '☀️', 'نص يوم': '🌤️', 'ساعات': '⏱️' }
+                    const icons = { 'كامل': '☀️', 'نص يوم': '🌤️', 'ساعات': '⏱️', 'مبلغ مسكر': '💵' }
                     return (
                       <button key={t} onClick={() => setDayType(t)}
                         style={{
@@ -349,6 +356,17 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
               {form.day_type === 'ساعات' && (
                 <Input label="عدد الساعات" value={form.hours} onChange={f('hours')} type="number" min="0.5" max="24" />
+              )}
+
+              {form.day_type === 'مبلغ مسكر' && (
+                <div style={{ marginBottom: 18 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'block', marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>المبلغ المسكر (₪) *</label>
+                  <input
+                    type="number" value={form.customAmount} min="1" step="1" placeholder="0"
+                    onChange={e => setForm(prev => ({ ...prev, customAmount: e.target.value }))}
+                    style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: `1.5px solid ${C.orange}77`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 22, fontWeight: 900, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }}
+                  />
+                </div>
               )}
 
               {/* Calculated amount preview */}
