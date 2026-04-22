@@ -111,6 +111,13 @@ export default function App() {
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
   useSalaryAlerts(uid, employees, workDays, payments)
 
+  // تسجيل الصفحات التي يشاهدها أعضاء الفريق — يجب أن يكون هنا (قبل أي early return)
+  React.useEffect(() => {
+    if (!permissions?.isOwner && uid && effectiveOwnerId && uid !== effectiveOwnerId) {
+      supabase.rpc('log_screen_view', { p_owner_id: effectiveOwnerId, p_screen: screen })
+    }
+  }, [screen])
+
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
   if (authLoading) {
@@ -146,13 +153,6 @@ export default function App() {
       </div>
     )
   }
-
-  // ─── تسجيل الصفحات التي يشاهدها أعضاء الفريق ───────────────────────────
-  React.useEffect(() => {
-    if (!permissions?.isOwner && uid && effectiveOwnerId && uid !== effectiveOwnerId) {
-      supabase.rpc('log_screen_view', { p_owner_id: effectiveOwnerId, p_screen: screen })
-    }
-  }, [screen])
 
   // ─── الشاشة الحالية ──────────────────────────────────────────────────────
   const p = permissions
