@@ -188,6 +188,21 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- ─── 2. أعمدة إضافية — تُضاف للجداول الموجودة (آمنة تماماً) ─────────────────
+ALTER TABLE payments  ADD COLUMN IF NOT EXISTS project_id  UUID REFERENCES projects(id) ON DELETE SET NULL;
+ALTER TABLE payments  ADD COLUMN IF NOT EXISTS status      TEXT DEFAULT 'approved';
+ALTER TABLE payments  ADD COLUMN IF NOT EXISTS notes       TEXT DEFAULT '';
+ALTER TABLE payments  ADD COLUMN IF NOT EXISTS receipt_url TEXT DEFAULT '';
+ALTER TABLE expenses  ADD COLUMN IF NOT EXISTS status      TEXT DEFAULT 'approved';
+ALTER TABLE expenses  ADD COLUMN IF NOT EXISTS employee_id UUID REFERENCES employees(id) ON DELETE SET NULL;
+ALTER TABLE expenses  ADD COLUMN IF NOT EXISTS receipt_url TEXT DEFAULT '';
+ALTER TABLE work_days ADD COLUMN IF NOT EXISTS status      TEXT DEFAULT 'approved';
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS worker_username      TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS worker_password_hash TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS worker_session_token TEXT;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS is_blocked   BOOLEAN DEFAULT false;
+
 -- ─── 3. RLS ──────────────────────────────────────────────────────────────────
 ALTER TABLE projects             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employees            ENABLE ROW LEVEL SECURITY;
