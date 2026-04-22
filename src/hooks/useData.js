@@ -135,10 +135,8 @@ export function useExpenses(userId) {
     await refetch()
   }
 
-  async function approveExpense(id, approverName) {
-    const { error } = await supabase.from('expenses')
-      .update({ status: 'approved', approved_by: approverName || null })
-      .eq('id', id).eq('user_id', userId)
+  async function approveExpense(id) {
+    const { error } = await supabase.from('expenses').update({ status: 'approved' }).eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
   }
@@ -157,18 +155,13 @@ export function usePayments(userId) {
   const { data, loading, error, refetch } = useTable('payments', userId)
 
   async function addPayment(form) {
-    const payload = { ...form, user_id: userId, status: 'approved' }
-    // إذا في مشروع → سجّل أيضاً كمصروف على المشروع
-    if (payload.project_id) {
-      const empRes = await supabase.from('employees').select('name').eq('id', payload.employee_id).single()
-      await supabase.from('expenses').insert({
-        user_id: userId, employee_id: payload.employee_id,
-        project_id: payload.project_id, date: payload.date,
-        amount: payload.amount, category: 'رواتب عمال',
-        vendor: empRes.data?.name || '', payment_method: payload.method || 'كاش', status: 'approved',
-      })
-    }
-    const { error } = await supabase.from('payments').insert(payload)
+    const { error } = await supabase.from('payments').insert({ ...form, user_id: userId })
+    if (error) throw error
+    await refetch()
+  }
+
+  async function updatePayment(id, form) {
+    const { error } = await supabase.from('payments').update(form).eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
   }
@@ -179,11 +172,8 @@ export function usePayments(userId) {
     await refetch()
   }
 
-  async function approvePaymentRequest(paymentId, projectId) {
-    const { data, error } = await supabase.rpc('approve_payment_request', {
-      p_payment_id: paymentId,
-      p_project_id: projectId || null,
-    })
+  async function approvePaymentRequest(paymentId, projectId = null) {
+    const { data, error } = await supabase.rpc('approve_payment_request', { p_payment_id: paymentId, p_project_id: projectId || null })
     if (error) throw error
     if (data?.error) throw new Error(data.error)
     await refetch()
@@ -196,7 +186,7 @@ export function usePayments(userId) {
     await refetch()
   }
 
-  return { payments: data, loading, error, addPayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, refetch }
+  return { payments: data, loading, error, addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, refetch }
 }
 
 /* ─── Holidays ─── */

@@ -19,23 +19,71 @@ const PERM_LABELS = [
 
 const DEFAULT_NEW_PERMS = Object.fromEntries(PERM_LABELS.map(([k]) => [k, false]))
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, addSpec, removeSpec, addExpCat, removeExpCat, pensionMonthly, setPensionMonthly, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember, showVatExpenses, showTaxDashboard, setFeature }) {
+function fmtRelative(ts) {
+  if (!ts) return null
+  const diff = Date.now() - new Date(ts).getTime()
+  const min  = Math.floor(diff / 60000)
+  if (min < 1)   return 'الآن'
+  if (min < 60)  return `منذ ${min} د`
+  const hr = Math.floor(min / 60)
+  if (hr  < 24)  return `منذ ${hr} س`
+  const days = Math.floor(hr / 24)
+  return `منذ ${days} يوم`
+}
+
+const ACTION_AR = { insert: 'أضاف', update: 'عدّل', delete: 'حذف', view: 'فتح' }
+const TBL_AR    = {
+  projects: 'مشروع', employees: 'عامل', expenses: 'مصروف',
+  payments: 'دفعة', work_days: 'يوم عمل',
+  dashboard: 'الرئيسية', projects_screen: 'المشاريع',
+  workers: 'العمال', workdays: 'أيام العمل',
+  settings: 'الإعدادات', payments_screen: 'الرواتب', expenses_screen: 'المصاريف',
+}
+const ACTION_ICON = { insert: '➕', update: '✏️', delete: '🗑️', view: '👁️' }
+const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, view: C.textDim }
+
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember, blockMember, getActivity }) {
   const { signOut, registerPasskey, isPasskeySupported, user } = useAuth()
-  const [confirmSignOut, setConfirmSignOut] = useState(false)
-  const [passkeyStatus,  setPasskeyStatus]  = useState('')
-  const [passkeyLoading, setPasskeyLoading] = useState(false)
-  const [newSpec,        setNewSpec]        = useState('')
-  const [newExpCat,      setNewExpCat]      = useState('')
-  const [editingName,    setEditingName]    = useState(false)
-  const [nameInput,      setNameInput]      = useState('')
-  const [uploadError,    setUploadError]    = useState('')
-  const [showInvite,     setShowInvite]     = useState(false)
-  const [inviteEmail,    setInviteEmail]    = useState('')
-  const [invitePerms,    setInvitePerms]    = useState(DEFAULT_NEW_PERMS)
-  const [inviting,       setInviting]       = useState(false)
-  const [inviteError,    setInviteError]    = useState('')
-  const [editingMember,  setEditingMember]  = useState(null)
-  const [editPerms,      setEditPerms]      = useState({})
+  const [confirmSignOut,  setConfirmSignOut]  = useState(false)
+  const [passkeyStatus,   setPasskeyStatus]   = useState('')
+  const [passkeyLoading,  setPasskeyLoading]  = useState(false)
+  const [newSpec,         setNewSpec]         = useState('')
+  const [newExpCat,       setNewExpCat]       = useState('')
+  const [newPayMethod,    setNewPayMethod]    = useState('')
+  const [editingName,     setEditingName]     = useState(false)
+  const [nameInput,       setNameInput]       = useState('')
+  const [uploadError,     setUploadError]     = useState('')
+  const [showInvite,      setShowInvite]      = useState(false)
+  const [inviteEmail,     setInviteEmail]     = useState('')
+  const [invitePerms,     setInvitePerms]     = useState(DEFAULT_NEW_PERMS)
+  const [inviting,        setInviting]        = useState(false)
+  const [inviteError,     setInviteError]     = useState('')
+  const [editingMember,   setEditingMember]   = useState(null)
+  const [editPerms,       setEditPerms]       = useState({})
+  const [activityMember,  setActivityMember]  = useState(null)   // { email, name }
+  const [activityData,    setActivityData]    = useState([])
+  const [activityLoading, setActivityLoading] = useState(false)
+  const [confirmBlock,    setConfirmBlock]    = useState(null)    // { id, email, blocked }
+
+  async function openActivity(m) {
+    setActivityMember(m)
+    setActivityLoading(true)
+    setActivityData([])
+    try { setActivityData(await getActivity(m.email)) }
+    catch { /* ignore */ }
+    finally { setActivityLoading(false) }
+  }
+
+  async function handleBlock(m, blocked) {
+    setConfirmBlock({ id: m.id, email: m.email, blocked })
+  }
+
+  async function confirmDoBlock() {
+    if (!confirmBlock) return
+    try { await blockMember(confirmBlock.id, confirmBlock.blocked) }
+    catch { /* ignore */ }
+    finally { setConfirmBlock(null) }
+  }
 
   async function handleRegisterPasskey() {
     setPasskeyLoading(true); setPasskeyStatus('')
@@ -155,32 +203,6 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
         </div>
       )}
 
-      {/* ── ميزات التطبيق ── */}
-      <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
-        <div style={{ height:3, background:GRAD.brand }} />
-        <div style={{ padding:'14px 16px' }}>
-          <SectionLabel color={C.primary}>⚙️ ميزات التطبيق</SectionLabel>
-          <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-            {[
-              { key:'showVatExpenses',  val: showVatExpenses,  label:'💰 ضريبة VAT في المصاريف',        sub:'الأعمدة الثلاثة (شامل / بدون / ضريبة 17%)' },
-              { key:'showTaxDashboard', val: showTaxDashboard, label:'📊 لوحة الضرائب الإسرائيلية',      sub:'מע"מ • עוסק פטור • ביטוח לאומי • ضريبة دخل' },
-            ].map(({ key, val, label, sub }) => (
-              <div key={key} onClick={() => setFeature?.(key, !val)}
-                style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0', borderBottom:`1px solid ${C.border}`, cursor:'pointer' }}>
-                <div>
-                  <div style={{ fontSize:13, fontWeight:700, color: val ? C.text : C.textDim }}>{label}</div>
-                  <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>{sub}</div>
-                </div>
-                {/* Toggle */}
-                <div style={{ width:44, height:24, borderRadius:12, background: val ? GRAD.brand : `${C.border}88`, position:'relative', transition:'background .2s', flexShrink:0 }}>
-                  <div style={{ position:'absolute', top:3, left: val ? 23 : 3, width:18, height:18, borderRadius:'50%', background:'#fff', transition:'left .2s', boxShadow:'0 1px 4px rgba(0,0,0,0.3)' }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </GlassCard>
-
       {/* ── التخصصات ── */}
       <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
         <div style={{ height:3, background:GRAD.blue }} />
@@ -227,6 +249,31 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
             />
             <button onClick={() => { if (newExpCat.trim()) { addExpCat(newExpCat); setNewExpCat('') } }}
               style={{ padding:'9px 14px', borderRadius:10, background:GRAD.warm, color:'#000', border:'none', cursor:'pointer', fontSize:14, fontWeight:800 }}>+</button>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ── طرق الدفع ── */}
+      <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
+        <div style={{ height:3, background:GRAD.success }} />
+        <div style={{ padding:'14px 16px' }}>
+          <SectionLabel color={C.success}>💳 طرق الدفع</SectionLabel>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
+            {(payMethods || []).map(m => (
+              <div key={m} style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 12px', borderRadius:20, background:`${C.success}18`, border:`1px solid ${C.success}33` }}>
+                <span style={{ color:C.success, fontSize:11, fontWeight:600 }}>{m}</span>
+                <button onClick={() => removePayMethod(m)} style={{ background:'none', border:'none', color:C.accent, cursor:'pointer', fontSize:13, padding:0, lineHeight:1 }}>×</button>
+              </div>
+            ))}
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            <input value={newPayMethod} onChange={e => setNewPayMethod(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && newPayMethod.trim()) { addPayMethod(newPayMethod); setNewPayMethod('') } }}
+              placeholder="طريقة دفع جديدة (فيزا، ביט، PayPal...)"
+              style={{ flex:1, padding:'9px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:12, outline:'none' }}
+            />
+            <button onClick={() => { if (newPayMethod.trim()) { addPayMethod(newPayMethod); setNewPayMethod('') } }}
+              style={{ padding:'9px 14px', borderRadius:10, background:GRAD.success, color:'#fff', border:'none', cursor:'pointer', fontSize:14, fontWeight:800 }}>+</button>
           </div>
         </div>
       </GlassCard>
@@ -289,41 +336,133 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
 
             {teamMembers.length === 0
               ? <div style={{ fontSize:12, color:C.textDim, textAlign:'center', padding:'8px 0' }}>لا يوجد أعضاء بعد</div>
-              : teamMembers.map(m => (
-                <div key={m.id} style={{ marginBottom:8, background:'rgba(255,255,255,0.04)', borderRadius:12, padding:12, border:`1px solid ${C.border}` }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <div>
-                      <div style={{ fontSize:12, fontWeight:700, color:C.text }}>{m.email}</div>
-                      <div style={{ fontSize:10, color: m.status==='active' ? C.success : C.warning, marginTop:2 }}>
-                        {m.status === 'active' ? '● نشط' : '⏳ في انتظار القبول'}
+              : teamMembers.map(m => {
+                const blocked   = !!m.is_blocked
+                const lastSeen  = fmtRelative(m.last_seen_at)
+                return (
+                  <div key={m.id} style={{ marginBottom:8, background: blocked ? `${C.accent}10` : 'rgba(255,255,255,0.04)', borderRadius:12, padding:12, border:`1px solid ${blocked ? C.accent + '44' : C.border}` }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color: blocked ? C.accent : C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.email}</div>
+                        <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:3, flexWrap:'wrap', gap:4 }}>
+                          {blocked
+                            ? <span style={{ fontSize:9, color:C.accent, fontWeight:700, background:`${C.accent}22`, padding:'2px 6px', borderRadius:4 }}>🚫 محجوب</span>
+                            : m.status === 'active'
+                              ? <span style={{ fontSize:9, color:C.success, fontWeight:700 }}>● نشط</span>
+                              : <span style={{ fontSize:9, color:C.warning }}>⏳ في انتظار القبول</span>
+                          }
+                          {m.status === 'active' && (
+                            <span style={{ fontSize:9, color:C.textDim }}>
+                              {lastSeen ? `🕐 ${lastSeen}` : '🕐 لم يدخل بعد'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ display:'flex', gap:4, flexShrink:0 }}>
+                        {m.status === 'active' && (
+                          <button onClick={() => openActivity(m)}
+                            title="سجل النشاط"
+                            style={{ background:'none', border:`1px solid ${C.primary}44`, borderRadius:8, cursor:'pointer', fontSize:13, padding:'4px 8px', color:C.primary }}>📋</button>
+                        )}
+                        {m.status === 'active' && (
+                          <button onClick={() => handleBlock(m, !blocked)}
+                            title={blocked ? 'رفع الحجب' : 'حجب الوصول'}
+                            style={{ background:'none', border:`1px solid ${blocked ? C.success + '44' : C.accent + '44'}`, borderRadius:8, cursor:'pointer', fontSize:13, padding:'4px 8px', color: blocked ? C.success : C.accent }}>
+                            {blocked ? '✅' : '🚫'}
+                          </button>
+                        )}
+                        <button onClick={() => { setEditingMember(m.id); setEditPerms(Object.fromEntries(PERM_LABELS.map(([k]) => [k, m[k]]))) }}
+                          style={{ background:'none', border:'none', cursor:'pointer', fontSize:15, padding:'4px' }}>✏️</button>
+                        <button onClick={() => removeMember(m.id)}
+                          style={{ background:'none', border:'none', cursor:'pointer', fontSize:15, padding:'4px' }}>🗑️</button>
                       </div>
                     </div>
-                    <div style={{ display:'flex', gap:6 }}>
-                      <button onClick={() => { setEditingMember(m.id); setEditPerms(Object.fromEntries(PERM_LABELS.map(([k]) => [k, m[k]]))) }}
-                        style={{ background:'none', border:'none', cursor:'pointer', fontSize:16 }}>✏️</button>
-                      <button onClick={() => removeMember(m.id)}
-                        style={{ background:'none', border:'none', cursor:'pointer', fontSize:16 }}>🗑️</button>
-                    </div>
+                    {editingMember === m.id && (
+                      <div style={{ marginTop:10 }}>
+                        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:8 }}>
+                          {PERM_LABELS.map(([key, label]) => (
+                            <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:C.text, cursor:'pointer' }}>
+                              <input type="checkbox" checked={!!editPerms[key]} onChange={e => setEditPerms(p => ({ ...p, [key]: e.target.checked }))} />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                        <div style={{ display:'flex', gap:6 }}>
+                          <Btn onClick={async () => { await updateMember(m.id, editPerms); setEditingMember(null) }} full>حفظ</Btn>
+                          <Btn onClick={() => setEditingMember(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {editingMember === m.id && (
-                    <div style={{ marginTop:10 }}>
-                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:8 }}>
-                        {PERM_LABELS.map(([key, label]) => (
-                          <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:C.text, cursor:'pointer' }}>
-                            <input type="checkbox" checked={!!editPerms[key]} onChange={e => setEditPerms(p => ({ ...p, [key]: e.target.checked }))} />
-                            {label}
-                          </label>
-                        ))}
-                      </div>
-                      <div style={{ display:'flex', gap:6 }}>
-                        <Btn onClick={async () => { await updateMember(m.id, editPerms); setEditingMember(null) }} full>حفظ</Btn>
-                        <Btn onClick={() => setEditingMember(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))
+                )
+              })
             }
+
+            {/* ── Activity Modal ── */}
+            {activityMember && (
+              <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.6)', backdropFilter:'blur(6px)' }}
+                onClick={e => { if (e.target === e.currentTarget) setActivityMember(null) }}>
+                <div style={{ width:'100%', maxWidth:430, background:C.surface, borderRadius:'24px 24px 0 0', padding:'0 0 32px', border:`1px solid ${C.borderMid}`, maxHeight:'80vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+                  <div style={{ height:4, background:GRAD.brand, borderRadius:'24px 24px 0 0' }} />
+                  <div style={{ padding:'16px 20px 12px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:`1px solid ${C.border}` }}>
+                    <div>
+                      <div style={{ fontSize:14, fontWeight:800, color:C.text }}>📋 سجل النشاط</div>
+                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{activityMember.email}</div>
+                    </div>
+                    <button onClick={() => setActivityMember(null)}
+                      style={{ width:32, height:32, borderRadius:'50%', background:'rgba(255,255,255,0.08)', border:`1px solid ${C.border}`, color:C.text, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+                  </div>
+                  <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
+                    {activityLoading
+                      ? <div style={{ textAlign:'center', padding:32, color:C.textDim, fontSize:12 }}>⏳ جاري التحميل...</div>
+                      : activityData.length === 0
+                        ? <div style={{ textAlign:'center', padding:32, color:C.textDim, fontSize:12 }}>لا يوجد نشاط مسجّل بعد</div>
+                        : activityData.map((a, i) => {
+                            const actionKey = a.action?.toLowerCase()
+                            const icon  = ACTION_ICON[actionKey]  || '•'
+                            const color = ACTION_COLOR[actionKey] || C.textDim
+                            const verb  = ACTION_AR[actionKey]    || a.action
+                            const name  = TBL_AR[a.tbl]           || a.tbl
+                            return (
+                              <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:`1px solid ${C.border}33` }}>
+                                <div style={{ width:30, height:30, borderRadius:'50%', background:`${color}18`, border:`1px solid ${color}33`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 }}>
+                                  {icon}
+                                </div>
+                                <div style={{ flex:1 }}>
+                                  <span style={{ fontSize:12, fontWeight:700, color }}>{verb}</span>
+                                  <span style={{ fontSize:12, color:C.text }}> {name}</span>
+                                </div>
+                                <div style={{ fontSize:10, color:C.textDim, flexShrink:0 }}>{fmtRelative(a.created_at)}</div>
+                              </div>
+                            )
+                          })
+                    }
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── تأكيد الحجب ── */}
+            {confirmBlock && (
+              <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.7)', backdropFilter:'blur(6px)', padding:24 }}>
+                <div style={{ background:C.surface, borderRadius:20, padding:24, maxWidth:320, width:'100%', border:`1px solid ${C.borderMid}` }}>
+                  <div style={{ fontSize:32, textAlign:'center', marginBottom:12 }}>{confirmBlock.blocked ? '🚫' : '✅'}</div>
+                  <div style={{ fontSize:14, fontWeight:800, color:C.text, textAlign:'center', marginBottom:8 }}>
+                    {confirmBlock.blocked ? 'حجب الوصول' : 'رفع الحجب'}
+                  </div>
+                  <div style={{ fontSize:12, color:C.textDim, textAlign:'center', marginBottom:20 }}>
+                    {confirmBlock.blocked
+                      ? `سيُمنع ${confirmBlock.email} من الدخول فوراً`
+                      : `سيستعيد ${confirmBlock.email} صلاحياته`
+                    }
+                  </div>
+                  <div style={{ display:'flex', gap:8 }}>
+                    <Btn onClick={confirmDoBlock} full style={{ background: confirmBlock.blocked ? GRAD.danger : GRAD.success }}>تأكيد</Btn>
+                    <Btn onClick={() => setConfirmBlock(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </GlassCard>
       )}

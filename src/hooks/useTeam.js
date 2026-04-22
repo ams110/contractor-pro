@@ -27,10 +27,11 @@ function rowToPerms(row) {
 }
 
 export function useTeam(userId, userEmail) {
-  const [membership,   setMembership]   = useState(null)
-  const [teamMembers,  setTeamMembers]  = useState([])
-  const [pendingInvite,setPendingInvite]= useState(null)
-  const [loading,      setLoading]      = useState(false)
+  const [membership,    setMembership]   = useState(null)
+  const [teamMembers,   setTeamMembers]  = useState([])
+  const [pendingInvite, setPendingInvite]= useState(null)
+  const [loading,       setLoading]      = useState(false)
+  const [isBlocked,     setIsBlocked]    = useState(false)
 
   useEffect(() => {
     if (!userId || !userEmail) return
@@ -44,7 +45,19 @@ export function useTeam(userId, userEmail) {
       supabase.from('team_members').select('*').eq('owner_id', userId),
       supabase.from('team_members').select('*').eq('email', userEmail).eq('status', 'pending').maybeSingle(),
     ])
-    setMembership(active || null)
+
+    if (active?.is_blocked) {
+      setIsBlocked(true)
+      setMembership(null)
+    } else {
+      setIsBlocked(false)
+      setMembership(active || null)
+      if (active) {
+        // تحديث last_seen بدون انتظار
+        supabase.rpc('update_member_last_seen', { p_owner_id: active.owner_id })
+      }
+    }
+
     setTeamMembers(team || [])
     setPendingInvite(pending || null)
     setLoading(false)
@@ -75,8 +88,24 @@ export function useTeam(userId, userEmail) {
     await load()
   }
 
+  async function blockMember(rowId, blocked) {
+    const { error } = await supabase.rpc('set_member_blocked', { p_row_id: rowId, p_blocked: blocked })
+    if (error) throw error
+    await load()
+  }
+
+  async function getActivity(email) {
+    const { data, error } = await supabase.rpc('get_member_activity', { p_actor_email: email, p_limit: 40 })
+    if (error) throw error
+    return data || []
+  }
+
   const permissions      = membership ? rowToPerms(membership) : OWNER_PERMS
   const effectiveOwnerId = membership ? membership.owner_id : userId
 
-  return { membership, teamMembers, pendingInvite, permissions, effectiveOwnerId, loading, acceptInvite, inviteMember, updateMember, removeMember }
+  return {
+    membership, teamMembers, pendingInvite, permissions, effectiveOwnerId,
+    loading, isBlocked,
+    acceptInvite, inviteMember, updateMember, removeMember, blockMember, getActivity,
+  }
 }
