@@ -111,7 +111,8 @@ export function useWorkDays(userId) {
   }
 
   async function rejectWorkDay(id) {
-    const { error } = await supabase.from('work_days').delete().eq('id', id).eq('user_id', userId)
+    const { error } = await supabase.from('work_days')
+      .update({ status: 'rejected' }).eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
   }

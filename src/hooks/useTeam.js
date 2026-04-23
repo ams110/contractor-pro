@@ -71,13 +71,25 @@ export function useTeam(userId, userEmail) {
   }
 
   async function inviteMember(email, perms) {
-    const { error } = await supabase.from('team_members').insert({ owner_id: userId, email, status: 'pending', ...perms })
+    const { allowed_project_ids, allowed_employee_ids, ...boolPerms } = perms
+    const row = {
+      owner_id: userId, email, status: 'pending', ...boolPerms,
+      allowed_project_ids:  allowed_project_ids?.length  ? allowed_project_ids  : null,
+      allowed_employee_ids: allowed_employee_ids?.length ? allowed_employee_ids : null,
+    }
+    const { error } = await supabase.from('team_members').insert(row)
     if (error) throw error
     await load()
   }
 
   async function updateMember(id, perms) {
-    const { error } = await supabase.from('team_members').update(perms).eq('id', id).eq('owner_id', userId)
+    const { allowed_project_ids, allowed_employee_ids, ...rest } = perms
+    const updates = {
+      ...rest,
+      allowed_project_ids:  allowed_project_ids?.length  ? allowed_project_ids  : null,
+      allowed_employee_ids: allowed_employee_ids?.length ? allowed_employee_ids : null,
+    }
+    const { error } = await supabase.from('team_members').update(updates).eq('id', id).eq('owner_id', userId)
     if (error) throw error
     await load()
   }

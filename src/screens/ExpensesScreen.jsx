@@ -1,16 +1,15 @@
 import React, { useState, useRef } from 'react'
-import { C, GRAD, EXP_CATS, PAY_METHODS, VAT } from '../constants/index.js'
+import { C, GRAD, EXP_CATS, PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense } from '../lib/helpers.js'
 import { GlassCard, Modal, Input, Btn, FilterChip, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
 import { exportExpensesToExcel } from '../lib/export.js'
-import { supabase } from '../lib/supabase.js'
 
 const CAT_ICONS   = { 'بضاعة':'🛒', 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
 const CAT_COLORS  = { 'بضاعة':C.pink, 'مواد':C.orange, 'عدد':C.blue, 'وقود':C.cyan, 'إيجار':C.purple, 'تأمين':C.success, 'أخرى':C.textDim }
 const FILTER_CATS = ['الكل', 'بضاعة', 'مواد', 'عدد', 'وقود', 'إيجار', 'تأمين', 'أخرى']
 
-export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions, showVatExpenses = true }) {
+export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions, vatEnabled = true, vatRate = 17 }) {
   const [showForm,    setShowForm]    = useState(false)
   const [filter,      setFilter]      = useState('الكل')
   const [confirmDel,  setConfirmDel]  = useState(null)
@@ -18,8 +17,6 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
   const [saving,      setSaving]      = useState(false)
   const [receiptFile, setReceiptFile] = useState(null)
   const [preview,     setPreview]     = useState('')
-  const [scanning,    setScanning]    = useState(false)
-  const [scanMsg,     setScanMsg]     = useState('')
   const fileRef = useRef()
 
   const emptyForm = { date: todayStr(), amount:'', category:'', project_id:'', vendor:'', payment_method:'' }
@@ -33,33 +30,6 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
     setScanMsg('')
     if (file.type.startsWith('image/')) setPreview(URL.createObjectURL(file))
     else setPreview('')
-  }
-
-  async function scanReceipt() {
-    if (!receiptFile || !receiptFile.type.startsWith('image/')) return
-    setScanning(true); setScanMsg('')
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result.split(',')[1])
-        reader.onerror = reject
-        reader.readAsDataURL(receiptFile)
-      })
-      const { data, error } = await supabase.functions.invoke('scan-receipt', {
-        body: { imageBase64: base64, mimeType: receiptFile.type },
-      })
-      if (error) throw new Error(error.message)
-      const r = data?.result || {}
-      setForm(prev => ({
-        ...prev,
-        amount:   r.amount   ? String(r.amount) : prev.amount,
-        vendor:   r.vendor   || prev.vendor,
-        date:     r.date     || prev.date,
-        category: r.category || prev.category,
-      }))
-      setScanMsg('✓ تم استخراج البيانات تلقائياً')
-    } catch (e) { setScanMsg(`⚠ ${e.message}`) }
-    finally     { setScanning(false) }
   }
 
   async function save() {
@@ -77,8 +47,9 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
   const pendingExpenses  = expenses.filter(e => e.status === 'pending')
   const approvedExpenses = expenses.filter(e => e.status !== 'pending')
+  const VAT_RATIO = (vatRate || 17) / 100
   const total  = approvedExpenses.reduce((s, e) => s + e.amount, 0)
-  const noVAT  = Math.round(total / (1 + VAT))
+  const noVAT  = Math.round(total / (1 + VAT_RATIO))
   const filtered = approvedExpenses.filter(e => filter === 'الكل' || e.category?.includes(filter))
   const sorted   = [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
 
@@ -123,7 +94,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
           <div style={{ height:3, background:GRAD.danger }} />
           <div style={{ padding:'14px 16px', display:'flex', justifyContent:'space-around' }}>
-            {showVatExpenses ? (
+            {vatEnabled ? (
               <>
                 <div style={{ textAlign:'center' }}>
                   <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>شامل الضريبة</div>
@@ -136,7 +107,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                 </div>
                 <div style={{ width:1, background:C.border }} />
                 <div style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>ضريبة 17%</div>
+                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>ضريبة {vatRate}%</div>
                   <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace' }}>{fmt(total - noVAT)}₪</div>
                 </div>
               </>
@@ -275,10 +246,10 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         <Input label="التاريخ"    value={form.date}   onChange={f('date')}   type="date" required />
         <Input label="المبلغ (₪)" value={form.amount} onChange={f('amount')} type="number" min="0.01" required />
 
-        {showVatExpenses && form.amount && parseFloat(form.amount) > 0 && (
+        {vatEnabled && form.amount && parseFloat(form.amount) > 0 && (
           <div style={{ marginTop:-8, marginBottom:14, padding:'8px 12px', background:`${C.border}33`, borderRadius:10, display:'flex', justifyContent:'space-between' }}>
-            <span style={{ fontSize:11, color:C.textDim }}>بدون ضريبة: {fmt(Math.round(parseFloat(form.amount) / (1 + VAT)))}₪</span>
-            <span style={{ fontSize:11, color:C.textDim }}>ضريبة: {fmt(Math.round(parseFloat(form.amount) - parseFloat(form.amount) / (1 + VAT)))}₪</span>
+            <span style={{ fontSize:11, color:C.textDim }}>بدون ضريبة: {fmt(Math.round(parseFloat(form.amount) / (1 + VAT_RATIO)))}₪</span>
+            <span style={{ fontSize:11, color:C.textDim }}>ضريبة {vatRate}%: {fmt(Math.round(parseFloat(form.amount) - parseFloat(form.amount) / (1 + VAT_RATIO)))}₪</span>
           </div>
         )}
 
@@ -301,22 +272,14 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         <Input label="المحل / المورّد" value={form.vendor}         onChange={f('vendor')} />
         <Input label="طريقة الدفع"    value={form.payment_method} onChange={f('payment_method')} options={PAY_METHODS} />
 
-        {/* رفع الفاتورة + AI scan */}
+        {/* رفع الفاتورة */}
         <div style={{ marginBottom:14 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-            <label style={{ fontSize:12, color:C.textDim, fontWeight:600 }}>📎 فاتورة / إثبات (اختياري)</label>
-            {receiptFile && receiptFile.type.startsWith('image/') && (
-              <button onClick={scanReceipt} disabled={scanning}
-                style={{ padding:'4px 10px', borderRadius:8, border:`1px solid ${C.primary}55`, background:`${C.primary}15`, color:C.primary, fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                {scanning ? '⏳' : '🤖 AI مسح'}
-              </button>
-            )}
-          </div>
+          <label style={{ fontSize:12, color:C.textDim, fontWeight:600, display:'block', marginBottom:6 }}>📎 فاتورة / إثبات (اختياري)</label>
           <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={pickFile} />
           {preview
             ? <div style={{ position:'relative' }}>
                 <img src={preview} alt="فاتورة" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:12, border:`1px solid ${C.border}` }} />
-                <button onClick={() => { setReceiptFile(null); setPreview(''); setScanMsg('') }}
+                <button onClick={() => { setReceiptFile(null); setPreview('') }}
                   style={{ position:'absolute', top:6, left:6, background:`${C.accent}dd`, border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
               </div>
             : receiptFile
@@ -326,7 +289,6 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                 📷 اضغط لرفع صورة الفاتورة
               </button>
           }
-          {scanMsg && <div style={{ marginTop:6, fontSize:11, color: scanMsg.startsWith('✓') ? C.success : C.accent, fontWeight:600 }}>{scanMsg}</div>}
         </div>
 
         {formError && <div style={{ padding:'10px 12px', background:`${C.accent}18`, borderRadius:10, fontSize:12, color:C.accent, marginBottom:14, fontWeight:600 }}>⚠ {formError}</div>}

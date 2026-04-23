@@ -4,16 +4,15 @@ import { SPECS, EXP_CATS, PAY_METHODS } from '../constants/index.js'
 export function useSettings(userId) {
   const key = userId ? `settings_${userId}` : null
 
+  const DEFAULTS = { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh', vatEnabled: true, vatRate: 17 }
+
   function load() {
-    if (!key) return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh' }
+    if (!key) return DEFAULTS
     try {
       const saved = localStorage.getItem(key)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        return { payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh', ...parsed }
-      }
+      if (saved) return { ...DEFAULTS, ...JSON.parse(saved) }
     } catch {}
-    return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh' }
+    return DEFAULTS
   }
 
   const [settings, setSettings] = useState(load)
@@ -59,6 +58,16 @@ export function useSettings(userId) {
     save({ ...settings, businessType: val })
   }
 
+  function setVatEnabled(val) {
+    save({ ...settings, vatEnabled: !!val })
+  }
+
+  function setVatRate(val) {
+    const rate = parseFloat(val)
+    if (!isNaN(rate) && rate > 0 && rate <= 100)
+      save({ ...settings, vatRate: rate })
+  }
+
   function addPayMethod(method) {
     const m = method.trim()
     if (!m || settings.payMethods.includes(m)) return
@@ -76,11 +85,13 @@ export function useSettings(userId) {
     pensionMonthly: settings.pensionMonthly || 0,
     taxEnabled:     settings.taxEnabled !== false,
     businessType:   settings.businessType || 'osek_moreh',
+    vatEnabled:     settings.vatEnabled !== false,
+    vatRate:        settings.vatRate || 17,
     addSpec,        removeSpec,
     addExpCat,      removeExpCat,
     addPayMethod,   removePayMethod,
     setPensionMonthly,
-    setTaxEnabled,
-    setBusinessType,
+    setTaxEnabled,   setBusinessType,
+    setVatEnabled,   setVatRate,
   }
 }

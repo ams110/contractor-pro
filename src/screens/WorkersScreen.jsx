@@ -31,7 +31,37 @@ function IconBtn({ icon, label, onClick, color = C.textDim, active, activeColor 
   )
 }
 
-export default function WorkersScreen({ employees, workDays, payments, advances = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday }) {
+const PERM_LABELS = [
+  ['can_view_projects',  'مشاهدة المشاريع'],
+  ['can_edit_projects',  'إضافة/تعديل المشاريع'],
+  ['can_view_workers',   'مشاهدة العمال'],
+  ['can_edit_workers',   'إضافة/تعديل العمال'],
+  ['can_view_expenses',  'مشاهدة المصاريف'],
+  ['can_add_expenses',   'إضافة المصاريف'],
+  ['can_view_payments',  'مشاهدة الرواتب'],
+  ['can_add_payments',   'إضافة الرواتب'],
+  ['can_delete',         'حذف السجلات'],
+  ['can_manage_team',    'إدارة الفريق'],
+]
+const DEFAULT_PERMS = Object.fromEntries(PERM_LABELS.map(([k]) => [k, false]))
+
+function fmtRelative(ts) {
+  if (!ts) return null
+  const diff = Date.now() - new Date(ts).getTime()
+  const min  = Math.floor(diff / 60000)
+  if (min < 1)  return 'الآن'
+  if (min < 60) return `منذ ${min} د`
+  const hr = Math.floor(min / 60)
+  if (hr < 24)  return `منذ ${hr} س`
+  return `منذ ${Math.floor(hr / 24)} يوم`
+}
+
+const ACTION_AR    = { insert:'أضاف', update:'عدّل', delete:'حذف', view:'فتح' }
+const ACTION_ICON  = { insert:'➕', update:'✏️', delete:'🗑️', view:'👁️' }
+const ACTION_COLOR = { insert:C.success, update:C.primary, delete:C.accent, view:C.textDim }
+const TBL_AR = { projects:'مشروع', employees:'عامل', expenses:'مصروف', payments:'دفعة', work_days:'يوم عمل', dashboard:'الرئيسية' }
+
+export default function WorkersScreen({ employees, workDays, payments, advances = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, projects = [], teamMembers = [], inviteMember, updateMember, removeMember, blockMember, getActivity }) {
   const [showForm,   setShowForm]   = useState(false)
   const [editing,    setEditing]    = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
@@ -58,6 +88,61 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
 
   // نسخ رابط البوابة
   const [copied, setCopied] = useState(false)
+
+  // فريق العمل
+  const [showTeam,        setShowTeam]        = useState(false)
+  const [showInvite,      setShowInvite]       = useState(false)
+  const [inviteEmail,     setInviteEmail]      = useState('')
+  const [invitePerms,     setInvitePerms]      = useState(DEFAULT_PERMS)
+  const [inviteProjects,  setInviteProjects]   = useState([])
+  const [inviteEmps,      setInviteEmps]       = useState([])
+  const [inviting,        setInviting]         = useState(false)
+  const [inviteError,     setInviteError]      = useState('')
+  const [editingMember,   setEditingMember]    = useState(null)
+  const [editPerms,       setEditPerms]        = useState({})
+  const [editProjects,    setEditProjects]     = useState([])
+  const [editEmps,        setEditEmps]         = useState([])
+  const [activityMember,  setActivityMember]   = useState(null)
+  const [activityData,    setActivityData]     = useState([])
+  const [activityLoading, setActivityLoading]  = useState(false)
+  const [confirmBlock,    setConfirmBlock]     = useState(null)
+
+  async function openActivity(m) {
+    setActivityMember(m); setActivityLoading(true); setActivityData([])
+    try { setActivityData(await getActivity(m.email)) } catch { /**/ }
+    finally { setActivityLoading(false) }
+  }
+
+  function openEditMember(m) {
+    setEditingMember(m.id)
+    setEditPerms(Object.fromEntries(PERM_LABELS.map(([k]) => [k, !!m[k]])))
+    setEditProjects(m.allowed_project_ids || [])
+    setEditEmps(m.allowed_employee_ids || [])
+  }
+
+  function toggleArr(arr, setArr, id) {
+    setArr(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  async function doInvite() {
+    if (!inviteEmail.trim() || !inviteEmail.includes('@')) return setInviteError('أدخل إيميل صحيح')
+    setInviting(true)
+    try {
+      await inviteMember(inviteEmail.trim(), {
+        ...invitePerms,
+        allowed_project_ids:  inviteProjects,
+        allowed_employee_ids: inviteEmps,
+      })
+      setShowInvite(false); setInviteEmail(''); setInvitePerms(DEFAULT_PERMS)
+      setInviteProjects([]); setInviteEmps([]); setInviteError('')
+    } catch (e) { setInviteError(e.message) }
+    finally { setInviting(false) }
+  }
+
+  async function doUpdateMember(id) {
+    await updateMember(id, { ...editPerms, allowed_project_ids: editProjects, allowed_employee_ids: editEmps })
+    setEditingMember(null)
+  }
 
   function copyPortalLink() {
     const url = `${window.location.origin}${window.location.pathname}?portal`
@@ -172,6 +257,12 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {permissions?.manageTeam !== false && teamMembers !== undefined && (
+            <button onClick={() => setShowTeam(true)}
+              style={{ display:'flex', alignItems:'center', gap:5, padding:'8px 13px', borderRadius:12, border:`1px solid ${C.success}44`, background:`${C.success}12`, color:C.success, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+              👥 الفريق {teamMembers.length > 0 && `(${teamMembers.length})`}
+            </button>
+          )}
           <button
             onClick={copyPortalLink}
             title="نسخ رابط بوابة العمال"
@@ -582,6 +673,257 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         addHoliday={addHoliday}
         deleteHoliday={deleteHoliday}
       />
+
+      {/* ════ Team Panel ════ */}
+      {showTeam && (
+        <div style={{ position:'fixed', inset:0, zIndex:300, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.65)', backdropFilter:'blur(8px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowTeam(false) }}>
+          <div style={{ width:'100%', maxWidth:440, background:C.surface, borderRadius:'24px 24px 0 0', border:`1px solid ${C.borderMid}`, maxHeight:'90vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+            <div style={{ height:4, background:GRAD.success, borderRadius:'24px 24px 0 0' }} />
+            <div style={{ padding:'16px 20px 12px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:`1px solid ${C.border}` }}>
+              <div style={{ fontSize:15, fontWeight:800, color:C.text }}>👥 أعضاء الفريق</div>
+              <div style={{ display:'flex', gap:8 }}>
+                <button onClick={() => { setShowInvite(v => !v); setInviteError('') }}
+                  style={{ padding:'6px 14px', borderRadius:10, background:`${C.success}20`, color:C.success, border:`1px solid ${C.success}44`, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                  + دعوة
+                </button>
+                <button onClick={() => setShowTeam(false)}
+                  style={{ width:32, height:32, borderRadius:'50%', background:'rgba(255,255,255,0.08)', border:`1px solid ${C.border}`, color:C.text, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+              </div>
+            </div>
+            <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
+
+              {/* ── Invite Form ── */}
+              {showInvite && (
+                <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:14, padding:14, marginBottom:14, border:`1px solid ${C.border}` }}>
+                  <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+                    placeholder="إيميل الشخص المدعو"
+                    style={{ width:'100%', padding:'9px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:12, marginBottom:12, boxSizing:'border-box', outline:'none' }}
+                  />
+                  <div style={{ fontSize:11, color:C.textDim, marginBottom:8, fontWeight:700 }}>الصلاحيات:</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
+                    {PERM_LABELS.map(([key, label]) => (
+                      <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:C.text, cursor:'pointer' }}>
+                        <input type="checkbox" checked={!!invitePerms[key]} onChange={e => setInvitePerms(p => ({ ...p, [key]: e.target.checked }))} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                  {/* تحديد المشاريع المسموح بها */}
+                  {invitePerms.can_view_projects && projects.length > 0 && (
+                    <div style={{ marginBottom:10 }}>
+                      <div style={{ fontSize:11, color:C.primary, fontWeight:700, marginBottom:6 }}>📁 تحديد المشاريع (فارغ = الكل):</div>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                        {projects.map(p => (
+                          <button key={p.id} onClick={() => toggleArr(inviteProjects, setInviteProjects, p.id)}
+                            style={{ padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:600, cursor:'pointer', border:`1px solid ${inviteProjects.includes(p.id) ? C.primary : C.border}`, background: inviteProjects.includes(p.id) ? `${C.primary}22` : 'transparent', color: inviteProjects.includes(p.id) ? C.primary : C.textDim }}>
+                            {p.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* تحديد العمال المسموح بهم */}
+                  {invitePerms.can_view_workers && employees.length > 0 && (
+                    <div style={{ marginBottom:10 }}>
+                      <div style={{ fontSize:11, color:C.secondary, fontWeight:700, marginBottom:6 }}>👷 تحديد العمال (فارغ = الكل):</div>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                        {employees.map(emp => (
+                          <button key={emp.id} onClick={() => toggleArr(inviteEmps, setInviteEmps, emp.id)}
+                            style={{ padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:600, cursor:'pointer', border:`1px solid ${inviteEmps.includes(emp.id) ? C.secondary : C.border}`, background: inviteEmps.includes(emp.id) ? `${C.secondary}22` : 'transparent', color: inviteEmps.includes(emp.id) ? C.secondary : C.textDim }}>
+                            {emp.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {inviteError && <div style={{ fontSize:11, color:C.accent, marginBottom:8 }}>{inviteError}</div>}
+                  <Btn onClick={doInvite} full disabled={inviting}>{inviting ? '...' : 'إرسال الدعوة'}</Btn>
+                </div>
+              )}
+
+              {/* ── Members List ── */}
+              {teamMembers.length === 0
+                ? <div style={{ textAlign:'center', padding:'24px 0', color:C.textDim, fontSize:13 }}>لا يوجد أعضاء بعد</div>
+                : teamMembers.map(m => {
+                  const blocked  = !!m.is_blocked
+                  const lastSeen = fmtRelative(m.last_seen_at)
+                  const isEditing = editingMember === m.id
+                  return (
+                    <div key={m.id} style={{ marginBottom:8, background: blocked ? `${C.accent}10` : 'rgba(255,255,255,0.04)', borderRadius:14, border:`1px solid ${blocked ? C.accent + '44' : C.border}`, overflow:'hidden' }}>
+                      <div style={{ padding:'12px 14px', display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:13, fontWeight:700, color: blocked ? C.accent : C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.email}</div>
+                          <div style={{ display:'flex', gap:6, marginTop:4, flexWrap:'wrap', alignItems:'center' }}>
+                            {blocked
+                              ? <span style={{ fontSize:10, color:C.accent, fontWeight:700, background:`${C.accent}22`, padding:'2px 7px', borderRadius:5 }}>🚫 محجوب</span>
+                              : m.status === 'active'
+                                ? <span style={{ fontSize:10, color:C.success, fontWeight:700 }}>● نشط</span>
+                                : <span style={{ fontSize:10, color:C.warning }}>⏳ في انتظار القبول</span>
+                            }
+                            {m.status === 'active' && (
+                              <span style={{ fontSize:10, color:C.textDim }}>{lastSeen ? `🕐 ${lastSeen}` : '🕐 لم يدخل بعد'}</span>
+                            )}
+                          </div>
+                          {/* عرض ملخص الصلاحيات */}
+                          {!isEditing && m.status === 'active' && (
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:3, marginTop:5 }}>
+                              {PERM_LABELS.filter(([k]) => m[k]).map(([k, label]) => (
+                                <span key={k} style={{ fontSize:9, color:C.primary, background:`${C.primary}15`, padding:'2px 6px', borderRadius:4, fontWeight:600 }}>{label}</span>
+                              ))}
+                              {m.allowed_project_ids?.length > 0 && (
+                                <span style={{ fontSize:9, color:C.warning, background:`${C.warning}15`, padding:'2px 6px', borderRadius:4, fontWeight:600 }}>
+                                  {m.allowed_project_ids.length} مشروع محدد
+                                </span>
+                              )}
+                              {m.allowed_employee_ids?.length > 0 && (
+                                <span style={{ fontSize:9, color:C.secondary, background:`${C.secondary}15`, padding:'2px 6px', borderRadius:4, fontWeight:600 }}>
+                                  {m.allowed_employee_ids.length} عامل محدد
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display:'flex', gap:4, flexShrink:0, marginRight:6 }}>
+                          {m.status === 'active' && (
+                            <button onClick={() => openActivity(m)} title="سجل النشاط"
+                              style={{ background:'none', border:`1px solid ${C.primary}44`, borderRadius:8, cursor:'pointer', fontSize:13, padding:'4px 8px', color:C.primary }}>📋</button>
+                          )}
+                          {m.status === 'active' && (
+                            <button onClick={() => setConfirmBlock({ id:m.id, email:m.email, blocked:!blocked })}
+                              title={blocked ? 'رفع الحجب' : 'حجب الوصول'}
+                              style={{ background:'none', border:`1px solid ${blocked ? C.success + '44' : C.accent + '44'}`, borderRadius:8, cursor:'pointer', fontSize:13, padding:'4px 8px', color: blocked ? C.success : C.accent }}>
+                              {blocked ? '✅' : '🚫'}
+                            </button>
+                          )}
+                          <button onClick={() => isEditing ? setEditingMember(null) : openEditMember(m)}
+                            style={{ background:'none', border:'none', cursor:'pointer', fontSize:15, padding:'4px' }}>
+                            {isEditing ? '✕' : '✏️'}
+                          </button>
+                          <button onClick={() => removeMember(m.id)}
+                            style={{ background:'none', border:'none', cursor:'pointer', fontSize:15, padding:'4px' }}>🗑️</button>
+                        </div>
+                      </div>
+
+                      {/* ── Edit Permissions ── */}
+                      {isEditing && (
+                        <div style={{ padding:'0 14px 14px', borderTop:`1px solid ${C.border}` }}>
+                          <div style={{ paddingTop:10 }}>
+                            <div style={{ fontSize:11, color:C.textDim, fontWeight:700, marginBottom:8 }}>الصلاحيات:</div>
+                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:5, marginBottom:10 }}>
+                              {PERM_LABELS.map(([key, label]) => (
+                                <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:C.text, cursor:'pointer' }}>
+                                  <input type="checkbox" checked={!!editPerms[key]} onChange={e => setEditPerms(p => ({ ...p, [key]: e.target.checked }))} />
+                                  {label}
+                                </label>
+                              ))}
+                            </div>
+
+                            {/* تحديد المشاريع */}
+                            {editPerms.can_view_projects && projects.length > 0 && (
+                              <div style={{ marginBottom:10 }}>
+                                <div style={{ fontSize:11, color:C.primary, fontWeight:700, marginBottom:6 }}>📁 المشاريع المسموح بها (فارغ = الكل):</div>
+                                <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                                  {projects.map(p => (
+                                    <button key={p.id} onClick={() => toggleArr(editProjects, setEditProjects, p.id)}
+                                      style={{ padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:600, cursor:'pointer', border:`1px solid ${editProjects.includes(p.id) ? C.primary : C.border}`, background: editProjects.includes(p.id) ? `${C.primary}22` : 'transparent', color: editProjects.includes(p.id) ? C.primary : C.textDim }}>
+                                      {p.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* تحديد العمال */}
+                            {editPerms.can_view_workers && employees.length > 0 && (
+                              <div style={{ marginBottom:10 }}>
+                                <div style={{ fontSize:11, color:C.secondary, fontWeight:700, marginBottom:6 }}>👷 العمال المسموح بهم (فارغ = الكل):</div>
+                                <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                                  {employees.map(emp => (
+                                    <button key={emp.id} onClick={() => toggleArr(editEmps, setEditEmps, emp.id)}
+                                      style={{ padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:600, cursor:'pointer', border:`1px solid ${editEmps.includes(emp.id) ? C.secondary : C.border}`, background: editEmps.includes(emp.id) ? `${C.secondary}22` : 'transparent', color: editEmps.includes(emp.id) ? C.secondary : C.textDim }}>
+                                      {emp.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div style={{ display:'flex', gap:6 }}>
+                              <Btn onClick={() => doUpdateMember(m.id)} full>حفظ</Btn>
+                              <Btn onClick={() => setEditingMember(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              }
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Activity Modal ── */}
+      {activityMember && (
+        <div style={{ position:'fixed', inset:0, zIndex:400, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.7)', backdropFilter:'blur(8px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setActivityMember(null) }}>
+          <div style={{ width:'100%', maxWidth:440, background:C.surface, borderRadius:'24px 24px 0 0', border:`1px solid ${C.borderMid}`, maxHeight:'80vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+            <div style={{ height:4, background:GRAD.brand, borderRadius:'24px 24px 0 0' }} />
+            <div style={{ padding:'16px 20px 12px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:`1px solid ${C.border}` }}>
+              <div>
+                <div style={{ fontSize:14, fontWeight:800 }}>📋 سجل النشاط</div>
+                <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{activityMember.email}</div>
+              </div>
+              <button onClick={() => setActivityMember(null)}
+                style={{ width:32, height:32, borderRadius:'50%', background:'rgba(255,255,255,0.08)', border:`1px solid ${C.border}`, color:C.text, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+            </div>
+            <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
+              {activityLoading
+                ? <div style={{ textAlign:'center', padding:32, color:C.textDim, fontSize:13 }}>⏳ جاري التحميل...</div>
+                : activityData.length === 0
+                  ? <div style={{ textAlign:'center', padding:32, color:C.textDim, fontSize:13 }}>لا يوجد نشاط مسجّل بعد</div>
+                  : activityData.map((a, i) => {
+                      const ak = a.action?.toLowerCase()
+                      return (
+                        <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:`1px solid ${C.border}33` }}>
+                          <div style={{ width:30, height:30, borderRadius:'50%', background:`${ACTION_COLOR[ak] || C.textDim}18`, border:`1px solid ${ACTION_COLOR[ak] || C.textDim}33`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 }}>
+                            {ACTION_ICON[ak] || '•'}
+                          </div>
+                          <div style={{ flex:1 }}>
+                            <span style={{ fontSize:12, fontWeight:700, color:ACTION_COLOR[ak] || C.textDim }}>{ACTION_AR[ak] || a.action}</span>
+                            <span style={{ fontSize:12, color:C.text }}> {TBL_AR[a.tbl] || a.tbl}</span>
+                          </div>
+                          <div style={{ fontSize:10, color:C.textDim, flexShrink:0 }}>{fmtRelative(a.created_at)}</div>
+                        </div>
+                      )
+                    })
+              }
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm Block ── */}
+      {confirmBlock && (
+        <div style={{ position:'fixed', inset:0, zIndex:500, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.7)', backdropFilter:'blur(8px)', padding:24 }}>
+          <div style={{ background:C.surface, borderRadius:20, padding:24, maxWidth:320, width:'100%', border:`1px solid ${C.borderMid}` }}>
+            <div style={{ fontSize:32, textAlign:'center', marginBottom:12 }}>{confirmBlock.blocked ? '🚫' : '✅'}</div>
+            <div style={{ fontSize:14, fontWeight:800, textAlign:'center', marginBottom:8 }}>
+              {confirmBlock.blocked ? 'حجب الوصول' : 'رفع الحجب'}
+            </div>
+            <div style={{ fontSize:12, color:C.textDim, textAlign:'center', marginBottom:20 }}>
+              {confirmBlock.blocked ? `سيُمنع ${confirmBlock.email} من الدخول فوراً` : `سيستعيد ${confirmBlock.email} صلاحياته`}
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <Btn onClick={async () => { await blockMember(confirmBlock.id, confirmBlock.blocked); setConfirmBlock(null) }} full
+                style={{ background: confirmBlock.blocked ? GRAD.danger : GRAD.success }}>تأكيد</Btn>
+              <Btn onClick={() => setConfirmBlock(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

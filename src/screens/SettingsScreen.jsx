@@ -4,45 +4,7 @@ import { Btn, GlassCard, SectionLabel, ConfirmDialog } from '../components/index
 import { useAuth } from '../hooks/useAuth.js'
 import { exportFullReportToExcel, exportTaxSummary } from '../lib/export.js'
 
-const PERM_LABELS = [
-  ['can_view_projects',  'مشاهدة المشاريع'],
-  ['can_edit_projects',  'إضافة/تعديل المشاريع'],
-  ['can_view_workers',   'مشاهدة العمال'],
-  ['can_edit_workers',   'إضافة/تعديل العمال'],
-  ['can_view_expenses',  'مشاهدة المصاريف'],
-  ['can_add_expenses',   'إضافة المصاريف'],
-  ['can_view_payments',  'مشاهدة الرواتب'],
-  ['can_add_payments',   'إضافة الرواتب'],
-  ['can_delete',         'حذف السجلات'],
-  ['can_manage_team',    'إدارة الفريق'],
-]
-
-const DEFAULT_NEW_PERMS = Object.fromEntries(PERM_LABELS.map(([k]) => [k, false]))
-
-function fmtRelative(ts) {
-  if (!ts) return null
-  const diff = Date.now() - new Date(ts).getTime()
-  const min  = Math.floor(diff / 60000)
-  if (min < 1)   return 'الآن'
-  if (min < 60)  return `منذ ${min} د`
-  const hr = Math.floor(min / 60)
-  if (hr  < 24)  return `منذ ${hr} س`
-  const days = Math.floor(hr / 24)
-  return `منذ ${days} يوم`
-}
-
-const ACTION_AR = { insert: 'أضاف', update: 'عدّل', delete: 'حذف', view: 'فتح' }
-const TBL_AR    = {
-  projects: 'مشروع', employees: 'عامل', expenses: 'مصروف',
-  payments: 'دفعة', work_days: 'يوم عمل',
-  dashboard: 'الرئيسية', projects_screen: 'المشاريع',
-  workers: 'العمال', workdays: 'أيام العمل',
-  settings: 'الإعدادات', payments_screen: 'الرواتب', expenses_screen: 'المصاريف',
-}
-const ACTION_ICON = { insert: '➕', update: '✏️', delete: '🗑️', view: '👁️' }
-const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, view: C.textDim }
-
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember, blockMember, getActivity }) {
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, vatEnabled, vatRate, setVatEnabled, setVatRate, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember, blockMember, getActivity }) {
   const { signOut, registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, user } = useAuth()
   const [confirmSignOut,  setConfirmSignOut]  = useState(false)
   const [passkeyStatus,   setPasskeyStatus]   = useState('')
@@ -54,40 +16,9 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
   const [editingName,     setEditingName]     = useState(false)
   const [nameInput,       setNameInput]       = useState('')
   const [uploadError,     setUploadError]     = useState('')
-  const [showInvite,      setShowInvite]      = useState(false)
-  const [inviteEmail,     setInviteEmail]     = useState('')
-  const [invitePerms,     setInvitePerms]     = useState(DEFAULT_NEW_PERMS)
-  const [inviting,        setInviting]        = useState(false)
-  const [inviteError,     setInviteError]     = useState('')
-  const [editingMember,   setEditingMember]   = useState(null)
-  const [editPerms,       setEditPerms]       = useState({})
-  const [activityMember,  setActivityMember]  = useState(null)   // { email, name }
-  const [activityData,    setActivityData]    = useState([])
-  const [activityLoading, setActivityLoading] = useState(false)
-  const [confirmBlock,    setConfirmBlock]    = useState(null)    // { id, email, blocked }
   const [showHolForm,     setShowHolForm]     = useState(false)
   const [holForm,         setHolForm]         = useState({ name: '', date: '' })
   const [holSaving,       setHolSaving]       = useState(false)
-
-  async function openActivity(m) {
-    setActivityMember(m)
-    setActivityLoading(true)
-    setActivityData([])
-    try { setActivityData(await getActivity(m.email)) }
-    catch { /* ignore */ }
-    finally { setActivityLoading(false) }
-  }
-
-  async function handleBlock(m, blocked) {
-    setConfirmBlock({ id: m.id, email: m.email, blocked })
-  }
-
-  async function confirmDoBlock() {
-    if (!confirmBlock) return
-    try { await blockMember(confirmBlock.id, confirmBlock.blocked) }
-    catch { /* ignore */ }
-    finally { setConfirmBlock(null) }
-  }
 
   async function handleRegisterPasskey() {
     setPasskeyLoading(true); setPasskeyStatus('')
@@ -324,7 +255,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
 
           {/* نوع العيسك */}
           <div style={{ fontSize:11, color:C.textDim, marginBottom:8, fontWeight:600 }}>نوع العيسك:</div>
-          <div style={{ display:'flex', gap:8 }}>
+          <div style={{ display:'flex', gap:8, marginBottom:14 }}>
             {[
               { val:'osek_moreh', label:'עוסק מורשה', desc:'ملزم بـ מע"מ' },
               { val:'osek_patur', label:'עוסק פטור',  desc:'معفى من מע"מ' },
@@ -338,6 +269,34 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                 </button>
               )
             })}
+          </div>
+
+          {/* إعدادات القيمة المضافة في المصاريف */}
+          <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:14 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+              <div>
+                <div style={{ fontSize:12, fontWeight:700, color:C.text }}>القيمة المضافة في المصاريف</div>
+                <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>إظهار تفاصيل الضريبة في شاشة المصاريف</div>
+              </div>
+              <button onClick={() => setVatEnabled && setVatEnabled(!vatEnabled)}
+                style={{ width:46, height:26, borderRadius:13, border:'none', cursor:'pointer', position:'relative', background: vatEnabled ? C.primary : C.textMuted, transition:'background .2s', flexShrink:0 }}>
+                <div style={{ position:'absolute', top:3, left: vatEnabled ? 23 : 3, width:20, height:20, borderRadius:'50%', background:'#fff', transition:'left .2s', boxShadow:'0 1px 4px rgba(0,0,0,0.3)' }} />
+              </button>
+            </div>
+            {vatEnabled && (
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <div style={{ fontSize:11, color:C.textDim, fontWeight:600 }}>نسبة الضريبة:</div>
+                <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.04)', borderRadius:10, padding:'6px 12px', border:`1px solid ${C.border}` }}>
+                  <input
+                    type="number" min="1" max="100" step="0.5"
+                    value={vatRate || 17}
+                    onChange={e => setVatRate && setVatRate(e.target.value)}
+                    style={{ width:50, background:'none', border:'none', color:C.text, fontSize:14, fontWeight:800, fontFamily:'monospace', outline:'none', textAlign:'center' }}
+                  />
+                  <span style={{ color:C.textDim, fontSize:12 }}>%</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </GlassCard>
@@ -411,174 +370,16 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
         </div>
       </GlassCard>
 
-      {/* ── إدارة الفريق ── */}
+      {/* ── إدارة الفريق — تم نقلها لشاشة العمال ── */}
       {permissions?.manageTeam && (
         <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
           <div style={{ height:3, background:GRAD.success }} />
-          <div style={{ padding:'14px 16px' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <SectionLabel color={C.success}>👥 الفريق</SectionLabel>
-              <button onClick={() => { setShowInvite(!showInvite); setInviteError('') }}
-                style={{ padding:'6px 14px', borderRadius:10, background:`${C.success}20`, color:C.success, border:`1px solid ${C.success}44`, fontSize:12, fontWeight:700, cursor:'pointer' }}>
-                + دعوة
-              </button>
+          <div style={{ padding:'14px 16px', display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ fontSize:22 }}>👥</div>
+            <div>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text }}>إدارة الفريق</div>
+              <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>أعضاء الفريق وصلاحياتهم متاحة في شاشة العمال</div>
             </div>
-
-            {showInvite && (
-              <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:14, padding:14, marginBottom:14, border:`1px solid ${C.border}` }}>
-                <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
-                  placeholder="إيميل الشخص المدعو"
-                  style={{ width:'100%', padding:'9px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.04)', color:C.text, fontSize:12, marginBottom:12, boxSizing:'border-box', outline:'none' }}
-                />
-                <div style={{ fontSize:11, color:C.textDim, marginBottom:8, fontWeight:700 }}>الصلاحيات:</div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
-                  {PERM_LABELS.map(([key, label]) => (
-                    <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:C.text, cursor:'pointer' }}>
-                      <input type="checkbox" checked={!!invitePerms[key]} onChange={e => setInvitePerms(p => ({ ...p, [key]: e.target.checked }))} />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-                {inviteError && <div style={{ fontSize:11, color:C.accent, marginBottom:8 }}>{inviteError}</div>}
-                <Btn onClick={async () => {
-                  if (!inviteEmail.trim() || !inviteEmail.includes('@')) return setInviteError('أدخل إيميل صحيح')
-                  setInviting(true)
-                  try { await inviteMember(inviteEmail.trim(), invitePerms); setShowInvite(false); setInviteEmail(''); setInvitePerms(DEFAULT_NEW_PERMS) }
-                  catch (e) { setInviteError(e.message) }
-                  finally { setInviting(false) }
-                }} full disabled={inviting}>{inviting ? '...' : 'إرسال الدعوة'}</Btn>
-              </div>
-            )}
-
-            {teamMembers.length === 0
-              ? <div style={{ fontSize:12, color:C.textDim, textAlign:'center', padding:'8px 0' }}>لا يوجد أعضاء بعد</div>
-              : teamMembers.map(m => {
-                const blocked   = !!m.is_blocked
-                const lastSeen  = fmtRelative(m.last_seen_at)
-                return (
-                  <div key={m.id} style={{ marginBottom:8, background: blocked ? `${C.accent}10` : 'rgba(255,255,255,0.04)', borderRadius:12, padding:12, border:`1px solid ${blocked ? C.accent + '44' : C.border}` }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:12, fontWeight:700, color: blocked ? C.accent : C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.email}</div>
-                        <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:3, flexWrap:'wrap' }}>
-                          {blocked
-                            ? <span style={{ fontSize:9, color:C.accent, fontWeight:700, background:`${C.accent}22`, padding:'2px 6px', borderRadius:4 }}>🚫 محجوب</span>
-                            : m.status === 'active'
-                              ? <span style={{ fontSize:9, color:C.success, fontWeight:700 }}>● نشط</span>
-                              : <span style={{ fontSize:9, color:C.warning }}>⏳ في انتظار القبول</span>
-                          }
-                          {m.status === 'active' && (
-                            <span style={{ fontSize:9, color:C.textDim }}>
-                              {lastSeen ? `🕐 ${lastSeen}` : '🕐 لم يدخل بعد'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ display:'flex', gap:4, flexShrink:0 }}>
-                        {m.status === 'active' && (
-                          <button onClick={() => openActivity(m)}
-                            title="سجل النشاط"
-                            style={{ background:'none', border:`1px solid ${C.primary}44`, borderRadius:8, cursor:'pointer', fontSize:13, padding:'4px 8px', color:C.primary }}>📋</button>
-                        )}
-                        {m.status === 'active' && (
-                          <button onClick={() => handleBlock(m, !blocked)}
-                            title={blocked ? 'رفع الحجب' : 'حجب الوصول'}
-                            style={{ background:'none', border:`1px solid ${blocked ? C.success + '44' : C.accent + '44'}`, borderRadius:8, cursor:'pointer', fontSize:13, padding:'4px 8px', color: blocked ? C.success : C.accent }}>
-                            {blocked ? '✅' : '🚫'}
-                          </button>
-                        )}
-                        <button onClick={() => { setEditingMember(m.id); setEditPerms(Object.fromEntries(PERM_LABELS.map(([k]) => [k, m[k]]))) }}
-                          style={{ background:'none', border:'none', cursor:'pointer', fontSize:15, padding:'4px' }}>✏️</button>
-                        <button onClick={() => removeMember(m.id)}
-                          style={{ background:'none', border:'none', cursor:'pointer', fontSize:15, padding:'4px' }}>🗑️</button>
-                      </div>
-                    </div>
-                    {editingMember === m.id && (
-                      <div style={{ marginTop:10 }}>
-                        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:8 }}>
-                          {PERM_LABELS.map(([key, label]) => (
-                            <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:C.text, cursor:'pointer' }}>
-                              <input type="checkbox" checked={!!editPerms[key]} onChange={e => setEditPerms(p => ({ ...p, [key]: e.target.checked }))} />
-                              {label}
-                            </label>
-                          ))}
-                        </div>
-                        <div style={{ display:'flex', gap:6 }}>
-                          <Btn onClick={async () => { await updateMember(m.id, editPerms); setEditingMember(null) }} full>حفظ</Btn>
-                          <Btn onClick={() => setEditingMember(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })
-            }
-
-            {/* ── Activity Modal ── */}
-            {activityMember && (
-              <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.6)', backdropFilter:'blur(6px)' }}
-                onClick={e => { if (e.target === e.currentTarget) setActivityMember(null) }}>
-                <div style={{ width:'100%', maxWidth:430, background:C.surface, borderRadius:'24px 24px 0 0', padding:'0 0 32px', border:`1px solid ${C.borderMid}`, maxHeight:'80vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
-                  <div style={{ height:4, background:GRAD.brand, borderRadius:'24px 24px 0 0' }} />
-                  <div style={{ padding:'16px 20px 12px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:`1px solid ${C.border}` }}>
-                    <div>
-                      <div style={{ fontSize:14, fontWeight:800, color:C.text }}>📋 سجل النشاط</div>
-                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{activityMember.email}</div>
-                    </div>
-                    <button onClick={() => setActivityMember(null)}
-                      style={{ width:32, height:32, borderRadius:'50%', background:'rgba(255,255,255,0.08)', border:`1px solid ${C.border}`, color:C.text, cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
-                  </div>
-                  <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
-                    {activityLoading
-                      ? <div style={{ textAlign:'center', padding:32, color:C.textDim, fontSize:12 }}>⏳ جاري التحميل...</div>
-                      : activityData.length === 0
-                        ? <div style={{ textAlign:'center', padding:32, color:C.textDim, fontSize:12 }}>لا يوجد نشاط مسجّل بعد</div>
-                        : activityData.map((a, i) => {
-                            const actionKey = a.action?.toLowerCase()
-                            const icon  = ACTION_ICON[actionKey]  || '•'
-                            const color = ACTION_COLOR[actionKey] || C.textDim
-                            const verb  = ACTION_AR[actionKey]    || a.action
-                            const name  = TBL_AR[a.tbl]           || a.tbl
-                            return (
-                              <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:`1px solid ${C.border}33` }}>
-                                <div style={{ width:30, height:30, borderRadius:'50%', background:`${color}18`, border:`1px solid ${color}33`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 }}>
-                                  {icon}
-                                </div>
-                                <div style={{ flex:1 }}>
-                                  <span style={{ fontSize:12, fontWeight:700, color }}>{verb}</span>
-                                  <span style={{ fontSize:12, color:C.text }}> {name}</span>
-                                </div>
-                                <div style={{ fontSize:10, color:C.textDim, flexShrink:0 }}>{fmtRelative(a.created_at)}</div>
-                              </div>
-                            )
-                          })
-                    }
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── تأكيد الحجب ── */}
-            {confirmBlock && (
-              <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.7)', backdropFilter:'blur(6px)', padding:24 }}>
-                <div style={{ background:C.surface, borderRadius:20, padding:24, maxWidth:320, width:'100%', border:`1px solid ${C.borderMid}` }}>
-                  <div style={{ fontSize:32, textAlign:'center', marginBottom:12 }}>{confirmBlock.blocked ? '🚫' : '✅'}</div>
-                  <div style={{ fontSize:14, fontWeight:800, color:C.text, textAlign:'center', marginBottom:8 }}>
-                    {confirmBlock.blocked ? 'حجب الوصول' : 'رفع الحجب'}
-                  </div>
-                  <div style={{ fontSize:12, color:C.textDim, textAlign:'center', marginBottom:20 }}>
-                    {confirmBlock.blocked
-                      ? `سيُمنع ${confirmBlock.email} من الدخول فوراً`
-                      : `سيستعيد ${confirmBlock.email} صلاحياته`
-                    }
-                  </div>
-                  <div style={{ display:'flex', gap:8 }}>
-                    <Btn onClick={confirmDoBlock} full style={{ background: confirmBlock.blocked ? GRAD.danger : GRAD.success }}>تأكيد</Btn>
-                    <Btn onClick={() => setConfirmBlock(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </GlassCard>
       )}
