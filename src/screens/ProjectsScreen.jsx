@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { C, GRAD, SPECS, PROJECT_TYPES, PROJECT_STATUS, PAY_METHODS } from '../constants/index.js'
+import { C, GRAD, SPECS, PROJECT_TYPES, PROJECT_STATUS, PAY_METHODS as DEFAULT_PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, validateProject, todayStr } from '../lib/helpers.js'
 import {
   GlassCard, Card, Modal, Input, Btn, FilterChip,
@@ -74,7 +74,9 @@ function MarginPill({ margin }) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────── */
-export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, employees, addProject, updateProject, deleteProject, addReceipt, updateReceipt, deleteReceipt, userId, permissions }) {
+export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, employees, addProject, updateProject, deleteProject, addReceipt, updateReceipt, deleteReceipt, userId, permissions, payMethods: dynamicPayMethods }) {
+  const PAY_METHODS = (dynamicPayMethods && dynamicPayMethods.length > 0) ? dynamicPayMethods : DEFAULT_PAY_METHODS
+
   const [showForm,        setShowForm]        = useState(false)
   const [showReceiptForm, setShowReceiptForm] = useState(false)
   const [editing,         setEditing]         = useState(null)
@@ -212,6 +214,12 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
 
   function setMultiAmt(id, val) {
     setMultiAmounts(prev => ({ ...prev, [id]: val }))
+  }
+
+  function handleMultiGlobal(val) {
+    setMultiGlobal(val)
+    // مسح القيم الفردية عند تغيير المبلغ الموحد حتى يطلع المجموع صح
+    setMultiAmounts({})
   }
 
   function applyGlobal() {
@@ -722,9 +730,9 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
           <div style={{ flex: 1 }}>
             <Input
-              label="مبلغ موحد للكل (اختياري)"
+              label="المبلغ لكل مشروع (₪)"
               value={multiGlobal}
-              onChange={setMultiGlobal}
+              onChange={handleMultiGlobal}
               type="number" min="0"
             />
           </div>
@@ -812,11 +820,23 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
 
         {/* Preview total */}
         {multiSelProjs.size > 0 && (() => {
-          const total = [...multiSelProjs].reduce((s, id) => s + (parseFloat(multiAmounts[id] || multiGlobal) || 0), 0)
+          const rows = [...multiSelProjs].map(id => ({
+            name: projects.find(p => p.id === id)?.name || '؟',
+            amount: parseFloat(multiAmounts[id] || multiGlobal) || 0,
+          }))
+          const total = rows.reduce((s, r) => s + r.amount, 0)
           return (
-            <div style={{ padding: '12px 16px', borderRadius: 12, background: `${C.success}10`, border: `1px solid ${C.success}30`, marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: C.textDim }}>{multiSelProjs.size} مشروع محدد</span>
-              <span style={{ fontSize: 16, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>{total > 0 ? `${total.toLocaleString()}₪` : '--'}</span>
+            <div style={{ padding: '12px 16px', borderRadius: 12, background: `${C.success}10`, border: `1px solid ${C.success}30`, marginBottom: 14 }}>
+              {rows.map((r, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                  <span style={{ fontSize: 12, color: C.textDim }}>{r.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: C.success, fontFamily: 'monospace' }}>{r.amount > 0 ? `${r.amount.toLocaleString()}₪` : '--'}</span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.success}30` }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.success }}>المجموع الكلي</span>
+                <span style={{ fontSize: 16, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>{total > 0 ? `${total.toLocaleString()}₪` : '--'}</span>
+              </div>
             </div>
           )
         })()}
