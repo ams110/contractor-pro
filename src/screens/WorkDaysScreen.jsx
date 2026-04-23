@@ -7,7 +7,8 @@ import { exportWorkDaysToExcel } from '../lib/export.js'
 const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange }
 const DAY_ICONS = { 'كامل': '☀️', 'نص يوم': '🌤️', 'ساعات': '⏱️', 'مبلغ مسكر': '💵' }
 
-export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay }) {
+export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [] }) {
+  const holidayDates = new Set((holidays || []).map(h => String(h.date).slice(0, 10)))
   const [showForm,    setShowForm]    = useState(false)
   const [editingDay,  setEditingDay]  = useState(null)
   const [confirmDel,  setConfirmDel]  = useState(null)
@@ -253,9 +254,10 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
         <div style={{ marginBottom:28 }}>
           <SectionLabel color={C.warning} action={`${pendingDays.length} طلب`}>⏳ بانتظار موافقتك</SectionLabel>
           {pendingDays.map(wd => {
-            const emp  = employees.find(x => x.id === wd.employee_id)
-            const proj = projects.find(x => x.id === wd.project_id)
-            const busy = approving === wd.id
+            const emp     = employees.find(x => x.id === wd.employee_id)
+            const proj    = projects.find(x => x.id === wd.project_id)
+            const busy    = approving === wd.id
+            const holiday = holidayDates.has(String(wd.date).slice(0,10)) ? holidays.find(h => String(h.date).slice(0,10) === String(wd.date).slice(0,10)) : null
             return (
               <div key={wd.id} style={{ borderRadius:20, marginBottom:12, overflow:'hidden', background:C.surface, boxShadow:`0 0 0 1px ${C.warning}33, 0 8px 32px ${C.warning}18` }}>
                 <div style={{ height:3, background:GRAD.warm }} />
@@ -269,6 +271,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                         <span>{proj?.name || '؟'}</span>
                         <span style={{ opacity:0.3 }}>•</span>
                         <span style={{ background:`${C.warning}22`, color:C.warning, padding:'2px 10px', borderRadius:12, fontSize:11, fontWeight:700, border:`1px solid ${C.warning}44` }}>{wd.day_type}</span>
+                        {holiday && <span style={{ background:`${C.orange}22`, color:C.orange, padding:'2px 10px', borderRadius:12, fontSize:11, fontWeight:700, border:`1px solid ${C.orange}44` }}>🎉 {holiday.name}</span>}
                       </div>
                     </div>
                     <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace', flexShrink:0, marginRight:8 }}>{fmt(wd.amount)}₪</div>
@@ -397,8 +400,9 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                     const proj      = projects.find(x => x.id === wd.project_id)
                                     const dayNum    = (wd.date || '').slice(8, 10)
                                     const pillColor = DAY_TYPE_COLOR[wd.day_type] || C.primary
+                                    const holiday   = holidayDates.has(String(wd.date).slice(0,10)) ? holidays.find(h => String(h.date).slice(0,10) === String(wd.date).slice(0,10)) : null
                                     return (
-                                      <div key={wd.id} style={{ padding:'10px 16px 10px 58px', display:'flex', justifyContent:'space-between', alignItems:'center', background: idx%2===0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderTop:`1px solid ${C.border}` }}>
+                                      <div key={wd.id} style={{ padding:'10px 16px 10px 58px', display:'flex', justifyContent:'space-between', alignItems:'center', background: holiday ? `${C.warning}08` : idx%2===0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderTop:`1px solid ${C.border}` }}>
                                         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                                           <div style={{ minWidth:36, height:40, borderRadius:10, background:`${pillColor}15`, border:`1px solid ${pillColor}30`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, flexShrink:0 }}>
                                             <div style={{ fontSize:14, fontWeight:900, color:pillColor }}>{dayNum}</div>
@@ -410,6 +414,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                               <span style={{ fontSize:11, color:C.textDim }}>{proj?.name||'؟'}</span>
                                               {wd.location && <span style={{ fontSize:10, color:C.primary, background:`${C.primary}15`, padding:'1px 6px', borderRadius:5 }}>📍 {wd.location}</span>}
                                               <span style={{ fontSize:10, fontWeight:700, color:pillColor, background:`${pillColor}15`, padding:'1px 7px', borderRadius:6 }}>{wd.day_type}</span>
+                                              {holiday && <span style={{ fontSize:10, fontWeight:700, color:C.warning, background:`${C.warning}18`, padding:'1px 7px', borderRadius:6, border:`1px solid ${C.warning}33` }}>🎉 {holiday.name}</span>}
                                             </div>
                                           </div>
                                         </div>
