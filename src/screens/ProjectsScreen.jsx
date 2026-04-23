@@ -74,7 +74,7 @@ function MarginPill({ margin }) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────── */
-export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, employees, addProject, updateProject, deleteProject, addReceipt, deleteReceipt, userId, permissions }) {
+export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, employees, addProject, updateProject, deleteProject, addReceipt, updateReceipt, deleteReceipt, userId, permissions }) {
   const [showForm,        setShowForm]        = useState(false)
   const [showReceiptForm, setShowReceiptForm] = useState(false)
   const [editing,         setEditing]         = useState(null)
@@ -87,7 +87,8 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   const [saving,          setSaving]          = useState(false)
   const [receiptFile,     setReceiptFile]     = useState(null)
   const [receiptPreview,  setReceiptPreview]  = useState('')
-  const [quickReceiptProjId, setQuickReceiptProjId] = useState(null)
+  const [quickReceiptProjId,  setQuickReceiptProjId]  = useState(null)
+  const [editingReceiptId,    setEditingReceiptId]    = useState(null)
   const receiptFileRef = useRef()
 
   const emptyForm    = { name:'', client_name:'', client_phone:'', type:'', price:'', status:'نشط', specialization:'', notes:'', start_date:'', end_date:'' }
