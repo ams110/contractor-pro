@@ -57,7 +57,7 @@ function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, o
   )
 }
 
-export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly, showTaxDashboard = true }) {
+export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly, taxEnabled = true, businessType = 'osek_moreh' }) {
   const [alertsExpanded, setAlertsExpanded] = useState(true)
   const [showTax,        setShowTax]        = useState(false)
   const [addingTax,      setAddingTax]      = useState(null)  // 'income_tax' | 'bituach_leumi' | null
@@ -67,6 +67,7 @@ export default function DashboardScreen({ projects, employees, workDays, expense
 
   const totalLabor    = workDays.reduce((s, w) => s + (w.amount || 0), 0)
   const totalExp      = expenses.reduce((s, e) => s + (e.amount || 0), 0)
+  const totalMaterials = expenses.filter(e => e.category === 'بضاعة').reduce((s, e) => s + (e.amount || 0), 0)
   const totalPaid     = payments.reduce((s, p) => s + (p.amount || 0), 0)
   const totalReceived = (clientReceipts || []).reduce((s, r) => s + (r.amount || 0), 0)
   const totalContract = projects.reduce((s, p) => s + (parseFloat(p.price) || 0), 0)
@@ -209,6 +210,13 @@ export default function DashboardScreen({ projects, employees, workDays, expense
     alerts.push({ text: `إجمالي رواتب معلقة: ${fmt(totalOwed)}₪`, color: C.warning, icon: '⚠️', nav: 'payments', urgent: false })
   }
 
+  // مشاريع تجاوزت تاريخ الانتهاء
+  const today2 = todayStr()
+  projects.filter(p => p.status === 'نشط' && p.end_date && p.end_date < today2).forEach(p => {
+    const days = Math.floor((new Date(today2) - new Date(p.end_date)) / 86400000)
+    alerts.push({ text: `${p.name} — تجاوزت تاريخ الانتهاء بـ ${days} يوم`, color: C.accent, icon: '⏰', nav: 'projects', urgent: true })
+  })
+
   // ترحيب للمستخدم الجديد
   if (!projects.length && !employees.length) {
     alerts.push({ text: 'ابدأ بإضافة مشاريع وعمال!', color: C.primary, icon: '💡', nav: 'projects', urgent: false })
@@ -257,6 +265,9 @@ export default function DashboardScreen({ projects, employees, workDays, expense
         <StatCard icon="💸" label="إجمالي التكاليف"    value={`${fmt(totalExp + totalLabor)}₪`} color={C.accent} />
         <StatCard icon="📈" label="صافي الربح"          value={`${fmt(netProfit)}₪`}  color={netProfit >= 0 ? C.primary : C.accent} />
         <StatCard icon="⏳" label="متبقي للتحصيل"      value={`${fmt(Math.max(0, totalPending))}₪`} color={totalPending > 0 ? C.warning : C.success} />
+        {totalMaterials > 0 && (
+          <StatCard icon="🧱" label="إجمالي البضاعة" value={`${fmt(totalMaterials)}₪`} color={C.orange} />
+        )}
       </div>
 
       {/* ─── أزرار سريعة ─── */}
@@ -372,7 +383,7 @@ export default function DashboardScreen({ projects, employees, workDays, expense
       )}
 
       {/* ─── قسم الضرائب ─── */}
-      {showTaxDashboard && <div style={{ marginBottom:16 }}>
+      {taxEnabled && <div style={{ marginBottom:16 }}>
         <button onClick={() => setShowTax(t => !t)}
           style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'13px 16px', background:`linear-gradient(90deg,${C.purple}18,${C.blue}10)`, borderRadius:14, border:`1px solid ${C.purple}44`, cursor:'pointer', marginBottom: showTax ? 10 : 0, transition:'all .2s' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -384,8 +395,13 @@ export default function DashboardScreen({ projects, employees, workDays, expense
 
         {showTax && (
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            {/* VAT */}
-            <div style={{ padding:'14px', background:C.card, borderRadius:14, border:`1px solid ${C.border}`, position:'relative', overflow:'hidden' }}>
+            {/* نوع العيسك */}
+            <div style={{ padding:'10px 14px', background:`${C.purple}12`, borderRadius:12, border:`1px solid ${C.purple}33`, fontSize:11, color:C.purple, fontWeight:700 }}>
+              {businessType === 'osek_patur' ? '🏷️ עוסק פטור — معفى من الضريبة على القيمة المضافة' : '🏷️ עוסק מורשה — ملزم بـ מע"מ'}
+            </div>
+
+            {/* VAT — فقط لـ עוסק מורשה */}
+            {businessType !== 'osek_patur' && <div style={{ padding:'14px', background:C.card, borderRadius:14, border:`1px solid ${C.border}`, position:'relative', overflow:'hidden' }}>
               <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg,${C.success},${C.primary})` }} />
               <div style={{ fontSize:12, fontWeight:800, color:C.text, marginBottom:12 }}>
                 {'💳 מע"מ לתשלום'} <span style={{ fontSize:10, color:C.textDim, fontWeight:500 }}>(شهرين الأخيرين)</span>
@@ -407,9 +423,9 @@ export default function DashboardScreen({ projects, employees, workDays, expense
                   {'⚠ يجب دفع '}{fmt(vatData.net)}{'₪ מע"מ للضريبة'}
                 </div>
               )}
-            </div>
+            </div>}
 
-            {/* עוסק פטור */}
+            {/* עוסק פטור — الحد السنوي يظهر دائماً */}
             <div style={{ padding:'14px', background:C.card, borderRadius:14, border:`1px solid ${C.border}` }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
                 <div style={{ fontSize:12, fontWeight:800, color:C.text }}>{'עוסק פטור'} — الحد السنوي</div>

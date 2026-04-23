@@ -42,7 +42,7 @@ const TBL_AR    = {
 const ACTION_ICON = { insert: '➕', update: '✏️', delete: '🗑️', view: '👁️' }
 const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, view: C.textDim }
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember, blockMember, getActivity }) {
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember, blockMember, getActivity }) {
   const { signOut, registerPasskey, isPasskeySupported, user } = useAuth()
   const [confirmSignOut,  setConfirmSignOut]  = useState(false)
   const [passkeyStatus,   setPasskeyStatus]   = useState('')
@@ -64,6 +64,9 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
   const [activityData,    setActivityData]    = useState([])
   const [activityLoading, setActivityLoading] = useState(false)
   const [confirmBlock,    setConfirmBlock]    = useState(null)    // { id, email, blocked }
+  const [showHolForm,     setShowHolForm]     = useState(false)
+  const [holForm,         setHolForm]         = useState({ name: '', date: '' })
+  const [holSaving,       setHolSaving]       = useState(false)
 
   async function openActivity(m) {
     setActivityMember(m)
@@ -275,6 +278,96 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
             <button onClick={() => { if (newPayMethod.trim()) { addPayMethod(newPayMethod); setNewPayMethod('') } }}
               style={{ padding:'9px 14px', borderRadius:10, background:GRAD.success, color:'#fff', border:'none', cursor:'pointer', fontSize:14, fontWeight:800 }}>+</button>
           </div>
+        </div>
+      </GlassCard>
+
+      {/* ── إعدادات الضرائب ── */}
+      <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
+        <div style={{ height:3, background:'linear-gradient(90deg,#6366F1,#3B82F6)' }} />
+        <div style={{ padding:'14px 16px' }}>
+          <SectionLabel color={C.secondary}>🇮🇱 إعدادات الضرائب</SectionLabel>
+
+          {/* Toggle لوحة الضرائب */}
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', background:'rgba(255,255,255,0.04)', borderRadius:12, marginBottom:12, border:`1px solid ${C.border}` }}>
+            <div>
+              <div style={{ fontSize:12, fontWeight:700, color:C.text }}>لوحة الضرائب في الرئيسية</div>
+              <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>إظهار ملخص ضريبي في الداشبورد</div>
+            </div>
+            <button onClick={() => setTaxEnabled && setTaxEnabled(!taxEnabled)}
+              style={{ width:46, height:26, borderRadius:13, border:'none', cursor:'pointer', position:'relative', background: taxEnabled ? C.primary : C.textMuted, transition:'background .2s' }}>
+              <div style={{ position:'absolute', top:3, left: taxEnabled ? 23 : 3, width:20, height:20, borderRadius:'50%', background:'#fff', transition:'left .2s', boxShadow:'0 1px 4px rgba(0,0,0,0.3)' }} />
+            </button>
+          </div>
+
+          {/* نوع العيسك */}
+          <div style={{ fontSize:11, color:C.textDim, marginBottom:8, fontWeight:600 }}>نوع العيسك:</div>
+          <div style={{ display:'flex', gap:8 }}>
+            {[
+              { val:'osek_moreh', label:'עוסק מורשה', desc:'ملزم بـ מע"מ' },
+              { val:'osek_patur', label:'עוסק פטור',  desc:'معفى من מע"מ' },
+            ].map(opt => {
+              const sel = businessType === opt.val
+              return (
+                <button key={opt.val} onClick={() => setBusinessType && setBusinessType(opt.val)}
+                  style={{ flex:1, padding:'10px 8px', borderRadius:12, border:`2px solid ${sel ? C.secondary : C.border}`, background: sel ? `${C.secondary}18` : 'transparent', cursor:'pointer', textAlign:'center', transition:'all .2s' }}>
+                  <div style={{ fontSize:12, fontWeight:800, color: sel ? C.secondary : C.text }}>{opt.label}</div>
+                  <div style={{ fontSize:9, color:C.textDim, marginTop:2 }}>{opt.desc}</div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* ── الأعياد والعطل ── */}
+      <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
+        <div style={{ height:3, background:GRAD.warm }} />
+        <div style={{ padding:'14px 16px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+            <SectionLabel color={C.warning}>🎉 الأعياد والعطل</SectionLabel>
+            <button onClick={() => setShowHolForm(v => !v)}
+              style={{ padding:'5px 12px', borderRadius:9, background:`${C.warning}20`, color:C.warning, border:`1px solid ${C.warning}44`, fontSize:11, fontWeight:700, cursor:'pointer' }}>
+              + إضافة
+            </button>
+          </div>
+
+          {showHolForm && (
+            <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:12, padding:12, marginBottom:12, border:`1px solid ${C.border}` }}>
+              <input value={holForm.name} onChange={e => setHolForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="اسم العيد (مثال: عيد الفطر)"
+                style={{ width:'100%', padding:'9px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:12, marginBottom:8, boxSizing:'border-box', outline:'none' }}
+              />
+              <input type="date" value={holForm.date} onChange={e => setHolForm(f => ({ ...f, date: e.target.value }))}
+                style={{ width:'100%', padding:'9px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:12, marginBottom:10, boxSizing:'border-box', outline:'none' }}
+              />
+              <Btn onClick={async () => {
+                if (!holForm.name.trim() || !holForm.date) return
+                setHolSaving(true)
+                try {
+                  await addHoliday({ name: holForm.name.trim(), date: holForm.date })
+                  setHolForm({ name: '', date: '' })
+                  setShowHolForm(false)
+                } catch { /* ignore */ }
+                finally { setHolSaving(false) }
+              }} full disabled={holSaving || !holForm.name.trim() || !holForm.date}>
+                {holSaving ? '...' : '✓ حفظ العيد'}
+              </Btn>
+            </div>
+          )}
+
+          {holidays.length === 0
+            ? <div style={{ fontSize:12, color:C.textDim, textAlign:'center', padding:'8px 0' }}>لا توجد أعياد مسجلة</div>
+            : [...holidays].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map(h => (
+              <div key={h.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'9px 12px', background:'rgba(255,255,255,0.04)', borderRadius:10, marginBottom:6, border:`1px solid ${C.border}` }}>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:700, color:C.text }}>{h.name}</div>
+                  <div style={{ fontSize:10, color:C.warning }}>{h.date}</div>
+                </div>
+                <button onClick={() => deleteHoliday(h.id)}
+                  style={{ background:'none', border:'none', cursor:'pointer', fontSize:16, color:C.accent, padding:'2px 6px' }}>🗑️</button>
+              </div>
+            ))
+          }
         </div>
       </GlassCard>
 
