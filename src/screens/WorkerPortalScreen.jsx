@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { C, GRAD, EXP_CATS } from '../constants/index.js'
-import { fmt, fmtDate, todayStr } from '../lib/helpers.js'
+import { fmt, fmtDate, fmtDateFull, todayStr } from '../lib/helpers.js'
 import { useWorkerPortal } from '../hooks/useWorkerPortal.js'
 import { uploadWorkerReceipt } from '../lib/storage.js'
 import { supabase } from '../lib/supabase.js'
@@ -61,7 +61,7 @@ function SummaryCard({ earned, paid, owed, pendingCount }) {
 
 const DAY_TYPE_COLORS = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange }
 
-function MonthRow({ month, data, payments }) {
+function MonthRow({ month, data, payments, holidaySet = new Set() }) {
   const [open, setOpen] = useState(false)
   const monthPayments = payments.filter(p => String(p.date).substring(0, 7) === month)
 
@@ -87,12 +87,14 @@ function MonthRow({ month, data, payments }) {
               <div style={{ fontSize: 10, color: C.textDim, marginBottom: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>تفاصيل الأيام</div>
               {data.records.map((r, i) => {
                 const tc = DAY_TYPE_COLORS[r.day_type] || C.primary
+                const isHol = holidaySet.has(String(r.date).slice(0, 10))
                 return (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: `1px solid ${C.border}22` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, color: C.textDim, flexShrink: 0 }}>{fmtDate(r.date)}</div>
+                      <div style={{ fontSize: 12, color: C.textDim, flexShrink: 0 }}>{fmtDateFull(r.date)}</div>
                       {r.project_name && <div style={{ fontSize: 11, color: C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.project_name}</div>}
                       <span style={{ fontSize: 10, fontWeight: 700, color: tc, background: `${tc}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${tc}30`, flexShrink: 0 }}>{r.day_type}</span>
+                      {isHol && <span style={{ fontSize: 10, fontWeight: 700, color: C.warning, background: `${C.warning}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.warning}30`, flexShrink: 0 }}>🎉 عطلة</span>}
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 800, color: tc, fontFamily: 'monospace', flexShrink: 0, marginRight: 4 }}>{fmt(r.amount)}₪</span>
                   </div>
@@ -195,7 +197,7 @@ function LoginScreen({ onLogin, error, loading }) {
 }
 
 // ─── فورم إرسال يوم عمل ──────────────────────────────────────────────────────
-function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, setSubmitErr }) {
+function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, setSubmitErr, holidaySet = new Set() }) {
   const [form, setForm]         = useState({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8' })
   const [done, setDone]         = useState(false)
   const [amount, setAmount]     = useState(0)
@@ -262,7 +264,12 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
             <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>التاريخ *</label>
             <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
               max={todayStr()}
-              style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${holidaySet.has(form.date) ? C.warning : C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+            {holidaySet.has(form.date) && (
+              <div style={{ marginTop: 6, padding: '6px 12px', borderRadius: 8, background: `${C.warning}18`, border: `1px solid ${C.warning}33`, fontSize: 12, color: C.warning, fontWeight: 700 }}>
+                🎉 هذا اليوم عطلة رسمية — تأكد قبل الإرسال
+              </div>
+            )}
           </div>
 
           {/* المشروع */}
@@ -708,7 +715,7 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
               return (
                 <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom:`1px solid ${C.border}18` }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
-                    <span style={{ fontSize:11, color:C.textDim, flexShrink:0 }}>{fmtDate(d.date)}</span>
+                    <span style={{ fontSize:11, color:C.textDim, flexShrink:0 }}>{fmtDateFull(d.date)}</span>
                     {d.project_name && <span style={{ fontSize:11, color:C.textDim, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.project_name}</span>}
                     <span style={{ fontSize:10, fontWeight:700, color:tc, background:`${tc}18`, padding:'1px 6px', borderRadius:5, border:`1px solid ${tc}25`, flexShrink:0 }}>{d.day_type}</span>
                   </div>
@@ -772,12 +779,14 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
   const {
-    worker, workDays, payments, projects, loading, loginErr, loggingIn,
+    worker, workDays, payments, projects, holidays, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
     login, logout, submitWorkDay, submitExpense, changePassword, requestPayment,
     monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
   } = useWorkerPortal()
+
+  const holidaySet = new Set((holidays || []).map(h => String(h.date).slice(0, 10)))
 
   const [tab, setTab] = useState('submit')
 
@@ -857,6 +866,7 @@ export default function WorkerPortalScreen() {
             submitting={submitting}
             submitErr={submitErr}
             setSubmitErr={setSubmitErr}
+            holidaySet={holidaySet}
           />
         )}
 
@@ -904,7 +914,7 @@ export default function WorkerPortalScreen() {
                 {pendingDays.map(d => (
                   <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: `${C.warning}11`, borderRadius: 10, border: `1px solid ${C.warning}33`, marginBottom: 6 }}>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{fmtDate(d.date)} • {d.day_type}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{fmtDateFull(d.date)} • {d.day_type}</div>
                       <div style={{ fontSize: 10, color: C.textDim }}>{d.project_name || '?'}</div>
                     </div>
                     <div style={{ textAlign: 'left' }}>
@@ -923,7 +933,7 @@ export default function WorkerPortalScreen() {
               </div>
             ) : (
               monthlyBreakdown.map(([month, data]) => (
-                <MonthRow key={month} month={month} data={data} payments={payments} />
+                <MonthRow key={month} month={month} data={data} payments={payments} holidaySet={holidaySet} />
               ))
             )}
           </>

@@ -29,20 +29,24 @@ export function useWorkerPortal() {
   const [workerExpenses,   setWorkerExpenses]   = useState([])
   const [submittingExp,    setSubmittingExp]    = useState(false)
   const [submitExpErr,     setSubmitExpErr]     = useState('')
+  const [holidays,         setHolidays]         = useState([])
 
   const loadData = useCallback(async (empId) => {
     setLoading(true)
     try {
-      const [dRes, pyRes, prRes, exRes] = await Promise.all([
+      const session = loadSession()
+      const [dRes, pyRes, prRes, exRes, holRes] = await Promise.all([
         supabase.rpc('get_worker_days',     { emp_id: empId }),
         supabase.rpc('get_worker_payments', { emp_id: empId }),
         supabase.rpc('get_worker_projects', { emp_id: empId }),
         supabase.rpc('get_worker_expenses', { emp_id: empId }),
+        supabase.rpc('get_worker_holidays', { p_emp_id: empId, p_token: session?.token || '' }),
       ])
       setWorkDays(dRes.data  || [])
       setPayments(pyRes.data || [])
       setProjects(prRes.data || [])
       setWorkerExpenses(exRes.data || [])
+      setHolidays(holRes.data || [])
     } finally {
       setLoading(false)
     }
@@ -192,7 +196,7 @@ export function useWorkerPortal() {
   }
 
   return {
-    worker, workDays, payments, projects, loading, loginErr, loggingIn,
+    worker, workDays, payments, projects, holidays, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
     login, logout, submitWorkDay, submitExpense, changePassword, requestPayment,

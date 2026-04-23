@@ -14,6 +14,16 @@ export const fmtDate = (d) => {
   return `${p[2]}/${p[1]}/${p[0]}`
 }
 
+const _DAYS_AR   = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت']
+const _MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+
+/** تحويل YYYY-MM-DD إلى "الثلاثاء، 15 أبريل" */
+export const fmtDateFull = (d) => {
+  if (!d) return ''
+  const dt = new Date(d + 'T00:00:00')
+  return `${_DAYS_AR[dt.getDay()]}، ${dt.getDate()} ${_MONTHS_AR[dt.getMonth()]}`
+}
+
 /**
  * حساب راتب العامل
  * @param {number} rate - الأجر اليومي

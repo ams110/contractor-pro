@@ -116,7 +116,13 @@ export function useWorkDays(userId) {
     await refetch()
   }
 
-  return { workDays: data, loading, error, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, refetch }
+  async function updateWorkDay(id, updates) {
+    const { error } = await supabase.from('work_days').update(updates).eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
+  return { workDays: data, loading, error, addWorkDay, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, refetch }
 }
 
 /* ─── Expenses ─── */
