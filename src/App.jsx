@@ -228,7 +228,7 @@ export default function App() {
       {(() => {
         const pendingCount = workDays.filter(w => w.status === 'pending').length
         return (
-          <div style={{ position:'fixed', bottom:14, left:'50%', transform:'translateX(-50%)', width:'calc(100% - 32px)', maxWidth:398, background:'rgba(13,17,23,0.97)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', borderRadius:24, border:`1px solid ${C.borderMid}`, padding:'8px 6px 10px', display:'flex', justifyContent:'space-around', zIndex:50, boxShadow:'0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)' }}>
+          <div style={{ position:'fixed', bottom:14, left:0, right:0, margin:'0 auto', width:'calc(100% - 32px)', maxWidth:398, background:'rgba(13,17,23,0.97)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', borderRadius:24, border:`1px solid ${C.borderMid}`, padding:'8px 6px 10px', display:'flex', justifyContent:'space-around', zIndex:50, boxShadow:'0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)' }}>
             {NAV.map(n => {
               const active = screen === n.id
               return (

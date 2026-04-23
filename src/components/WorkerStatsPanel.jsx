@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { C } from '../constants/index.js'
 import { fmtDate, todayStr } from '../lib/helpers.js'
 
@@ -101,11 +102,12 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, holi
     }
   }
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, direction: 'rtl' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }} />
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9990, direction: 'rtl', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
 
-      <div className="slide-up" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 430, background: C.bg, borderRadius: '20px 20px 0 0', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="slide-up" style={{ position: 'relative', width: '100%', maxWidth: 430, background: C.bg, borderRadius: '20px 20px 0 0', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 -16px 60px rgba(0,0,0,0.7)', border: `1px solid rgba(255,255,255,0.07)`, borderBottom: 'none' }}>
 
         {/* Header */}
         <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
@@ -207,6 +209,7 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, holi
 
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
