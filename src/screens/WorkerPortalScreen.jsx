@@ -423,10 +423,8 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
       setUploading(true)
       try {
         receiptUrl = await uploadWorkerReceipt(worker.id, receiptFile)
-      } catch (e) {
-        setSubmitErr('فشل رفع الفاتورة: ' + e.message)
-        setUploading(false)
-        return
+      } catch {
+        // الصورة اختيارية — نكمل الإرسال بدونها
       }
       setUploading(false)
     }
