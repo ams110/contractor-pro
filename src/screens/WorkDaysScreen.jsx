@@ -101,10 +101,10 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       if (multiEmps.size === 0) return setFormError('اختر عامل واحد على الأقل')
       if (!form.project_id) return setFormError('اختر المشروع')
       const dupName = [...multiEmps].map(id => {
-        const dup = workDays.find(w => w.employee_id === id && String(w.date).slice(0,10) === form.date && w.id !== editingDay)
+        const dup = workDays.find(w => w.employee_id === id && String(w.date).slice(0,10) === form.date && w.day_type === form.day_type && w.id !== editingDay)
         return dup ? employees.find(e => e.id === id)?.name : null
       }).filter(Boolean)
-      if (dupName.length > 0) return setFormError(`${dupName.join('، ')} — سجّلوا يوم بهاد التاريخ مسبقاً`)
+      if (dupName.length > 0) return setFormError(`${dupName.join('، ')} — عندهم ${form.day_type} بهاد التاريخ مسبقاً`)
       setSaving(true)
       try {
         await Promise.all([...multiEmps].map(empId => {
@@ -121,8 +121,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       const err = validateWorkDay(form)
       if (err) return setFormError(err)
       if (!selectedEmp) return setFormError('العامل غير موجود')
-      const duplicate = workDays.find(w => w.employee_id === form.employee_id && String(w.date).slice(0,10) === form.date && w.id !== editingDay)
-      if (duplicate) return setFormError(`${selectedEmp.name} سجّل يوم بتاريخ ${form.date} مسبقاً`)
+      const duplicate = workDays.find(w => w.employee_id === form.employee_id && String(w.date).slice(0,10) === form.date && w.day_type === form.day_type && w.id !== editingDay)
+      if (duplicate) return setFormError(`${selectedEmp.name} عنده ${form.day_type} بتاريخ ${form.date} مسبقاً`)
       setSaving(true)
       try {
         const amount = form.day_type === 'مبلغ مسكر' ? parseFloat(form.customAmount) : calcSalary(selectedEmp.daily_rate, form.day_type, form.hours)

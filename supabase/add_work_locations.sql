@@ -76,9 +76,9 @@ BEGIN
   END IF;
 
   IF EXISTS (
-    SELECT 1 FROM work_days WHERE employee_id = p_emp_id AND date = p_date
+    SELECT 1 FROM work_days WHERE employee_id = p_emp_id AND date = p_date AND day_type = p_day_type
   ) THEN
-    RETURN json_build_object('error', 'يوجد يوم عمل مسجل بهذا التاريخ مسبقاً');
+    RETURN json_build_object('error', 'يوجد يوم عمل من نفس النوع مسجل بهذا التاريخ مسبقاً');
   END IF;
 
   IF p_custom_amount IS NOT NULL AND p_custom_amount > 0 THEN
