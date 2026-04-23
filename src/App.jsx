@@ -113,6 +113,14 @@ export default function App() {
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
+  // ─── تسجيل الصفحات التي يشاهدها أعضاء الفريق ───────────────────────────
+  // يجب أن يكون قبل أي early return لتجنب React Hooks violation
+  React.useEffect(() => {
+    if (!permissions?.isOwner && uid && effectiveOwnerId && uid !== effectiveOwnerId) {
+      supabase.rpc('log_screen_view', { p_owner_id: effectiveOwnerId, p_screen: screen })
+    }
+  }, [screen])
+
   if (authLoading) {
     return (
       <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:0 }}>
@@ -146,13 +154,6 @@ export default function App() {
       </div>
     )
   }
-
-  // ─── تسجيل الصفحات التي يشاهدها أعضاء الفريق ───────────────────────────
-  React.useEffect(() => {
-    if (!permissions?.isOwner && uid && effectiveOwnerId && uid !== effectiveOwnerId) {
-      supabase.rpc('log_screen_view', { p_owner_id: effectiveOwnerId, p_screen: screen })
-    }
-  }, [screen])
 
   // ─── الشاشة الحالية ──────────────────────────────────────────────────────
   const p = permissions
