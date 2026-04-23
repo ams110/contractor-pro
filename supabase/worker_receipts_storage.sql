@@ -3,20 +3,21 @@
 -- شغّل هذا الملف في Supabase > SQL Editor
 -- =====================================================
 
--- إنشاء bucket عام لصور الفواتير من بوابة العمال
+-- إنشاء bucket عام لصور فواتير الشغيلة
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('worker-receipts', 'worker-receipts', true)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET public = true;
 
--- السماح للزوار (بدون تسجيل دخول) برفع الصور
-DROP POLICY IF EXISTS "anon_worker_receipt_upload" ON storage.objects;
-CREATE POLICY "anon_worker_receipt_upload" ON storage.objects
-FOR INSERT TO anon WITH CHECK (bucket_id = 'worker-receipts');
+-- إزالة كل السياسات القديمة
+DROP POLICY IF EXISTS "anon_worker_receipt_upload"  ON storage.objects;
+DROP POLICY IF EXISTS "public_worker_receipt_read"  ON storage.objects;
+DROP POLICY IF EXISTS "worker_receipts_all"         ON storage.objects;
+DROP POLICY IF EXISTS "worker_receipts_open"        ON storage.objects;
 
--- السماح لأي أحد بقراءة الصور (public bucket)
-DROP POLICY IF EXISTS "public_worker_receipt_read" ON storage.objects;
-CREATE POLICY "public_worker_receipt_read" ON storage.objects
-FOR SELECT USING (bucket_id = 'worker-receipts');
+-- سياسة واحدة شاملة: أي أحد يقدر يرفع ويقرأ من هاد الـ bucket
+CREATE POLICY "worker_receipts_open" ON storage.objects
+FOR ALL USING     (bucket_id = 'worker-receipts')
+WITH CHECK        (bucket_id = 'worker-receipts');
 
 -- ─── تحديث دالة إرسال المصروف: إضافة رابط الفاتورة ─────────────────────────
 CREATE OR REPLACE FUNCTION worker_submit_expense(

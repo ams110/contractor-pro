@@ -417,17 +417,18 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
     if (!form.amount || parseFloat(form.amount) <= 0) return setSubmitErr('أدخل المبلغ')
     if (!form.projectId) return setSubmitErr('اختر المشروع')
     if (!form.vendor?.trim()) return setSubmitErr('أدخل اسم المحل أو المزود')
+    if (!receiptFile) return setSubmitErr('📸 صورة الفاتورة مطلوبة')
     setSubmitErr('')
     let receiptUrl = ''
-    if (receiptFile) {
-      setUploading(true)
-      try {
-        receiptUrl = await uploadWorkerReceipt(worker.id, receiptFile)
-      } catch {
-        // الصورة اختيارية — نكمل الإرسال بدونها
-      }
+    setUploading(true)
+    try {
+      receiptUrl = await uploadWorkerReceipt(worker.id, receiptFile)
+    } catch (e) {
+      setSubmitErr('فشل رفع الفاتورة: ' + e.message)
       setUploading(false)
+      return
     }
+    setUploading(false)
     try {
       await onSubmit({ projectId: form.projectId, date: form.date, amount: form.amount, category: form.category, vendor: form.vendor, receiptUrl })
       setSubmittedAmt(parseFloat(form.amount))
@@ -454,7 +455,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
     )
   }
 
-  const canSubmit = !submitting && !uploading && form.category && form.amount && form.projectId && form.vendor?.trim()
+  const canSubmit = !submitting && !uploading && form.category && form.amount && form.projectId && form.vendor?.trim() && !!receiptFile
 
   return (
     <div style={{ paddingBottom: 16 }}>
@@ -513,8 +514,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <label style={{ fontSize: 12 }}>
-            <span style={{ color: C.textDim, fontWeight: 700 }}>📎 صورة الفاتورة</span>
-            <span style={{ color: C.textDim, fontWeight: 400 }}> (اختياري)</span>
+            <span style={{ color: C.accent, fontWeight: 700 }}>📎 صورة الفاتورة *</span>
           </label>
           {receiptFile && receiptFile.type.startsWith('image/') && (
             <button onClick={scanReceipt} disabled={scanning}

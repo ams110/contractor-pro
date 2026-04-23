@@ -100,7 +100,10 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   const [multiPayer,          setMultiPayer]          = useState('')
   const [multiSaving,         setMultiSaving]         = useState(false)
   const [multiError,          setMultiError]          = useState('')
-  const receiptFileRef = useRef()
+  const [multiReceiptFile,    setMultiReceiptFile]    = useState(null)
+  const [multiReceiptPreview, setMultiReceiptPreview] = useState('')
+  const receiptFileRef    = useRef()
+  const multiReceiptRef   = useRef()
 
   const emptyForm    = { name:'', client_name:'', client_phone:'', type:'', price:'', status:'نشط', specialization:'', notes:'', start_date:'', end_date:'', locations:[] }
   const emptyReceipt = { amount:'', date: todayStr(), notes:'', payment_method:'كاش', payer_name:'' }
@@ -203,6 +206,8 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     setMultiMethod('كاش')
     setMultiPayer('')
     setMultiError('')
+    setMultiReceiptFile(null)
+    setMultiReceiptPreview('')
     setShowMultiReceipt(true)
   }
 
@@ -245,8 +250,12 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     if (Math.abs(allocated - total) > 0.01) return setMultiError(`الموزّع ${allocated.toLocaleString()}₪ ≠ الإجمالي ${total.toLocaleString()}₪`)
     setMultiSaving(true)
     try {
+      let receipt_url = ''
+      if (multiReceiptFile) {
+        receipt_url = await uploadReceipt(userId, multiReceiptFile)
+      }
       await Promise.all(entries.map(e =>
-        addReceipt({ project_id: e.id, amount: e.amount, date: multiDate, payment_method: multiMethod, payer_name: multiPayer, notes: '' })
+        addReceipt({ project_id: e.id, amount: e.amount, date: multiDate, payment_method: multiMethod, payer_name: multiPayer, notes: '', receipt_url })
       ))
       setShowMultiReceipt(false)
     } catch (err) {
@@ -819,6 +828,30 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           <Input label="طريقة الدفع" value={multiMethod} onChange={setMultiMethod} options={PAY_METHODS} />
         </div>
         <Input label="اسم الدافع (اختياري)" value={multiPayer} onChange={setMultiPayer} placeholder="مثال: شركة الأمل" />
+
+        {/* صورة الإيصال */}
+        <div style={{ marginBottom: 14 }}>
+          <input ref={multiReceiptRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
+            onChange={e => {
+              const f = e.target.files?.[0]
+              if (!f) return
+              setMultiReceiptFile(f)
+              if (f.type.startsWith('image/')) {
+                const r = new FileReader()
+                r.onload = ev => setMultiReceiptPreview(ev.target.result)
+                r.readAsDataURL(f)
+              } else {
+                setMultiReceiptPreview('pdf')
+              }
+            }} />
+          <button onClick={() => multiReceiptRef.current?.click()}
+            style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1.5px dashed ${multiReceiptFile ? C.success + '88' : C.border}`, background: multiReceiptFile ? `${C.success}08` : 'transparent', color: multiReceiptFile ? C.success : C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {multiReceiptFile ? `✓ ${multiReceiptFile.name}` : '📎 صورة الإيصال (اختياري)'}
+          </button>
+          {multiReceiptPreview && multiReceiptPreview !== 'pdf' && (
+            <img src={multiReceiptPreview} alt="إيصال" style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 10, marginTop: 8, border: `1px solid ${C.success}44` }} />
+          )}
+        </div>
 
         {/* Step 2: Select projects + distribute */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
