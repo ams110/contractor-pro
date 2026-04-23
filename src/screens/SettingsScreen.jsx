@@ -43,10 +43,11 @@ const ACTION_ICON = { insert: '➕', update: '✏️', delete: '🗑️', view: 
 const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, view: C.textDim }
 
 export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, inviteMember, updateMember, removeMember, blockMember, getActivity }) {
-  const { signOut, registerPasskey, isPasskeySupported, user } = useAuth()
+  const { signOut, registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, user } = useAuth()
   const [confirmSignOut,  setConfirmSignOut]  = useState(false)
   const [passkeyStatus,   setPasskeyStatus]   = useState('')
   const [passkeyLoading,  setPasskeyLoading]  = useState(false)
+  const [passkeyReg,      setPasskeyReg]      = useState(() => hasPasskeyRegistered())
   const [newSpec,         setNewSpec]         = useState('')
   const [newExpCat,       setNewExpCat]       = useState('')
   const [newPayMethod,    setNewPayMethod]    = useState('')
@@ -90,9 +91,19 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
 
   async function handleRegisterPasskey() {
     setPasskeyLoading(true); setPasskeyStatus('')
-    try { await registerPasskey(); setPasskeyStatus('✓ تم تفعيل البصمة بنجاح!') }
+    try {
+      await registerPasskey()
+      setPasskeyReg(true)
+      setPasskeyStatus('✓ تم تفعيل البصمة بنجاح!')
+    }
     catch (e) { setPasskeyStatus(`⚠ ${e.message}`) }
     finally   { setPasskeyLoading(false) }
+  }
+
+  function handleRemovePasskey() {
+    removePasskey()
+    setPasskeyReg(false)
+    setPasskeyStatus('')
   }
 
   function exportData() {
@@ -195,9 +206,21 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
       {/* ── البصمة ── */}
       {isPasskeySupported() && (
         <div style={{ marginBottom:16 }}>
-          <Btn onClick={handleRegisterPasskey} disabled={passkeyLoading} variant="outline" full>
-            {passkeyLoading ? '...' : '👆 تفعيل الدخول بالبصمة / Face ID'}
-          </Btn>
+          {passkeyReg ? (
+            <div style={{ display:'flex', gap:8 }}>
+              <div style={{ flex:1, padding:'11px 14px', borderRadius:14, background:`${C.success}12`, border:`1px solid ${C.success}33`, fontSize:13, fontWeight:700, color:C.success, display:'flex', alignItems:'center', gap:8 }}>
+                <span>👆</span> البصمة مفعّلة على هذا الجهاز
+              </div>
+              <button onClick={handleRemovePasskey}
+                style={{ padding:'11px 14px', borderRadius:14, border:`1px solid ${C.accent}33`, background:`${C.accent}12`, color:C.accent, fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                🗑️ إلغاء
+              </button>
+            </div>
+          ) : (
+            <Btn onClick={handleRegisterPasskey} disabled={passkeyLoading} variant="outline" full>
+              {passkeyLoading ? '⏳ جاري التفعيل...' : '👆 تفعيل الدخول بالبصمة / Face ID'}
+            </Btn>
+          )}
           {passkeyStatus && (
             <div style={{ fontSize:12, marginTop:8, color: passkeyStatus.startsWith('✓') ? C.success : C.accent, textAlign:'center', fontWeight:600 }}>
               {passkeyStatus}
