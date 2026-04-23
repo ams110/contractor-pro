@@ -100,6 +100,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   const [multiPayer,          setMultiPayer]          = useState('')
   const [multiSaving,         setMultiSaving]         = useState(false)
   const [multiError,          setMultiError]          = useState('')
+  const [multiNotes,          setMultiNotes]          = useState('')
   const [multiReceiptFile,    setMultiReceiptFile]    = useState(null)
   const [multiReceiptPreview, setMultiReceiptPreview] = useState('')
   const receiptFileRef    = useRef()
@@ -170,7 +171,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     setSaving(true)
     try {
       let receipt_url = ''
-      if (receiptFile && receiptForm.payment_method === 'تحويل بنكي') {
+      if (receiptFile) {
         receipt_url = await uploadReceipt(userId, receiptFile)
       }
       const payload = { ...receiptForm, amount: parseFloat(receiptForm.amount) }
@@ -206,6 +207,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     setMultiMethod('كاش')
     setMultiPayer('')
     setMultiError('')
+    setMultiNotes('')
     setMultiReceiptFile(null)
     setMultiReceiptPreview('')
     setShowMultiReceipt(true)
@@ -255,7 +257,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
         receipt_url = await uploadReceipt(userId, multiReceiptFile)
       }
       await Promise.all(entries.map(e =>
-        addReceipt({ project_id: e.id, amount: e.amount, date: multiDate, payment_method: multiMethod, payer_name: multiPayer, notes: '', receipt_url })
+        addReceipt({ project_id: e.id, amount: e.amount, date: multiDate, payment_method: multiMethod, payer_name: multiPayer, notes: multiNotes, receipt_url })
       ))
       setShowMultiReceipt(false)
     } catch (err) {
@@ -554,44 +556,35 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           <Input label="التاريخ"             value={receiptForm.date}   onChange={fr('date')}   type="date" required />
           <Input label="طريقة الدفع"         value={receiptForm.payment_method} onChange={fr('payment_method')} options={PAY_METHODS} />
           <Input label="اسم الدافع (من قبضت منه)" value={receiptForm.payer_name} onChange={fr('payer_name')} placeholder="مثال: أبو محمد" />
-          <Input label="ملاحظات"             value={receiptForm.notes}  onChange={fr('notes')} />
+          <Input label="ملاحظات" value={receiptForm.notes} onChange={fr('notes')} />
 
-          {receiptForm.payment_method === 'تحويل بنكي' && (
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'block', marginBottom: 8, letterSpacing: '0.03em' }}>
-                إثبات التحويل
-              </label>
-              <input
-                ref={receiptFileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
-                onChange={e => { const f = e.target.files?.[0]; if (f) { setReceiptFile(f); setReceiptPreview(URL.createObjectURL(f)) } }}
-              />
-              {receiptPreview ? (
-                <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
-                  <img src={receiptPreview} alt="إثبات" style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 14, border: `1px solid ${C.border}` }} />
-                  <button
-                    onClick={() => { setReceiptFile(null); setReceiptPreview('') }}
-                    style={{ position: 'absolute', top: 8, left: 8, background: `${C.accent}cc`, border: 'none', borderRadius: '50%', width: 26, height: 26, color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
+          {/* صورة الإيصال — لكل طرق الدفع */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'block', marginBottom: 8, letterSpacing: '0.03em' }}>
+              📎 صورة الإيصال <span style={{ fontWeight: 400 }}>(اختياري)</span>
+            </label>
+            <input
+              ref={receiptFileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) { setReceiptFile(f); setReceiptPreview(URL.createObjectURL(f)) } }}
+            />
+            {receiptPreview ? (
+              <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+                <img src={receiptPreview} alt="إيصال" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 14, border: `1px solid ${C.success}55` }} />
                 <button
-                  onClick={() => receiptFileRef.current.click()}
-                  style={{
-                    width: '100%', padding: '18px', borderRadius: 14,
-                    border: `2px dashed ${C.borderMid}`, background: 'rgba(255,255,255,0.02)',
-                    color: C.textDim, fontSize: 13, cursor: 'pointer',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                    transition: 'all .2s',
-                  }}
-                >
-                  <span style={{ fontSize: 22 }}>📷</span>
-                  <span>اضغط لرفع صورة الإثبات</span>
-                </button>
-              )}
-            </div>
-          )}
+                  onClick={() => { setReceiptFile(null); setReceiptPreview('') }}
+                  style={{ position: 'absolute', top: 8, left: 8, background: `${C.accent}cc`, border: 'none', borderRadius: '50%', width: 26, height: 26, color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >✕</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => receiptFileRef.current.click()}
+                style={{ width: '100%', padding: '16px', borderRadius: 14, border: `2px dashed ${C.borderMid}`, background: 'rgba(255,255,255,0.02)', color: C.textDim, fontSize: 13, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
+              >
+                <span style={{ fontSize: 22 }}>📷</span>
+                <span>اضغط لرفع صورة الإيصال</span>
+              </button>
+            )}
+          </div>
 
           {receiptError && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, color: C.accent, fontSize: 12, marginBottom: 14 }}>
@@ -828,6 +821,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           <Input label="طريقة الدفع" value={multiMethod} onChange={setMultiMethod} options={PAY_METHODS} />
         </div>
         <Input label="اسم الدافع (اختياري)" value={multiPayer} onChange={setMultiPayer} placeholder="مثال: شركة الأمل" />
+        <Input label="ملاحظات (اختياري)" value={multiNotes} onChange={setMultiNotes} placeholder="مثال: دفعة أولى" />
 
         {/* صورة الإيصال */}
         <div style={{ marginBottom: 14 }}>
