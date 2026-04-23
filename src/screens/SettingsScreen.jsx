@@ -47,7 +47,7 @@ const ACTION_ICON = { insert: '➕', update: '✏️', delete: '🗑️', view: 
 const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, view: C.textDim }
 
 export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, addMember, resetMemberPassword, updateMember, removeMember, blockMember, getActivity, reloadTeam }) {
-  const { signOut, registerPasskey, isPasskeySupported, user } = useAuth()
+  const { signOut, registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, user } = useAuth()
   const [confirmSignOut,   setConfirmSignOut]   = useState(false)
   const [passkeyStatus,    setPasskeyStatus]    = useState('')
   const [passkeyLoading,   setPasskeyLoading]   = useState(false)
@@ -202,9 +202,20 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
       {/* ── البصمة ── */}
       {isPasskeySupported() && (
         <div style={{ marginBottom:16 }}>
-          <Btn onClick={handleRegisterPasskey} disabled={passkeyLoading} variant="outline" full>
-            {passkeyLoading ? '...' : '👆 تفعيل الدخول بالبصمة / Face ID'}
-          </Btn>
+          {hasPasskeyRegistered() ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <div style={{ padding:'10px 14px', background:`${C.success}15`, borderRadius:12, border:`1px solid ${C.success}33`, fontSize:12, color:C.success, fontWeight:700, textAlign:'center' }}>
+                ✓ البصمة مفعّلة على هذا الجهاز
+              </div>
+              <Btn onClick={() => { removePasskey(); setPasskeyStatus('تم حذف البصمة') }} variant="outline" full>
+                🗑️ إلغاء تفعيل البصمة
+              </Btn>
+            </div>
+          ) : (
+            <Btn onClick={handleRegisterPasskey} disabled={passkeyLoading} variant="outline" full>
+              {passkeyLoading ? '...' : '👆 تفعيل الدخول بالبصمة / Face ID'}
+            </Btn>
+          )}
           {passkeyStatus && (
             <div style={{ fontSize:12, marginTop:8, color: passkeyStatus.startsWith('✓') ? C.success : C.accent, textAlign:'center', fontWeight:600 }}>
               {passkeyStatus}

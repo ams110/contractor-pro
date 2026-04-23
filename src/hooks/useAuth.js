@@ -5,106 +5,125 @@ import {
   startAuthentication,
 } from '@simplewebauthn/browser'
 
+const PASSKEY_KEY = 'cpro_passkey_cred'
+const SESSION_KEY = 'cpro_passkey_sess'
+
 export function useAuth() {
   const [user,    setUser]    = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // تحقق من الجلسة الحالية
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
-    // استمع لتغييرات الجلسة
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      // احفظ الجلسة لاستخدامها مع البصمة لاحقاً
+      if (session && localStorage.getItem(PASSKEY_KEY)) {
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          access_token:  session.access_token,
+          refresh_token: session.refresh_token,
+        }))
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  /** تسجيل مستخدم جديد */
   async function signUp(email, password, fullName) {
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+      email, password,
       options: { data: { full_name: fullName } },
     })
     if (error) throw error
     return data
   }
 
-  /** تسجيل دخول بالإيميل والكلمة */
   async function signIn(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
     return data
   }
 
-  /** تسجيل خروج */
   async function signOut() {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
   }
 
-  // ─── WebAuthn / Passkeys ───────────────────────────────────────────
+  // ─── WebAuthn / Passkeys (بدون Edge Functions) ────────────────────────────
 
-  /** تفعيل البصمة على الجهاز الحالي (بعد تسجيل الدخول) */
+  /** تفعيل البصمة على الجهاز الحالي */
   async function registerPasskey() {
     if (!user) throw new Error('يجب تسجيل الدخول أولاً')
 
-    // اطلب خيارات التسجيل من Supabase Edge Function
-    const { data: options, error: optErr } = await supabase.functions.invoke('webauthn-register-options', {
-      body: { userId: user.id, userEmail: user.email },
-    })
-    if (optErr) throw new Error('فشل تحضير البصمة: ' + optErr.message)
+    // challenge عشوائي محلي (كافٍ لتطبيق شخصي)
+    const challenge = new Uint8Array(32)
+    crypto.getRandomValues(challenge)
+    const challengeB64 = btoa(String.fromCharCode(...challenge))
 
-    // اطلب من المتصفح/الجهاز التسجيل (يفتح نافذة البصمة)
     let credential
     try {
-      credential = await startRegistration(options)
+      credential = await startRegistration({
+        challenge:       challengeB64,
+        rp:              { name: 'Contractor Pro', id: window.location.hostname },
+        user:            { id: user.id, name: user.email, displayName: user.email },
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification:        'required',
+          residentKey:             'preferred',
+        },
+        timeout: 60000,
+      })
     } catch (e) {
       if (e.name === 'NotAllowedError') throw new Error('تم إلغاء التسجيل')
       throw new Error('خطأ في تسجيل البصمة: ' + e.message)
     }
 
-    // أرسل النتيجة للتحقق والحفظ
-    const { error: verErr } = await supabase.functions.invoke('webauthn-register-verify', {
-      body: { userId: user.id, credential },
-    })
-    if (verErr) throw new Error('فشل التحقق من البصمة: ' + verErr.message)
+    // احفظ معرّف البصمة + الجلسة الحالية
+    localStorage.setItem(PASSKEY_KEY, credential.id)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        access_token:  session.access_token,
+        refresh_token: session.refresh_token,
+      }))
+    }
   }
 
   /** تسجيل دخول بالبصمة */
-  async function signInWithPasskey(email) {
-    // اطلب خيارات المصادقة
-    const { data: options, error: optErr } = await supabase.functions.invoke('webauthn-auth-options', {
-      body: { email },
-    })
-    if (optErr) throw new Error('البصمة غير مفعّلة على هذا الجهاز')
+  async function signInWithPasskey() {
+    const credId = localStorage.getItem(PASSKEY_KEY)
+    if (!credId) throw new Error('لا توجد بصمة مسجّلة على هذا الجهاز')
 
-    // اطلب من الجهاز التحقق بالبصمة
-    let credential
+    const challenge = new Uint8Array(32)
+    crypto.getRandomValues(challenge)
+    const challengeB64 = btoa(String.fromCharCode(...challenge))
+
     try {
-      credential = await startAuthentication(options)
+      await startAuthentication({
+        challenge:        challengeB64,
+        allowCredentials: [{ type: 'public-key', id: credId }],
+        userVerification: 'required',
+        timeout:          60000,
+        rpId:             window.location.hostname,
+      })
     } catch (e) {
       if (e.name === 'NotAllowedError') throw new Error('تم إلغاء عملية البصمة')
-      throw new Error('خطأ في البصمة: ' + e.message)
+      throw new Error('فشلت البصمة: ' + e.message)
     }
 
-    // تحقق وسجّل الدخول
-    const { data, error: verErr } = await supabase.functions.invoke('webauthn-auth-verify', {
-      body: { email, credential },
-    })
-    if (verErr) throw new Error('البصمة غير صحيحة')
-
-    // أنشئ جلسة من التوكن الراجع
-    const { error: sessErr } = await supabase.auth.setSession({
-      access_token:  data.access_token,
-      refresh_token: data.refresh_token,
-    })
-    if (sessErr) throw sessErr
+    // البصمة نجحت — استعد الجلسة
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) throw new Error('انتهت الجلسة، سجّل دخولك بكلمة المرور مرة واحدة')
+    const { access_token, refresh_token } = JSON.parse(raw)
+    const { error } = await supabase.auth.setSession({ access_token, refresh_token })
+    if (error) {
+      localStorage.removeItem(SESSION_KEY)
+      throw new Error('انتهت الجلسة، سجّل دخولك بكلمة المرور مرة واحدة ثم أعد تفعيل البصمة')
+    }
   }
 
   /** هل البصمة مدعومة على هذا الجهاز؟ */
@@ -116,15 +135,22 @@ export function useAuth() {
     )
   }
 
-  /** هل سبق تفعيل البصمة لهذا المستخدم؟ */
-  async function hasPasskey(email) {
-    try {
-      const { data } = await supabase.functions.invoke('webauthn-auth-options', { body: { email } })
-      return !!data
-    } catch {
-      return false
-    }
+  /** هل البصمة مفعّلة على هذا الجهاز؟ */
+  function hasPasskeyRegistered() {
+    return !!localStorage.getItem(PASSKEY_KEY)
   }
 
-  return { user, loading, signUp, signIn, signOut, registerPasskey, signInWithPasskey, isPasskeySupported, hasPasskey }
+  /** حذف البصمة من الجهاز */
+  function removePasskey() {
+    localStorage.removeItem(PASSKEY_KEY)
+    localStorage.removeItem(SESSION_KEY)
+  }
+
+  return {
+    user, loading,
+    signUp, signIn, signOut,
+    registerPasskey, signInWithPasskey,
+    isPasskeySupported, hasPasskeyRegistered, removePasskey,
+  }
 }
+

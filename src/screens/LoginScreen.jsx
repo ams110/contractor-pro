@@ -5,9 +5,9 @@ import { useAuth } from '../hooks/useAuth.js'
 import { supabase } from '../lib/supabase.js'
 
 export default function LoginScreen({ teamMemberSignIn }) {
-  const { signIn, signUp, signInWithPasskey, isPasskeySupported } = useAuth()
+  const { signIn, signUp, signInWithPasskey, isPasskeySupported, hasPasskeyRegistered } = useAuth()
 
-  const [loginType, setLoginType] = useState('owner')   // 'owner' | 'member'
+  const [loginType, setLoginType] = useState('owner')
   const [mode,     setMode]     = useState('login')
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
@@ -16,11 +16,11 @@ export default function LoginScreen({ teamMemberSignIn }) {
   const [error,    setError]    = useState('')
   const [info,     setInfo]     = useState('')
 
-  // team member fields
   const [tmUsername, setTmUsername] = useState('')
   const [tmPassword, setTmPassword] = useState('')
 
-  const passkeyOk = isPasskeySupported()
+  const passkeyOk  = isPasskeySupported()
+  const passkeyReg = hasPasskeyRegistered()
   function clearMsg() { setError(''); setInfo('') }
 
   async function handleForgotPassword() {
@@ -63,9 +63,8 @@ export default function LoginScreen({ teamMemberSignIn }) {
 
   async function handlePasskey() {
     clearMsg()
-    if (!email.trim()) return setError('أدخل البريد الإلكتروني أولاً')
     setLoading(true)
-    try { await signInWithPasskey(email.trim()) }
+    try { await signInWithPasskey() }
     catch (err) { setError(err.message || 'لم تنجح عملية البصمة') }
     finally { setLoading(false) }
   }
@@ -180,7 +179,7 @@ export default function LoginScreen({ teamMemberSignIn }) {
               </Btn>
             </form>
 
-            {mode === 'login' && passkeyOk && (
+            {mode === 'login' && passkeyOk && passkeyReg && (
               <div style={{ marginTop:16 }}>
                 <div style={{ textAlign:'center', fontSize:11, color:C.textDim, marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
                   <div style={{ flex:1, height:1, background:C.border }} />
@@ -188,8 +187,8 @@ export default function LoginScreen({ teamMemberSignIn }) {
                   <div style={{ flex:1, height:1, background:C.border }} />
                 </div>
                 <button onClick={handlePasskey} disabled={loading}
-                  style={{ width:'100%', padding:'13px', borderRadius:14, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.04)', color:C.text, fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'all .2s', opacity: loading ? 0.5 : 1 }}>
-                  <span style={{ fontSize:22 }}>👆</span>
+                  style={{ width:'100%', padding:'13px', borderRadius:14, border:`1px solid ${C.primary}44`, background:`${C.primary}12`, color:C.primary, fontSize:15, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'all .2s', opacity: loading ? 0.5 : 1, boxShadow:`0 4px 20px ${C.primary}22` }}>
+                  <span style={{ fontSize:24 }}>👆</span>
                   دخول بالبصمة / Face ID
                 </button>
               </div>
