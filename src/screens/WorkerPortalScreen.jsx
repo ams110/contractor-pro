@@ -198,7 +198,7 @@ function LoginScreen({ onLogin, error, loading }) {
 
 // ─── فورم إرسال يوم عمل ──────────────────────────────────────────────────────
 function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, setSubmitErr, holidaySet = new Set() }) {
-  const [form, setForm]         = useState({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8' })
+  const [form, setForm]         = useState({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8', location: '' })
   const [done, setDone]         = useState(false)
   const [amount, setAmount]     = useState(0)
   const [projName, setProjName] = useState('')
@@ -220,7 +220,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
     if (!form.projectId) return setSubmitErr('اختر المشروع')
     setSubmitErr('')
     try {
-      const res  = await onSubmit({ projectId: form.projectId, date: form.date, dayType: form.dayType, hours: form.hours })
+      const res  = await onSubmit({ projectId: form.projectId, date: form.date, dayType: form.dayType, hours: form.hours, location: form.location || null })
       const proj = projects.find(p => p.id === form.projectId)
       setAmount(res.amount)
       setProjName(proj?.name || '')
@@ -242,7 +242,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
           <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4 }}>🔔 وصل إشعار للمشرف</div>
           <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب في التطبيق ويوافق عليه</div>
         </div>
-        <button onClick={() => { setDone(false); setForm({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8' }) }}
+        <button onClick={() => { setDone(false); setForm({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8', location: '' }) }}
           style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           + أضف يوم آخر
         </button>
@@ -277,13 +277,34 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
             <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المشروع *</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {projects.map(p => (
-                <button key={p.id} onClick={() => setForm(prev => ({ ...prev, projectId: p.id }))}
+                <button key={p.id} onClick={() => setForm(prev => ({ ...prev, projectId: p.id, location: '' }))}
                   style={{ padding: '8px 14px', borderRadius: 10, border: `1.5px solid ${form.projectId === p.id ? C.primary : C.border}`, background: form.projectId === p.id ? `${C.primary}22` : C.bg, color: form.projectId === p.id ? C.primary : C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                   {p.name}
+                  {p.type === 'يومي' && <span style={{ fontSize: 10, marginRight: 4, opacity: 0.7 }}>📍</span>}
                 </button>
               ))}
             </div>
           </div>
+
+          {/* مكان العمل — للمشاريع اليومية */}
+          {(() => {
+            const selProj = form.projectId ? projects.find(p => p.id === form.projectId) : null
+            const locs = selProj?.locations || []
+            if (selProj?.type !== 'يومي' || locs.length === 0) return null
+            return (
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>📍 مكان العمل</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {locs.map(loc => (
+                    <button key={loc} onClick={() => setForm(prev => ({ ...prev, location: prev.location === loc ? '' : loc }))}
+                      style={{ padding: '8px 14px', borderRadius: 10, border: `1.5px solid ${form.location === loc ? C.primary : C.border}`, background: form.location === loc ? `${C.primary}22` : C.bg, color: form.location === loc ? C.primary : C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                      📍 {loc}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* نوع اليوم */}
           <div style={{ marginBottom: 14 }}>

@@ -102,10 +102,11 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   const [multiError,          setMultiError]          = useState('')
   const receiptFileRef = useRef()
 
-  const emptyForm    = { name:'', client_name:'', client_phone:'', type:'', price:'', status:'نشط', specialization:'', notes:'', start_date:'', end_date:'' }
+  const emptyForm    = { name:'', client_name:'', client_phone:'', type:'', price:'', status:'نشط', specialization:'', notes:'', start_date:'', end_date:'', locations:[] }
   const emptyReceipt = { amount:'', date: todayStr(), notes:'', payment_method:'كاش', payer_name:'' }
   const [form,        setForm]        = useState(emptyForm)
   const [receiptForm, setReceiptForm] = useState(emptyReceipt)
+  const [newLocation, setNewLocation] = useState('')
 
   function f(key)  { return v => setForm(prev => ({ ...prev, [key]: v })) }
   function fr(key) { return v => setReceiptForm(prev => ({ ...prev, [key]: v })) }
@@ -113,7 +114,8 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   function openNew() { setForm(emptyForm); setEditing(null); setFormError(''); setShowForm(true) }
 
   function openEdit(p) {
-    setForm({ ...p, price: String(p.price || ''), start_date: p.start_date || '', end_date: p.end_date || '', notes: p.notes || '' })
+    setForm({ ...p, price: String(p.price || ''), start_date: p.start_date || '', end_date: p.end_date || '', notes: p.notes || '', locations: p.locations || [] })
+    setNewLocation('')
     setEditing(p.id)
     setFormError('')
     setShowForm(true)
@@ -475,6 +477,48 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           </div>
         )}
 
+        {/* ── Work locations breakdown — يومي projects only ── */}
+        {proj.type === 'يومي' && (() => {
+          const projDays = workDays.filter(w => w.project_id === proj.id && w.status === 'approved')
+          if (projDays.length === 0) return null
+          const byLoc = {}
+          projDays.forEach(d => {
+            const loc = d.location || '__none__'
+            if (!byLoc[loc]) byLoc[loc] = []
+            byLoc[loc].push(d)
+          })
+          const entries = Object.entries(byLoc)
+          if (entries.length === 1 && entries[0][0] === '__none__') return null
+          return (
+            <>
+              <SectionLabel color={C.primary}>📍 توزيع العمال حسب المكان</SectionLabel>
+              <GlassCard style={{ marginBottom: 16 }}>
+                <div style={{ padding: '14px 16px' }}>
+                  {entries.map(([loc, days], i) => {
+                    const total   = days.reduce((s, d) => s + (d.amount || 0), 0)
+                    const empIds  = [...new Set(days.map(d => d.employee_id))]
+                    const names   = empIds.map(id => (employees || []).find(e => e.id === id)?.name).filter(Boolean)
+                    const isNone  = loc === '__none__'
+                    return (
+                      <div key={loc} style={{ marginBottom: i < entries.length - 1 ? 12 : 0, paddingBottom: i < entries.length - 1 ? 12 : 0, borderBottom: i < entries.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: isNone ? C.textDim : C.primary }}>
+                            {isNone ? '⬜ غير محدد' : `📍 ${loc}`}
+                          </span>
+                          <span style={{ fontSize: 13, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>{fmt(total)}₪</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: C.textDim }}>
+                          {days.length} يوم • {names.join('، ')}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </GlassCard>
+            </>
+          )
+        })()}
+
         {/* ── Action buttons ── */}
         {(permissions?.editProjects !== false || permissions?.canDelete !== false) && (
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
@@ -715,6 +759,33 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           <textarea value={form.notes} onChange={e => f('notes')(e.target.value)} rows={3} placeholder="سجّل أي اتفاقيات أو ملاحظات مع الزبون..."
             style={{ width:'100%', padding:'10px 14px', borderRadius:12, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.05)', color:'#F8FAFC', fontSize:13, resize:'vertical', outline:'none', boxSizing:'border-box', fontFamily:'inherit', lineHeight:1.6 }} />
         </div>
+
+        {/* أماكن العمل — للمشاريع اليومية فقط */}
+        {form.type === 'يومي' && (
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize:11, fontWeight:700, color:'#64748B', display:'block', marginBottom:8, letterSpacing:'0.04em', textTransform:'uppercase' }}>📍 أماكن العمل</label>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
+              {(form.locations || []).map((loc, i) => (
+                <div key={i} style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px 5px 6px', borderRadius:20, background:`${C.primary}18`, border:`1px solid ${C.primary}44` }}>
+                  <span style={{ fontSize:12, color:C.primary, fontWeight:700 }}>{loc}</span>
+                  <button onClick={() => setForm(p => ({ ...p, locations: p.locations.filter((_, j) => j !== i) }))}
+                    style={{ background:'none', border:'none', cursor:'pointer', color:C.primary, fontSize:12, lineHeight:1, padding:0 }}>✕</button>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <input value={newLocation} onChange={e => setNewLocation(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && newLocation.trim()) { setForm(p => ({ ...p, locations: [...(p.locations||[]), newLocation.trim()] })); setNewLocation('') }}}
+                placeholder="اسم المكان (مثال: شارع الملك، حي النور...)"
+                style={{ flex:1, padding:'10px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:13, outline:'none' }} />
+              <button
+                onClick={() => { if (newLocation.trim()) { setForm(p => ({ ...p, locations: [...(p.locations||[]), newLocation.trim()] })); setNewLocation('') }}}
+                style={{ padding:'10px 16px', borderRadius:10, background:`${C.primary}22`, border:`1px solid ${C.primary}44`, color:C.primary, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                + أضف
+              </button>
+            </div>
+          </div>
+        )}
 
         {formError && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, color: C.accent, fontSize: 12, marginBottom: 14 }}>

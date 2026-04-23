@@ -91,7 +91,7 @@ export function useWorkerPortal() {
     setProjects([])
   }
 
-  async function submitWorkDay({ projectId, date, dayType, hours }) {
+  async function submitWorkDay({ projectId, date, dayType, hours, location }) {
     const session = loadSession()
     if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
     setSubmitting(true)
@@ -104,6 +104,7 @@ export function useWorkerPortal() {
         p_date:       date,
         p_day_type:   dayType,
         p_hours:      parseFloat(hours) || 8,
+        p_location:   location || null,
       })
       if (error) throw new Error(error.message)
       if (data?.error) throw new Error(data.error)

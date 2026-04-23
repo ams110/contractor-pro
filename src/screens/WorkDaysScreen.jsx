@@ -77,6 +77,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       date:         wd.date,
       employee_id:  wd.employee_id,
       project_id:   wd.project_id,
+      location:     wd.location || '',
       day_type:     wd.day_type,
       hours:        String(wd.hours || 8),
       customAmount: wd.day_type === 'مبلغ مسكر' ? String(wd.amount) : '',
