@@ -207,7 +207,12 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   function toggleMultiProj(id) {
     setMultiSelProjs(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+        setMultiAmounts(a => { const n = { ...a }; delete n[id]; return n })
+      } else {
+        next.add(id)
+      }
       return next
     })
   }
@@ -216,26 +221,26 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     setMultiAmounts(prev => ({ ...prev, [id]: val }))
   }
 
-  function handleMultiGlobal(val) {
-    setMultiGlobal(val)
-    // مسح القيم الفردية عند تغيير المبلغ الموحد حتى يطلع المجموع صح
-    setMultiAmounts({})
-  }
-
-  function applyGlobal() {
-    if (!multiGlobal) return
+  function splitEqually() {
+    const total = parseFloat(multiGlobal) || 0
+    if (!total || multiSelProjs.size === 0) return
+    const each = Math.round((total / multiSelProjs.size) * 100) / 100
     const next = {}
-    multiSelProjs.forEach(id => { next[id] = multiGlobal })
+    multiSelProjs.forEach(id => { next[id] = String(each) })
     setMultiAmounts(next)
   }
 
   async function saveMultiReceipts() {
     if (multiSelProjs.size === 0) return setMultiError('اختر مشروع واحد على الأقل')
+    if (!multiGlobal || parseFloat(multiGlobal) <= 0) return setMultiError('أدخل المبلغ الإجمالي للحوالة')
     const entries = [...multiSelProjs].map(id => ({
       id,
-      amount: parseFloat(multiAmounts[id] || multiGlobal || 0),
+      amount: parseFloat(multiAmounts[id] || 0),
     }))
-    if (entries.some(e => !e.amount || e.amount <= 0)) return setMultiError('أدخل المبلغ لكل مشروع مختار')
+    if (entries.some(e => !e.amount || e.amount <= 0)) return setMultiError('وزّع المبلغ على كل مشروع محدد')
+    const allocated = entries.reduce((s, e) => s + e.amount, 0)
+    const total     = parseFloat(multiGlobal)
+    if (Math.abs(allocated - total) > 0.01) return setMultiError(`الموزّع ${allocated.toLocaleString()}₪ ≠ الإجمالي ${total.toLocaleString()}₪`)
     setMultiSaving(true)
     try {
       await Promise.all(entries.map(e =>
@@ -724,77 +729,52 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
       <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={confirmDelete} message="متأكد بدك تحذف هالمشروع؟" />
 
       {/* ── Multi-project receipt modal ── */}
-      <Modal open={showMultiReceipt} onClose={() => setShowMultiReceipt(false)} title="💵 قبض من مشاريع متعددة">
+      <Modal open={showMultiReceipt} onClose={() => setShowMultiReceipt(false)} title="💵 توزيع حوالة على مشاريع">
 
-        {/* Global amount shortcut */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-          <div style={{ flex: 1 }}>
-            <Input
-              label="المبلغ لكل مشروع (₪)"
-              value={multiGlobal}
-              onChange={handleMultiGlobal}
-              type="number" min="0"
-            />
-          </div>
-          <button
-            onClick={applyGlobal}
-            disabled={!multiGlobal || multiSelProjs.size === 0}
-            style={{
-              alignSelf: 'flex-end', marginBottom: 16,
-              padding: '11px 14px', borderRadius: 12,
-              background: multiGlobal && multiSelProjs.size > 0 ? `${C.primary}22` : C.border,
-              border: `1px solid ${multiGlobal && multiSelProjs.size > 0 ? C.primary + '55' : 'transparent'}`,
-              color: multiGlobal && multiSelProjs.size > 0 ? C.primary : C.textDim,
-              fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-            }}
-          >
-            طبّق على الكل
-          </button>
+        {/* Step 1: Total amount received */}
+        <div style={{ padding: '14px 16px', borderRadius: 14, background: `${C.primary}10`, border: `1px solid ${C.primary}30`, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.primary, marginBottom: 8, letterSpacing: '0.04em' }}>المبلغ الإجمالي للحوالة</div>
+          <input
+            type="number" min="0" value={multiGlobal}
+            onChange={e => { setMultiGlobal(e.target.value); setMultiAmounts({}) }}
+            placeholder="مثال: 20000"
+            style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1.5px solid ${multiGlobal ? C.primary + '66' : C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 20, fontWeight: 900, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', textAlign: 'center' }}
+          />
         </div>
 
-        {/* Shared date + method */}
+        {/* Shared date + method + payer */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 4 }}>
-          <Input label="التاريخ"       value={multiDate}   onChange={setMultiDate}   type="date" />
-          <Input label="طريقة الدفع"  value={multiMethod} onChange={setMultiMethod} options={PAY_METHODS} />
+          <Input label="التاريخ"      value={multiDate}   onChange={setMultiDate}   type="date" />
+          <Input label="طريقة الدفع" value={multiMethod} onChange={setMultiMethod} options={PAY_METHODS} />
         </div>
-        <Input label="اسم الدافع (اختياري)" value={multiPayer} onChange={setMultiPayer} placeholder="مثال: أبو محمد" />
+        <Input label="اسم الدافع (اختياري)" value={multiPayer} onChange={setMultiPayer} placeholder="مثال: شركة الأمل" />
 
-        {/* Project list */}
-        <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-          اختر المشاريع
+        {/* Step 2: Select projects + distribute */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, letterSpacing: '0.04em', textTransform: 'uppercase' }}>اختر المشاريع ووزّع المبلغ</div>
+          {multiSelProjs.size > 1 && parseFloat(multiGlobal) > 0 && (
+            <button onClick={splitEqually}
+              style={{ padding: '5px 12px', borderRadius: 8, background: `${C.secondary}18`, border: `1px solid ${C.secondary}44`, color: C.secondary, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+              ÷ تقسيم متساوي
+            </button>
+          )}
         </div>
-        <div style={{ maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+
+        <div style={{ maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
           {projects.filter(p => p.status === 'نشط' || p.status === 'عرض سعر').map(p => {
             const sel = multiSelProjs.has(p.id)
+            const amt = parseFloat(multiAmounts[p.id] || 0)
             return (
               <div key={p.id}
                 onClick={() => toggleMultiProj(p.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
-                  background: sel ? `${C.success}12` : 'rgba(255,255,255,0.03)',
-                  border: `1.5px solid ${sel ? C.success + '55' : C.border}`,
-                  transition: 'all .18s',
-                }}
-              >
-                {/* Checkbox */}
-                <div style={{
-                  width: 20, height: 20, borderRadius: 6, flexShrink: 0,
-                  border: `2px solid ${sel ? C.success : C.borderMid}`,
-                  background: sel ? C.success : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, color: '#000', fontWeight: 900,
-                }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, cursor: 'pointer', background: sel ? `${C.success}10` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${sel ? C.success + '44' : C.border}`, transition: 'all .18s' }}>
+                <div style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, border: `2px solid ${sel ? C.success : C.borderMid}`, background: sel ? C.success : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#000', fontWeight: 900 }}>
                   {sel ? '✓' : ''}
                 </div>
-
-                {/* Project info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
                   {p.client_name && <div style={{ fontSize: 11, color: C.textDim }}>{p.client_name}</div>}
                 </div>
-
-                {/* Per-project amount (shown when selected) */}
                 {sel && (
                   <input
                     type="number" min="0"
@@ -802,12 +782,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                     onChange={e => { e.stopPropagation(); setMultiAmt(p.id, e.target.value) }}
                     onClick={e => e.stopPropagation()}
                     placeholder="₪"
-                    style={{
-                      width: 90, padding: '7px 10px', borderRadius: 10,
-                      border: `1px solid ${C.borderMid}`, background: 'rgba(255,255,255,0.07)',
-                      color: C.text, fontSize: 13, fontFamily: 'monospace',
-                      outline: 'none', textAlign: 'center',
-                    }}
+                    style={{ width: 90, padding: '7px 10px', borderRadius: 10, border: `1px solid ${amt > 0 ? C.success + '66' : C.borderMid}`, background: 'rgba(255,255,255,0.07)', color: amt > 0 ? C.success : C.text, fontSize: 14, fontFamily: 'monospace', outline: 'none', textAlign: 'center', fontWeight: 800 }}
                   />
                 )}
               </div>
@@ -818,24 +793,25 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           )}
         </div>
 
-        {/* Preview total */}
-        {multiSelProjs.size > 0 && (() => {
-          const rows = [...multiSelProjs].map(id => ({
-            name: projects.find(p => p.id === id)?.name || '؟',
-            amount: parseFloat(multiAmounts[id] || multiGlobal) || 0,
-          }))
-          const total = rows.reduce((s, r) => s + r.amount, 0)
+        {/* Allocation summary */}
+        {multiSelProjs.size > 0 && parseFloat(multiGlobal) > 0 && (() => {
+          const total     = parseFloat(multiGlobal) || 0
+          const allocated = [...multiSelProjs].reduce((s, id) => s + (parseFloat(multiAmounts[id] || 0)), 0)
+          const remaining = total - allocated
+          const ok        = Math.abs(remaining) < 0.01
           return (
-            <div style={{ padding: '12px 16px', borderRadius: 12, background: `${C.success}10`, border: `1px solid ${C.success}30`, marginBottom: 14 }}>
-              {rows.map((r, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                  <span style={{ fontSize: 12, color: C.textDim }}>{r.name}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: C.success, fontFamily: 'monospace' }}>{r.amount > 0 ? `${r.amount.toLocaleString()}₪` : '--'}</span>
-                </div>
-              ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.success}30` }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.success }}>المجموع الكلي</span>
-                <span style={{ fontSize: 16, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>{total > 0 ? `${total.toLocaleString()}₪` : '--'}</span>
+            <div style={{ padding: '12px 16px', borderRadius: 12, background: ok ? `${C.success}12` : `${C.warning}10`, border: `1px solid ${ok ? C.success + '40' : C.warning + '40'}`, marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: C.textDim }}>إجمالي الحوالة</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: C.text, fontFamily: 'monospace' }}>{total.toLocaleString()}₪</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: C.textDim }}>الموزّع على المشاريع</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: allocated > 0 ? C.primary : C.textDim, fontFamily: 'monospace' }}>{allocated.toLocaleString()}₪</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, borderTop: `1px solid ${ok ? C.success + '30' : C.warning + '30'}` }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: ok ? C.success : C.warning }}>{ok ? '✓ تم توزيع المبلغ كاملاً' : 'متبقي للتوزيع'}</span>
+                {!ok && <span style={{ fontSize: 14, fontWeight: 900, color: C.warning, fontFamily: 'monospace' }}>{Math.abs(remaining).toLocaleString()}₪</span>}
               </div>
             </div>
           )
