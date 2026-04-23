@@ -93,6 +93,7 @@ function MonthRow({ month, data, payments, holidaySet = new Set() }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12, color: C.textDim, flexShrink: 0 }}>{fmtDateFull(r.date)}</div>
                       {r.project_name && <div style={{ fontSize: 11, color: C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.project_name}</div>}
+                      {r.location && <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.primary}30`, flexShrink: 0 }}>📍 {r.location}</span>}
                       <span style={{ fontSize: 10, fontWeight: 700, color: tc, background: `${tc}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${tc}30`, flexShrink: 0 }}>{r.day_type}</span>
                       {isHol && <span style={{ fontSize: 10, fontWeight: 700, color: C.warning, background: `${C.warning}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.warning}30`, flexShrink: 0 }}>🎉 عطلة</span>}
                     </div>
