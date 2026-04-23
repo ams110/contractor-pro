@@ -397,14 +397,38 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   {activeProjs.map(p => {
                     const sel = form.project_id === p.id
                     return (
-                      <button key={p.id} onClick={() => setForm(prev => ({ ...prev, project_id: p.id }))}
+                      <button key={p.id} onClick={() => setForm(prev => ({ ...prev, project_id: p.id, location: '' }))}
                         style={{ padding:'10px 16px', borderRadius:12, border:`1.5px solid ${sel ? C.secondary : C.border}`, background: sel ? `${C.secondary}18` : 'rgba(255,255,255,0.04)', color: sel ? C.secondary : C.textDim, fontSize:13, fontWeight:700, cursor:'pointer', transition:'all .2s', boxShadow: sel ? `0 4px 18px ${C.secondary}33` : 'none' }}>
                         {p.name}
+                        {p.type === 'يومي' && (p.locations || []).length > 0 && <span style={{ fontSize:10, marginRight:4, opacity:0.7 }}>📍</span>}
                       </button>
                     )
                   })}
                 </div>
               </div>
+
+              {/* Location picker — يومي projects only */}
+              {(() => {
+                const selProj = form.project_id ? projects.find(p => p.id === form.project_id) : null
+                const locs = selProj?.locations || []
+                if (selProj?.type !== 'يومي' || locs.length === 0) return null
+                return (
+                  <div style={{ marginBottom:18 }}>
+                    <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>📍 مكان العمل</label>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                      {locs.map(loc => {
+                        const sel = form.location === loc
+                        return (
+                          <button key={loc} onClick={() => setForm(prev => ({ ...prev, location: sel ? '' : loc }))}
+                            style={{ padding:'10px 16px', borderRadius:12, border:`1.5px solid ${sel ? C.primary : C.border}`, background: sel ? `${C.primary}18` : 'rgba(255,255,255,0.04)', color: sel ? C.primary : C.textDim, fontSize:13, fontWeight:700, cursor:'pointer', transition:'all .2s', boxShadow: sel ? `0 4px 18px ${C.primary}33` : 'none' }}>
+                            📍 {loc}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Day type */}
               <div style={{ marginBottom:18 }}>
