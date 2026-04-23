@@ -74,11 +74,10 @@ function MarginPill({ margin }) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────── */
-export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, employees, addProject, updateProject, deleteProject, addReceipt, updateReceipt, deleteReceipt, userId, permissions }) {
+export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, employees, addProject, updateProject, deleteProject, addReceipt, deleteReceipt, userId, permissions }) {
   const [showForm,        setShowForm]        = useState(false)
   const [showReceiptForm, setShowReceiptForm] = useState(false)
   const [editing,         setEditing]         = useState(null)
-  const [editingReceiptId, setEditingReceiptId] = useState(null)
   const [filter,          setFilter]          = useState('الكل')
   const [detail,          setDetail]          = useState(null)
   const [confirmDel,      setConfirmDel]      = useState(null)
@@ -88,10 +87,11 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   const [saving,          setSaving]          = useState(false)
   const [receiptFile,     setReceiptFile]     = useState(null)
   const [receiptPreview,  setReceiptPreview]  = useState('')
+  const [quickReceiptProjId, setQuickReceiptProjId] = useState(null)
   const receiptFileRef = useRef()
 
-  const emptyForm    = { name:'', client_name:'', client_phone:'', type:'', price:'', status:'نشط', specialization:'', notes:'' }
-  const emptyReceipt = { amount:'', date: todayStr(), notes:'', payment_method:'كاش' }
+  const emptyForm    = { name:'', client_name:'', client_phone:'', type:'', price:'', status:'نشط', specialization:'', notes:'', start_date:'', end_date:'' }
+  const emptyReceipt = { amount:'', date: todayStr(), notes:'', payment_method:'كاش', payer_name:'' }
   const [form,        setForm]        = useState(emptyForm)
   const [receiptForm, setReceiptForm] = useState(emptyReceipt)
 
@@ -101,22 +101,31 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   function openNew() { setForm(emptyForm); setEditing(null); setFormError(''); setShowForm(true) }
 
   function openEdit(p) {
-    setForm({ ...p, price: String(p.price || '') })
+    setForm({ ...p, price: String(p.price || ''), start_date: p.start_date || '', end_date: p.end_date || '', notes: p.notes || '' })
     setEditing(p.id)
     setFormError('')
     setShowForm(true)
     setDetail(null)
   }
 
-  function openReceiptForm() {
+  function openReceiptForm(projId) {
     setReceiptForm(emptyReceipt)
     setEditingReceiptId(null)
     setReceiptError('')
+    if (projId) setQuickReceiptProjId(projId)
     setShowReceiptForm(true)
   }
 
+  function closeReceiptForm() {
+    setShowReceiptForm(false)
+    setReceiptFile(null)
+    setReceiptPreview('')
+    setEditingReceiptId(null)
+    setQuickReceiptProjId(null)
+  }
+
   function openEditReceipt(r) {
-    setReceiptForm({ amount: String(r.amount), date: r.date, notes: r.notes || '', payment_method: r.payment_method || 'كاش' })
+    setReceiptForm({ amount: String(r.amount), date: r.date, notes: r.notes || '', payment_method: r.payment_method || 'كاش', payer_name: r.payer_name || '' })
     setEditingReceiptId(r.id)
     setReceiptError('')
     setShowReceiptForm(true)
@@ -151,9 +160,9 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
       if (editingReceiptId) {
         await updateReceipt(editingReceiptId, payload)
       } else {
-        await addReceipt({ ...payload, project_id: detail, receipt_url })
+        await addReceipt({ ...payload, project_id: detail || quickReceiptProjId, receipt_url })
       }
-      setShowReceiptForm(false); setReceiptFile(null); setReceiptPreview(''); setEditingReceiptId(null)
+      closeReceiptForm()
     } catch (e) {
       setReceiptError(e.message)
     } finally {
@@ -194,12 +203,15 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
      DETAIL VIEW
   ════════════════════════════════════ */
   if (proj) {
-    const labor    = workDays.filter(w => w.project_id === proj.id).reduce((s, w) => s + (w.amount || 0), 0)
-    const exps     = expenses.filter(e => e.project_id === proj.id).reduce((s, e) => s + (e.amount || 0), 0)
-    const receipts = (clientReceipts || []).filter(r => r.project_id === proj.id)
-    const received = receipts.reduce((s, r) => s + (r.amount || 0), 0)
-    const total    = labor + exps
-    const profit   = received - total
+    const labor     = workDays.filter(w => w.project_id === proj.id).reduce((s, w) => s + (w.amount || 0), 0)
+    const projExps  = expenses.filter(e => e.project_id === proj.id)
+    const exps      = projExps.reduce((s, e) => s + (e.amount || 0), 0)
+    const materials = projExps.filter(e => e.category === 'بضاعة').reduce((s, e) => s + (e.amount || 0), 0)
+    const otherExps = exps - materials
+    const receipts  = (clientReceipts || []).filter(r => r.project_id === proj.id)
+    const received  = receipts.reduce((s, r) => s + (r.amount || 0), 0)
+    const total     = labor + exps
+    const profit    = received - total
     const pending  = (proj.price || 0) - received
     const margin   = received > 0 ? ((profit / received) * 100).toFixed(1) : 0
     const receivedPct = proj.price > 0 ? Math.round((received / proj.price) * 100) : 0
@@ -249,6 +261,17 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                 {proj.type}
               </div>
             )}
+            {(proj.start_date || proj.end_date) && (
+              <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+                {proj.start_date && <div style={{ fontSize: 11, color: C.primary, background: `${C.primary}15`, padding: '3px 10px', borderRadius: 20, border: `1px solid ${C.primary}33` }}>🗓 بدأ: {proj.start_date}</div>}
+                {proj.end_date   && <div style={{ fontSize: 11, color: proj.end_date < todayStr() && proj.status === 'نشط' ? C.accent : C.warning, background: `${proj.end_date < todayStr() && proj.status === 'نشط' ? C.accent : C.warning}15`, padding: '3px 10px', borderRadius: 20, border: `1px solid ${proj.end_date < todayStr() && proj.status === 'نشط' ? C.accent : C.warning}33` }}>⏰ ينتهي: {proj.end_date}</div>}
+              </div>
+            )}
+            {proj.notes && (
+              <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 12, color: C.textDim, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                📝 {proj.notes}
+              </div>
+            )}
             {proj.price > 0 && received >= 0 && (
               <div style={{ marginTop: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -291,10 +314,11 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
 
             {/* Cost breakdown rows */}
             {[
-              { label: 'تكلفة العمال',   value: `${fmt(labor)}₪`,  color: C.accent },
-              { label: 'المصاريف',       value: `${fmt(exps)}₪`,   color: C.accent },
-              { label: 'إجمالي التكاليف', value: `${fmt(total)}₪`, color: C.accent, bold: true },
-            ].map((row, i) => (
+              { label: '👷 تكلفة العمال',   value: `${fmt(labor)}₪`,     color: C.accent },
+              { label: '🧱 البضاعة',         value: `${fmt(materials)}₪`, color: C.orange, hide: materials === 0 },
+              { label: '📦 مصاريف أخرى',    value: `${fmt(otherExps)}₪`, color: C.accent, hide: materials === 0 && exps === 0 },
+              { label: '💸 إجمالي التكاليف', value: `${fmt(total)}₪`,    color: C.accent, bold: true },
+            ].filter(r => !r.hide).map((row, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 12px', background: i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent', borderRadius: 10, marginBottom: 2 }}>
                 <span style={{ fontSize: 12, color: row.bold ? C.text : C.textDim, fontWeight: row.bold ? 700 : 400 }}>{row.label}</span>
                 <span style={{ fontSize: 13, fontWeight: row.bold ? 800 : 600, color: row.color, fontFamily: 'monospace' }}>{row.value}</span>
@@ -352,10 +376,10 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                     {fmt(r.amount)}₪
                   </div>
                   <div style={{ fontSize: 11, color: C.textDim, marginTop: 3 }}>
-                    {fmtDate(r.date)} • {r.payment_method}{r.notes ? ` • ${r.notes}` : ''}
+                    {fmtDate(r.date)} • {r.payment_method}{r.payer_name ? ` • من: ${r.payer_name}` : ''}{r.notes ? ` • ${r.notes}` : ''}
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {r.receipt_url && (
                     <a href={r.receipt_url} target="_blank" rel="noreferrer"
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 10, background: `${C.secondary}18`, border: `1px solid ${C.secondary}33`, textDecoration: 'none', fontSize: 14 }}
@@ -364,26 +388,14 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                       📎
                     </a>
                   )}
-                  {permissions?.editProjects !== false && (
-                    <button onClick={() => openEditReceipt(r)} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      width: 32, height: 32, borderRadius: 10,
-                      background: `${C.primary}15`, border: `1px solid ${C.primary}33`,
-                      color: C.primary, cursor: 'pointer', fontSize: 14,
-                    }}>
-                      ✏️
-                    </button>
-                  )}
-                  {permissions?.canDelete !== false && (
-                    <button onClick={() => setConfirmDelR(r.id)} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      width: 32, height: 32, borderRadius: 10,
-                      background: `${C.accent}15`, border: `1px solid ${C.accent}33`,
-                      color: C.accent, cursor: 'pointer', fontSize: 14,
-                    }}>
-                      ✕
-                    </button>
-                  )}
+                  <button onClick={() => setConfirmDelR(r.id)} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 32, height: 32, borderRadius: 10,
+                    background: `${C.accent}15`, border: `1px solid ${C.accent}33`,
+                    color: C.accent, cursor: 'pointer', fontSize: 14,
+                  }}>
+                    ✕
+                  </button>
                 </div>
               </div>
             ))}
@@ -409,12 +421,13 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
         {/* ── Receipt modal ── */}
         <Modal
           open={showReceiptForm}
-          onClose={() => { setShowReceiptForm(false); setReceiptFile(null); setReceiptPreview(''); setEditingReceiptId(null) }}
-          title={editingReceiptId ? 'تعديل الدفعة المقبوضة' : 'تسجيل دفعة مقبوضة'}
+          onClose={closeReceiptForm}
+          title={editingReceiptId ? 'تعديل الدفعة المقبوضة' : quickReceiptProjId && !detail ? `💵 قبضة يوميات — ${projects.find(p=>p.id===quickReceiptProjId)?.name||''}` : 'تسجيل دفعة مقبوضة'}
         >
           <Input label="المبلغ المقبوض (₪)" value={receiptForm.amount} onChange={fr('amount')} type="number" min="0" required />
           <Input label="التاريخ"             value={receiptForm.date}   onChange={fr('date')}   type="date" required />
           <Input label="طريقة الدفع"         value={receiptForm.payment_method} onChange={fr('payment_method')} options={PAY_METHODS} />
+          <Input label="اسم الدافع (من قبضت منه)" value={receiptForm.payer_name} onChange={fr('payer_name')} placeholder="مثال: أبو محمد" />
           <Input label="ملاحظات"             value={receiptForm.notes}  onChange={fr('notes')} />
 
           {receiptForm.payment_method === 'تحويل بنكي' && (
@@ -460,7 +473,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
             </div>
           )}
           <Btn onClick={saveReceipt} full disabled={saving}>
-            {saving ? 'جاري الحفظ...' : editingReceiptId ? '✓ حفظ التعديل' : '✓ تسجيل الدفعة'}
+            {saving ? 'جاري الحفظ...' : 'حفظ الدفعة'}
           </Btn>
         </Modal>
 
@@ -583,6 +596,16 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                     </div>
                   </div>
                 )}
+
+                {/* قبضة اليوميات button — only for daily projects */}
+                {pr.type === 'يومي' && permissions?.editProjects !== false && (
+                  <button
+                    onClick={e => { e.stopPropagation(); openReceiptForm(pr.id) }}
+                    style={{ marginTop: 10, width: '100%', padding: '8px 0', borderRadius: 10, background: `${C.success}18`, border: `1px solid ${C.success}44`, color: C.success, fontSize: 11, fontWeight: 800, cursor: 'pointer', letterSpacing: '0.02em' }}
+                  >
+                    💵 قبضة اليوميات
+                  </button>
+                )}
               </div>
             </div>
           )
@@ -598,6 +621,15 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
         <Input label="السعر (₪)"      value={form.price}          onChange={f('price')}          type="number" min="0" />
         <Input label="التخصص"         value={form.specialization} onChange={f('specialization')} options={SPECS} />
         <Input label="الحالة"         value={form.status}         onChange={f('status')}         options={PROJECT_STATUS} />
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          <Input label="تاريخ البدء"  value={form.start_date}     onChange={f('start_date')}     type="date" />
+          <Input label="تاريخ الانتهاء" value={form.end_date}     onChange={f('end_date')}       type="date" />
+        </div>
+        <div style={{ marginBottom:16 }}>
+          <label style={{ fontSize:11, fontWeight:700, color:'#64748B', display:'block', marginBottom:8, letterSpacing:'0.04em', textTransform:'uppercase' }}>ملاحظات / اتفاقيات</label>
+          <textarea value={form.notes} onChange={e => f('notes')(e.target.value)} rows={3} placeholder="سجّل أي اتفاقيات أو ملاحظات مع الزبون..."
+            style={{ width:'100%', padding:'10px 14px', borderRadius:12, border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.05)', color:'#F8FAFC', fontSize:13, resize:'vertical', outline:'none', boxSizing:'border-box', fontFamily:'inherit', lineHeight:1.6 }} />
+        </div>
 
         {formError && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, color: C.accent, fontSize: 12, marginBottom: 14 }}>

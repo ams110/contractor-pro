@@ -59,6 +59,8 @@ function SummaryCard({ earned, paid, owed, pendingCount }) {
   )
 }
 
+const DAY_TYPE_COLORS = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange }
+
 function MonthRow({ month, data, payments }) {
   const [open, setOpen] = useState(false)
   const monthPayments = payments.filter(p => String(p.date).substring(0, 7) === month)
@@ -79,6 +81,26 @@ function MonthRow({ month, data, payments }) {
 
       {open && (
         <div style={{ padding: '0 16px 14px', borderTop: `1px solid ${C.border}` }}>
+          {/* تفاصيل كل يوم */}
+          {data.records && data.records.length > 0 && (
+            <div style={{ marginTop: 10, marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: C.textDim, marginBottom: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>تفاصيل الأيام</div>
+              {data.records.map((r, i) => {
+                const tc = DAY_TYPE_COLORS[r.day_type] || C.primary
+                return (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: `1px solid ${C.border}22` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, color: C.textDim, flexShrink: 0 }}>{fmtDate(r.date)}</div>
+                      {r.project_name && <div style={{ fontSize: 11, color: C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.project_name}</div>}
+                      <span style={{ fontSize: 10, fontWeight: 700, color: tc, background: `${tc}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${tc}30`, flexShrink: 0 }}>{r.day_type}</span>
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: tc, fontFamily: 'monospace', flexShrink: 0, marginRight: 4 }}>{fmt(r.amount)}₪</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {monthPayments.length > 0 && (
             <div style={{ marginTop: 10 }}>
               <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6, fontWeight: 600 }}>المدفوعات هذا الشهر:</div>
@@ -366,18 +388,19 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
     if (!form.amount || parseFloat(form.amount) <= 0) return setSubmitErr('أدخل المبلغ')
     if (!form.projectId) return setSubmitErr('اختر المشروع')
     if (!form.vendor?.trim()) return setSubmitErr('أدخل اسم المحل أو المزود')
-    if (!receiptFile)    return setSubmitErr('يجب رفع صورة الفاتورة أو ملف PDF')
     setSubmitErr('')
-    setUploading(true)
     let receiptUrl = ''
-    try {
-      receiptUrl = await uploadWorkerReceipt(worker.id, receiptFile)
-    } catch (e) {
-      setSubmitErr('فشل رفع الفاتورة: ' + e.message)
+    if (receiptFile) {
+      setUploading(true)
+      try {
+        receiptUrl = await uploadWorkerReceipt(worker.id, receiptFile)
+      } catch (e) {
+        setSubmitErr('فشل رفع الفاتورة: ' + e.message)
+        setUploading(false)
+        return
+      }
       setUploading(false)
-      return
     }
-    setUploading(false)
     try {
       await onSubmit({ projectId: form.projectId, date: form.date, amount: form.amount, category: form.category, vendor: form.vendor, receiptUrl })
       setSubmittedAmt(parseFloat(form.amount))
@@ -404,7 +427,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
     )
   }
 
-  const canSubmit = !submitting && !uploading && form.category && form.amount && form.projectId && form.vendor?.trim() && receiptFile
+  const canSubmit = !submitting && !uploading && form.category && form.amount && form.projectId && form.vendor?.trim()
 
   return (
     <div style={{ paddingBottom: 16 }}>
@@ -463,8 +486,8 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <label style={{ fontSize: 12 }}>
-            <span style={{ color: C.accent, fontWeight: 700 }}>📎 صورة الفاتورة *</span>
-            <span style={{ color: C.textDim, fontWeight: 400 }}> (إجباري)</span>
+            <span style={{ color: C.textDim, fontWeight: 700 }}>📎 صورة الفاتورة</span>
+            <span style={{ color: C.textDim, fontWeight: 400 }}> (اختياري)</span>
           </label>
           {receiptFile && receiptFile.type.startsWith('image/') && (
             <button onClick={scanReceipt} disabled={scanning}
@@ -635,7 +658,7 @@ function ChangePasswordForm({ worker, onChangePassword }) {
 
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 // ─── فورم طلب راتب ───────────────────────────────────────────────────────────
-function RequestPaymentForm({ worker, onRequest }) {
+function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
   const PAY_M = ['كاش', 'تحويل بنكي', 'شيك']
   const [form,    setForm]    = useState({ amount: '', method: 'كاش', notes: '' })
   const [saving,  setSaving]  = useState(false)
@@ -671,6 +694,37 @@ function RequestPaymentForm({ worker, onRequest }) {
 
   return (
     <div style={{ paddingBottom:16 }}>
+
+      {/* أيامي غير المدفوعة */}
+      {unpaidDays && unpaidDays.length > 0 && (
+        <div style={{ marginBottom:16, background:`${C.primary}0a`, borderRadius:16, border:`1px solid ${C.primary}22`, overflow:'hidden' }}>
+          <div style={{ padding:'12px 16px', borderBottom:`1px solid ${C.primary}18`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <span style={{ fontSize:13, fontWeight:800, color:C.primary }}>📋 أيامك غير المدفوعة</span>
+            <span style={{ fontSize:15, fontWeight:900, color:C.primary, fontFamily:'monospace' }}>{fmt(totalOwed)}₪</span>
+          </div>
+          <div style={{ padding:'8px 16px 12px', maxHeight:220, overflowY:'auto' }}>
+            {unpaidDays.slice(0, 20).map((d, i) => {
+              const tc = DAY_TYPE_COLORS[d.day_type] || C.primary
+              return (
+                <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom:`1px solid ${C.border}18` }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
+                    <span style={{ fontSize:11, color:C.textDim, flexShrink:0 }}>{fmtDate(d.date)}</span>
+                    {d.project_name && <span style={{ fontSize:11, color:C.textDim, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.project_name}</span>}
+                    <span style={{ fontSize:10, fontWeight:700, color:tc, background:`${tc}18`, padding:'1px 6px', borderRadius:5, border:`1px solid ${tc}25`, flexShrink:0 }}>{d.day_type}</span>
+                  </div>
+                  <span style={{ fontSize:12, fontWeight:800, color:tc, fontFamily:'monospace', flexShrink:0 }}>{fmt(d.amount)}₪</span>
+                </div>
+              )
+            })}
+            {unpaidDays.length > 20 && <div style={{ fontSize:10, color:C.textDim, textAlign:'center', paddingTop:6 }}>و {unpaidDays.length - 20} يوم آخر...</div>}
+          </div>
+          <button onClick={() => setForm(p => ({ ...p, amount: String(Math.round(totalOwed)) }))}
+            style={{ width:'100%', padding:'10px 0', background:`${C.primary}15`, border:'none', borderTop:`1px solid ${C.primary}22`, color:C.primary, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+            ✓ استخدم المبلغ الكامل {fmt(totalOwed)}₪
+          </button>
+        </div>
+      )}
+
       <div style={{ padding:'12px 14px', background:`${C.warning}12`, borderRadius:12, marginBottom:16, border:`1px solid ${C.warning}33` }}>
         <div style={{ fontSize:12, color:C.warning, fontWeight:700 }}>⚠ تنبيه</div>
         <div style={{ fontSize:11, color:C.textDim, marginTop:4 }}>الطلب يذهب للمشرف للموافقة — الراتب لا يُسجَّل تلقائياً</div>
@@ -880,6 +934,8 @@ export default function WorkerPortalScreen() {
           <RequestPaymentForm
             worker={worker}
             onRequest={requestPayment}
+            unpaidDays={workDays.filter(d => d.status === 'approved').sort((a, b) => b.date.localeCompare(a.date))}
+            totalOwed={totalOwed}
           />
         )}
 

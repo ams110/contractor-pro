@@ -163,10 +163,12 @@ export function useWorkerPortal() {
     const map = {}
     workDays.filter(d => d.status === 'approved').forEach(d => {
       const month = String(d.date).substring(0, 7)
-      if (!map[month]) map[month] = { days: 0, amount: 0 }
+      if (!map[month]) map[month] = { days: 0, amount: 0, records: [] }
       map[month].days++
       map[month].amount += d.amount || 0
+      map[month].records.push({ date: d.date, day_type: d.day_type, amount: d.amount || 0, project_name: d.project_name || '' })
     })
+    Object.values(map).forEach(m => m.records.sort((a, b) => b.date.localeCompare(a.date)))
     return Object.entries(map).sort(([a], [b]) => b.localeCompare(a))
   })()
 

@@ -104,19 +104,12 @@ export default function App() {
   const { advances,                        addAdvance,                      deleteAdvance   } = useAdvances(uid)
   const { taxAdvances,                     addTaxAdvance,                   deleteTaxAdvance } = useTaxAdvances(uid)
   const { clientReceipts, loading: crLoad, addReceipt, updateReceipt,        deleteReceipt   } = useClientReceipts(uid)
-  const { specs, expCats, payMethods, pensionMonthly, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly } = useSettings(uid)
+  const { specs, expCats, payMethods, pensionMonthly, taxEnabled, businessType, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly, setTaxEnabled, setBusinessType } = useSettings(uid)
   const { holidays, addHoliday, deleteHoliday }                                               = useHolidays(uid)
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar }                   = useProfile(uid)
   const { teamMembers, pendingInvite, permissions, effectiveOwnerId, acceptInvite, inviteMember, updateMember, removeMember, isBlocked, blockMember, getActivity } = useTeam(uid, user?.email)
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
   useSalaryAlerts(uid, employees, workDays, payments)
-
-  // تسجيل الصفحات التي يشاهدها أعضاء الفريق — يجب أن يكون هنا (قبل أي early return)
-  React.useEffect(() => {
-    if (!permissions?.isOwner && uid && effectiveOwnerId && uid !== effectiveOwnerId) {
-      supabase.rpc('log_screen_view', { p_owner_id: effectiveOwnerId, p_screen: screen })
-    }
-  }, [screen])
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
@@ -154,18 +147,25 @@ export default function App() {
     )
   }
 
+  // ─── تسجيل الصفحات التي يشاهدها أعضاء الفريق ───────────────────────────
+  React.useEffect(() => {
+    if (!permissions?.isOwner && uid && effectiveOwnerId && uid !== effectiveOwnerId) {
+      supabase.rpc('log_screen_view', { p_owner_id: effectiveOwnerId, p_screen: screen })
+    }
+  }, [screen])
+
   // ─── الشاشة الحالية ──────────────────────────────────────────────────────
   const p = permissions
   function renderScreen() {
     const commonData = { projects, employees, workDays, expenses, payments, clientReceipts }
     switch (screen) {
-      case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} />
+      case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} />
       case 'projects':  return p.viewProjects  ? <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} employees={employees} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} /> : <NoAccess />
       case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={workDays} payments={payments} advances={advances} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} /> : <NoAccess />
       case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={approveWorkDay} rejectWorkDay={rejectWorkDay} permissions={p} /> : <NoAccess />
       case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={approveExpense} rejectExpense={rejectExpense} employees={employees} userId={uid} permissions={p} /> : <NoAccess />
       case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} projects={projects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={approvePaymentRequest} rejectPaymentRequest={rejectPaymentRequest} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />
-      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} inviteMember={inviteMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} />
+      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} setTaxEnabled={setTaxEnabled} setBusinessType={setBusinessType} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} inviteMember={inviteMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} />
       default:          return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
     }
   }
@@ -228,7 +228,7 @@ export default function App() {
       {(() => {
         const pendingCount = workDays.filter(w => w.status === 'pending').length
         return (
-          <div style={{ position:'fixed', bottom:14, left:'50%', transform:'translateX(-50%)', width:'calc(100% - 32px)', maxWidth:398, background:'rgba(13,17,23,0.97)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', borderRadius:24, border:`1px solid ${C.borderMid}`, padding:'8px 6px 10px', display:'flex', justifyContent:'space-around', zIndex:50, boxShadow:'0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)' }}>
+          <div style={{ position:'fixed', bottom:14, left:0, right:0, margin:'0 auto', width:'calc(100% - 32px)', maxWidth:398, background:'rgba(13,17,23,0.97)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', borderRadius:24, border:`1px solid ${C.borderMid}`, padding:'8px 6px 10px', display:'flex', justifyContent:'space-around', zIndex:50, boxShadow:'0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)' }}>
             {NAV.map(n => {
               const active = screen === n.id
               return (

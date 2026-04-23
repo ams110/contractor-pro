@@ -5,15 +5,15 @@ export function useSettings(userId) {
   const key = userId ? `settings_${userId}` : null
 
   function load() {
-    if (!key) return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS }
+    if (!key) return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh' }
     try {
       const saved = localStorage.getItem(key)
       if (saved) {
         const parsed = JSON.parse(saved)
-        return { payMethods: PAY_METHODS, ...parsed }
+        return { payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh', ...parsed }
       }
     } catch {}
-    return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS }
+    return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh' }
   }
 
   const [settings, setSettings] = useState(load)
@@ -51,6 +51,14 @@ export function useSettings(userId) {
     save({ ...settings, pensionMonthly: parseFloat(amount) || 0 })
   }
 
+  function setTaxEnabled(val) {
+    save({ ...settings, taxEnabled: !!val })
+  }
+
+  function setBusinessType(val) {
+    save({ ...settings, businessType: val })
+  }
+
   function addPayMethod(method) {
     const m = method.trim()
     if (!m || settings.payMethods.includes(m)) return
@@ -66,9 +74,13 @@ export function useSettings(userId) {
     expCats:    settings.expCats,
     payMethods: settings.payMethods || PAY_METHODS,
     pensionMonthly: settings.pensionMonthly || 0,
+    taxEnabled:     settings.taxEnabled !== false,
+    businessType:   settings.businessType || 'osek_moreh',
     addSpec,        removeSpec,
     addExpCat,      removeExpCat,
     addPayMethod,   removePayMethod,
     setPensionMonthly,
+    setTaxEnabled,
+    setBusinessType,
   }
 }
