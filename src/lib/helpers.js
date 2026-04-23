@@ -17,11 +17,11 @@ export const fmtDate = (d) => {
 const _DAYS_AR   = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت']
 const _MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
 
-/** تحويل YYYY-MM-DD إلى "الثلاثاء، 15 أبريل" */
+/** تحويل YYYY-MM-DD إلى "الثلاثاء، 15 أبريل 2025" */
 export const fmtDateFull = (d) => {
   if (!d) return ''
   const dt = new Date(d + 'T00:00:00')
-  return `${_DAYS_AR[dt.getDay()]}، ${dt.getDate()} ${_MONTHS_AR[dt.getMonth()]}`
+  return `${_DAYS_AR[dt.getDay()]}، ${dt.getDate()} ${_MONTHS_AR[dt.getMonth()]} ${dt.getFullYear()}`
 }
 
 /**
