@@ -42,7 +42,45 @@ BEGIN
 END;
 $$;
 
--- 4. تحديث دالة إرسال يوم عمل لتشمل مكان العمل
+-- 4. تحديث دالة جلب أيام العامل لتشمل مكان العمل
+CREATE OR REPLACE FUNCTION get_worker_days(emp_id UUID)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  owner_id UUID;
+  result   json;
+BEGIN
+  SELECT user_id INTO owner_id FROM employees WHERE id = emp_id;
+  IF owner_id IS NULL THEN RETURN '[]'::json; END IF;
+
+  SELECT COALESCE(
+    json_agg(
+      json_build_object(
+        'id',           wd.id,
+        'date',         wd.date,
+        'day_type',     wd.day_type,
+        'hours',        wd.hours,
+        'amount',       wd.amount,
+        'status',       wd.status,
+        'location',     wd.location,
+        'project_name', p.name
+      ) ORDER BY wd.date DESC
+    ),
+    '[]'::json
+  )
+  INTO result
+  FROM work_days wd
+  LEFT JOIN projects p ON p.id = wd.project_id
+  WHERE wd.employee_id = emp_id AND wd.user_id = owner_id;
+
+  RETURN result;
+END;
+$$;
+
+-- 5. تحديث دالة إرسال يوم عمل لتشمل مكان العمل
 CREATE OR REPLACE FUNCTION worker_submit_day(
   p_emp_id        UUID,
   p_token         TEXT,
