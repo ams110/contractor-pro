@@ -190,14 +190,6 @@ export default function App() {
         </div>
       )}
 
-      {/* بانر الدعوة */}
-      {pendingInvite && (
-        <div style={{ position:'sticky', top:0, zIndex:100, background:GRAD.warm, padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <span style={{ fontSize:12, color:'#000', fontWeight:700 }}>📨 لديك دعوة للانضمام لفريق</span>
-          <button onClick={() => acceptInvite(pendingInvite.id)} style={{ padding:'6px 16px', borderRadius:20, background:'rgba(0,0,0,0.2)', color:'#000', border:'none', cursor:'pointer', fontSize:12, fontWeight:800 }}>قبول</button>
-        </div>
-      )}
-
       {/* ─── Header ─── */}
       <div style={{ position:'sticky', top:0, zIndex:50, background:'rgba(7,9,13,0.92)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
