@@ -89,6 +89,15 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   const [receiptPreview,  setReceiptPreview]  = useState('')
   const [quickReceiptProjId,  setQuickReceiptProjId]  = useState(null)
   const [editingReceiptId,    setEditingReceiptId]    = useState(null)
+  const [showMultiReceipt,    setShowMultiReceipt]    = useState(false)
+  const [multiSelProjs,       setMultiSelProjs]       = useState(new Set())
+  const [multiAmounts,        setMultiAmounts]        = useState({})
+  const [multiGlobal,         setMultiGlobal]         = useState('')
+  const [multiDate,           setMultiDate]           = useState(todayStr())
+  const [multiMethod,         setMultiMethod]         = useState('كاش')
+  const [multiPayer,          setMultiPayer]          = useState('')
+  const [multiSaving,         setMultiSaving]         = useState(false)
+  const [multiError,          setMultiError]          = useState('')
   const receiptFileRef = useRef()
 
   const emptyForm    = { name:'', client_name:'', client_phone:'', type:'', price:'', status:'نشط', specialization:'', notes:'', start_date:'', end_date:'' }
@@ -180,6 +189,56 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   async function confirmDeleteReceipt() {
     await deleteReceipt(confirmDelR)
     setConfirmDelR(null)
+  }
+
+  function openMultiReceipt() {
+    setMultiSelProjs(new Set())
+    setMultiAmounts({})
+    setMultiGlobal('')
+    setMultiDate(todayStr())
+    setMultiMethod('كاش')
+    setMultiPayer('')
+    setMultiError('')
+    setShowMultiReceipt(true)
+  }
+
+  function toggleMultiProj(id) {
+    setMultiSelProjs(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function setMultiAmt(id, val) {
+    setMultiAmounts(prev => ({ ...prev, [id]: val }))
+  }
+
+  function applyGlobal() {
+    if (!multiGlobal) return
+    const next = {}
+    multiSelProjs.forEach(id => { next[id] = multiGlobal })
+    setMultiAmounts(next)
+  }
+
+  async function saveMultiReceipts() {
+    if (multiSelProjs.size === 0) return setMultiError('اختر مشروع واحد على الأقل')
+    const entries = [...multiSelProjs].map(id => ({
+      id,
+      amount: parseFloat(multiAmounts[id] || multiGlobal || 0),
+    }))
+    if (entries.some(e => !e.amount || e.amount <= 0)) return setMultiError('أدخل المبلغ لكل مشروع مختار')
+    setMultiSaving(true)
+    try {
+      await Promise.all(entries.map(e =>
+        addReceipt({ project_id: e.id, amount: e.amount, date: multiDate, payment_method: multiMethod, payer_name: multiPayer, notes: '' })
+      ))
+      setShowMultiReceipt(false)
+    } catch (err) {
+      setMultiError(err.message)
+    } finally {
+      setMultiSaving(false)
+    }
   }
 
   const [sortBy, setSortBy] = useState('date') // 'date' | 'profit'
@@ -511,9 +570,21 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           >
             {sortBy === 'profit' ? 'الأكثر ربحاً' : 'الأحدث'}
           </button>
-          {permissions?.editProjects !== false && (
+          {permissions?.editProjects !== false && (<>
+            <button
+              onClick={openMultiReceipt}
+              style={{
+                padding: '9px 13px', borderRadius: 12,
+                border: `1px solid ${C.success}55`,
+                background: `${C.success}12`,
+                color: C.success, fontSize: 11, fontWeight: 700,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              💵 قبض متعدد
+            </button>
             <Btn onClick={openNew}>+ جديد</Btn>
-          )}
+          </>)}
         </div>
       </div>
 
@@ -643,6 +714,123 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
       </Modal>
 
       <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={confirmDelete} message="متأكد بدك تحذف هالمشروع؟" />
+
+      {/* ── Multi-project receipt modal ── */}
+      <Modal open={showMultiReceipt} onClose={() => setShowMultiReceipt(false)} title="💵 قبض من مشاريع متعددة">
+
+        {/* Global amount shortcut */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          <div style={{ flex: 1 }}>
+            <Input
+              label="مبلغ موحد للكل (اختياري)"
+              value={multiGlobal}
+              onChange={setMultiGlobal}
+              type="number" min="0"
+            />
+          </div>
+          <button
+            onClick={applyGlobal}
+            disabled={!multiGlobal || multiSelProjs.size === 0}
+            style={{
+              alignSelf: 'flex-end', marginBottom: 16,
+              padding: '11px 14px', borderRadius: 12,
+              background: multiGlobal && multiSelProjs.size > 0 ? `${C.primary}22` : C.border,
+              border: `1px solid ${multiGlobal && multiSelProjs.size > 0 ? C.primary + '55' : 'transparent'}`,
+              color: multiGlobal && multiSelProjs.size > 0 ? C.primary : C.textDim,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+          >
+            طبّق على الكل
+          </button>
+        </div>
+
+        {/* Shared date + method */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 4 }}>
+          <Input label="التاريخ"       value={multiDate}   onChange={setMultiDate}   type="date" />
+          <Input label="طريقة الدفع"  value={multiMethod} onChange={setMultiMethod} options={PAY_METHODS} />
+        </div>
+        <Input label="اسم الدافع (اختياري)" value={multiPayer} onChange={setMultiPayer} placeholder="مثال: أبو محمد" />
+
+        {/* Project list */}
+        <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          اختر المشاريع
+        </div>
+        <div style={{ maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+          {projects.filter(p => p.status === 'نشط' || p.status === 'عرض سعر').map(p => {
+            const sel = multiSelProjs.has(p.id)
+            return (
+              <div key={p.id}
+                onClick={() => toggleMultiProj(p.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+                  background: sel ? `${C.success}12` : 'rgba(255,255,255,0.03)',
+                  border: `1.5px solid ${sel ? C.success + '55' : C.border}`,
+                  transition: 'all .18s',
+                }}
+              >
+                {/* Checkbox */}
+                <div style={{
+                  width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+                  border: `2px solid ${sel ? C.success : C.borderMid}`,
+                  background: sel ? C.success : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, color: '#000', fontWeight: 900,
+                }}>
+                  {sel ? '✓' : ''}
+                </div>
+
+                {/* Project info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                  {p.client_name && <div style={{ fontSize: 11, color: C.textDim }}>{p.client_name}</div>}
+                </div>
+
+                {/* Per-project amount (shown when selected) */}
+                {sel && (
+                  <input
+                    type="number" min="0"
+                    value={multiAmounts[p.id] ?? ''}
+                    onChange={e => { e.stopPropagation(); setMultiAmt(p.id, e.target.value) }}
+                    onClick={e => e.stopPropagation()}
+                    placeholder="₪"
+                    style={{
+                      width: 90, padding: '7px 10px', borderRadius: 10,
+                      border: `1px solid ${C.borderMid}`, background: 'rgba(255,255,255,0.07)',
+                      color: C.text, fontSize: 13, fontFamily: 'monospace',
+                      outline: 'none', textAlign: 'center',
+                    }}
+                  />
+                )}
+              </div>
+            )
+          })}
+          {projects.filter(p => p.status === 'نشط' || p.status === 'عرض سعر').length === 0 && (
+            <div style={{ textAlign: 'center', color: C.textDim, fontSize: 13, padding: '20px 0' }}>ما في مشاريع نشطة</div>
+          )}
+        </div>
+
+        {/* Preview total */}
+        {multiSelProjs.size > 0 && (() => {
+          const total = [...multiSelProjs].reduce((s, id) => s + (parseFloat(multiAmounts[id] || multiGlobal) || 0), 0)
+          return (
+            <div style={{ padding: '12px 16px', borderRadius: 12, background: `${C.success}10`, border: `1px solid ${C.success}30`, marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: C.textDim }}>{multiSelProjs.size} مشروع محدد</span>
+              <span style={{ fontSize: 16, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>{total > 0 ? `${total.toLocaleString()}₪` : '--'}</span>
+            </div>
+          )
+        })()}
+
+        {multiError && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, color: C.accent, fontSize: 12, marginBottom: 14 }}>
+            ⚠ {multiError}
+          </div>
+        )}
+
+        <Btn onClick={saveMultiReceipts} full disabled={multiSaving || multiSelProjs.size === 0}>
+          {multiSaving ? 'جاري الحفظ...' : `✓ حفظ ${multiSelProjs.size > 0 ? multiSelProjs.size + ' دفعة' : 'الدفعات'}`}
+        </Btn>
+      </Modal>
     </div>
   )
 }
