@@ -21,6 +21,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const [filterProj,    setFilterProj]    = useState('')
   const [filterMonth,   setFilterMonth]   = useState('')
   const [workerDetail,  setWorkerDetail]  = useState(null)
+  const [openMonths,    setOpenMonths]    = useState(() => new Set([new Date().toISOString().slice(0, 7)]))
 
   const emptyForm = { date: todayStr(), employee_id: '', project_id: '', day_type: 'كامل', hours: '8', customAmount: '' }
   const [form, setForm] = useState(emptyForm)
@@ -288,61 +289,103 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
         </div>
       )}
 
-      {/* ─── Approved Days ─── */}
+      {/* ─── Approved Days (grouped by month) ─── */}
       {sorted.length === 0 && pendingDays.length === 0
         ? <EmptyState icon="📅" text="ما في أيام عمل مسجلة" action="+ سجّل أول يوم" onAction={openForm} />
-        : (
-          <>
-            {pendingDays.length > 0 && <SectionLabel color={C.primary}>الأيام الموافق عليها</SectionLabel>}
-            {hasFilter && (
-              <div style={{ fontSize:12, color:C.textDim, marginBottom:12, padding:'8px 14px', background:`${C.secondary}10`, borderRadius:10, border:`1px solid ${C.secondary}22` }}>
-                عرض {sorted.length} من {approvedDays.length} يوم
-              </div>
-            )}
-            {sorted.length === 0
-              ? <div style={{ textAlign:'center', padding:'32px 0', color:C.textDim, fontSize:13 }}>ما في نتائج للفلتر الحالي</div>
-              : sorted.map(wd => {
-                  const emp   = employees.find(x => x.id === wd.employee_id)
-                  const proj  = projects.find(x => x.id === wd.project_id)
-                  const dayNum = (wd.date || '').slice(8, 10)
-                  const pillColor = DAY_TYPE_COLOR[wd.day_type] || C.primary
+        : (() => {
+            if (sorted.length === 0) return (
+              <>
+                {pendingDays.length > 0 && <SectionLabel color={C.primary}>الأيام الموافق عليها</SectionLabel>}
+                <div style={{ textAlign:'center', padding:'32px 0', color:C.textDim, fontSize:13 }}>ما في نتائج للفلتر الحالي</div>
+              </>
+            )
+
+            // group by month
+            const byMonth = {}
+            sorted.forEach(wd => {
+              const m = (wd.date || '').slice(0, 7)
+              if (!byMonth[m]) byMonth[m] = []
+              byMonth[m].push(wd)
+            })
+            const monthEntries = Object.entries(byMonth).sort(([a], [b]) => b.localeCompare(a))
+            const currentMonth = new Date().toISOString().slice(0, 7)
+
+            return (
+              <>
+                {pendingDays.length > 0 && <SectionLabel color={C.primary}>الأيام الموافق عليها</SectionLabel>}
+                {hasFilter && (
+                  <div style={{ fontSize:12, color:C.textDim, marginBottom:12, padding:'8px 14px', background:`${C.secondary}10`, borderRadius:10, border:`1px solid ${C.secondary}22` }}>
+                    عرض {sorted.length} من {approvedDays.length} يوم
+                  </div>
+                )}
+                {monthEntries.map(([month, days]) => {
+                  const totalAmt  = days.reduce((s, d) => s + (d.amount || 0), 0)
+                  const isOpen    = openMonths.has(month)
+                  const isCurrent = month === currentMonth
+                  const [y, m]    = month.split('-')
+                  const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+                  const monthLabel = `${MONTHS_AR[parseInt(m,10)-1]} ${y}`
+
                   return (
-                    <GlassCard key={wd.id} style={{ marginBottom:10, borderRadius:18 }}>
-                      <div style={{ padding:'14px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-                          <div style={{ minWidth:46, height:52, borderRadius:14, background:`${pillColor}18`, border:`1.5px solid ${pillColor}33`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, flexShrink:0 }}>
-                            <div style={{ fontSize:20, fontWeight:900, color:pillColor, lineHeight:1 }}>{dayNum}</div>
-                            <div style={{ fontSize:9, color:pillColor, opacity:0.7, fontWeight:700, textAlign:'center', lineHeight:1.2 }}>
-                              {DAY_ICONS[wd.day_type] || '📅'}
-                            </div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize:15, fontWeight:700, color:C.text, marginBottom:3 }}>{emp?.name || '؟'}</div>
-                            <div style={{ fontSize:11, color:C.textDim, marginBottom:4 }}>{fmtDateFull(wd.date)}</div>
-                            <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                              <span style={{ fontSize:12, color:C.textDim }}>{proj?.name || '؟'}</span>
-                              <span style={{ fontSize:11, fontWeight:700, color:pillColor, background:`${pillColor}18`, padding:'2px 10px', borderRadius:10, border:`1px solid ${pillColor}30` }}>{wd.day_type}</span>
-                            </div>
-                          </div>
+                    <div key={month} style={{ marginBottom:10 }}>
+                      {/* Month header */}
+                      <button
+                        onClick={() => setOpenMonths(prev => {
+                          const next = new Set(prev)
+                          next.has(month) ? next.delete(month) : next.add(month)
+                          return next
+                        })}
+                        style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 18px', borderRadius: isOpen ? '16px 16px 0 0' : 16, background: isCurrent ? `${C.primary}12` : 'rgba(255,255,255,0.05)', border:`1.5px solid ${isCurrent ? C.primary + '44' : C.border}`, cursor:'pointer', transition:'all .2s' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                          <span style={{ fontSize:15, fontWeight:800, color: isCurrent ? C.primary : C.text }}>{monthLabel}</span>
+                          <span style={{ fontSize:11, color:C.textDim, background:'rgba(255,255,255,0.06)', padding:'2px 10px', borderRadius:20, fontWeight:600 }}>{days.length} يوم</span>
                         </div>
-                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                          <div style={{ fontSize:17, fontWeight:900, color:C.accent, fontFamily:'monospace', letterSpacing:'-0.5px' }}>{fmt(wd.amount)}₪</div>
-                          <button onClick={() => openEditDay(wd)}
-                            style={{ width:34, height:34, borderRadius:10, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                            ✏️
-                          </button>
-                          <button onClick={() => setConfirmDel(wd.id)}
-                            style={{ width:34, height:34, borderRadius:10, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                            🗑️
-                          </button>
+                        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                          <span style={{ fontSize:16, fontWeight:900, color: isCurrent ? C.primary : C.success, fontFamily:'monospace' }}>{fmt(totalAmt)}₪</span>
+                          <span style={{ fontSize:12, color:C.textDim, transition:'transform .2s', display:'inline-block', transform: isOpen ? 'rotate(180deg)' : 'none' }}>▼</span>
                         </div>
-                      </div>
-                    </GlassCard>
+                      </button>
+
+                      {/* Days inside month */}
+                      {isOpen && (
+                        <div style={{ border:`1.5px solid ${isCurrent ? C.primary + '33' : C.border}`, borderTop:'none', borderRadius:'0 0 16px 16px', overflow:'hidden' }}>
+                          {days.map((wd, idx) => {
+                            const emp  = employees.find(x => x.id === wd.employee_id)
+                            const proj = projects.find(x => x.id === wd.project_id)
+                            const dayNum    = (wd.date || '').slice(8, 10)
+                            const pillColor = DAY_TYPE_COLOR[wd.day_type] || C.primary
+                            return (
+                              <div key={wd.id} style={{ padding:'12px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderBottom: idx < days.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                                  <div style={{ minWidth:40, height:46, borderRadius:12, background:`${pillColor}15`, border:`1px solid ${pillColor}30`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, flexShrink:0 }}>
+                                    <div style={{ fontSize:17, fontWeight:900, color:pillColor, lineHeight:1 }}>{dayNum}</div>
+                                    <div style={{ fontSize:9, color:pillColor, opacity:0.7 }}>{DAY_ICONS[wd.day_type] || '📅'}</div>
+                                  </div>
+                                  <div>
+                                    <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{emp?.name || '؟'}</div>
+                                    <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:3, flexWrap:'wrap' }}>
+                                      <span style={{ fontSize:11, color:C.textDim }}>{proj?.name || '؟'}</span>
+                                      {wd.location && <span style={{ fontSize:10, color:C.primary, background:`${C.primary}15`, padding:'1px 7px', borderRadius:6 }}>📍 {wd.location}</span>}
+                                      <span style={{ fontSize:10, fontWeight:700, color:pillColor, background:`${pillColor}18`, padding:'1px 8px', borderRadius:8 }}>{wd.day_type}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                                  <span style={{ fontSize:15, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(wd.amount)}₪</span>
+                                  <button onClick={() => openEditDay(wd)} style={{ width:32, height:32, borderRadius:9, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✏️</button>
+                                  <button onClick={() => setConfirmDel(wd.id)} style={{ width:32, height:32, borderRadius:9, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>🗑️</button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
                   )
-                })
-            }
-          </>
-        )
+                })}
+              </>
+            )
+          })()
       }
 
       {/* ─── Add Modal ─── */}
