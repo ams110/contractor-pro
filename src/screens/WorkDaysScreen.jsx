@@ -22,6 +22,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const [filterMonth,   setFilterMonth]   = useState('')
   const [workerDetail,  setWorkerDetail]  = useState(null)
   const [openMonths,    setOpenMonths]    = useState(() => new Set([new Date().toISOString().slice(0, 7)]))
+  const [openWorkers,   setOpenWorkers]   = useState(new Set())
 
   const emptyForm = { date: todayStr(), employee_id: '', project_id: '', day_type: 'كامل', hours: '8', customAmount: '' }
   const [form, setForm] = useState(emptyForm)
@@ -346,40 +347,86 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                         </div>
                       </button>
 
-                      {/* Days inside month */}
-                      {isOpen && (
-                        <div style={{ border:`1.5px solid ${isCurrent ? C.primary + '33' : C.border}`, borderTop:'none', borderRadius:'0 0 16px 16px', overflow:'hidden' }}>
-                          {days.map((wd, idx) => {
-                            const emp  = employees.find(x => x.id === wd.employee_id)
-                            const proj = projects.find(x => x.id === wd.project_id)
-                            const dayNum    = (wd.date || '').slice(8, 10)
-                            const pillColor = DAY_TYPE_COLOR[wd.day_type] || C.primary
-                            return (
-                              <div key={wd.id} style={{ padding:'12px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderBottom: idx < days.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                                  <div style={{ minWidth:40, height:46, borderRadius:12, background:`${pillColor}15`, border:`1px solid ${pillColor}30`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, flexShrink:0 }}>
-                                    <div style={{ fontSize:17, fontWeight:900, color:pillColor, lineHeight:1 }}>{dayNum}</div>
-                                    <div style={{ fontSize:9, color:pillColor, opacity:0.7 }}>{DAY_ICONS[wd.day_type] || '📅'}</div>
-                                  </div>
-                                  <div>
-                                    <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{emp?.name || '؟'}</div>
-                                    <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:3, flexWrap:'wrap' }}>
-                                      <span style={{ fontSize:11, color:C.textDim }}>{proj?.name || '؟'}</span>
-                                      {wd.location && <span style={{ fontSize:10, color:C.primary, background:`${C.primary}15`, padding:'1px 7px', borderRadius:6 }}>📍 {wd.location}</span>}
-                                      <span style={{ fontSize:10, fontWeight:700, color:pillColor, background:`${pillColor}18`, padding:'1px 8px', borderRadius:8 }}>{wd.day_type}</span>
+                      {/* Workers inside month */}
+                      {isOpen && (() => {
+                        const byWorker = {}
+                        days.forEach(wd => {
+                          const empId = wd.employee_id
+                          if (!byWorker[empId]) byWorker[empId] = []
+                          byWorker[empId].push(wd)
+                        })
+                        const workerEntries = Object.entries(byWorker)
+                          .map(([empId, wdays]) => {
+                            const emp = employees.find(e => e.id === empId)
+                            return { empId, emp, wdays, total: wdays.reduce((s,d) => s+(d.amount||0),0) }
+                          })
+                          .sort((a,b) => b.total - a.total)
+
+                        return (
+                          <div style={{ border:`1.5px solid ${isCurrent ? C.primary + '33' : C.border}`, borderTop:'none', borderRadius:'0 0 16px 16px', overflow:'hidden' }}>
+                            {workerEntries.map(({ empId, emp, wdays, total }, wi) => {
+                              const workerKey  = `${month}-${empId}`
+                              const workerOpen = openWorkers.has(workerKey)
+                              const toggleWorker = () => setOpenWorkers(prev => {
+                                const next = new Set(prev)
+                                next.has(workerKey) ? next.delete(workerKey) : next.add(workerKey)
+                                return next
+                              })
+                              return (
+                                <div key={empId} style={{ borderBottom: wi < workerEntries.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                                  {/* Worker row */}
+                                  <button onClick={toggleWorker}
+                                    style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'11px 16px', background: workerOpen ? 'rgba(255,255,255,0.05)' : 'transparent', border:'none', cursor:'pointer' }}>
+                                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                                      <div style={{ width:32, height:32, borderRadius:10, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:900, color:'#000', flexShrink:0 }}>
+                                        {emp?.name?.[0] || '؟'}
+                                      </div>
+                                      <div style={{ textAlign:'right' }}>
+                                        <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{emp?.name || '؟'}</div>
+                                        <div style={{ fontSize:10, color:C.textDim, marginTop:1 }}>{wdays.length} يوم</div>
+                                      </div>
                                     </div>
-                                  </div>
+                                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                                      <span style={{ fontSize:14, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmt(total)}₪</span>
+                                      <span style={{ fontSize:10, color:C.textDim, transition:'transform .2s', display:'inline-block', transform: workerOpen ? 'rotate(180deg)' : 'none' }}>▼</span>
+                                    </div>
+                                  </button>
+
+                                  {/* Day rows */}
+                                  {workerOpen && wdays.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map((wd, idx) => {
+                                    const proj      = projects.find(x => x.id === wd.project_id)
+                                    const dayNum    = (wd.date || '').slice(8, 10)
+                                    const pillColor = DAY_TYPE_COLOR[wd.day_type] || C.primary
+                                    return (
+                                      <div key={wd.id} style={{ padding:'10px 16px 10px 58px', display:'flex', justifyContent:'space-between', alignItems:'center', background: idx%2===0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderTop:`1px solid ${C.border}` }}>
+                                        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                                          <div style={{ minWidth:36, height:40, borderRadius:10, background:`${pillColor}15`, border:`1px solid ${pillColor}30`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, flexShrink:0 }}>
+                                            <div style={{ fontSize:14, fontWeight:900, color:pillColor }}>{dayNum}</div>
+                                            <div style={{ fontSize:8, color:pillColor, opacity:0.8 }}>{DAY_ICONS[wd.day_type]||'📅'}</div>
+                                          </div>
+                                          <div>
+                                            <div style={{ fontSize:12, color:C.textDim }}>{fmtDateFull(wd.date)}</div>
+                                            <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:2, flexWrap:'wrap' }}>
+                                              <span style={{ fontSize:11, color:C.textDim }}>{proj?.name||'؟'}</span>
+                                              {wd.location && <span style={{ fontSize:10, color:C.primary, background:`${C.primary}15`, padding:'1px 6px', borderRadius:5 }}>📍 {wd.location}</span>}
+                                              <span style={{ fontSize:10, fontWeight:700, color:pillColor, background:`${pillColor}15`, padding:'1px 7px', borderRadius:6 }}>{wd.day_type}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                                          <span style={{ fontSize:14, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(wd.amount)}₪</span>
+                                          <button onClick={() => openEditDay(wd)} style={{ width:30, height:30, borderRadius:8, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✏️</button>
+                                          <button onClick={() => setConfirmDel(wd.id)} style={{ width:30, height:30, borderRadius:8, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>🗑️</button>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
                                 </div>
-                                <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                                  <span style={{ fontSize:15, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(wd.amount)}₪</span>
-                                  <button onClick={() => openEditDay(wd)} style={{ width:32, height:32, borderRadius:9, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✏️</button>
-                                  <button onClick={() => setConfirmDel(wd.id)} style={{ width:32, height:32, borderRadius:9, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>🗑️</button>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 })}
