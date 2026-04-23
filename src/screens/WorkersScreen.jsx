@@ -98,7 +98,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
     }
   }
 
-  const emptyForm = { name:'', phone:'', specialization:'', daily_rate:'', status:'نشط' }
+  const emptyForm = { name:'', phone:'', specialization:'', daily_rate:'', status:'نشط', can_submit_expenses: true, can_request_payment: true }
   const [form, setForm] = useState(emptyForm)
 
   function f(key) { return v => setForm(prev => ({ ...prev, [key]: v })) }
@@ -106,7 +106,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
   function openNew() { setForm(emptyForm); setEditing(null); setFormError(''); setShowForm(true) }
 
   function openEdit(w) {
-    setForm({ ...w, daily_rate: String(w.daily_rate) })
+    setForm({ ...w, daily_rate: String(w.daily_rate), can_submit_expenses: w.can_submit_expenses !== false, can_request_payment: w.can_request_payment !== false })
     setEditing(w.id)
     setFormError('')
     setShowForm(true)
@@ -366,6 +366,44 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                 </button>
               )
             })}
+          </div>
+        </div>
+
+        {/* صلاحيات بوابة العامل */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'block', marginBottom: 10, letterSpacing: '0.03em' }}>
+            صلاحيات بوابة العمال
+          </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[
+              { key: 'can_submit_expenses', label: '🧾 يسمح له بتسجيل مصاريف', color: C.warning },
+              { key: 'can_request_payment', label: '💰 يسمح له بطلب راتب',     color: C.success },
+            ].map(({ key, label, color }) => (
+              <button key={key} onClick={() => setForm(p => ({ ...p, [key]: !p[key] }))}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+                  border: `1.5px solid ${form[key] ? color + '55' : C.border}`,
+                  background: form[key] ? `${color}12` : 'transparent',
+                  transition: 'all .18s',
+                }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: form[key] ? color : C.textDim }}>{label}</span>
+                <div style={{
+                  width: 38, height: 22, borderRadius: 11,
+                  background: form[key] ? color : C.textMuted,
+                  position: 'relative', transition: 'background .2s',
+                  border: `1px solid ${form[key] ? color : C.border}`,
+                }}>
+                  <div style={{
+                    position: 'absolute', top: 2,
+                    left: form[key] ? 18 : 2,
+                    width: 16, height: 16, borderRadius: '50%',
+                    background: '#fff', transition: 'left .2s',
+                    boxShadow: '0 1px 4px rgba(0,0,0,.3)',
+                  }} />
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 

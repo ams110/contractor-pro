@@ -4,9 +4,10 @@ import { Btn, Input } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { supabase } from '../lib/supabase.js'
 
-export default function LoginScreen() {
+export default function LoginScreen({ teamMemberSignIn }) {
   const { signIn, signUp, signInWithPasskey, isPasskeySupported } = useAuth()
 
+  const [loginType, setLoginType] = useState('owner')   // 'owner' | 'member'
   const [mode,     setMode]     = useState('login')
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
@@ -14,6 +15,10 @@ export default function LoginScreen() {
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
   const [info,     setInfo]     = useState('')
+
+  // team member fields
+  const [tmUsername, setTmUsername] = useState('')
+  const [tmPassword, setTmPassword] = useState('')
 
   const passkeyOk = isPasskeySupported()
   function clearMsg() { setError(''); setInfo('') }
@@ -65,6 +70,18 @@ export default function LoginScreen() {
     finally { setLoading(false) }
   }
 
+  async function handleMemberLogin(e) {
+    e.preventDefault()
+    if (!tmUsername.trim()) return setError('أدخل اسم المستخدم')
+    if (!tmPassword)        return setError('أدخل كلمة المرور')
+    setLoading(true); setError('')
+    try {
+      await teamMemberSignIn(tmUsername.trim(), tmPassword)
+    } catch (err) {
+      setError(err.message || 'اسم المستخدم أو كلمة المرور غير صحيحة')
+    } finally { setLoading(false) }
+  }
+
   const TABS = [['login','دخول'],['register','حساب جديد'],['forgot','نسيت كلمة المرور']]
 
   return (
@@ -84,7 +101,46 @@ export default function LoginScreen() {
       {/* Card */}
       <div className="fade-up" style={{ width:'100%', maxWidth:400, background:'rgba(13,17,23,0.9)', backdropFilter:'blur(24px)', borderRadius:28, border:`1px solid ${C.borderMid}`, padding:28, boxShadow:'0 24px 80px rgba(0,0,0,0.5)' }}>
 
-        {/* Tabs */}
+        {/* Login type toggle */}
+        {teamMemberSignIn && (
+          <div style={{ display:'flex', gap:4, marginBottom:20, background:'rgba(255,255,255,0.04)', borderRadius:14, padding:4 }}>
+            {[['owner','صاحب الحساب'],['member','عضو فريق']].map(([t, label]) => (
+              <button key={t} onClick={() => { setLoginType(t); clearMsg() }}
+                style={{ flex:1, padding:'9px 4px', borderRadius:10, border:'none', cursor:'pointer', fontWeight:700, fontSize:12, transition:'all .2s',
+                  background: loginType === t ? GRAD.brand : 'transparent',
+                  color: loginType === t ? '#000' : C.textDim,
+                  boxShadow: loginType === t ? '0 4px 14px #00DDB344' : 'none',
+                }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Team member login form */}
+        {loginType === 'member' && (
+          <form onSubmit={handleMemberLogin}>
+            <div style={{ marginBottom:16 }}>
+              <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>اسم المستخدم</label>
+              <input value={tmUsername} onChange={e => { setTmUsername(e.target.value); clearMsg() }}
+                placeholder="username" autoComplete="username"
+                style={{ width:'100%', padding:'12px 14px', borderRadius:14, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:14, boxSizing:'border-box', outline:'none', direction:'ltr', textAlign:'left' }} />
+            </div>
+            <div style={{ marginBottom:20 }}>
+              <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>كلمة المرور</label>
+              <input value={tmPassword} onChange={e => { setTmPassword(e.target.value); clearMsg() }}
+                type="password" placeholder="••••••••" autoComplete="current-password"
+                style={{ width:'100%', padding:'12px 14px', borderRadius:14, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:14, boxSizing:'border-box', outline:'none' }} />
+            </div>
+            {error && <Alert type="error">{error}</Alert>}
+            <Btn full disabled={loading}>
+              {loading ? '⏳ جاري التحقق...' : '→ دخول'}
+            </Btn>
+          </form>
+        )}
+
+        {/* Owner login — Tabs */}
+        {loginType === 'owner' && (
         <div style={{ display:'flex', gap:4, marginBottom:24, background:'rgba(255,255,255,0.04)', borderRadius:16, padding:4 }}>
           {TABS.map(([m, label]) => (
             <button key={m} onClick={() => { setMode(m); clearMsg() }}
@@ -97,43 +153,48 @@ export default function LoginScreen() {
             </button>
           ))}
         </div>
-
-        {mode === 'forgot' && (
-          <div>
-            <Input label="البريد الإلكتروني" value={email} onChange={setEmail} type="email" placeholder="example@email.com" required />
-            {error && <Alert type="error">{error}</Alert>}
-            {info  && <Alert type="success">{info}</Alert>}
-            <Btn onClick={handleForgotPassword} full disabled={loading}>{loading ? '...' : 'إرسال رابط التغيير'}</Btn>
-          </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: mode === 'forgot' ? 'none' : 'block' }}>
-          {mode === 'register' && <Input label="الاسم الكامل" value={name} onChange={setName} placeholder="محمد علي" required />}
-          <Input label="البريد الإلكتروني" value={email} onChange={setEmail} type="email" placeholder="example@email.com" required />
-          <Input label="كلمة المرور" value={password} onChange={setPassword} type="password" placeholder="••••••••" required
-            error={password.length > 0 && password.length < 6 ? 'أقل من 6 أحرف' : ''} />
+        {loginType === 'owner' && (
+          <>
+            {mode === 'forgot' && (
+              <div>
+                <Input label="البريد الإلكتروني" value={email} onChange={setEmail} type="email" placeholder="example@email.com" required />
+                {error && <Alert type="error">{error}</Alert>}
+                {info  && <Alert type="success">{info}</Alert>}
+                <Btn onClick={handleForgotPassword} full disabled={loading}>{loading ? '...' : 'إرسال رابط التغيير'}</Btn>
+              </div>
+            )}
 
-          {error && <Alert type="error">{error}</Alert>}
-          {info  && <Alert type="success">{info}</Alert>}
+            <form onSubmit={handleSubmit} style={{ display: mode === 'forgot' ? 'none' : 'block' }}>
+              {mode === 'register' && <Input label="الاسم الكامل" value={name} onChange={setName} placeholder="محمد علي" required />}
+              <Input label="البريد الإلكتروني" value={email} onChange={setEmail} type="email" placeholder="example@email.com" required />
+              <Input label="كلمة المرور" value={password} onChange={setPassword} type="password" placeholder="••••••••" required
+                error={password.length > 0 && password.length < 6 ? 'أقل من 6 أحرف' : ''} />
 
-          <Btn full disabled={loading}>
-            {loading ? '⏳ جاري التحميل...' : mode === 'login' ? '→ دخول' : '✓ إنشاء حساب'}
-          </Btn>
-        </form>
+              {error && <Alert type="error">{error}</Alert>}
+              {info  && <Alert type="success">{info}</Alert>}
 
-        {mode === 'login' && passkeyOk && (
-          <div style={{ marginTop:16 }}>
-            <div style={{ textAlign:'center', fontSize:11, color:C.textDim, marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ flex:1, height:1, background:C.border }} />
-              <span>أو</span>
-              <div style={{ flex:1, height:1, background:C.border }} />
-            </div>
-            <button onClick={handlePasskey} disabled={loading}
-              style={{ width:'100%', padding:'13px', borderRadius:14, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.04)', color:C.text, fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'all .2s', opacity: loading ? 0.5 : 1 }}>
-              <span style={{ fontSize:22 }}>👆</span>
-              دخول بالبصمة / Face ID
-            </button>
-          </div>
+              <Btn full disabled={loading}>
+                {loading ? '⏳ جاري التحميل...' : mode === 'login' ? '→ دخول' : '✓ إنشاء حساب'}
+              </Btn>
+            </form>
+
+            {mode === 'login' && passkeyOk && (
+              <div style={{ marginTop:16 }}>
+                <div style={{ textAlign:'center', fontSize:11, color:C.textDim, marginBottom:12, display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{ flex:1, height:1, background:C.border }} />
+                  <span>أو</span>
+                  <div style={{ flex:1, height:1, background:C.border }} />
+                </div>
+                <button onClick={handlePasskey} disabled={loading}
+                  style={{ width:'100%', padding:'13px', borderRadius:14, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.04)', color:C.text, fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'all .2s', opacity: loading ? 0.5 : 1 }}>
+                  <span style={{ fontSize:22 }}>👆</span>
+                  دخول بالبصمة / Face ID
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

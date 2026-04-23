@@ -824,12 +824,15 @@ export default function WorkerPortalScreen() {
 
   const pendingExpenses = workerExpenses.filter(e => e.status === 'pending')
 
+  const canExpense = worker.can_submit_expenses !== false
+  const canSalary  = worker.can_request_payment !== false
+
   const tabs = [
-    { id: 'submit',   label: '📤 يوم' },
-    { id: 'expense',  label: '💸 مصروف' },
-    { id: 'salary',   label: '💰 طلب راتب' },
-    { id: 'monthly',  label: '📅 شهري' },
-    { id: 'account',  label: '⚙️ حساب' },
+    { id: 'submit',  label: '📤 يوم' },
+    ...(canExpense ? [{ id: 'expense', label: '💸 مصروف' }] : []),
+    ...(canSalary  ? [{ id: 'salary',  label: '💰 راتب'   }] : []),
+    { id: 'monthly', label: '📅 شهري' },
+    { id: 'account', label: '⚙️ حساب' },
   ]
 
   return (
