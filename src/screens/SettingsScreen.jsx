@@ -437,7 +437,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontSize:12, fontWeight:700, color: blocked ? C.accent : C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.email}</div>
-                        <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:3, flexWrap:'wrap', gap:4 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:3, flexWrap:'wrap' }}>
                           {blocked
                             ? <span style={{ fontSize:9, color:C.accent, fontWeight:700, background:`${C.accent}22`, padding:'2px 6px', borderRadius:4 }}>🚫 محجوب</span>
                             : m.status === 'active'
