@@ -26,3 +26,4 @@ Thumbs.db
 
 # Supabase local temp files
 supabase/.temp/
+.mcp.json
