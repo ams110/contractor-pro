@@ -35,15 +35,16 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const activeProjs = projects.filter(p => p.status === 'نشط')
 
   const selectedEmp = form.employee_id ? employees.find(e => e.id === form.employee_id) : null
+  const effectivePreviewType = (form.day_type === 'عطلة' && holidayWorked) ? holidaySubType : form.day_type
   const singlePreview = selectedEmp
-    ? (form.day_type === 'مبلغ مسكر' ? parseFloat(form.customAmount) || 0 : calcSalary(selectedEmp.daily_rate, form.day_type, form.hours))
+    ? (effectivePreviewType === 'مبلغ مسكر' ? parseFloat(form.customAmount) || 0 : calcSalary(selectedEmp.daily_rate, effectivePreviewType, form.hours))
     : 0
 
   const multiPreviews = multiMode
     ? [...multiEmps].map(id => {
         const emp = employees.find(e => e.id === id)
         if (!emp) return null
-        const amt = form.day_type === 'مبلغ مسكر' ? parseFloat(form.customAmount) || 0 : calcSalary(emp.daily_rate, form.day_type, form.hours)
+        const amt = effectivePreviewType === 'مبلغ مسكر' ? parseFloat(form.customAmount) || 0 : calcSalary(emp.daily_rate, effectivePreviewType, form.hours)
         return { id, name: emp.name, amount: amt }
       }).filter(Boolean)
     : []
@@ -334,8 +335,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   </div>
                 )}
                 {monthEntries.map(([month, days]) => {
-                  const workDaysOnly = days.filter(d => d.day_type !== 'عطلة')
-                  const holidays     = days.filter(d => d.day_type === 'عطلة')
+                  const workDaysOnly  = days.filter(d => d.day_type !== 'عطلة')
+                  const holidayDays   = days.filter(d => d.day_type === 'عطلة')
                   const totalAmt  = days.reduce((s, d) => s + (d.amount || 0), 0)
                   const isOpen    = openMonths.has(month)
                   const isCurrent = month === currentMonth
@@ -356,7 +357,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                           <span style={{ fontSize:15, fontWeight:800, color: isCurrent ? C.primary : C.text }}>{monthLabel}</span>
                           <span style={{ fontSize:11, color:C.textDim, background:'rgba(255,255,255,0.06)', padding:'2px 10px', borderRadius:20, fontWeight:600 }}>
-                            {workDaysOnly.length} يوم{holidays.length > 0 ? ` · 🎉 ${holidays.length} عطلة` : ''}
+                            {workDaysOnly.length} يوم{holidayDays.length > 0 ? ` · 🎉 ${holidayDays.length} عطلة` : ''}
                           </span>
                         </div>
                         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
