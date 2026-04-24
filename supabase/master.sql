@@ -135,9 +135,14 @@ CREATE TABLE IF NOT EXISTS team_members (
   owner_id            UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   member_id           UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   email               TEXT NOT NULL,
+  display_name        TEXT,
+  username            TEXT,
+  role                TEXT DEFAULT 'عضو',
+  auth_email          TEXT,
   status              TEXT DEFAULT 'pending',
   last_seen_at        TIMESTAMPTZ,
   is_blocked          BOOLEAN DEFAULT false,
+  expires_at          TIMESTAMPTZ,
   can_view_projects   BOOLEAN DEFAULT false,
   can_edit_projects   BOOLEAN DEFAULT false,
   can_view_workers    BOOLEAN DEFAULT false,
@@ -148,8 +153,13 @@ CREATE TABLE IF NOT EXISTS team_members (
   can_add_payments    BOOLEAN DEFAULT false,
   can_delete          BOOLEAN DEFAULT false,
   can_manage_team     BOOLEAN DEFAULT false,
+  can_view_amounts    BOOLEAN DEFAULT true,
+  can_view_activity   BOOLEAN DEFAULT false,
   created_at          TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS team_members_username_uq
+  ON team_members(username) WHERE username IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS audit_log (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -200,10 +210,35 @@ ALTER TABLE work_days ADD COLUMN IF NOT EXISTS status      TEXT DEFAULT 'approve
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS worker_username      TEXT;
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS worker_password_hash TEXT;
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS worker_session_token TEXT;
-ALTER TABLE team_members ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
-ALTER TABLE team_members ADD COLUMN IF NOT EXISTS is_blocked   BOOLEAN DEFAULT false;
+-- team_members: أعمدة إضافية (للتوافق مع قواعد بيانات موجودة)
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS display_name      TEXT;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS username          TEXT;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS role              TEXT DEFAULT 'عضو';
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS auth_email        TEXT;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS last_seen_at      TIMESTAMPTZ;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS is_blocked        BOOLEAN DEFAULT false;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS expires_at        TIMESTAMPTZ;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS can_view_amounts  BOOLEAN DEFAULT true;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS can_view_activity BOOLEAN DEFAULT false;
 
--- ─── 3. RLS ──────────────────────────────────────────────────────────────────
+CREATE UNIQUE INDEX IF NOT EXISTS team_members_username_uq
+  ON team_members(username) WHERE username IS NOT NULL;
+
+-- employees: أعمدة بوابة الشغيلة
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS can_submit_expenses BOOLEAN DEFAULT true;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS can_request_payment BOOLEAN DEFAULT true;
+
+-- ─── 3. دالة مساعدة: المالك الفعلي (للمالك = uid، لعضو الفريق = owner_id) ────
+CREATE OR REPLACE FUNCTION effective_owner_id()
+RETURNS UUID LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT COALESCE(
+    (SELECT owner_id FROM team_members
+     WHERE member_id = auth.uid() AND status = 'active' AND NOT COALESCE(is_blocked, false) LIMIT 1),
+    auth.uid()
+  )
+$$;
+
+-- ─── 4. RLS ──────────────────────────────────────────────────────────────────
 ALTER TABLE projects             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employees            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE work_days            ENABLE ROW LEVEL SECURITY;
@@ -238,16 +273,17 @@ DROP POLICY IF EXISTS "team_member_select"     ON team_members;
 DROP POLICY IF EXISTS "team_owner_all"         ON team_members;
 DROP POLICY IF EXISTS "user_profile"           ON profiles;
 
-CREATE POLICY "user_projects"          ON projects           FOR ALL USING (user_id = auth.uid());
-CREATE POLICY "user_employees"         ON employees          FOR ALL USING (user_id = auth.uid());
-CREATE POLICY "user_work_days"         ON work_days          FOR ALL USING (user_id = auth.uid());
-CREATE POLICY "user_expenses"          ON expenses           FOR ALL USING (user_id = auth.uid());
-CREATE POLICY "user_payments"          ON payments           FOR ALL USING (user_id = auth.uid());
-CREATE POLICY "user_client_receipts"   ON client_receipts    FOR ALL USING (user_id = auth.uid());
-CREATE POLICY "users_own_advances"     ON advances           FOR ALL USING (user_id = auth.uid());
-CREATE POLICY "owner_holidays"         ON holidays           FOR ALL USING (user_id = auth.uid());
-CREATE POLICY "owner_notifications"    ON notifications      FOR ALL USING (user_id = auth.uid());
-CREATE POLICY "users_own_tax_advances" ON tax_advances       FOR ALL USING (auth.uid() = user_id);
+-- سياسات تشمل المالك وأعضاء فريقه عبر effective_owner_id()
+CREATE POLICY "user_projects"          ON projects           FOR ALL USING (user_id = effective_owner_id());
+CREATE POLICY "user_employees"         ON employees          FOR ALL USING (user_id = effective_owner_id());
+CREATE POLICY "user_work_days"         ON work_days          FOR ALL USING (user_id = effective_owner_id());
+CREATE POLICY "user_expenses"          ON expenses           FOR ALL USING (user_id = effective_owner_id());
+CREATE POLICY "user_payments"          ON payments           FOR ALL USING (user_id = effective_owner_id());
+CREATE POLICY "user_client_receipts"   ON client_receipts    FOR ALL USING (user_id = effective_owner_id());
+CREATE POLICY "users_own_advances"     ON advances           FOR ALL USING (user_id = effective_owner_id());
+CREATE POLICY "owner_holidays"         ON holidays           FOR ALL USING (user_id = effective_owner_id());
+CREATE POLICY "owner_notifications"    ON notifications      FOR ALL USING (user_id = effective_owner_id());
+CREATE POLICY "users_own_tax_advances" ON tax_advances       FOR ALL USING (user_id = effective_owner_id());
 CREATE POLICY "owner_reads_audit"      ON audit_log          FOR SELECT USING (owner_id = auth.uid());
 CREATE POLICY "user_passkeys"          ON passkey_credentials FOR ALL USING (user_id = auth.uid());
 CREATE POLICY "user_challenges"        ON passkey_challenges  FOR ALL USING (user_id = auth.uid());
@@ -607,6 +643,34 @@ BEGIN
         ORDER BY created_at DESC LIMIT p_limit) r;
   RETURN result;
 END;$$;
+
+-- ── الفريق: جلب كل النشاط (للمالك) ──────────────────────────────────────────
+CREATE OR REPLACE FUNCTION get_all_activity(p_limit INT DEFAULT 100)
+RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE result json;
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN '[]'::json; END IF;
+  SELECT COALESCE(json_agg(r ORDER BY r.created_at DESC),'[]'::json) INTO result
+  FROM (
+    SELECT al.action, al.tbl, al.record_id, al.created_at, al.actor_email,
+           COALESCE(tm.display_name, al.actor_email) AS actor_name
+    FROM audit_log al
+    LEFT JOIN team_members tm ON tm.owner_id=auth.uid() AND tm.auth_email=al.actor_email
+    WHERE al.owner_id=auth.uid()
+    ORDER BY al.created_at DESC LIMIT p_limit
+  ) r;
+  RETURN result;
+END;$$;
+
+-- ── الفريق: جلب إيميل العضو لتسجيل الدخول ───────────────────────────────────
+CREATE OR REPLACE FUNCTION get_team_auth_email(p_username TEXT)
+RETURNS TEXT LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  SELECT auth_email FROM team_members
+  WHERE username = p_username
+    AND status   = 'active'
+    AND NOT COALESCE(is_blocked, false)
+  LIMIT 1;
+$$;
 
 -- ─── 7. Trigger: تسجيل تلقائي لكل insert/update/delete ──────────────────────
 CREATE OR REPLACE FUNCTION audit_trigger_fn()
