@@ -27,6 +27,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
   const emptyForm = { date: todayStr(), employee_id: '', project_id: '', day_type: 'كامل', hours: '8', customAmount: '' }
   const [form, setForm] = useState(emptyForm)
+  const [holidayWorked,    setHolidayWorked]    = useState(false)  // عطلة: اشتغل أو ما اشتغل
+  const [holidaySubType,   setHolidaySubType]   = useState('كامل') // نوع اليوم لما اشتغل بالعيد
   function f(key) { return v => setForm(prev => ({ ...prev, [key]: v })) }
 
   const activeEmps  = employees.filter(e => e.status === 'نشط')
@@ -53,6 +55,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   function setDayType(t) {
     const hours = t === 'كامل' ? '8' : t === 'نص يوم' ? '4' : form.hours
     setForm(prev => ({ ...prev, day_type: t, hours }))
+    if (t !== 'عطلة') { setHolidayWorked(false); setHolidaySubType('كامل') }
   }
 
   function toggleMultiEmp(id) {
@@ -68,6 +71,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     setEditingDay(null)
     setMultiEmps(new Set())
     setForm(emptyForm)
+    setHolidayWorked(false)
+    setHolidaySubType('كامل')
     setShowForm(true)
   }
 
@@ -94,13 +99,16 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     setMultiMode(false)
     setMultiEmps(new Set())
     setForm(emptyForm)
+    setHolidayWorked(false)
+    setHolidaySubType('كامل')
     setFormError('')
   }
 
   async function save() {
+    const isHolidayOff = form.day_type === 'عطلة' && !holidayWorked
     if (multiMode) {
       if (multiEmps.size === 0) return setFormError('اختر عامل واحد على الأقل')
-      if (!form.project_id) return setFormError('اختر المشروع')
+      if (!form.project_id && !isHolidayOff) return setFormError('اختر المشروع')
       const dupName = [...multiEmps].map(id => {
         const dup = workDays.find(w => w.employee_id === id && String(w.date).slice(0,10) === form.date && w.day_type === form.day_type && w.id !== editingDay)
         return dup ? employees.find(e => e.id === id)?.name : null
@@ -110,10 +118,11 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       try {
         await Promise.all([...multiEmps].map(empId => {
           const emp = employees.find(e => e.id === empId)
-          const amount = form.day_type === 'مبلغ مسكر'
+          const effectiveType = (form.day_type === 'عطلة' && holidayWorked) ? holidaySubType : form.day_type
+          const amount = effectiveType === 'مبلغ مسكر'
             ? parseFloat(form.customAmount)
-            : calcSalary(emp.daily_rate, form.day_type, form.hours)
-          return addWorkDay({ date: form.date, employee_id: empId, project_id: form.project_id, day_type: form.day_type, hours: parseFloat(form.hours) || 8, amount })
+            : calcSalary(emp.daily_rate, effectiveType, form.hours)
+          return addWorkDay({ date: form.date, employee_id: empId, project_id: form.project_id, day_type: effectiveType, hours: parseFloat(form.hours) || 8, amount })
         }))
         closeForm()
       } catch (e) { setFormError(e.message) }
@@ -126,12 +135,14 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       if (duplicate) return setFormError(`${selectedEmp.name} عنده ${form.day_type} بتاريخ ${form.date} مسبقاً`)
       setSaving(true)
       try {
-        const amount = form.day_type === 'مبلغ مسكر' ? parseFloat(form.customAmount) : calcSalary(selectedEmp.daily_rate, form.day_type, form.hours)
+        const effectiveType = (form.day_type === 'عطلة' && holidayWorked) ? holidaySubType : form.day_type
+        const amount = effectiveType === 'مبلغ مسكر' ? parseFloat(form.customAmount) : calcSalary(selectedEmp.daily_rate, effectiveType, form.hours)
         const { customAmount: _skip, ...formData } = form
+        const saveData = { ...formData, day_type: effectiveType, amount, hours: parseFloat(form.hours) || 8 }
         if (editingDay) {
-          await updateWorkDay(editingDay, { ...formData, amount, hours: parseFloat(form.hours) || 8 })
+          await updateWorkDay(editingDay, saveData)
         } else {
-          await addWorkDay({ ...formData, amount, hours: parseFloat(form.hours) || 8 })
+          await addWorkDay(saveData)
         }
         closeForm()
       } catch (e) { setFormError(e.message) }
@@ -506,8 +517,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 </div>
               </div>
 
-              {/* Project selector */}
-              <div style={{ marginBottom:18 }}>
+              {/* Project selector — مخفي لأيام العطلة بدون شغل */}
+              {!(form.day_type === 'عطلة' && !holidayWorked) && <div style={{ marginBottom:18 }}>
                 <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>المشروع <span style={{ color:C.accent }}>*</span></label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                   {activeProjs.map(p => {
@@ -521,7 +532,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                     )
                   })}
                 </div>
-              </div>
+              </div>}
 
               {/* Location picker — يومي projects only */}
               {(() => {
@@ -564,18 +575,48 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 </div>
               </div>
 
-              {form.day_type === 'ساعات' && (
+              {(form.day_type === 'ساعات' || (form.day_type === 'عطلة' && holidayWorked && holidaySubType === 'ساعات')) && (
                 <Input label="عدد الساعات" value={form.hours} onChange={f('hours')} type="number" min="0.5" max="24" />
               )}
 
               {form.day_type === 'عطلة' && (
-                <div style={{ marginBottom:18, padding:'12px 16px', borderRadius:12, background:`${C.textDim}10`, border:`1px solid ${C.border}`, display:'flex', alignItems:'center', gap:10 }}>
-                  <span style={{ fontSize:20 }}>🎉</span>
-                  <span style={{ fontSize:13, color:C.textDim, fontWeight:600 }}>يوم عطلة — المبلغ صفر تلقائياً</span>
+                <div style={{ marginBottom:18 }}>
+                  {/* خيار: اشتغل أو ما اشتغل */}
+                  <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>العامل بالعيد</label>
+                  <div style={{ display:'flex', gap:10, marginBottom: holidayWorked ? 14 : 0 }}>
+                    {[{ v:false, label:'ما اشتغل', icon:'😴', desc:'0₪' }, { v:true, label:'اشتغل', icon:'💪', desc:'يُحسب المبلغ' }].map(opt => (
+                      <button key={String(opt.v)} onClick={() => setHolidayWorked(opt.v)}
+                        style={{ flex:1, padding:'14px 8px', borderRadius:14, border:`2px solid ${holidayWorked === opt.v ? C.warning : C.border}`, background: holidayWorked === opt.v ? `${C.warning}18` : 'rgba(255,255,255,0.03)', color: holidayWorked === opt.v ? C.warning : C.textDim, cursor:'pointer', transition:'all .2s', display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                        <span style={{ fontSize:22 }}>{opt.icon}</span>
+                        <span style={{ fontSize:13, fontWeight:800 }}>{opt.label}</span>
+                        <span style={{ fontSize:10, opacity:0.7 }}>{opt.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* sub-selector للنوع لما اشتغل */}
+                  {holidayWorked && (
+                    <>
+                      <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>نوع اليوم</label>
+                      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                        {['كامل','نص يوم','ساعات','مبلغ مسكر'].map(t => {
+                          const sel = holidaySubType === t
+                          const color = DAY_TYPE_COLOR[t] || C.primary
+                          return (
+                            <button key={t} onClick={() => { setHolidaySubType(t); setForm(prev => ({ ...prev, hours: t==='كامل'?'8':t==='نص يوم'?'4':prev.hours })) }}
+                              style={{ flex:1, padding:'12px 6px', borderRadius:14, border:`2px solid ${sel ? color : C.border}`, background: sel ? `${color}18` : 'rgba(255,255,255,0.03)', color: sel ? color : C.textDim, fontSize:12, fontWeight:800, cursor:'pointer', transition:'all .2s', display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                              <span style={{ fontSize:18 }}>{DAY_ICONS[t]}</span>
+                              <span>{t}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
-              {form.day_type === 'مبلغ مسكر' && (
+              {(form.day_type === 'مبلغ مسكر' || (form.day_type === 'عطلة' && holidayWorked && holidaySubType === 'مبلغ مسكر')) && (
                 <div style={{ marginBottom:18 }}>
                   <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:8, letterSpacing:'0.04em', textTransform:'uppercase' }}>المبلغ المسكر (₪) *</label>
                   <input type="number" value={form.customAmount} min="1" step="1" placeholder="0"
@@ -617,7 +658,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 <div style={{ fontSize:12, color:C.accent, marginBottom:16, padding:'12px 16px', borderRadius:12, background:`${C.accent}10`, border:`1px solid ${C.accent}33` }}>⚠ {formError}</div>
               )}
 
-              <Btn onClick={save} full disabled={saving || (!multiMode && (!form.employee_id || !form.project_id)) || (multiMode && (multiEmps.size === 0 || !form.project_id))}>
+              <Btn onClick={save} full disabled={saving || (!multiMode && (!form.employee_id || (!form.project_id && form.day_type !== 'عطلة'))) || (multiMode && (multiEmps.size === 0 || (!form.project_id && form.day_type !== 'عطلة')))}>
                 {saving ? 'جاري الحفظ...' : multiMode ? `✓ سجّل لـ ${multiEmps.size || '...'} عمال` : '✓ سجّل اليوم'}
               </Btn>
             </>

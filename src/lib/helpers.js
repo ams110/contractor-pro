@@ -200,7 +200,7 @@ export function isPaymentOverdue(project, clientReceipts, overdueDays = 30) {
  */
 export function validateWorkDay(form) {
   if (!form.employee_id) return 'اختر العامل'
-  if (!form.project_id)  return 'اختر المشروع'
+  if (!form.project_id && form.day_type !== 'عطلة') return 'اختر المشروع'
   if (!form.date)        return 'التاريخ مطلوب'
   if (form.day_type === 'ساعات') {
     const h = parseFloat(form.hours)
