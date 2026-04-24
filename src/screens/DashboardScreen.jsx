@@ -71,7 +71,13 @@ export default function DashboardScreen({ projects, employees, workDays, expense
   const totalPaid     = payments.reduce((s, p) => s + (p.amount || 0), 0)
   const totalReceived = (clientReceipts || []).reduce((s, r) => s + (r.amount || 0), 0)
   const totalContract = projects.reduce((s, p) => s + (parseFloat(p.price) || 0), 0)
-  const totalPending  = totalContract - totalReceived
+  // حساب المتبقي لكل مشروع على حدة لمنع مقبوضات اليوميات من إلغاء ديون المشاريع الثابتة
+  const totalPending  = projects.reduce((s, p) => {
+    const price = parseFloat(p.price) || 0
+    if (price === 0) return s
+    const received = (clientReceipts || []).filter(r => r.project_id === p.id).reduce((sum, r) => sum + (r.amount || 0), 0)
+    return s + Math.max(0, price - received)
+  }, 0)
   const netProfit     = totalReceived - totalExp - totalLabor
 
   // ─── الضرائب الإسرائيلية ─────────────────────────────────────────────────
