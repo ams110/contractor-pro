@@ -89,18 +89,43 @@ export function validatePayment(form) {
   return null
 }
 
+// نسبة استرداد מס תשומות حسب الفئة (2025) — ثلثان للمركبات، صفر للرواتب والتأمين
+const _CAT_DEDUCT = {
+  'مواد بناء / خامات': 1.00,
+  'بضاعة':             1.00,
+  'عدد وأدوات':        1.00,
+  'إيجار معدات':       1.00,
+  'خدمات مهنية':       1.00,
+  'وقود وتنقلات':      0.667,
+  'صيانة مركبات':      0.667,
+  'رواتب عمال':        0.00,
+  'تأمين':             0.00,
+  'أخرى':              1.00,
+}
+
 /**
- * حساب VAT الصافي المستحق للضريبة لفترة زمنية معينة
- * VAT محصّل من العملاء - VAT مدفوع في المشتريات
+ * حساب VAT الصافي — مع الأخذ بعين الاعتبار:
+ * - نسبة الضريبة حسب التاريخ (17% قبل 2025 | 18% من 2025)
+ * - نسبة استرداد مس תשומות حسب فئة المصروف
  */
 export function calcVATNet(clientReceipts, expenses, fromDate, toDate) {
   const inRange = (d) => (!fromDate || d >= fromDate) && (!toDate || d <= toDate)
+
   const vatOut = clientReceipts
     .filter(r => inRange(r.date || ''))
-    .reduce((s, r) => s + (r.amount || 0), 0) * (0.17 / 1.17)
+    .reduce((s, r) => {
+      const rate = (r.date || '') >= '2025-01-01' ? 0.18 : 0.17
+      return s + (r.amount || 0) * (rate / (1 + rate))
+    }, 0)
+
   const vatIn = expenses
     .filter(e => (e.status !== 'pending') && inRange(e.date || ''))
-    .reduce((s, e) => s + (e.amount || 0), 0) * (0.17 / 1.17)
+    .reduce((s, e) => {
+      const rate   = (e.date || '') >= '2025-01-01' ? 0.18 : 0.17
+      const deduct = _CAT_DEDUCT[e.category] ?? 1.00
+      return s + (e.amount || 0) * deduct * (rate / (1 + rate))
+    }, 0)
+
   return { vatOut: Math.round(vatOut), vatIn: Math.round(vatIn), net: Math.round(vatOut - vatIn) }
 }
 

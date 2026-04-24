@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react'
-import { C, GRAD, EXP_CATS, PAY_METHODS, VAT } from '../constants/index.js'
+import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense } from '../lib/helpers.js'
 import { GlassCard, Modal, Input, Btn, FilterChip, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
 import { exportExpensesToExcel } from '../lib/export.js'
 import { supabase } from '../lib/supabase.js'
 
-const CAT_ICONS   = { 'بضاعة':'🛒', 'مواد':'🧱', 'عدد':'🔧', 'وقود':'⛽', 'إيجار':'🏗️', 'تأمين':'🛡️', 'أخرى':'📦' }
-const CAT_COLORS  = { 'بضاعة':C.pink, 'مواد':C.orange, 'عدد':C.blue, 'وقود':C.cyan, 'إيجار':C.purple, 'تأمين':C.success, 'أخرى':C.textDim }
-const FILTER_CATS = ['الكل', 'بضاعة', 'مواد', 'عدد', 'وقود', 'إيجار', 'تأمين', 'أخرى']
+const CAT_ICONS  = { 'بضاعة':'🛒', 'مواد بناء / خامات':'🧱', 'عدد وأدوات':'🔧', 'وقود وتنقلات':'⛽', 'إيجار معدات':'🏗️', 'خدمات مهنية':'📋', 'صيانة مركبات':'🚗', 'رواتب عمال':'👷', 'تأمين':'🛡️', 'أخرى':'📦' }
+const CAT_COLORS = { 'بضاعة':C.pink, 'مواد بناء / خامات':C.orange, 'عدد وأدوات':C.blue, 'وقود وتنقلات':C.cyan, 'إيجار معدات':C.purple, 'خدمات مهنية':C.secondary, 'صيانة مركبات':C.warning, 'رواتب عمال':C.primary, 'تأمين':C.success, 'أخرى':C.textDim }
+const FILTER_CATS = ['الكل', 'مواد', 'بضاعة', 'عدد', 'وقود', 'إيجار', 'خدمات', 'رواتب', 'تأمين', 'أخرى']
 
 export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions, showVatExpenses = true }) {
   const [showForm,    setShowForm]    = useState(false)
@@ -77,8 +77,13 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
   const pendingExpenses  = expenses.filter(e => e.status === 'pending')
   const approvedExpenses = expenses.filter(e => e.status !== 'pending')
-  const total  = approvedExpenses.reduce((s, e) => s + e.amount, 0)
-  const noVAT  = Math.round(total / (1 + VAT))
+  const total       = approvedExpenses.reduce((s, e) => s + e.amount, 0)
+  const totalVATIn  = Math.round(approvedExpenses.reduce((s, e) => {
+    const rate   = (e.date || '') >= '2025-01-01' ? 0.18 : 0.17
+    const deduct = EXP_CAT_VAT[e.category] ?? 1.00
+    return s + (e.amount || 0) * deduct * (rate / (1 + rate))
+  }, 0))
+  const noVAT  = total - totalVATIn
   const filtered = approvedExpenses.filter(e => filter === 'الكل' || e.category?.includes(filter))
   const sorted   = [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
 
@@ -131,13 +136,13 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                 </div>
                 <div style={{ width:1, background:C.border }} />
                 <div style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>بدون ضريبة</div>
+                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>صافي بدون مع"מ</div>
                   <div style={{ fontSize:22, fontWeight:900, color:C.text, fontFamily:'monospace' }}>{fmt(noVAT)}₪</div>
                 </div>
                 <div style={{ width:1, background:C.border }} />
                 <div style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>ضريبة 17%</div>
-                  <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace' }}>{fmt(total - noVAT)}₪</div>
+                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>מס תשומות</div>
+                  <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace' }}>{fmt(totalVATIn)}₪</div>
                 </div>
               </>
             ) : (
@@ -228,7 +233,17 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
                   {/* المعلومات */}
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                      <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
+                      {(() => {
+                        const deduct = EXP_CAT_VAT[ex.category] ?? 1.00
+                        const rate   = (ex.date || '') >= '2025-01-01' ? 0.18 : 0.17
+                        if (deduct === 0) return <span style={{ fontSize:9, fontWeight:700, color:C.textDim, background:'rgba(255,255,255,0.06)', padding:'1px 6px', borderRadius:5, border:`1px solid ${C.border}` }}>لا مع"מ</span>
+                        const vatAmt = Math.round((ex.amount || 0) * deduct * (rate / (1 + rate)))
+                        const color  = deduct < 1 ? C.warning : C.cyan
+                        return <span style={{ fontSize:9, fontWeight:700, color, background:`${color}15`, padding:'1px 6px', borderRadius:5, border:`1px solid ${color}33` }}>{deduct < 1 ? '⅔ ' : ''}مع"מ {fmt(vatAmt)}₪</span>
+                      })()}
+                    </div>
                     <div style={{ fontSize:11, color:C.textDim, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                       {ex.vendor || ''}{proj ? ` • ${proj.name}` : ''}
                     </div>
@@ -277,8 +292,16 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
         {showVatExpenses && form.amount && parseFloat(form.amount) > 0 && (
           <div style={{ marginTop:-8, marginBottom:14, padding:'8px 12px', background:`${C.border}33`, borderRadius:10, display:'flex', justifyContent:'space-between' }}>
-            <span style={{ fontSize:11, color:C.textDim }}>بدون ضريبة: {fmt(Math.round(parseFloat(form.amount) / (1 + VAT)))}₪</span>
-            <span style={{ fontSize:11, color:C.textDim }}>ضريبة: {fmt(Math.round(parseFloat(form.amount) - parseFloat(form.amount) / (1 + VAT)))}₪</span>
+            {(() => {
+              const amt    = parseFloat(form.amount)
+              const deduct = EXP_CAT_VAT[form.category] ?? 1.00
+              const vatAmt = Math.round(amt * deduct * (VAT / (1 + VAT)))
+              const label  = deduct === 0 ? 'معفى من مع"מ' : deduct < 1 ? `مع"מ ⅔: ${fmt(vatAmt)}₪` : `מע"מ: ${fmt(vatAmt)}₪`
+              return <>
+                <span style={{ fontSize:11, color:C.textDim }}>صافي: {fmt(Math.round(amt - vatAmt))}₪</span>
+                <span style={{ fontSize:11, color: deduct === 0 ? C.textDim : C.warning }}>{label}</span>
+              </>
+            })()}
           </div>
         )}
 

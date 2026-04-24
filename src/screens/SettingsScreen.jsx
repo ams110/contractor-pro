@@ -406,8 +406,8 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
         </div>
       </GlassCard>
 
-      {/* ── إدارة الفريق ── */}
-      {permissions?.manageTeam && (
+      {/* ── إدارة الفريق — انتقلت إلى صفحة العمال ── */}
+      {false && permissions?.manageTeam && (
         <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
           <div style={{ height:3, background:GRAD.success }} />
           <div style={{ padding:'14px 16px' }}>
