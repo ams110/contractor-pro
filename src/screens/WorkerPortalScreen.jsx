@@ -61,9 +61,19 @@ function SummaryCard({ earned, paid, owed, pendingCount }) {
 
 const DAY_TYPE_COLORS = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange }
 
-function MonthRow({ month, data, payments, holidaySet = new Set() }) {
+function MonthRow({ month, data, payments, holidays = [] }) {
   const [open, setOpen] = useState(false)
   const monthPayments = payments.filter(p => String(p.date).substring(0, 7) === month)
+
+  // map date→holiday for fast lookup
+  const holidayMap = {}
+  holidays.forEach(h => { holidayMap[String(h.date).slice(0, 10)] = h })
+
+  // holidays in this month that the worker did NOT work
+  const workedDates = new Set((data.records || []).map(r => String(r.date).slice(0, 10)))
+  const offHolidays = holidays
+    .filter(h => String(h.date).slice(0, 7) === month && !workedDates.has(String(h.date).slice(0, 10)))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
 
   return (
     <div style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)', borderRadius: 16, border: `1px solid ${C.border}`, marginBottom: 8, overflow: 'hidden' }}>
@@ -87,20 +97,35 @@ function MonthRow({ month, data, payments, holidaySet = new Set() }) {
               <div style={{ fontSize: 10, color: C.textDim, marginBottom: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>تفاصيل الأيام</div>
               {data.records.map((r, i) => {
                 const tc = DAY_TYPE_COLORS[r.day_type] || C.primary
-                const isHol = holidaySet.has(String(r.date).slice(0, 10))
+                const hol = holidayMap[String(r.date).slice(0, 10)]
                 return (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: `1px solid ${C.border}22` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
                       <div style={{ fontSize: 12, color: C.textDim, flexShrink: 0 }}>{fmtDateFull(r.date)}</div>
                       {r.project_name && <div style={{ fontSize: 11, color: C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.project_name}</div>}
                       {r.location && <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.primary}30`, flexShrink: 0 }}>📍 {r.location}</span>}
                       <span style={{ fontSize: 10, fontWeight: 700, color: tc, background: `${tc}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${tc}30`, flexShrink: 0 }}>{r.day_type}</span>
-                      {isHol && <span style={{ fontSize: 10, fontWeight: 700, color: C.warning, background: `${C.warning}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.warning}30`, flexShrink: 0 }}>🎉 عطلة</span>}
+                      {hol && <span style={{ fontSize: 10, fontWeight: 700, color: C.warning, background: `${C.warning}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.warning}30`, flexShrink: 0 }}>🎉 {hol.name}</span>}
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 800, color: tc, fontFamily: 'monospace', flexShrink: 0, marginRight: 4 }}>{fmt(r.amount)}₪</span>
                   </div>
                 )
               })}
+            </div>
+          )}
+
+          {/* أيام الأعياد اللي ما اشتغل فيها */}
+          {offHolidays.length > 0 && (
+            <div style={{ marginTop: 8, marginBottom: 4 }}>
+              {offHolidays.map(h => (
+                <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: `${C.warning}12`, border: `1px solid ${C.warning}33`, marginBottom: 6 }}>
+                  <span style={{ fontSize: 18 }}>🎉</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.warning }}>{h.name}</div>
+                    <div style={{ fontSize: 11, color: C.textDim }}>{fmtDateFull(h.date)} · عطلة رسمية</div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -956,7 +981,7 @@ export default function WorkerPortalScreen() {
               </div>
             ) : (
               monthlyBreakdown.map(([month, data]) => (
-                <MonthRow key={month} month={month} data={data} payments={payments} holidaySet={holidaySet} />
+                <MonthRow key={month} month={month} data={data} payments={payments} holidays={holidays} />
               ))
             )}
           </>
