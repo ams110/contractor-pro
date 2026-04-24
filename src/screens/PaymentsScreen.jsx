@@ -5,6 +5,10 @@ import { GlassCard, Modal, Input, Btn, SectionLabel, EmptyState, ConfirmDialog }
 import { uploadReceipt } from '../lib/storage.js'
 import { exportPaymentsToExcel } from '../lib/export.js'
 
+function fmtMonth(ym) {
+  return new Date(ym + '-01').toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })
+}
+
 function sendWhatsApp(phone, name, amount, date) {
   if (!phone) return
   const clean = phone.replace(/\D/g, '').replace(/^0/, '972')
@@ -14,6 +18,10 @@ function sendWhatsApp(phone, name, amount, date) {
 
 export default function PaymentsScreen({ payments, employees, workDays, projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods }) {
   const methods = payMethods?.length ? payMethods : PAY_METHODS
+
+  const currentMonth = todayStr().slice(0, 7)
+  const [selectedEmp, setSelectedEmp] = useState(null)
+  const [openMonths,  setOpenMonths]  = useState(new Set())
 
   const [showForm,    setShowForm]    = useState(false)
   const [editingId,   setEditingId]   = useState(null)
@@ -152,7 +160,9 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
               const grad   = owed > 0 ? GRAD.danger : GRAD.success
 
               return (
-                <GlassCard key={emp.id} style={{ overflow:'hidden', marginBottom:10 }}>
+                <GlassCard key={emp.id}
+                  onClick={() => { setSelectedEmp(emp); setOpenMonths(new Set([currentMonth])) }}
+                  style={{ overflow:'hidden', marginBottom:10, cursor:'pointer' }}>
                   <div style={{ height:3, background:grad }} />
                   <div style={{ padding:'14px 16px' }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
@@ -304,6 +314,127 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
 
       <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)}
         onConfirm={async () => { await deletePayment(confirmDel); setConfirmDel(null) }} message="حذف هالدفعة؟" />
+
+      {/* ── سجل العامل المالي (modal) ── */}
+      {selectedEmp && (() => {
+        const emp = selectedEmp
+        const empWorkDays = workDays.filter(w => w.employee_id === emp.id)
+        const empPayments = payments.filter(p => p.employee_id === emp.id)
+        const totalEarned = empWorkDays.reduce((s, w) => s + w.amount, 0)
+        const totalPaid   = empPayments.reduce((s, p) => s + p.amount, 0)
+        const totalOwedEmp = Math.max(0, totalEarned - totalPaid)
+        const gradEmp = totalOwedEmp > 0 ? GRAD.danger : GRAD.success
+
+        const allMonths = [...new Set([
+          ...empWorkDays.map(w => (w.date || '').slice(0, 7)),
+          ...empPayments.map(p => (p.date || '').slice(0, 7)),
+        ]).values()].filter(Boolean).sort((a, b) => b.localeCompare(a))
+
+        function toggleMonth(m) {
+          setOpenMonths(prev => {
+            const next = new Set(prev)
+            next.has(m) ? next.delete(m) : next.add(m)
+            return next
+          })
+        }
+
+        return (
+          <div
+            onClick={() => setSelectedEmp(null)}
+            style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:1000, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ background:C.surface, borderRadius:'20px 20px 0 0', maxHeight:'88vh', display:'flex', flexDirection:'column', boxShadow:'0 -8px 40px rgba(0,0,0,0.5)' }}>
+
+              {/* رأس الـ modal */}
+              <div style={{ padding:'16px 16px 12px', borderBottom:`1px solid ${C.border}`, flexShrink:0 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    <div style={{ width:44, height:44, borderRadius:'50%', background:gradEmp, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, fontWeight:900, color:'#fff' }}>
+                      {emp.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div style={{ fontSize:16, fontWeight:900, color:C.text }}>{emp.name}</div>
+                      <div style={{ fontSize:11, color:C.textDim }}>السجل المالي</div>
+                    </div>
+                  </div>
+                  <button onClick={() => setSelectedEmp(null)}
+                    style={{ width:32, height:32, borderRadius:'50%', border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:C.textDim, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    ×
+                  </button>
+                </div>
+                {/* الإجماليات */}
+                <div style={{ display:'flex', justifyContent:'space-around', background:`${C.border}33`, borderRadius:14, padding:'10px 8px' }}>
+                  {[
+                    { l:'المستحق الكلي', v:`${fmt(totalEarned)}₪`, c:C.text },
+                    { l:'المدفوع الكلي', v:`${fmt(totalPaid)}₪`,   c:C.success },
+                    { l:'المتبقي',       v: totalOwedEmp > 0 ? `${fmt(totalOwedEmp)}₪` : 'مسدد ✓', c: totalOwedEmp > 0 ? C.accent : C.success },
+                  ].map(s => (
+                    <div key={s.l} style={{ textAlign:'center' }}>
+                      <div style={{ fontSize:9, color:C.textDim, fontWeight:600, marginBottom:2 }}>{s.l}</div>
+                      <div style={{ fontSize:13, fontWeight:900, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* قائمة الأشهر */}
+              <div style={{ overflowY:'auto', padding:'12px 16px 32px', flex:1 }}>
+                {allMonths.length === 0
+                  ? <div style={{ textAlign:'center', color:C.textDim, padding:32, fontSize:13 }}>لا يوجد سجل مالي</div>
+                  : allMonths.map(m => {
+                      const mEarned = empWorkDays.filter(w => (w.date || '').startsWith(m)).reduce((s, w) => s + w.amount, 0)
+                      const mPaid   = empPayments.filter(p => (p.date || '').startsWith(m)).reduce((s, p) => s + p.amount, 0)
+                      const mOwed   = mEarned - mPaid
+                      const daysCount = empWorkDays.filter(w => (w.date || '').startsWith(m)).length
+                      const paysCount = empPayments.filter(p => (p.date || '').startsWith(m)).length
+                      const isOpen = openMonths.has(m)
+                      const mGrad = mOwed > 0 ? GRAD.danger : GRAD.success
+
+                      return (
+                        <div key={m} style={{ marginBottom:8, borderRadius:14, overflow:'hidden', border:`1px solid ${C.border}` }}>
+                          {/* رأس الشهر */}
+                          <button onClick={() => toggleMonth(m)}
+                            style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 14px', background: isOpen ? `${C.border}44` : 'transparent', border:'none', cursor:'pointer', gap:8 }}>
+                            <div style={{ height:3, position:'absolute', top:0, left:0, right:0, background: mGrad }} />
+                            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                              <span style={{ fontSize:14, fontWeight:800, color:C.text }}>{fmtMonth(m)}</span>
+                              <span style={{ fontSize:10, color:C.textDim, background:`${C.border}66`, borderRadius:8, padding:'2px 8px' }}>
+                                {daysCount > 0 ? `${daysCount} يوم` : ''}{daysCount > 0 && paysCount > 0 ? ' · ' : ''}{paysCount > 0 ? `${paysCount} دفعة` : ''}
+                              </span>
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                              <span style={{ fontSize:13, fontWeight:900, color: mOwed > 0 ? C.accent : C.success, fontFamily:'monospace' }}>
+                                {mOwed > 0 ? `${fmt(mOwed)}₪ باقي` : 'مسدد ✓'}
+                              </span>
+                              <span style={{ color:C.textDim, fontSize:12, transition:'transform .2s', display:'inline-block', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                            </div>
+                          </button>
+
+                          {/* تفاصيل الشهر */}
+                          {isOpen && (
+                            <div style={{ padding:'10px 14px 14px', borderTop:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:8 }}>
+                              {[
+                                { l:'المستحق', v:`${fmt(mEarned)}₪`, c:C.primary },
+                                { l:'واصل',    v:`${fmt(mPaid)}₪`,   c:C.success },
+                                { l:'باقي',    v: mOwed > 0 ? `${fmt(mOwed)}₪` : 'مسدد ✓', c: mOwed > 0 ? C.accent : C.success },
+                              ].map(row => (
+                                <div key={row.l} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:`${C.border}22`, borderRadius:10 }}>
+                                  <span style={{ fontSize:13, color:C.textDim, fontWeight:600 }}>{row.l}</span>
+                                  <span style={{ fontSize:15, fontWeight:900, color:row.c, fontFamily:'monospace' }}>{row.v}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
+                }
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
