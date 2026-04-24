@@ -325,10 +325,23 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
         const totalOwedEmp = Math.max(0, totalEarned - totalPaid)
         const gradEmp = totalOwedEmp > 0 ? GRAD.danger : GRAD.success
 
-        const allMonths = [...new Set([
+        // بناء بيانات الأشهر مع رصيد تراكمي (من الأقدم للأحدث)
+        const allMonthsAsc = [...new Set([
           ...empWorkDays.map(w => (w.date || '').slice(0, 7)),
           ...empPayments.map(p => (p.date || '').slice(0, 7)),
-        ]).values()].filter(Boolean).sort((a, b) => b.localeCompare(a))
+        ]).values()].filter(Boolean).sort((a, b) => a.localeCompare(b))
+
+        let runningBalance = 0
+        const monthDataAsc = allMonthsAsc.map(m => {
+          const mEarned    = empWorkDays.filter(w => (w.date || '').startsWith(m)).reduce((s, w) => s + w.amount, 0)
+          const mPaid      = empPayments.filter(p => (p.date || '').startsWith(m)).reduce((s, p) => s + p.amount, 0)
+          const daysCount  = empWorkDays.filter(w => (w.date || '').startsWith(m)).length
+          const paysCount  = empPayments.filter(p => (p.date || '').startsWith(m)).length
+          runningBalance   = runningBalance + mEarned - mPaid
+          return { m, mEarned, mPaid, daysCount, paysCount, balance: runningBalance }
+        })
+        // عرض من الأحدث للأقدم
+        const monthDataDesc = [...monthDataAsc].reverse()
 
         function toggleMonth(m) {
           setOpenMonths(prev => {
@@ -380,16 +393,11 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
 
               {/* قائمة الأشهر */}
               <div style={{ overflowY:'auto', padding:'12px 16px 32px', flex:1 }}>
-                {allMonths.length === 0
+                {monthDataDesc.length === 0
                   ? <div style={{ textAlign:'center', color:C.textDim, padding:32, fontSize:13 }}>لا يوجد سجل مالي</div>
-                  : allMonths.map(m => {
-                      const mEarned = empWorkDays.filter(w => (w.date || '').startsWith(m)).reduce((s, w) => s + w.amount, 0)
-                      const mPaid   = empPayments.filter(p => (p.date || '').startsWith(m)).reduce((s, p) => s + p.amount, 0)
-                      const mOwed   = mEarned - mPaid
-                      const daysCount = empWorkDays.filter(w => (w.date || '').startsWith(m)).length
-                      const paysCount = empPayments.filter(p => (p.date || '').startsWith(m)).length
+                  : monthDataDesc.map(({ m, mEarned, mPaid, daysCount, paysCount, balance }) => {
                       const isOpen = openMonths.has(m)
-                      const mGrad = mOwed > 0 ? GRAD.danger : GRAD.success
+                      const mGrad  = balance > 0 ? GRAD.danger : GRAD.success
 
                       return (
                         <div key={m} style={{ marginBottom:8, borderRadius:14, overflow:'hidden', border:`1px solid ${C.border}` }}>
@@ -404,8 +412,8 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
                               </span>
                             </div>
                             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                              <span style={{ fontSize:13, fontWeight:900, color: mOwed > 0 ? C.accent : C.success, fontFamily:'monospace' }}>
-                                {mOwed > 0 ? `${fmt(mOwed)}₪ باقي` : 'مسدد ✓'}
+                              <span style={{ fontSize:13, fontWeight:900, color: balance > 0 ? C.accent : C.success, fontFamily:'monospace' }}>
+                                {balance > 0 ? `${fmt(balance)}₪ باقي` : 'مسدد ✓'}
                               </span>
                               <span style={{ color:C.textDim, fontSize:12, transition:'transform .2s', display:'inline-block', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
                             </div>
@@ -415,9 +423,9 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
                           {isOpen && (
                             <div style={{ padding:'10px 14px 14px', borderTop:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:8 }}>
                               {[
-                                { l:'المستحق', v:`${fmt(mEarned)}₪`, c:C.primary },
-                                { l:'واصل',    v:`${fmt(mPaid)}₪`,   c:C.success },
-                                { l:'باقي',    v: mOwed > 0 ? `${fmt(mOwed)}₪` : 'مسدد ✓', c: mOwed > 0 ? C.accent : C.success },
+                                { l:'المستحق',         v:`${fmt(mEarned)}₪`, c:C.primary },
+                                { l:'واصل',            v:`${fmt(mPaid)}₪`,   c:C.success },
+                                { l:'الرصيد التراكمي', v: balance > 0 ? `${fmt(balance)}₪` : 'مسدد ✓', c: balance > 0 ? C.accent : C.success },
                               ].map(row => (
                                 <div key={row.l} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:`${C.border}22`, borderRadius:10 }}>
                                   <span style={{ fontSize:13, color:C.textDim, fontWeight:600 }}>{row.l}</span>
