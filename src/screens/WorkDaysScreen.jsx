@@ -107,9 +107,15 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
   async function save() {
     const isHolidayOff = form.day_type === 'عطلة' && !holidayWorked
+    const effectiveType = (form.day_type === 'عطلة' && holidayWorked) ? holidaySubType : form.day_type
+
     if (multiMode) {
       if (multiEmps.size === 0) return setFormError('اختر عامل واحد على الأقل')
       if (!form.project_id && !isHolidayOff) return setFormError('اختر المشروع')
+      if (effectiveType === 'مبلغ مسكر') {
+        const a = parseFloat(form.customAmount)
+        if (!a || a <= 0) return setFormError('أدخل المبلغ المسكر')
+      }
       const dupName = [...multiEmps].map(id => {
         const dup = workDays.find(w => w.employee_id === id && String(w.date).slice(0,10) === form.date && w.day_type === form.day_type && w.id !== editingDay)
         return dup ? employees.find(e => e.id === id)?.name : null
@@ -119,7 +125,6 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       try {
         await Promise.all([...multiEmps].map(empId => {
           const emp = employees.find(e => e.id === empId)
-          const effectiveType = (form.day_type === 'عطلة' && holidayWorked) ? holidaySubType : form.day_type
           const amount = effectiveType === 'مبلغ مسكر'
             ? parseFloat(form.customAmount)
             : calcSalary(emp.daily_rate, effectiveType, form.hours)
@@ -131,12 +136,15 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     } else {
       const err = validateWorkDay(form)
       if (err) return setFormError(err)
+      if (effectiveType === 'مبلغ مسكر' && form.day_type === 'عطلة') {
+        const a = parseFloat(form.customAmount)
+        if (!a || a <= 0) return setFormError('أدخل المبلغ المسكر')
+      }
       if (!selectedEmp) return setFormError('العامل غير موجود')
       const duplicate = workDays.find(w => w.employee_id === form.employee_id && String(w.date).slice(0,10) === form.date && w.day_type === form.day_type && w.id !== editingDay)
       if (duplicate) return setFormError(`${selectedEmp.name} عنده ${form.day_type} بتاريخ ${form.date} مسبقاً`)
       setSaving(true)
       try {
-        const effectiveType = (form.day_type === 'عطلة' && holidayWorked) ? holidaySubType : form.day_type
         const amount = effectiveType === 'مبلغ مسكر' ? parseFloat(form.customAmount) : calcSalary(selectedEmp.daily_rate, effectiveType, form.hours)
         const { customAmount: _skip, ...formData } = form
         const saveData = { ...formData, project_id: form.project_id || null, day_type: effectiveType, amount, hours: parseFloat(form.hours) || 8 }
