@@ -1,15 +1,15 @@
--- إضافة تحديد المشاريع والعمال لكل عضو فريق
+-- إضافة أعمدة UUID[] لتحديد موارد الأعضاء
+-- آمن للتشغيل: كل شيء داخل transaction واحدة
+BEGIN;
+
+-- ─── 1. الأعمدة الجديدة ───────────────────────────────────────────────────────
 ALTER TABLE team_members
   ADD COLUMN IF NOT EXISTS allowed_project_ids  UUID[] DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS allowed_employee_ids UUID[] DEFAULT NULL;
 
--- ─── تحديث سياسات RLS لتسمح لأعضاء الفريق بالوصول ───────────────────────────
+-- ─── 2. المشاريع ──────────────────────────────────────────────────────────────
 
--- المشاريع: المالك كامل الصلاحيات، الأعضاء يقرؤون فقط المشاريع المسموح بها
-DROP POLICY IF EXISTS "user_projects"          ON projects;
-DROP POLICY IF EXISTS "team_view_projects"     ON projects;
-DROP POLICY IF EXISTS "team_edit_projects"     ON projects;
-
+-- أنشئ السياسات الجديدة أولاً
 CREATE POLICY "owner_projects" ON projects FOR ALL
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
@@ -43,9 +43,12 @@ CREATE POLICY "member_edit_projects" ON projects FOR INSERT
     )
   );
 
--- العمال: نفس المنطق
-DROP POLICY IF EXISTS "user_employees"         ON employees;
-DROP POLICY IF EXISTS "team_view_employees"    ON employees;
+-- الآن احذف السياسات القديمة بأمان
+DROP POLICY IF EXISTS "user_projects"      ON projects;
+DROP POLICY IF EXISTS "team_view_projects" ON projects;
+DROP POLICY IF EXISTS "team_edit_projects" ON projects;
+
+-- ─── 3. العمال ────────────────────────────────────────────────────────────────
 
 CREATE POLICY "owner_employees" ON employees FOR ALL
   USING (user_id = auth.uid())
@@ -68,8 +71,10 @@ CREATE POLICY "member_view_employees" ON employees FOR SELECT
     )
   );
 
--- أيام العمل: المالك كل شيء، الأعضاء يقرؤون بشرط صلاحية المشاريع والعمال
-DROP POLICY IF EXISTS "user_work_days"         ON work_days;
+DROP POLICY IF EXISTS "user_employees"      ON employees;
+DROP POLICY IF EXISTS "team_view_employees" ON employees;
+
+-- ─── 4. أيام العمل ────────────────────────────────────────────────────────────
 
 CREATE POLICY "owner_work_days" ON work_days FOR ALL
   USING (user_id = auth.uid())
@@ -87,8 +92,9 @@ CREATE POLICY "member_view_work_days" ON work_days FOR SELECT
     )
   );
 
--- المصاريف
-DROP POLICY IF EXISTS "user_expenses"          ON expenses;
+DROP POLICY IF EXISTS "user_work_days" ON work_days;
+
+-- ─── 5. المصاريف ──────────────────────────────────────────────────────────────
 
 CREATE POLICY "owner_expenses" ON expenses FOR ALL
   USING (user_id = auth.uid())
@@ -118,8 +124,9 @@ CREATE POLICY "member_add_expenses" ON expenses FOR INSERT
     )
   );
 
--- الدفعات
-DROP POLICY IF EXISTS "user_payments"          ON payments;
+DROP POLICY IF EXISTS "user_expenses" ON expenses;
+
+-- ─── 6. الدفعات ───────────────────────────────────────────────────────────────
 
 CREATE POLICY "owner_payments" ON payments FOR ALL
   USING (user_id = auth.uid())
@@ -137,8 +144,9 @@ CREATE POLICY "member_view_payments" ON payments FOR SELECT
     )
   );
 
--- إيصالات العملاء
-DROP POLICY IF EXISTS "user_client_receipts"   ON client_receipts;
+DROP POLICY IF EXISTS "user_payments" ON payments;
+
+-- ─── 7. إيصالات العملاء ───────────────────────────────────────────────────────
 
 CREATE POLICY "owner_client_receipts" ON client_receipts FOR ALL
   USING (user_id = auth.uid())
@@ -155,3 +163,7 @@ CREATE POLICY "member_view_client_receipts" ON client_receipts FOR SELECT
         AND tm.can_view_projects = true
     )
   );
+
+DROP POLICY IF EXISTS "user_client_receipts" ON client_receipts;
+
+COMMIT;
