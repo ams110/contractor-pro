@@ -123,7 +123,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
           const amount = effectiveType === 'مبلغ مسكر'
             ? parseFloat(form.customAmount)
             : calcSalary(emp.daily_rate, effectiveType, form.hours)
-          return addWorkDay({ date: form.date, employee_id: empId, project_id: form.project_id, day_type: effectiveType, hours: parseFloat(form.hours) || 8, amount })
+          return addWorkDay({ date: form.date, employee_id: empId, project_id: form.project_id || null, day_type: effectiveType, hours: parseFloat(form.hours) || 8, amount })
         }))
         closeForm()
       } catch (e) { setFormError(e.message) }
@@ -139,7 +139,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
         const effectiveType = (form.day_type === 'عطلة' && holidayWorked) ? holidaySubType : form.day_type
         const amount = effectiveType === 'مبلغ مسكر' ? parseFloat(form.customAmount) : calcSalary(selectedEmp.daily_rate, effectiveType, form.hours)
         const { customAmount: _skip, ...formData } = form
-        const saveData = { ...formData, day_type: effectiveType, amount, hours: parseFloat(form.hours) || 8 }
+        const saveData = { ...formData, project_id: form.project_id || null, day_type: effectiveType, amount, hours: parseFloat(form.hours) || 8 }
         if (editingDay) {
           await updateWorkDay(editingDay, saveData)
         } else {
