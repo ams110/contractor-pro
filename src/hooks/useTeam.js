@@ -173,7 +173,7 @@ export function useTeam(userId, userEmail) {
   }
 
   async function getAllActivity() {
-    const { data, error } = await supabase.rpc('get_all_activity', { p_limit: 200 })
+    const { data, error } = await supabase.rpc('get_all_activity', { p_owner_id: userId, p_limit: 200 })
     if (error) throw error
     return data || []
   }
