@@ -32,6 +32,7 @@ export const fmtDateFull = (d) => {
  * @returns {number} المبلغ المحسوب
  */
 export function calcSalary(rate, dayType, hours) {
+  if (dayType === 'عطلة')   return 0
   if (dayType === 'كامل')   return rate
   if (dayType === 'نص يوم') return rate / 2
 

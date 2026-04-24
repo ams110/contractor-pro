@@ -81,7 +81,10 @@ function MonthRow({ month, data, payments, holidays = [] }) {
         style={{ width: '100%', padding: '13px 16px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{fmtMonth(month)}</span>
-          <span style={{ fontSize: 10, color: C.textDim, background: `${C.border}88`, padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>{data.days} يوم</span>
+          <span style={{ fontSize: 10, color: C.textDim, background: `${C.border}88`, padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>
+          {(data.records || []).filter(r => r.day_type !== 'عطلة').length} يوم
+          {(data.records || []).filter(r => r.day_type === 'عطلة').length > 0 && ` · 🎉 ${(data.records || []).filter(r => r.day_type === 'عطلة').length} عطلة`}
+        </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>

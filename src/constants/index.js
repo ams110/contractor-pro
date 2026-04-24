@@ -65,7 +65,7 @@ export const EXP_CATS = [
 
 export const PAY_METHODS = ['كاش', 'تحويل بنكي', 'شيك', 'بت']
 
-export const DAY_TYPES = ['كامل', 'نص يوم', 'ساعات', 'مبلغ مسكر']
+export const DAY_TYPES = ['كامل', 'نص يوم', 'ساعات', 'مبلغ مسكر', 'عطلة']
 
 export const PROJECT_TYPES = ['مقاولة مغلقة', 'يومي']
 

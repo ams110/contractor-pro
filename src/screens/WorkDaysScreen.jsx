@@ -4,8 +4,8 @@ import { fmt, fmtDate, fmtDateFull, todayStr, calcSalary, validateWorkDay } from
 import { GlassCard, Modal, Input, Btn, Badge, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { exportWorkDaysToExcel } from '../lib/export.js'
 
-const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange }
-const DAY_ICONS = { 'كامل': '☀️', 'نص يوم': '🌤️', 'ساعات': '⏱️', 'مبلغ مسكر': '💵' }
+const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange, 'عطلة': C.textDim }
+const DAY_ICONS = { 'كامل': '☀️', 'نص يوم': '🌤️', 'ساعات': '⏱️', 'مبلغ مسكر': '💵', 'عطلة': '🎉' }
 
 export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [] }) {
   const holidayDates = new Set((holidays || []).map(h => String(h.date).slice(0, 10)))
@@ -323,6 +323,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   </div>
                 )}
                 {monthEntries.map(([month, days]) => {
+                  const workDaysOnly = days.filter(d => d.day_type !== 'عطلة')
+                  const holidays     = days.filter(d => d.day_type === 'عطلة')
                   const totalAmt  = days.reduce((s, d) => s + (d.amount || 0), 0)
                   const isOpen    = openMonths.has(month)
                   const isCurrent = month === currentMonth
@@ -342,7 +344,9 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                         style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 18px', borderRadius: isOpen ? '16px 16px 0 0' : 16, background: isCurrent ? `${C.primary}12` : 'rgba(255,255,255,0.05)', border:`1.5px solid ${isCurrent ? C.primary + '44' : C.border}`, cursor:'pointer', transition:'all .2s' }}>
                         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                           <span style={{ fontSize:15, fontWeight:800, color: isCurrent ? C.primary : C.text }}>{monthLabel}</span>
-                          <span style={{ fontSize:11, color:C.textDim, background:'rgba(255,255,255,0.06)', padding:'2px 10px', borderRadius:20, fontWeight:600 }}>{days.length} يوم</span>
+                          <span style={{ fontSize:11, color:C.textDim, background:'rgba(255,255,255,0.06)', padding:'2px 10px', borderRadius:20, fontWeight:600 }}>
+                            {workDaysOnly.length} يوم{holidays.length > 0 ? ` · 🎉 ${holidays.length} عطلة` : ''}
+                          </span>
                         </div>
                         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                           <span style={{ fontSize:16, fontWeight:900, color: isCurrent ? C.primary : C.success, fontFamily:'monospace' }}>{fmt(totalAmt)}₪</span>
@@ -386,7 +390,9 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                       </div>
                                       <div style={{ textAlign:'right' }}>
                                         <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{emp?.name || '؟'}</div>
-                                        <div style={{ fontSize:10, color:C.textDim, marginTop:1 }}>{wdays.length} يوم</div>
+                                        <div style={{ fontSize:10, color:C.textDim, marginTop:1 }}>
+                                          {wdays.filter(d => d.day_type !== 'عطلة').length} يوم{wdays.filter(d => d.day_type === 'عطلة').length > 0 ? ` · 🎉 ${wdays.filter(d => d.day_type === 'عطلة').length} عطلة` : ''}
+                                        </div>
                                       </div>
                                     </div>
                                     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -560,6 +566,13 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
               {form.day_type === 'ساعات' && (
                 <Input label="عدد الساعات" value={form.hours} onChange={f('hours')} type="number" min="0.5" max="24" />
+              )}
+
+              {form.day_type === 'عطلة' && (
+                <div style={{ marginBottom:18, padding:'12px 16px', borderRadius:12, background:`${C.textDim}10`, border:`1px solid ${C.border}`, display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontSize:20 }}>🎉</span>
+                  <span style={{ fontSize:13, color:C.textDim, fontWeight:600 }}>يوم عطلة — المبلغ صفر تلقائياً</span>
+                </div>
               )}
 
               {form.day_type === 'مبلغ مسكر' && (
