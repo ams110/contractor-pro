@@ -464,6 +464,21 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
               <Input label="التاريخ" value={form.date} onChange={f('date')} type="date" required />
 
+              {/* Holiday indicator */}
+              {(() => {
+                const holiday = (holidays || []).find(h => String(h.date).slice(0, 10) === form.date)
+                if (!holiday) return null
+                return (
+                  <div style={{ marginBottom:18, padding:'12px 16px', borderRadius:12, background:`${C.warning}18`, border:`1.5px solid ${C.warning}55`, display:'flex', alignItems:'center', gap:12 }}>
+                    <span style={{ fontSize:26 }}>🎉</span>
+                    <div>
+                      <div style={{ fontSize:14, fontWeight:800, color:C.warning }}>{holiday.name}</div>
+                      <div style={{ fontSize:11, color:C.textDim }}>يوم عطلة رسمية</div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Employee selector */}
               <div style={{ marginBottom:18 }}>
                 <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>
