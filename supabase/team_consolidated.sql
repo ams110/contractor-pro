@@ -110,6 +110,16 @@ CREATE POLICY "user_client_receipts" ON client_receipts FOR ALL
   USING (user_id = auth.uid() OR is_active_team_member_of(user_id));
 
 -- ─── 6. RPCs ─────────────────────────────────────────────────────────────────
+-- Drop first to allow return-type changes
+DROP FUNCTION IF EXISTS get_team_auth_email(TEXT);
+DROP FUNCTION IF EXISTS get_owner_team_members();
+DROP FUNCTION IF EXISTS delete_team_member(UUID);
+DROP FUNCTION IF EXISTS update_team_member_perms(UUID,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN);
+DROP FUNCTION IF EXISTS set_member_blocked(UUID,BOOLEAN);
+DROP FUNCTION IF EXISTS update_member_last_seen(UUID);
+DROP FUNCTION IF EXISTS log_screen_view(UUID,TEXT);
+DROP FUNCTION IF EXISTS get_member_activity(TEXT,INT);
+DROP FUNCTION IF EXISTS get_all_activity(INT);
 
 -- جلب اسم المستخدم → auth_email (لشاشة الدخول)
 CREATE OR REPLACE FUNCTION get_team_auth_email(p_username TEXT)
