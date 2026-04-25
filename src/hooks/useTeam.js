@@ -1,9 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase.js'
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://rvhjrzbhugvytvktdhor.supabase.co'
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_StYQEWIn705_V2lNNSITtg_ty04ZO5E'
 
 export const OWNER_PERMS = {
   isOwner: true,
@@ -72,80 +68,23 @@ export function useTeam(userId, userEmail) {
     setLoading(false)
   }
 
-  // إضافة عضو مباشرة (بدون إيميل دعوة)
+  // إضافة عضو عبر Edge Function (يتجاوز تأكيد الإيميل)
   async function addMember({ displayName, username, password, role, expiresAt, perms }) {
-    // 1. تحقق أن اليوزر ما مستخدم
-    const { data: existing } = await supabase
-      .from('team_members').select('id').eq('username', username).maybeSingle()
-    if (existing) throw new Error('اسم المستخدم مستخدم مسبقاً')
-
-    // 2. إنشاء حساب Supabase Auth بإيميل داخلي
-    const authEmail = `tm_${userId.slice(0, 8)}_${username}_${Date.now()}@contractor.app`
-    const tempClient = createClient(SUPABASE_URL, SUPABASE_KEY)
-    const { data: authData, error: signupErr } = await tempClient.auth.signUp({
-      email: authEmail,
-      password,
+    const { data: fnData, error: fnErr } = await supabase.functions.invoke('create-team-member', {
+      body: { displayName, username, password, role, expiresAt, perms, ownerId: userId },
     })
-    if (signupErr) throw new Error(signupErr.message)
-    if (!authData.user?.id) throw new Error('فعّل "تعطيل تأكيد الإيميل" في إعدادات Supabase → Authentication → Email')
-
-    // 3. أضف للـ team_members
-    const { error } = await supabase.from('team_members').insert({
-      owner_id:     userId,
-      member_id:    authData.user.id,
-      display_name: displayName,
-      username,
-      auth_email:   authEmail,
-      role:         role || 'عضو',
-      status:       'active',
-      expires_at:   expiresAt || null,
-      email:        authEmail,
-      ...perms,
-    })
-    if (error) throw new Error(error.message)
+    if (fnErr) throw new Error(fnErr.message)
+    if (fnData?.error) throw new Error(fnData.error)
     await load()
   }
 
-  // إعادة تعيين الباسورد: حذف وإعادة الإضافة
+  // إعادة تعيين الباسورد عبر Edge Function (يحدّث الحساب مباشرة بدون orphans)
   async function resetMemberPassword(memberId, newPassword) {
-    const member = teamMembers.find(m => m.id === memberId)
-    if (!member) throw new Error('العضو غير موجود')
-    // حذف السجل القديم (الـ auth user يبقى orphan — لا يضر)
-    await supabase.from('team_members').delete().eq('id', memberId).eq('owner_id', userId)
-    // إنشاء سجل جديد بنفس البيانات وباسورد جديد
-    const authEmail = `tm_${userId.slice(0, 8)}_${member.username}_${Date.now()}@contractor.app`
-    const tempClient = createClient(SUPABASE_URL, SUPABASE_KEY)
-    const { data: authData, error: signupErr } = await tempClient.auth.signUp({
-      email: authEmail, password: newPassword,
+    const { data: fnData, error: fnErr } = await supabase.functions.invoke('update-member-password', {
+      body: { memberId, newPassword, ownerId: userId },
     })
-    if (signupErr) throw new Error(signupErr.message)
-    if (!authData.user?.id) throw new Error('فشل إنشاء الحساب')
-
-    const { error } = await supabase.from('team_members').insert({
-      owner_id:           userId,
-      member_id:          authData.user.id,
-      display_name:       member.display_name,
-      username:           member.username,
-      auth_email:         authEmail,
-      email:              authEmail,
-      role:               member.role,
-      status:             'active',
-      expires_at:         member.expires_at || null,
-      can_view_projects:  member.can_view_projects,
-      can_edit_projects:  member.can_edit_projects,
-      can_view_workers:   member.can_view_workers,
-      can_edit_workers:   member.can_edit_workers,
-      can_view_expenses:  member.can_view_expenses,
-      can_add_expenses:   member.can_add_expenses,
-      can_view_payments:  member.can_view_payments,
-      can_add_payments:   member.can_add_payments,
-      can_delete:         member.can_delete,
-      can_manage_team:    member.can_manage_team,
-      can_view_amounts:   member.can_view_amounts,
-      can_view_activity:  member.can_view_activity,
-    })
-    if (error) throw new Error(error.message)
-    await load()
+    if (fnErr) throw new Error(fnErr.message)
+    if (fnData?.error) throw new Error(fnData.error)
   }
 
   async function updateMember(id, perms) {
@@ -173,7 +112,7 @@ export function useTeam(userId, userEmail) {
   }
 
   async function getAllActivity() {
-    const { data, error } = await supabase.rpc('get_all_activity', { p_owner_id: userId, p_limit: 200 })
+    const { data, error } = await supabase.rpc('get_all_activity', { p_limit: 200 })
     if (error) throw error
     return data || []
   }
