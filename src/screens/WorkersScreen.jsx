@@ -801,7 +801,7 @@ function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, me
                   </button>
                   <button onClick={() => { setEditingMember(editingMember === m.id ? null : m.id); setEditPerms(Object.fromEntries(PERM_LABELS.map(([k]) => [k, m[k]]))) }}
                     style={{ background: 'none', border: `1px solid ${editingMember === m.id ? C.secondary + '44' : C.border}`, borderRadius: 9, cursor: 'pointer', fontSize: 13, padding: '5px 8px', color: editingMember === m.id ? C.secondary : C.textDim }}>✏️</button>
-                  <button onClick={() => removeMember(m.id)}
+                  <button onClick={async () => { try { await removeMember(m.id) } catch(e) { alert(e.message) } }}
                     style={{ background: 'none', border: `1px solid ${C.accent}33`, borderRadius: 9, cursor: 'pointer', fontSize: 13, padding: '5px 8px', color: C.accent }}>🗑️</button>
                 </div>
               </div>
