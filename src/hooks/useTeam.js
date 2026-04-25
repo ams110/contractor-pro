@@ -100,7 +100,7 @@ export function useTeam(userId, userEmail) {
   }
 
   async function removeMember(id) {
-    const { error } = await supabase.from('team_members').delete().eq('id', id).eq('owner_id', userId)
+    const { error } = await supabase.rpc('delete_team_member', { p_id: id })
     if (error) throw error
     await load()
   }
