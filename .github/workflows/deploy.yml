@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy
 
 on:
   push:
@@ -10,7 +10,21 @@ permissions:
   id-token: write
 
 jobs:
-  deploy:
+  deploy-functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Deploy Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy create-team-member --project-ref rvhjrzbhugvytvktdhor
+          supabase functions deploy update-member-password --project-ref rvhjrzbhugvytvktdhor
+
+  deploy-app:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
