@@ -76,6 +76,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
   const [editingMember,  setEditingMember]  = useState(null)
   const [editPerms,      setEditPerms]      = useState({})
   const [confirmBlock,   setConfirmBlock]   = useState(null)
+  const [confirmRemoveMember, setConfirmRemoveMember] = useState(null)
   const [showResetPass,  setShowResetPass]  = useState(null)
   const [newPass,        setNewPass]        = useState('')
   const [resetPassSaving,setResetPassSaving]= useState(false)
@@ -240,7 +241,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         ))}
       </div>
 
-      {tab === 'team' && <TeamTab teamMembers={teamMembers} permissions={permissions} showAddMember={showAddMember} setShowAddMember={setShowAddMember} memberForm={memberForm} setMemberForm={setMemberForm} addingMember={addingMember} setAddingMember={setAddingMember} addMemberErr={addMemberErr} setAddMemberErr={setAddMemberErr} editingMember={editingMember} setEditingMember={setEditingMember} editPerms={editPerms} setEditPerms={setEditPerms} confirmBlock={confirmBlock} setConfirmBlock={setConfirmBlock} showResetPass={showResetPass} setShowResetPass={setShowResetPass} newPass={newPass} setNewPass={setNewPass} resetPassSaving={resetPassSaving} setResetPassSaving={setResetPassSaving} resetPassErr={resetPassErr} setResetPassErr={setResetPassErr} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} teamLoadError={teamLoadError} reloadTeam={reloadTeam} />}
+      {tab === 'team' && <TeamTab teamMembers={teamMembers} permissions={permissions} showAddMember={showAddMember} setShowAddMember={setShowAddMember} memberForm={memberForm} setMemberForm={setMemberForm} addingMember={addingMember} setAddingMember={setAddingMember} addMemberErr={addMemberErr} setAddMemberErr={setAddMemberErr} editingMember={editingMember} setEditingMember={setEditingMember} editPerms={editPerms} setEditPerms={setEditPerms} confirmBlock={confirmBlock} setConfirmBlock={setConfirmBlock} confirmRemoveMember={confirmRemoveMember} setConfirmRemoveMember={setConfirmRemoveMember} showResetPass={showResetPass} setShowResetPass={setShowResetPass} newPass={newPass} setNewPass={setNewPass} resetPassSaving={resetPassSaving} setResetPassSaving={setResetPassSaving} resetPassErr={resetPassErr} setResetPassErr={setResetPassErr} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} teamLoadError={teamLoadError} reloadTeam={reloadTeam} />}
 
       {/* ── Summary Bar ── */}
       {tab === 'workers' && employees.length > 0 && (
@@ -674,7 +675,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
 /* ══════════════════════════════════════════════════════
    TeamTab — إدارة أعضاء الفريق وصلاحياتهم
 ══════════════════════════════════════════════════════ */
-function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, memberForm, setMemberForm, addingMember, setAddingMember, addMemberErr, setAddMemberErr, editingMember, setEditingMember, editPerms, setEditPerms, confirmBlock, setConfirmBlock, showResetPass, setShowResetPass, newPass, setNewPass, resetPassSaving, setResetPassSaving, resetPassErr, setResetPassErr, addMember, updateMember, removeMember, blockMember, resetMemberPassword, teamLoadError, reloadTeam }) {
+function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, memberForm, setMemberForm, addingMember, setAddingMember, addMemberErr, setAddMemberErr, editingMember, setEditingMember, editPerms, setEditPerms, confirmBlock, setConfirmBlock, confirmRemoveMember, setConfirmRemoveMember, showResetPass, setShowResetPass, newPass, setNewPass, resetPassSaving, setResetPassSaving, resetPassErr, setResetPassErr, addMember, updateMember, removeMember, blockMember, resetMemberPassword, teamLoadError, reloadTeam }) {
 
   if (!permissions?.manageTeam) {
     return (
@@ -801,7 +802,7 @@ function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, me
                   </button>
                   <button onClick={() => { setEditingMember(editingMember === m.id ? null : m.id); setEditPerms(Object.fromEntries(PERM_LABELS.map(([k]) => [k, m[k]]))) }}
                     style={{ background: 'none', border: `1px solid ${editingMember === m.id ? C.secondary + '44' : C.border}`, borderRadius: 9, cursor: 'pointer', fontSize: 13, padding: '5px 8px', color: editingMember === m.id ? C.secondary : C.textDim }}>✏️</button>
-                  <button onClick={async () => { try { await removeMember(m.id) } catch(e) { alert(e.message) } }}
+                  <button onClick={() => setConfirmRemoveMember(m)}
                     style={{ background: 'none', border: `1px solid ${C.accent}33`, borderRadius: 9, cursor: 'pointer', fontSize: 13, padding: '5px 8px', color: C.accent }}>🗑️</button>
                 </div>
               </div>
@@ -848,6 +849,27 @@ function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, me
                 finally { setResetPassSaving(false) }
               }} full disabled={resetPassSaving}>{resetPassSaving ? '...' : '✓ حفظ'}</Btn>
               <Btn onClick={() => setShowResetPass(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Remove Member */}
+      {confirmRemoveMember && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', padding: 24 }}>
+          <div style={{ background: C.surface, borderRadius: 20, padding: 24, maxWidth: 320, width: '100%', border: `1px solid ${C.borderMid}` }}>
+            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🗑️</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.text, textAlign: 'center', marginBottom: 8 }}>حذف العضو</div>
+            <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
+              سيتم حذف <b style={{ color: C.accent }}>{confirmRemoveMember.display_name || confirmRemoveMember.username}</b> نهائياً
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Btn onClick={async () => {
+                try { await removeMember(confirmRemoveMember.id) }
+                catch(e) { alert(e.message) }
+                finally { setConfirmRemoveMember(null) }
+              }} full style={{ background: 'linear-gradient(135deg,#ff4444,#cc0000)' }}>حذف</Btn>
+              <Btn onClick={() => setConfirmRemoveMember(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
             </div>
           </div>
         </div>
