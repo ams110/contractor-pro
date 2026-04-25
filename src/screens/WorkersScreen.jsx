@@ -5,35 +5,7 @@ import { GlassCard, Card, StatCard, Modal, Input, Btn, Badge, EmptyState, Confir
 import { setWorkerCredentials, resetWorkerPassword } from '../hooks/useWorkerPortal.js'
 import WorkerStatsPanel from '../components/WorkerStatsPanel.jsx'
 import { exportWorkerSalaryPDF } from '../lib/export.js'
-
-const PERM_LABELS = [
-  ['can_view_projects',  'مشاهدة المشاريع'],
-  ['can_edit_projects',  'إضافة/تعديل المشاريع'],
-  ['can_view_workers',   'مشاهدة العمال'],
-  ['can_edit_workers',   'إضافة/تعديل العمال'],
-  ['can_view_expenses',  'مشاهدة المصاريف'],
-  ['can_add_expenses',   'إضافة المصاريف'],
-  ['can_view_payments',  'مشاهدة الرواتب'],
-  ['can_add_payments',   'إضافة الرواتب'],
-  ['can_delete',         'حذف السجلات'],
-  ['can_manage_team',    'إدارة الفريق'],
-  ['can_view_amounts',   'مشاهدة المبالغ'],
-  ['can_view_activity',  'سجل النشاط'],
-]
-const ROLES = ['مشرف', 'محاسب', 'مساعد', 'عضو']
-const DEFAULT_PERMS = Object.fromEntries(PERM_LABELS.map(([k]) => [k, k === 'can_view_amounts']))
-const EMPTY_MEMBER = { displayName: '', username: '', password: '', role: 'عضو', expiresAt: '', perms: DEFAULT_PERMS }
-
-function fmtRelative(ts) {
-  if (!ts) return null
-  const diff = Date.now() - new Date(ts).getTime()
-  const min  = Math.floor(diff / 60000)
-  if (min < 1)   return 'الآن'
-  if (min < 60)  return `منذ ${min} د`
-  const hr = Math.floor(min / 60)
-  if (hr  < 24)  return `منذ ${hr} س`
-  return `منذ ${Math.floor(hr / 24)} يوم`
-}
+import TeamScreen from './team/TeamScreen.jsx'
 
 /* ── tiny icon button helper ── */
 function IconBtn({ icon, label, onClick, color = C.textDim, active, activeColor }) {
@@ -60,27 +32,13 @@ function IconBtn({ icon, label, onClick, color = C.textDim, active, activeColor 
   )
 }
 
-export default function WorkersScreen({ employees, workDays, payments, advances = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword, teamLoadError, reloadTeam }) {
+export default function WorkersScreen({ employees, workDays, payments, advances = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, teamLoadError, reloadTeam }) {
   const [tab,        setTab]        = useState('workers') // 'workers' | 'team'
   const [showForm,   setShowForm]   = useState(false)
   const [editing,    setEditing]    = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
   const [formError,  setFormError]  = useState('')
   const [saving,     setSaving]     = useState(false)
-
-  // ── فريق العمل ──
-  const [showAddMember,  setShowAddMember]  = useState(false)
-  const [memberForm,     setMemberForm]     = useState(EMPTY_MEMBER)
-  const [addingMember,   setAddingMember]   = useState(false)
-  const [addMemberErr,   setAddMemberErr]   = useState('')
-  const [editingMember,  setEditingMember]  = useState(null)
-  const [editPerms,      setEditPerms]      = useState({})
-  const [confirmBlock,   setConfirmBlock]   = useState(null)
-  const [confirmRemoveMember, setConfirmRemoveMember] = useState(null)
-  const [showResetPass,  setShowResetPass]  = useState(null)
-  const [newPass,        setNewPass]        = useState('')
-  const [resetPassSaving,setResetPassSaving]= useState(false)
-  const [resetPassErr,   setResetPassErr]   = useState('')
 
   // بيانات دخول العامل
   const [credWorker,   setCredWorker]   = useState(null)
@@ -225,9 +183,6 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
               {permissions?.editWorkers !== false && <Btn onClick={openNew}>+ جديد</Btn>}
             </>
           )}
-          {tab === 'team' && permissions?.manageTeam && (
-            <Btn onClick={() => { setShowAddMember(v => !v); setAddMemberErr(''); setMemberForm(EMPTY_MEMBER) }}>+ عضو جديد</Btn>
-          )}
         </div>
       </div>
 
@@ -241,7 +196,20 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         ))}
       </div>
 
-      {tab === 'team' && <TeamTab teamMembers={teamMembers} permissions={permissions} showAddMember={showAddMember} setShowAddMember={setShowAddMember} memberForm={memberForm} setMemberForm={setMemberForm} addingMember={addingMember} setAddingMember={setAddingMember} addMemberErr={addMemberErr} setAddMemberErr={setAddMemberErr} editingMember={editingMember} setEditingMember={setEditingMember} editPerms={editPerms} setEditPerms={setEditPerms} confirmBlock={confirmBlock} setConfirmBlock={setConfirmBlock} confirmRemoveMember={confirmRemoveMember} setConfirmRemoveMember={setConfirmRemoveMember} showResetPass={showResetPass} setShowResetPass={setShowResetPass} newPass={newPass} setNewPass={setNewPass} resetPassSaving={resetPassSaving} setResetPassSaving={setResetPassSaving} resetPassErr={resetPassErr} setResetPassErr={setResetPassErr} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} teamLoadError={teamLoadError} reloadTeam={reloadTeam} />}
+      {tab === 'team' && (
+        <TeamScreen
+          teamMembers={teamMembers}
+          permissions={permissions}
+          addMember={addMember}
+          updateMember={updateMember}
+          removeMember={removeMember}
+          blockMember={blockMember}
+          resetMemberPassword={resetMemberPassword}
+          getActivity={getActivity}
+          teamLoadError={teamLoadError}
+          reloadTeam={reloadTeam}
+        />
+      )}
 
       {/* ── Summary Bar ── */}
       {tab === 'workers' && employees.length > 0 && (
@@ -672,230 +640,3 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
   )
 }
 
-/* ══════════════════════════════════════════════════════
-   TeamTab — إدارة أعضاء الفريق وصلاحياتهم
-══════════════════════════════════════════════════════ */
-function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, memberForm, setMemberForm, addingMember, setAddingMember, addMemberErr, setAddMemberErr, editingMember, setEditingMember, editPerms, setEditPerms, confirmBlock, setConfirmBlock, confirmRemoveMember, setConfirmRemoveMember, showResetPass, setShowResetPass, newPass, setNewPass, resetPassSaving, setResetPassSaving, resetPassErr, setResetPassErr, addMember, updateMember, removeMember, blockMember, resetMemberPassword, teamLoadError, reloadTeam }) {
-
-  if (!permissions?.manageTeam) {
-    return (
-      <div style={{ textAlign: 'center', padding: '48px 16px' }}>
-        <div style={{ fontSize: 44, marginBottom: 14 }}>🔒</div>
-        <div style={{ fontSize: 14, color: C.textDim }}>ليس لديك صلاحية إدارة الفريق</div>
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      {/* خطأ تحميل */}
-      {teamLoadError && (
-        <div style={{ padding: '10px 14px', borderRadius: 12, marginBottom: 12, background: '#ff444415', border: '1px solid #ff444444', fontSize: 11, color: '#ff4444', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-          <span>⚠ خطأ: {teamLoadError}</span>
-          {reloadTeam && <button onClick={reloadTeam} style={{ background: 'none', border: '1px solid #ff444466', borderRadius: 8, color: '#ff4444', fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>إعادة تحميل</button>}
-        </div>
-      )}
-      {/* فورم إضافة عضو */}
-      {showAddMember && (
-        <GlassCard style={{ marginBottom: 16, overflow: 'hidden' }}>
-          <div style={{ height: 3, background: GRAD.success }} />
-          <div style={{ padding: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: C.success, marginBottom: 12 }}>➕ عضو جديد</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-              <div>
-                <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>الاسم *</label>
-                <input value={memberForm.displayName} onChange={e => setMemberForm(p => ({ ...p, displayName: e.target.value }))}
-                  placeholder="مثال: أبو محمد"
-                  style={{ width: '100%', padding: '9px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>الدور</label>
-                <select value={memberForm.role} onChange={e => setMemberForm(p => ({ ...p, role: e.target.value }))}
-                  style={{ width: '100%', padding: '9px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }}>
-                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-              <div>
-                <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>اسم المستخدم *</label>
-                <input value={memberForm.username} onChange={e => setMemberForm(p => ({ ...p, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))}
-                  placeholder="abu_mohammad"
-                  style={{ width: '100%', padding: '9px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none', direction: 'ltr' }} />
-                <div style={{ fontSize: 9, color: C.textDim, marginTop: 3 }}>أحرف إنجليزية صغيرة، أرقام، أو _ فقط</div>
-              </div>
-              <div>
-                <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>الباسورد * (6+)</label>
-                <input type="password" value={memberForm.password} onChange={e => setMemberForm(p => ({ ...p, password: e.target.value }))}
-                  placeholder="••••••"
-                  style={{ width: '100%', padding: '9px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
-              </div>
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>⏰ تاريخ انتهاء الصلاحية (اختياري)</label>
-              <input type="date" value={memberForm.expiresAt} onChange={e => setMemberForm(p => ({ ...p, expiresAt: e.target.value }))}
-                style={{ width: '100%', padding: '9px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
-            </div>
-
-            {/* الصلاحيات */}
-            <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, marginBottom: 8 }}>🔐 الصلاحيات:</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, marginBottom: 12 }}>
-              {PERM_LABELS.map(([key, label]) => (
-                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: memberForm.perms[key] ? C.text : C.textDim, cursor: 'pointer', padding: '5px 8px', borderRadius: 8, background: memberForm.perms[key] ? `${C.primary}12` : 'transparent', border: `1px solid ${memberForm.perms[key] ? C.primary + '44' : C.border}`, transition: 'all .15s' }}>
-                  <input type="checkbox" checked={!!memberForm.perms[key]} onChange={e => setMemberForm(p => ({ ...p, perms: { ...p.perms, [key]: e.target.checked } }))} style={{ accentColor: C.primary }} />
-                  {label}
-                </label>
-              ))}
-            </div>
-
-            {addMemberErr && <div style={{ fontSize: 11, color: C.accent, marginBottom: 8, padding: '8px 10px', background: `${C.accent}12`, borderRadius: 8 }}>⚠ {addMemberErr}</div>}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Btn onClick={async () => {
-                if (!memberForm.displayName.trim()) return setAddMemberErr('أدخل الاسم')
-                if (!memberForm.username.trim())    return setAddMemberErr('أدخل اسم المستخدم')
-                if (!/^[a-z0-9_]{3,30}$/.test(memberForm.username)) return setAddMemberErr('اسم المستخدم: 3-30 حرف إنجليزي صغير أو أرقام أو _')
-                if (memberForm.password.length < 6) return setAddMemberErr('الباسورد 6 أحرف على الأقل')
-                setAddingMember(true); setAddMemberErr('')
-                try {
-                  await addMember({ displayName: memberForm.displayName, username: memberForm.username, password: memberForm.password, role: memberForm.role, expiresAt: memberForm.expiresAt || null, perms: memberForm.perms })
-                  setShowAddMember(false)
-                  setMemberForm(EMPTY_MEMBER)
-                } catch (e) { setAddMemberErr(e.message) }
-                finally { setAddingMember(false) }
-              }} full disabled={addingMember}>{addingMember ? '⏳ جاري الإنشاء...' : '✓ إضافة العضو'}</Btn>
-              <Btn onClick={() => setShowAddMember(false)} variant="outline" color={C.textDim} full>إلغاء</Btn>
-            </div>
-          </div>
-        </GlassCard>
-      )}
-
-      {/* قائمة الأعضاء */}
-      {teamMembers.length === 0 ? (
-        <EmptyState icon="👥" text="لا يوجد أعضاء فريق بعد" action="+ أضف عضو" onAction={() => setShowAddMember(true)} />
-      ) : teamMembers.map(m => {
-        const blocked  = !!m.is_blocked
-        const expired  = m.expires_at && new Date(m.expires_at) < new Date()
-        const lastSeen = fmtRelative(m.last_seen_at)
-        return (
-          <GlassCard key={m.id} style={{ marginBottom: 10, overflow: 'hidden' }}>
-            <div style={{ height: 3, background: blocked ? GRAD.danger : expired ? GRAD.warm : GRAD.success }} />
-            <div style={{ padding: '12px 14px' }}>
-              {/* هوية العضو */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: blocked ? C.accent : C.text }}>{m.display_name || m.username}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, flexWrap: 'wrap' }}>
-                    {m.username && <span style={{ fontSize: 10, color: C.textDim, background: 'rgba(255,255,255,0.06)', padding: '2px 7px', borderRadius: 6 }}>@{m.username}</span>}
-                    {m.role     && <span style={{ fontSize: 10, color: C.secondary, fontWeight: 700 }}>{m.role}</span>}
-                    {blocked    && <span style={{ fontSize: 10, color: C.accent, fontWeight: 700, background: `${C.accent}22`, padding: '2px 7px', borderRadius: 6 }}>🚫 محجوب</span>}
-                    {expired    && <span style={{ fontSize: 10, color: C.warning, fontWeight: 700, background: `${C.warning}22`, padding: '2px 7px', borderRadius: 6 }}>⏰ منتهي</span>}
-                    {!blocked && !expired && <span style={{ fontSize: 10, color: C.success, fontWeight: 700 }}>● نشط</span>}
-                    {lastSeen && <span style={{ fontSize: 10, color: C.textDim }}>🕐 {lastSeen}</span>}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-                  <button onClick={() => { setShowResetPass(m); setNewPass(''); setResetPassErr('') }} title="تغيير الباسورد"
-                    style={{ background: 'none', border: `1px solid ${C.warning}44`, borderRadius: 9, cursor: 'pointer', fontSize: 13, padding: '5px 8px', color: C.warning }}>🔑</button>
-                  <button onClick={() => setConfirmBlock({ id: m.id, email: m.email, blocked: !blocked })} title={blocked ? 'رفع الحجب' : 'حجب الوصول'}
-                    style={{ background: 'none', border: `1px solid ${blocked ? C.success + '44' : C.accent + '44'}`, borderRadius: 9, cursor: 'pointer', fontSize: 13, padding: '5px 8px', color: blocked ? C.success : C.accent }}>
-                    {blocked ? '✅' : '🚫'}
-                  </button>
-                  <button onClick={() => { setEditingMember(editingMember === m.id ? null : m.id); setEditPerms(Object.fromEntries(PERM_LABELS.map(([k]) => [k, m[k]]))) }}
-                    style={{ background: 'none', border: `1px solid ${editingMember === m.id ? C.secondary + '44' : C.border}`, borderRadius: 9, cursor: 'pointer', fontSize: 13, padding: '5px 8px', color: editingMember === m.id ? C.secondary : C.textDim }}>✏️</button>
-                  <button onClick={() => setConfirmRemoveMember(m)}
-                    style={{ background: 'none', border: `1px solid ${C.accent}33`, borderRadius: 9, cursor: 'pointer', fontSize: 13, padding: '5px 8px', color: C.accent }}>🗑️</button>
-                </div>
-              </div>
-
-              {/* تعديل الصلاحيات */}
-              {editingMember === m.id && (
-                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, marginTop: 4 }}>
-                  <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8 }}>🔐 الصلاحيات:</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginBottom: 10 }}>
-                    {PERM_LABELS.map(([key, label]) => (
-                      <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: editPerms[key] ? C.text : C.textDim, cursor: 'pointer', padding: '5px 8px', borderRadius: 8, background: editPerms[key] ? `${C.primary}12` : 'transparent', border: `1px solid ${editPerms[key] ? C.primary + '44' : C.border}`, transition: 'all .15s' }}>
-                        <input type="checkbox" checked={!!editPerms[key]} onChange={e => setEditPerms(p => ({ ...p, [key]: e.target.checked }))} style={{ accentColor: C.primary }} />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <Btn onClick={async () => { await updateMember(m.id, editPerms); setEditingMember(null) }} full>✓ حفظ الصلاحيات</Btn>
-                    <Btn onClick={() => setEditingMember(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
-                  </div>
-                </div>
-              )}
-            </div>
-          </GlassCard>
-        )
-      })}
-
-      {/* Reset Password Modal */}
-      {showResetPass && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', padding: 16 }}
-          onClick={e => { if (e.target === e.currentTarget) setShowResetPass(null) }}>
-          <div style={{ width: '100%', maxWidth: 360, background: C.surface, borderRadius: 20, padding: 20, border: `1px solid ${C.borderMid}` }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 4 }}>🔑 تغيير الباسورد</div>
-            <div style={{ fontSize: 11, color: C.textDim, marginBottom: 14 }}>{showResetPass.display_name || showResetPass.username}</div>
-            <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="الباسورد الجديد (6 أحرف+)"
-              style={{ width: '100%', padding: '11px 12px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 13, marginBottom: 10, boxSizing: 'border-box', outline: 'none' }} />
-            {resetPassErr && <div style={{ fontSize: 11, color: C.accent, marginBottom: 8 }}>⚠ {resetPassErr}</div>}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Btn onClick={async () => {
-                if (newPass.length < 6) return setResetPassErr('6 أحرف على الأقل')
-                setResetPassSaving(true); setResetPassErr('')
-                try { await resetMemberPassword(showResetPass.id, newPass); setShowResetPass(null) }
-                catch (e) { setResetPassErr(e.message) }
-                finally { setResetPassSaving(false) }
-              }} full disabled={resetPassSaving}>{resetPassSaving ? '...' : '✓ حفظ'}</Btn>
-              <Btn onClick={() => setShowResetPass(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirm Remove Member */}
-      {confirmRemoveMember && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', padding: 24 }}>
-          <div style={{ background: C.surface, borderRadius: 20, padding: 24, maxWidth: 320, width: '100%', border: `1px solid ${C.borderMid}` }}>
-            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🗑️</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: C.text, textAlign: 'center', marginBottom: 8 }}>حذف العضو</div>
-            <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
-              سيتم حذف <b style={{ color: C.accent }}>{confirmRemoveMember.display_name || confirmRemoveMember.username}</b> نهائياً
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Btn onClick={async () => {
-                try { await removeMember(confirmRemoveMember.id) }
-                catch(e) { alert(e.message) }
-                finally { setConfirmRemoveMember(null) }
-              }} full style={{ background: 'linear-gradient(135deg,#ff4444,#cc0000)' }}>حذف</Btn>
-              <Btn onClick={() => setConfirmRemoveMember(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirm Block */}
-      {confirmBlock && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', padding: 24 }}>
-          <div style={{ background: C.surface, borderRadius: 20, padding: 24, maxWidth: 320, width: '100%', border: `1px solid ${C.borderMid}` }}>
-            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>{confirmBlock.blocked ? '🚫' : '✅'}</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: C.text, textAlign: 'center', marginBottom: 8 }}>
-              {confirmBlock.blocked ? 'حجب الوصول' : 'رفع الحجب'}
-            </div>
-            <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
-              {confirmBlock.blocked ? 'سيُمنع هذا العضو من الدخول فوراً' : 'سيستعيد العضو صلاحياته'}
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Btn onClick={async () => {
-                try { await blockMember(confirmBlock.id, confirmBlock.blocked) }
-                finally { setConfirmBlock(null) }
-              }} full style={{ background: confirmBlock.blocked ? GRAD.danger : GRAD.success }}>تأكيد</Btn>
-              <Btn onClick={() => setConfirmBlock(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
