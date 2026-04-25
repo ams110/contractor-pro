@@ -106,18 +106,21 @@ export default function App() {
 
   const uid = user?.id
 
-  const { projects,       loading: pLoad,  addProject,    updateProject,    deleteProject   } = useProjects(uid)
-  const { employees,      loading: eLoad,  addEmployee,   updateEmployee,   deleteEmployee  } = useEmployees(uid)
-  const { workDays,       loading: wLoad,  addWorkDay, updateWorkDay,  deleteWorkDay, approveWorkDay, rejectWorkDay } = useWorkDays(uid)
-  const { expenses,       loading: xLoad,  addExpense, deleteExpense, approveExpense, rejectExpense } = useExpenses(uid)
-  const { payments,       loading: pyLoad, addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest } = usePayments(uid)
-  const { advances,                        addAdvance,                      deleteAdvance   } = useAdvances(uid)
-  const { taxAdvances,                     addTaxAdvance,                   deleteTaxAdvance } = useTaxAdvances(uid)
-  const { clientReceipts, loading: crLoad, addReceipt, updateReceipt,        deleteReceipt   } = useClientReceipts(uid)
-  const { specs, expCats, payMethods, pensionMonthly, taxEnabled, businessType, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly, setTaxEnabled, setBusinessType } = useSettings(uid)
-  const { holidays, addHoliday, deleteHoliday }                                               = useHolidays(uid)
-  const { profile, saving: profSaving, uploading, saveName, uploadAvatar }                   = useProfile(uid)
   const { teamMembers, permissions, effectiveOwnerId, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
+
+  const eid = effectiveOwnerId || uid
+
+  const { projects,       loading: pLoad,  addProject,    updateProject,    deleteProject   } = useProjects(eid)
+  const { employees,      loading: eLoad,  addEmployee,   updateEmployee,   deleteEmployee  } = useEmployees(eid)
+  const { workDays,       loading: wLoad,  addWorkDay, updateWorkDay,  deleteWorkDay, approveWorkDay, rejectWorkDay } = useWorkDays(eid)
+  const { expenses,       loading: xLoad,  addExpense, deleteExpense, approveExpense, rejectExpense } = useExpenses(eid)
+  const { payments,       loading: pyLoad, addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest } = usePayments(eid)
+  const { advances,                        addAdvance,                      deleteAdvance   } = useAdvances(eid)
+  const { taxAdvances,                     addTaxAdvance,                   deleteTaxAdvance } = useTaxAdvances(eid)
+  const { clientReceipts, loading: crLoad, addReceipt, updateReceipt,        deleteReceipt   } = useClientReceipts(eid)
+  const { specs, expCats, payMethods, pensionMonthly, taxEnabled, businessType, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly, setTaxEnabled, setBusinessType } = useSettings(eid)
+  const { holidays, addHoliday, deleteHoliday }                                               = useHolidays(eid)
+  const { profile, saving: profSaving, uploading, saveName, uploadAvatar }                   = useProfile(uid)
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
   useSalaryAlerts(uid, employees, workDays, payments)
 
