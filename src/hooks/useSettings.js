@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react'
-import { SPECS, EXP_CATS, PAY_METHODS } from '../constants/index.js'
+import { SPECS, EXP_CATS, PAY_METHODS, BUSINESS_TYPES } from '../constants/index.js'
 
 export function useSettings(userId) {
   const key = userId ? `settings_${userId}` : null
 
   function load() {
-    if (!key) return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh' }
+    if (!key) return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS, taxEnabled: true, businessType: BUSINESS_TYPES.MOREH }
     try {
       const saved = localStorage.getItem(key)
       if (saved) {
         const parsed = JSON.parse(saved)
-        return { payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh', ...parsed }
+        return { payMethods: PAY_METHODS, taxEnabled: true, businessType: BUSINESS_TYPES.MOREH, ...parsed }
       }
     } catch {}
-    return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh' }
+    return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS, taxEnabled: true, businessType: BUSINESS_TYPES.MOREH }
   }
 
   const [settings, setSettings] = useState(load)
@@ -75,7 +75,7 @@ export function useSettings(userId) {
     payMethods: settings.payMethods || PAY_METHODS,
     pensionMonthly: settings.pensionMonthly || 0,
     taxEnabled:     settings.taxEnabled !== false,
-    businessType:   settings.businessType || 'osek_moreh',
+    businessType:   settings.businessType || BUSINESS_TYPES.MOREH,
     addSpec,        removeSpec,
     addExpCat,      removeExpCat,
     addPayMethod,   removePayMethod,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
-import { C, GRAD, EXP_CATS, VAT, OSEK_PATUR_THRESHOLD } from '../constants/index.js'
+import { C, GRAD, EXP_CATS, VAT, OSEK_PATUR_THRESHOLD, BUSINESS_TYPES } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, calcVATNet, calcBituachLeumi, calcBituachLeumiAnnual, estimateIncomeTax, pensionTaxSaving, isPaymentOverdue } from '../lib/helpers.js'
 import { StatCard, GlassCard, AnimatedNumber } from '../components/index.jsx'
 
@@ -57,7 +57,7 @@ function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, o
   )
 }
 
-export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly, taxEnabled = true, businessType = 'osek_moreh' }) {
+export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly, taxEnabled = true, businessType = BUSINESS_TYPES.MOREH }) {
   const [alertsExpanded, setAlertsExpanded] = useState(true)
   const [showTax,        setShowTax]        = useState(false)
   const [addingTax,      setAddingTax]      = useState(null)  // 'income_tax' | 'bituach_leumi' | null
@@ -397,11 +397,11 @@ export default function DashboardScreen({ projects, employees, workDays, expense
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {/* نوع العيسك */}
             <div style={{ padding:'10px 14px', background:`${C.purple}12`, borderRadius:12, border:`1px solid ${C.purple}33`, fontSize:11, color:C.purple, fontWeight:700 }}>
-              {businessType === 'osek_patur' ? '🏷️ עוסק פטור — معفى من الضريبة على القيمة المضافة' : '🏷️ עוסק מורשה — ملزم بـ מע"מ'}
+              {businessType === BUSINESS_TYPES.PATUR ? '🏷️ עוסק פטור — معفى من الضريبة على القيمة المضافة' : '🏷️ עוסק מורשה — ملزم بـ מע"מ'}
             </div>
 
             {/* VAT — فقط لـ עוסק מורשה */}
-            {businessType !== 'osek_patur' && <div style={{ padding:'14px', background:C.card, borderRadius:14, border:`1px solid ${C.border}`, position:'relative', overflow:'hidden' }}>
+            {businessType !== BUSINESS_TYPES.PATUR && <div style={{ padding:'14px', background:C.card, borderRadius:14, border:`1px solid ${C.border}`, position:'relative', overflow:'hidden' }}>
               <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg,${C.success},${C.primary})` }} />
               <div style={{ fontSize:12, fontWeight:800, color:C.text, marginBottom:12 }}>
                 {'💳 מע"מ לתשלום'} <span style={{ fontSize:10, color:C.textDim, fontWeight:500 }}>(شهرين الأخيرين)</span>

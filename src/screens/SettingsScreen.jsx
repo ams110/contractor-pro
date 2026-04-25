@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { C, GRAD } from '../constants/index.js'
+import { C, GRAD, BUSINESS_TYPES } from '../constants/index.js'
 import { Btn, GlassCard, SectionLabel, ConfirmDialog } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { exportFullReportToExcel, exportTaxSummary } from '../lib/export.js'
@@ -321,8 +321,8 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
           <div style={{ fontSize:11, color:C.textDim, marginBottom:8, fontWeight:600 }}>نوع العيسك:</div>
           <div style={{ display:'flex', gap:8 }}>
             {[
-              { val:'osek_moreh', label:'עוסק מורשה', desc:'ملزم بـ מע"מ' },
-              { val:'osek_patur', label:'עוסק פטור',  desc:'معفى من מע"מ' },
+              { val:BUSINESS_TYPES.MOREH, label:'עוסק מורשה', desc:'ملزم بـ מע"מ' },
+              { val:BUSINESS_TYPES.PATUR, label:'עוסק פטור',  desc:'معفى من מע"מ' },
             ].map(opt => {
               const sel = businessType === opt.val
               return (

@@ -76,6 +76,11 @@ export const VAT = 0.17
 export const OSEK_PATUR_THRESHOLD = 120000
 export const BITUACH_LEUMI_RATE   = 0.105
 
+export const BUSINESS_TYPES = {
+  MOREH: 'osek_moreh',
+  PATUR: 'osek_patur',
+}
+
 export const NAV = [
   { id: 'dashboard', icon: '📊', label: 'الرئيسية' },
   { id: 'projects',  icon: '🏗️', label: 'المشاريع' },
