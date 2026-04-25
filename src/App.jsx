@@ -82,10 +82,13 @@ export default function App() {
   }
 
   const { user, loading: authLoading } = useAuth()
-  const [screen,      setScreen]      = useState('dashboard')
-  const [showSearch,  setShowSearch]  = useState(false)
-  const [showNotifs,  setShowNotifs]  = useState(false)
-  const [isOnline,    setIsOnline]    = useState(navigator.onLine)
+  const [screen,         setScreen]        = useState('dashboard')
+  const [showSearch,     setShowSearch]    = useState(false)
+  const [showNotifs,     setShowNotifs]    = useState(false)
+  const [isOnline,       setIsOnline]      = useState(navigator.onLine)
+  const [toast,          setToast]         = useState(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const toastTimerRef = React.useRef(null)
 
   React.useEffect(() => {
     const on  = () => setIsOnline(true)
@@ -94,6 +97,12 @@ export default function App() {
     window.addEventListener('offline', off)
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
   }, [])
+
+  function showToast(msg, type = 'success') {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setToast({ msg, type })
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000)
+  }
 
   const uid = user?.id
 
@@ -111,6 +120,18 @@ export default function App() {
   const { teamMembers, permissions, effectiveOwnerId, updateMember, removeMember, isBlocked, isExpired, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
   useSalaryAlerts(uid, employees, workDays, payments)
+
+  React.useEffect(() => {
+    if (uid && !localStorage.getItem('cp_onboarded')) setShowOnboarding(true)
+  }, [uid])
+
+  // ─── دوال الموافقة/الرفض مع إشعار توست ────────────────────────────────────
+  const _approveWorkDay = id      => approveWorkDay(id).then(() => showToast('✓ تمت الموافقة على يوم العمل'))
+  const _rejectWorkDay  = (id, r) => rejectWorkDay(id, r).then(() => showToast('رُفض يوم العمل', 'warning'))
+  const _approveExpense = id      => approveExpense(id).then(() => showToast('✓ تمت الموافقة على المصروف'))
+  const _rejectExpense  = (id, r) => rejectExpense(id, r).then(() => showToast('رُفض المصروف', 'warning'))
+  const _approvePayment = id      => approvePaymentRequest(id).then(() => showToast('✓ تمت الموافقة على الدفعة'))
+  const _rejectPayment  = (id, r) => rejectPaymentRequest(id, r).then(() => showToast('رُفضت الدفعة', 'warning'))
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
@@ -169,9 +190,9 @@ export default function App() {
       case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} />
       case 'projects':  return p.viewProjects  ? <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} employees={employees} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />
       case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={workDays} payments={payments} advances={advances} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} /> : <NoAccess />
-      case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={approveWorkDay} rejectWorkDay={rejectWorkDay} permissions={p} holidays={holidays} /> : <NoAccess />
-      case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={approveExpense} rejectExpense={rejectExpense} employees={employees} userId={uid} permissions={p} /> : <NoAccess />
-      case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} projects={projects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={approvePaymentRequest} rejectPaymentRequest={rejectPaymentRequest} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />
+      case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} permissions={p} holidays={holidays} /> : <NoAccess />
+      case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={employees} userId={uid} permissions={p} /> : <NoAccess />
+      case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} projects={projects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />
       case 'activity':  return (p.viewActivity || p.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />
       case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} setTaxEnabled={setTaxEnabled} setBusinessType={setBusinessType} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} />
       default:          return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
@@ -201,6 +222,12 @@ export default function App() {
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           {dataLoading && <div style={{ width:16, height:16, border:`2px solid ${C.border}`, borderTopColor:C.primary, borderRadius:'50%', animation:'spin .75s linear infinite' }} />}
+          {(p?.isOwner || p?.viewActivity) && (
+            <button onClick={() => setScreen('activity')}
+              style={{ background: screen === 'activity' ? `${C.primary}22` : 'rgba(255,255,255,0.06)', border:`1px solid ${screen === 'activity' ? C.primary + '55' : C.border}`, borderRadius:12, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
+              📋
+            </button>
+          )}
           <button onClick={() => setShowNotifs(true)}
             style={{ position:'relative', background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, borderRadius:12, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
             🔔
@@ -276,6 +303,51 @@ export default function App() {
         workDays={workDays}
         onNav={nav => { setScreen(nav); setShowSearch(false) }}
       />
+
+      {/* ─── Toast ─── */}
+      {toast && (
+        <div className="toast-in" style={{
+          position:'fixed', bottom:100, left:'50%', transform:'translateX(-50%)',
+          background: toast.type === 'success' ? C.success : toast.type === 'warning' ? C.warning : C.accent,
+          color:'#fff', padding:'11px 22px', borderRadius:14, fontSize:13, fontWeight:700,
+          zIndex:300, whiteSpace:'nowrap', boxShadow:'0 4px 24px rgba(0,0,0,0.45)',
+          display:'flex', alignItems:'center', gap:8,
+        }}>
+          {toast.msg}
+        </div>
+      )}
+
+      {/* ─── Onboarding ─── */}
+      {showOnboarding && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', zIndex:400, display:'flex', alignItems:'center', justifyContent:'center', padding:20, direction:'rtl' }}>
+          <div className="fade-up" style={{ background:C.surface, borderRadius:24, padding:'28px 22px', width:'100%', maxWidth:380, border:`1px solid ${C.borderMid}` }}>
+            <div style={{ textAlign:'center', marginBottom:20 }}>
+              <div style={{ fontSize:44, marginBottom:8 }}>🏗️</div>
+              <div style={{ fontSize:19, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>أهلاً بك في Contractor Pro</div>
+              <div style={{ fontSize:11, color:C.textDim, marginTop:4 }}>إليك أهم الميزات للبداية السريعة</div>
+            </div>
+            {[
+              { icon:'🏗️', title:'المشاريع', desc:'أضف مشاريعك وتابع الأرباح والمصاريف لكل مشروع' },
+              { icon:'👷', title:'العمال',   desc:'أدر فريق عملك، الرواتب، والسلف بسهولة' },
+              { icon:'📅', title:'أيام العمل', desc:'سجّل أيام العمل اليومية مع نظام الموافقات' },
+              { icon:'💸', title:'المصاريف', desc:'تتبع مصاريف المشاريع واسترداد ضريبة القيمة المضافة' },
+            ].map((f, i) => (
+              <div key={f.title} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 0', borderBottom: i < 3 ? `1px solid ${C.border}` : 'none' }}>
+                <div style={{ width:38, height:38, borderRadius:12, background:C.card, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>{f.icon}</div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{f.title}</div>
+                  <div style={{ fontSize:10, color:C.textDim, marginTop:2, lineHeight:1.5 }}>{f.desc}</div>
+                </div>
+              </div>
+            ))}
+            <button
+              onClick={() => { localStorage.setItem('cp_onboarded', '1'); setShowOnboarding(false) }}
+              style={{ marginTop:20, width:'100%', padding:'13px', borderRadius:14, background:GRAD.brand, border:'none', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', boxShadow:`0 8px 24px #00DDB344`, letterSpacing:'0.02em' }}>
+              ابدأ الآن ←
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
