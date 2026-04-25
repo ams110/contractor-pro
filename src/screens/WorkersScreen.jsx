@@ -75,6 +75,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
   const [addMemberErr,   setAddMemberErr]   = useState('')
   const [editingMember,  setEditingMember]  = useState(null)
   const [editPerms,      setEditPerms]      = useState({})
+  const [editPermsErr,   setEditPermsErr]   = useState('')
   const [confirmBlock,   setConfirmBlock]   = useState(null)
   const [confirmRemoveMember, setConfirmRemoveMember] = useState(null)
   const [showResetPass,  setShowResetPass]  = useState(null)
@@ -800,7 +801,7 @@ function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, me
                     style={{ background: 'none', border: `1px solid ${blocked ? C.success + '44' : C.accent + '44'}`, borderRadius: 9, cursor: 'pointer', fontSize: 13, padding: '5px 8px', color: blocked ? C.success : C.accent }}>
                     {blocked ? '✅' : '🚫'}
                   </button>
-                  <button onClick={() => { setEditingMember(editingMember === m.id ? null : m.id); setEditPerms(Object.fromEntries(PERM_LABELS.map(([k]) => [k, m[k]]))) }}
+                  <button onClick={() => { setEditingMember(editingMember === m.id ? null : m.id); setEditPerms(Object.fromEntries(PERM_LABELS.map(([k]) => [k, m[k]]))); setEditPermsErr('') }}
                     style={{ background: 'none', border: `1px solid ${editingMember === m.id ? C.secondary + '44' : C.border}`, borderRadius: 9, cursor: 'pointer', fontSize: 13, padding: '5px 8px', color: editingMember === m.id ? C.secondary : C.textDim }}>✏️</button>
                   <button onClick={() => setConfirmRemoveMember(m)}
                     style={{ background: 'none', border: `1px solid ${C.accent}33`, borderRadius: 9, cursor: 'pointer', fontSize: 13, padding: '5px 8px', color: C.accent }}>🗑️</button>
@@ -819,9 +820,20 @@ function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, me
                       </label>
                     ))}
                   </div>
+                  {editPermsErr && (
+                    <div style={{ fontSize: 11, color: C.accent, marginBottom: 8, padding: '7px 10px', background: `${C.accent}12`, borderRadius: 8 }}>⚠ {editPermsErr}</div>
+                  )}
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <Btn onClick={async () => { await updateMember(m.id, editPerms); setEditingMember(null) }} full>✓ حفظ الصلاحيات</Btn>
-                    <Btn onClick={() => setEditingMember(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
+                    <Btn onClick={async () => {
+                      setEditPermsErr('')
+                      try {
+                        await updateMember(m.id, editPerms)
+                        setEditingMember(null)
+                      } catch (e) {
+                        setEditPermsErr(e.message)
+                      }
+                    }} full>✓ حفظ الصلاحيات</Btn>
+                    <Btn onClick={() => { setEditingMember(null); setEditPermsErr('') }} variant="outline" color={C.textDim} full>إلغاء</Btn>
                   </div>
                 </div>
               )}

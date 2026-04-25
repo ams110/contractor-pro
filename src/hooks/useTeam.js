@@ -94,8 +94,23 @@ export function useTeam(userId, userEmail) {
   }
 
   async function updateMember(id, perms) {
-    const { error } = await supabase.from('team_members').update(perms).eq('id', id).eq('owner_id', userId)
+    const { data, error } = await supabase.rpc('update_team_member_perms', {
+      p_id:                id,
+      p_can_view_projects: perms.can_view_projects ?? false,
+      p_can_edit_projects: perms.can_edit_projects ?? false,
+      p_can_view_workers:  perms.can_view_workers  ?? false,
+      p_can_edit_workers:  perms.can_edit_workers  ?? false,
+      p_can_view_expenses: perms.can_view_expenses ?? false,
+      p_can_add_expenses:  perms.can_add_expenses  ?? false,
+      p_can_view_payments: perms.can_view_payments ?? false,
+      p_can_add_payments:  perms.can_add_payments  ?? false,
+      p_can_delete:        perms.can_delete        ?? false,
+      p_can_manage_team:   perms.can_manage_team   ?? false,
+      p_can_view_amounts:  perms.can_view_amounts  ?? true,
+      p_can_view_activity: perms.can_view_activity ?? false,
+    })
     if (error) throw error
+    if (data?.error) throw new Error(data.error)
     await load()
   }
 
