@@ -711,9 +711,10 @@ function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, me
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
               <div>
                 <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>اسم المستخدم *</label>
-                <input value={memberForm.username} onChange={e => setMemberForm(p => ({ ...p, username: e.target.value.toLowerCase().replace(/\s/g, '') }))}
-                  placeholder="abumohammad"
+                <input value={memberForm.username} onChange={e => setMemberForm(p => ({ ...p, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))}
+                  placeholder="abu_mohammad"
                   style={{ width: '100%', padding: '9px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none', direction: 'ltr' }} />
+                <div style={{ fontSize: 9, color: C.textDim, marginTop: 3 }}>أحرف إنجليزية صغيرة، أرقام، أو _ فقط</div>
               </div>
               <div>
                 <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>الباسورد * (6+)</label>
@@ -744,11 +745,13 @@ function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, me
               <Btn onClick={async () => {
                 if (!memberForm.displayName.trim()) return setAddMemberErr('أدخل الاسم')
                 if (!memberForm.username.trim())    return setAddMemberErr('أدخل اسم المستخدم')
+                if (!/^[a-z0-9_]{3,30}$/.test(memberForm.username)) return setAddMemberErr('اسم المستخدم: 3-30 حرف إنجليزي صغير أو أرقام أو _')
                 if (memberForm.password.length < 6) return setAddMemberErr('الباسورد 6 أحرف على الأقل')
                 setAddingMember(true); setAddMemberErr('')
                 try {
                   await addMember({ displayName: memberForm.displayName, username: memberForm.username, password: memberForm.password, role: memberForm.role, expiresAt: memberForm.expiresAt || null, perms: memberForm.perms })
                   setShowAddMember(false)
+                  setMemberForm(EMPTY_MEMBER)
                 } catch (e) { setAddMemberErr(e.message) }
                 finally { setAddingMember(false) }
               }} full disabled={addingMember}>{addingMember ? '⏳ جاري الإنشاء...' : '✓ إضافة العضو'}</Btn>
