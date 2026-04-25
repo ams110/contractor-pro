@@ -50,7 +50,7 @@ export function useTeam(userId, userEmail) {
       { data: team,   error: teamErr  },
     ] = await Promise.all([
       supabase.from('team_members').select('*').eq('member_id', userId).eq('status', 'active').maybeSingle(),
-      supabase.from('team_members').select('*').eq('owner_id', userId),
+      supabase.rpc('get_owner_team_members'),
     ])
     if (teamErr) setTeamLoadError(teamErr.message)
 
