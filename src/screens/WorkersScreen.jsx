@@ -60,7 +60,7 @@ function IconBtn({ icon, label, onClick, color = C.textDim, active, activeColor 
   )
 }
 
-export default function WorkersScreen({ employees, workDays, payments, advances = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword }) {
+export default function WorkersScreen({ employees, workDays, payments, advances = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword, teamLoadError, reloadTeam }) {
   const [tab,        setTab]        = useState('workers') // 'workers' | 'team'
   const [showForm,   setShowForm]   = useState(false)
   const [editing,    setEditing]    = useState(null)
@@ -240,7 +240,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         ))}
       </div>
 
-      {tab === 'team' && <TeamTab teamMembers={teamMembers} permissions={permissions} showAddMember={showAddMember} setShowAddMember={setShowAddMember} memberForm={memberForm} setMemberForm={setMemberForm} addingMember={addingMember} setAddingMember={setAddingMember} addMemberErr={addMemberErr} setAddMemberErr={setAddMemberErr} editingMember={editingMember} setEditingMember={setEditingMember} editPerms={editPerms} setEditPerms={setEditPerms} confirmBlock={confirmBlock} setConfirmBlock={setConfirmBlock} showResetPass={showResetPass} setShowResetPass={setShowResetPass} newPass={newPass} setNewPass={setNewPass} resetPassSaving={resetPassSaving} setResetPassSaving={setResetPassSaving} resetPassErr={resetPassErr} setResetPassErr={setResetPassErr} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} />}
+      {tab === 'team' && <TeamTab teamMembers={teamMembers} permissions={permissions} showAddMember={showAddMember} setShowAddMember={setShowAddMember} memberForm={memberForm} setMemberForm={setMemberForm} addingMember={addingMember} setAddingMember={setAddingMember} addMemberErr={addMemberErr} setAddMemberErr={setAddMemberErr} editingMember={editingMember} setEditingMember={setEditingMember} editPerms={editPerms} setEditPerms={setEditPerms} confirmBlock={confirmBlock} setConfirmBlock={setConfirmBlock} showResetPass={showResetPass} setShowResetPass={setShowResetPass} newPass={newPass} setNewPass={setNewPass} resetPassSaving={resetPassSaving} setResetPassSaving={setResetPassSaving} resetPassErr={resetPassErr} setResetPassErr={setResetPassErr} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} teamLoadError={teamLoadError} reloadTeam={reloadTeam} />}
 
       {/* ── Summary Bar ── */}
       {tab === 'workers' && employees.length > 0 && (
@@ -674,7 +674,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
 /* ══════════════════════════════════════════════════════
    TeamTab — إدارة أعضاء الفريق وصلاحياتهم
 ══════════════════════════════════════════════════════ */
-function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, memberForm, setMemberForm, addingMember, setAddingMember, addMemberErr, setAddMemberErr, editingMember, setEditingMember, editPerms, setEditPerms, confirmBlock, setConfirmBlock, showResetPass, setShowResetPass, newPass, setNewPass, resetPassSaving, setResetPassSaving, resetPassErr, setResetPassErr, addMember, updateMember, removeMember, blockMember, resetMemberPassword }) {
+function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, memberForm, setMemberForm, addingMember, setAddingMember, addMemberErr, setAddMemberErr, editingMember, setEditingMember, editPerms, setEditPerms, confirmBlock, setConfirmBlock, showResetPass, setShowResetPass, newPass, setNewPass, resetPassSaving, setResetPassSaving, resetPassErr, setResetPassErr, addMember, updateMember, removeMember, blockMember, resetMemberPassword, teamLoadError, reloadTeam }) {
 
   if (!permissions?.manageTeam) {
     return (
@@ -687,6 +687,13 @@ function TeamTab({ teamMembers, permissions, showAddMember, setShowAddMember, me
 
   return (
     <div>
+      {/* خطأ تحميل */}
+      {teamLoadError && (
+        <div style={{ padding: '10px 14px', borderRadius: 12, marginBottom: 12, background: '#ff444415', border: '1px solid #ff444444', fontSize: 11, color: '#ff4444', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <span>⚠ خطأ: {teamLoadError}</span>
+          {reloadTeam && <button onClick={reloadTeam} style={{ background: 'none', border: '1px solid #ff444466', borderRadius: 8, color: '#ff4444', fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>إعادة تحميل</button>}
+        </div>
+      )}
       {/* فورم إضافة عضو */}
       {showAddMember && (
         <GlassCard style={{ marginBottom: 16, overflow: 'hidden' }}>

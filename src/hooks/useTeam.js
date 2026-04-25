@@ -35,6 +35,7 @@ export function useTeam(userId, userEmail) {
   const [loading,       setLoading]      = useState(false)
   const [isBlocked,     setIsBlocked]    = useState(false)
   const [isExpired,     setIsExpired]    = useState(false)
+  const [teamLoadError, setTeamLoadError] = useState(null)
 
   useEffect(() => {
     if (!userId || !userEmail) return
@@ -43,10 +44,15 @@ export function useTeam(userId, userEmail) {
 
   async function load() {
     setLoading(true)
-    const [{ data: active }, { data: team }] = await Promise.all([
+    setTeamLoadError(null)
+    const [
+      { data: active, error: activeErr },
+      { data: team,   error: teamErr  },
+    ] = await Promise.all([
       supabase.from('team_members').select('*').eq('member_id', userId).eq('status', 'active').maybeSingle(),
       supabase.from('team_members').select('*').eq('owner_id', userId),
     ])
+    if (teamErr) setTeamLoadError(teamErr.message)
 
     if (active?.is_blocked) {
       setIsBlocked(true)
@@ -73,7 +79,7 @@ export function useTeam(userId, userEmail) {
     const { data: fnData, error: fnErr } = await supabase.functions.invoke('create-team-member', {
       body: { displayName, username, password, role, expiresAt, perms, ownerId: userId },
     })
-    if (fnErr) throw new Error(fnErr.message)
+    if (fnErr) throw new Error(`Function error: ${fnErr.message}`)
     if (fnData?.error) throw new Error(fnData.error)
     await load()
   }
@@ -122,7 +128,7 @@ export function useTeam(userId, userEmail) {
 
   return {
     membership, teamMembers, permissions, effectiveOwnerId,
-    loading, isBlocked, isExpired,
+    loading, isBlocked, isExpired, teamLoadError,
     addMember, resetMemberPassword, updateMember, removeMember, blockMember,
     getActivity, getAllActivity,
     reload: load,
