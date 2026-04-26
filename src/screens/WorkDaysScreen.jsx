@@ -16,6 +16,9 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const [saving,      setSaving]      = useState(false)
   const [approving,   setApproving]   = useState(null)
   const [multiMode,   setMultiMode]   = useState(false)
+  const [rangeMode,   setRangeMode]   = useState(false)
+  const [dateFrom,    setDateFrom]    = useState(todayStr())
+  const [dateTo,      setDateTo]      = useState(todayStr())
   const [multiEmps,   setMultiEmps]   = useState(new Set())
   const [showFilters,   setShowFilters]   = useState(false)
   const [filterEmp,     setFilterEmp]     = useState('')
@@ -67,10 +70,24 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     })
   }
 
+  function getDatesInRange(from, to) {
+    const dates = []
+    let cur = new Date(from)
+    const end = new Date(to)
+    while (cur <= end) {
+      dates.push(cur.toISOString().slice(0, 10))
+      cur.setDate(cur.getDate() + 1)
+    }
+    return dates
+  }
+
   function openForm() {
     setFormError('')
     setEditingDay(null)
     setMultiEmps(new Set())
+    setRangeMode(false)
+    setDateFrom(todayStr())
+    setDateTo(todayStr())
     setForm(emptyForm)
     setHolidayWorked(false)
     setHolidaySubType('كامل')
@@ -98,6 +115,9 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     setShowForm(false)
     setEditingDay(null)
     setMultiMode(false)
+    setRangeMode(false)
+    setDateFrom(todayStr())
+    setDateTo(todayStr())
     setMultiEmps(new Set())
     setForm(emptyForm)
     setHolidayWorked(false)
@@ -108,6 +128,38 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   async function save() {
     const isHolidayOff = form.day_type === 'عطلة' && !holidayWorked
     const effectiveType = (form.day_type === 'عطلة' && holidayWorked) ? holidaySubType : form.day_type
+
+    // ── وضع النطاق الزمني ─────────────────────────────────────────────────────
+    if (rangeMode) {
+      const workers = multiMode ? [...multiEmps] : (form.employee_id ? [form.employee_id] : [])
+      if (workers.length === 0) return setFormError('اختر عامل واحد على الأقل')
+      if (!form.project_id && !isHolidayOff) return setFormError('اختر المشروع')
+      if (!dateFrom || !dateTo) return setFormError('حدد نطاق التاريخ')
+      if (dateTo < dateFrom) return setFormError('تاريخ النهاية يجب أن يكون بعد تاريخ البداية')
+      if (effectiveType === 'مبلغ مسكر') {
+        const a = parseFloat(form.customAmount)
+        if (!a || a <= 0) return setFormError('أدخل المبلغ المسكر')
+      }
+      const dates = getDatesInRange(dateFrom, dateTo)
+      const entries = []
+      for (const date of dates) {
+        for (const empId of workers) {
+          const dup = workDays.find(w => w.employee_id === empId && String(w.date).slice(0,10) === date && w.project_id === form.project_id)
+          if (dup) continue
+          const emp = employees.find(e => e.id === empId)
+          const amount = effectiveType === 'مبلغ مسكر' ? parseFloat(form.customAmount) : calcSalary(emp.daily_rate, effectiveType, form.hours)
+          entries.push({ date, employee_id: empId, project_id: form.project_id || null, location: form.location || undefined, day_type: effectiveType, hours: parseFloat(form.hours) || 8, amount })
+        }
+      }
+      if (entries.length === 0) return setFormError('كل السجلات موجودة مسبقاً — لا يوجد جديد للحفظ')
+      setSaving(true)
+      try {
+        await Promise.all(entries.map(e => addWorkDay(e)))
+        closeForm()
+      } catch (e) { setFormError(e.message) }
+      finally { setSaving(false) }
+      return
+    }
 
     if (multiMode) {
       if (multiEmps.size === 0) return setFormError('اختر عامل واحد على الأقل')
@@ -474,21 +526,51 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               <div style={{ fontSize:14, color:C.textDim, lineHeight:1.8 }}>لازم تضيف عمال ومشاريع أول!</div>
             </div>
           : <>
-              {/* Multi-mode toggle — hidden in edit mode */}
+              {/* Toggles — hidden in edit mode */}
               {!editingDay && (
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:`1px solid ${multiMode ? C.secondary + '55' : C.border}` }}>
-                  <div>
-                    <div style={{ fontSize:13, fontWeight:700, color: multiMode ? C.secondary : C.text }}>👥 تسجيل لعدة عمال</div>
-                    <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>نفس اليوم والمشروع لأكثر من عامل</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:18 }}>
+                  {/* Multi-worker toggle */}
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:`1px solid ${multiMode ? C.secondary + '55' : C.border}` }}>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color: multiMode ? C.secondary : C.text }}>👥 عدة عمال</div>
+                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>نفس المشروع لأكثر من عامل</div>
+                    </div>
+                    <button onClick={() => { setMultiMode(v => !v); setMultiEmps(new Set()); setForm(prev => ({ ...prev, employee_id: '' })) }}
+                      style={{ width:48, height:26, borderRadius:13, background: multiMode ? C.secondary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
+                      <div style={{ position:'absolute', top:3, left: multiMode ? 25 : 3, width:20, height:20, borderRadius:10, background:'#fff', transition:'all .25s', boxShadow:'0 2px 6px rgba(0,0,0,0.4)' }} />
+                    </button>
                   </div>
-                  <button onClick={() => { setMultiMode(v => !v); setMultiEmps(new Set()); setForm(prev => ({ ...prev, employee_id: '' })) }}
-                    style={{ width:48, height:26, borderRadius:13, background: multiMode ? C.secondary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
-                    <div style={{ position:'absolute', top:3, left: multiMode ? 25 : 3, width:20, height:20, borderRadius:10, background:'#fff', transition:'all .25s', boxShadow:'0 2px 6px rgba(0,0,0,0.4)' }} />
-                  </button>
+                  {/* Date range toggle */}
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:`1px solid ${rangeMode ? C.primary + '55' : C.border}` }}>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color: rangeMode ? C.primary : C.text }}>📅 نطاق تواريخ</div>
+                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>من تاريخ إلى تاريخ دفعة واحدة</div>
+                    </div>
+                    <button onClick={() => setRangeMode(v => !v)}
+                      style={{ width:48, height:26, borderRadius:13, background: rangeMode ? C.primary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
+                      <div style={{ position:'absolute', top:3, left: rangeMode ? 25 : 3, width:20, height:20, borderRadius:10, background:'#fff', transition:'all .25s', boxShadow:'0 2px 6px rgba(0,0,0,0.4)' }} />
+                    </button>
+                  </div>
                 </div>
               )}
 
-              <Input label="التاريخ" value={form.date} onChange={f('date')} type="date" required />
+              {/* Date inputs */}
+              {rangeMode && !editingDay ? (
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:18 }}>
+                  <div>
+                    <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:6, letterSpacing:'0.04em', textTransform:'uppercase' }}>من تاريخ</label>
+                    <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                      style={{ width:'100%', padding:'11px 12px', borderRadius:12, border:`1.5px solid ${C.primary}55`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:13, boxSizing:'border-box', outline:'none' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:6, letterSpacing:'0.04em', textTransform:'uppercase' }}>إلى تاريخ</label>
+                    <input type="date" value={dateTo} min={dateFrom} onChange={e => setDateTo(e.target.value)}
+                      style={{ width:'100%', padding:'11px 12px', borderRadius:12, border:`1.5px solid ${C.primary}55`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:13, boxSizing:'border-box', outline:'none' }} />
+                  </div>
+                </div>
+              ) : (
+                <Input label="التاريخ" value={form.date} onChange={f('date')} type="date" required />
+              )}
 
               {/* Holiday indicator */}
               {(() => {
@@ -663,12 +745,35 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 )
               )}
 
+              {/* Range mode summary */}
+              {rangeMode && !editingDay && dateFrom && dateTo && dateTo >= dateFrom && (
+                (() => {
+                  const workers = multiMode ? [...multiEmps] : (form.employee_id ? [form.employee_id] : [])
+                  const days = getDatesInRange(dateFrom, dateTo).length
+                  const total = workers.length * days
+                  if (total === 0) return null
+                  return (
+                    <div style={{ padding:'14px 16px', borderRadius:14, marginBottom:16, background:`${C.primary}0d`, border:`1.5px solid ${C.primary}33` }}>
+                      <div style={{ fontSize:11, color:C.textDim, fontWeight:700, marginBottom:6, textTransform:'uppercase', letterSpacing:'0.04em' }}>ملخص التسجيل</div>
+                      <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+                        <span style={{ fontSize:13, color:C.text }}>📅 <b style={{ color:C.primary }}>{days}</b> يوم</span>
+                        <span style={{ fontSize:13, color:C.text }}>👷 <b style={{ color:C.secondary }}>{workers.length}</b> عامل</span>
+                        <span style={{ fontSize:13, color:C.text }}>📋 <b style={{ color:C.success }}>{total}</b> سجل سيُنشأ</span>
+                      </div>
+                      <div style={{ fontSize:10, color:C.textDim, marginTop:6 }}>السجلات المكررة ستُتجاهل تلقائياً</div>
+                    </div>
+                  )
+                })()
+              )}
+
               {formError && (
                 <div style={{ fontSize:12, color:C.accent, marginBottom:16, padding:'12px 16px', borderRadius:12, background:`${C.accent}10`, border:`1px solid ${C.accent}33` }}>⚠ {formError}</div>
               )}
 
-              <Btn onClick={save} full disabled={saving || (!multiMode && (!form.employee_id || (!form.project_id && form.day_type !== 'عطلة'))) || (multiMode && (multiEmps.size === 0 || (!form.project_id && form.day_type !== 'عطلة')))}>
-                {saving ? 'جاري الحفظ...' : multiMode ? `✓ سجّل لـ ${multiEmps.size || '...'} عمال` : '✓ سجّل اليوم'}
+              <Btn onClick={save} full disabled={saving || (!rangeMode && !multiMode && (!form.employee_id || (!form.project_id && form.day_type !== 'عطلة'))) || (!rangeMode && multiMode && (multiEmps.size === 0 || (!form.project_id && form.day_type !== 'عطلة'))) || (rangeMode && !form.project_id && form.day_type !== 'عطلة')}>
+                {saving ? 'جاري الحفظ...' : rangeMode
+                  ? `✓ سجّل ${(multiMode ? multiEmps.size : (form.employee_id ? 1 : 0)) * (dateFrom && dateTo && dateTo >= dateFrom ? getDatesInRange(dateFrom, dateTo).length : 0)} سجل`
+                  : multiMode ? `✓ سجّل لـ ${multiEmps.size || '...'} عمال` : '✓ سجّل اليوم'}
               </Btn>
             </>
         }
