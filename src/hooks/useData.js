@@ -123,13 +123,19 @@ export function useWorkDays(userId) {
     await refetch()
   }
 
+  async function bulkUpdateWorkDays(ids, updates) {
+    const { error } = await supabase.from('work_days').update(updates).in('id', ids).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
   async function updateWorkDay(id, updates) {
     const { error } = await supabase.from('work_days').update(updates).eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
   }
 
-  return { workDays: data, loading, error, addWorkDay, bulkAddWorkDays, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, refetch }
+  return { workDays: data, loading, error, addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays, deleteWorkDay, approveWorkDay, rejectWorkDay, refetch }
 }
 
 /* ─── Expenses ─── */
