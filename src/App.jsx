@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabase.js'
 import { C, NAV } from './constants/index.js'
 import { useAuth }           from './hooks/useAuth.js'
@@ -18,13 +18,13 @@ import { useTeam, teamMemberSignIn }      from './hooks/useTeam.js'
 import LoginScreen        from './screens/LoginScreen.jsx'
 import WorkerPortalScreen from './screens/WorkerPortalScreen.jsx'
 import DashboardScreen    from './screens/DashboardScreen.jsx'
-import ProjectsScreen     from './screens/ProjectsScreen.jsx'
-import WorkersScreen      from './screens/WorkersScreen.jsx'
-import WorkDaysScreen     from './screens/WorkDaysScreen.jsx'
-import ExpensesScreen     from './screens/ExpensesScreen.jsx'
-import PaymentsScreen     from './screens/PaymentsScreen.jsx'
-import SettingsScreen     from './screens/SettingsScreen.jsx'
-import ActivityScreen    from './screens/ActivityScreen.jsx'
+const ProjectsScreen  = lazy(() => import('./screens/ProjectsScreen.jsx'))
+const WorkersScreen   = lazy(() => import('./screens/WorkersScreen.jsx'))
+const WorkDaysScreen  = lazy(() => import('./screens/WorkDaysScreen.jsx'))
+const ExpensesScreen  = lazy(() => import('./screens/ExpensesScreen.jsx'))
+const PaymentsScreen  = lazy(() => import('./screens/PaymentsScreen.jsx'))
+const SettingsScreen  = lazy(() => import('./screens/SettingsScreen.jsx'))
+const ActivityScreen  = lazy(() => import('./screens/ActivityScreen.jsx'))
 import SearchOverlay        from './components/SearchOverlay.jsx'
 import NotificationsPanel   from './components/NotificationsPanel.jsx'
 import ErrorBoundary        from './components/ErrorBoundary.jsx'
@@ -129,25 +129,21 @@ export default function App() {
     if (uid && !localStorage.getItem('cp_onboarded')) setShowOnboarding(true)
   }, [uid])
 
-  // ─── تصفية البيانات حسب المشاريع المسموح بها لعضو الفريق ────────────────
-  const visibleProjects       = allowedProjectIds ? projects.filter(p => allowedProjectIds.includes(p.id)) : projects
-  const visibleWorkDays       = allowedProjectIds ? workDays.filter(w => allowedProjectIds.includes(w.project_id)) : workDays
-  const visibleClientReceipts = allowedProjectIds ? clientReceipts.filter(r => allowedProjectIds.includes(r.project_id)) : clientReceipts
-  // العمال المرئيون: فقط من لهم أيام عمل على المشاريع المسموح بها
-  const visibleEmployeeIds    = allowedProjectIds ? new Set(visibleWorkDays.map(w => w.employee_id)) : null
-  // مصاريف العمال (employee_id موجود) → مرئية إذا العامل مرئي بغض النظر عن المشروع
-  // مصاريف المشروع العامة (بدون employee_id) → مرئية إذا المشروع مسموح به
-  const visibleExpenses       = allowedProjectIds
+  // ─── تصفية البيانات حسب المشاريع المسموح بها (memoized لتجنب إعادة الحساب) ─
+  const visibleProjects       = useMemo(() => allowedProjectIds ? projects.filter(p => allowedProjectIds.includes(p.id)) : projects, [projects, allowedProjectIds])
+  const visibleWorkDays       = useMemo(() => allowedProjectIds ? workDays.filter(w => allowedProjectIds.includes(w.project_id)) : workDays, [workDays, allowedProjectIds])
+  const visibleClientReceipts = useMemo(() => allowedProjectIds ? clientReceipts.filter(r => allowedProjectIds.includes(r.project_id)) : clientReceipts, [clientReceipts, allowedProjectIds])
+  const visibleEmployeeIds    = useMemo(() => allowedProjectIds ? new Set(visibleWorkDays.map(w => w.employee_id)) : null, [visibleWorkDays, allowedProjectIds])
+  const visibleExpenses       = useMemo(() => allowedProjectIds
     ? expenses.filter(e => e.employee_id
         ? visibleEmployeeIds.has(e.employee_id)
         : allowedProjectIds.includes(e.project_id))
-    : expenses
-  const visibleEmployees      = visibleEmployeeIds ? employees.filter(e => visibleEmployeeIds.has(e.id)) : employees
-  // الدفعات: تُفلتَر بـ project_id مباشرة — الحل الجذري لمشكلة العامل المشترك
-  const visiblePayments       = allowedProjectIds
+    : expenses, [expenses, allowedProjectIds, visibleEmployeeIds])
+  const visibleEmployees      = useMemo(() => visibleEmployeeIds ? employees.filter(e => visibleEmployeeIds.has(e.id)) : employees, [employees, visibleEmployeeIds])
+  const visiblePayments       = useMemo(() => allowedProjectIds
     ? payments.filter(p => p.project_id && allowedProjectIds.includes(p.project_id))
-    : payments
-  const visibleAdvances       = visibleEmployeeIds ? advances.filter(a => visibleEmployeeIds.has(a.employee_id)) : advances
+    : payments, [payments, allowedProjectIds])
+  const visibleAdvances       = useMemo(() => visibleEmployeeIds ? advances.filter(a => visibleEmployeeIds.has(a.employee_id)) : advances, [advances, visibleEmployeeIds])
 
   // ─── دوال الموافقة/الرفض مع إشعار توست ────────────────────────────────────
   const _approveWorkDay = id      => approveWorkDay(id).then(() => showToast('✓ تمت الموافقة على يوم العمل'))
@@ -274,7 +270,9 @@ export default function App() {
 
       {/* المحتوى */}
       <div style={{ paddingBottom:96 }}>
-        {renderScreen()}
+        <Suspense fallback={<div style={{ display:'flex', justifyContent:'center', padding:48 }}><LoadingSpinner /></div>}>
+          {renderScreen()}
+        </Suspense>
       </div>
 
       {/* ─── Floating Bottom Nav ─── */}
