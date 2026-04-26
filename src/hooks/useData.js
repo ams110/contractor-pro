@@ -29,8 +29,8 @@ function useTable(table, userId) {
     if (!userId) return
     fetch()
     const channel = supabase
-      .channel(`${table}_${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table, filter: `user_id=eq.${userId}` }, fetch)
+      .channel(`${table}_rt_${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table }, () => fetch())
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [fetch, userId])
