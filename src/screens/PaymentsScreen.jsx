@@ -324,9 +324,10 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
       {/* ── سجل العامل المالي (modal) ── */}
       {selectedEmp && (() => {
         const emp = selectedEmp
-        const empWorkDays = workDays.filter(w => w.employee_id === emp.id)
+        const empWorkDays = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved')
+        const empExpenses = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved')
         const empPayments = payments.filter(p => p.employee_id === emp.id)
-        const totalEarned = empWorkDays.reduce((s, w) => s + w.amount, 0)
+        const totalEarned = empWorkDays.reduce((s, w) => s + w.amount, 0) + empExpenses.reduce((s, e) => s + e.amount, 0)
         const totalPaid   = empPayments.reduce((s, p) => s + p.amount, 0)
         const totalOwedEmp = Math.max(0, totalEarned - totalPaid)
         const gradEmp = totalOwedEmp > 0 ? GRAD.danger : GRAD.success
@@ -334,12 +335,14 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
         // بناء بيانات الأشهر مع رصيد تراكمي (من الأقدم للأحدث)
         const allMonthsAsc = [...new Set([
           ...empWorkDays.map(w => (w.date || '').slice(0, 7)),
+          ...empExpenses.map(e => (e.date || '').slice(0, 7)),
           ...empPayments.map(p => (p.date || '').slice(0, 7)),
         ]).values()].filter(Boolean).sort((a, b) => a.localeCompare(b))
 
         let runningBalance = 0
         const monthDataAsc = allMonthsAsc.map(m => {
           const mEarned    = empWorkDays.filter(w => (w.date || '').startsWith(m)).reduce((s, w) => s + w.amount, 0)
+                           + empExpenses.filter(e => (e.date || '').startsWith(m)).reduce((s, e) => s + e.amount, 0)
           const mPaid      = empPayments.filter(p => (p.date || '').startsWith(m)).reduce((s, p) => s + p.amount, 0)
           const daysCount  = empWorkDays.filter(w => (w.date || '').startsWith(m)).length
           const paysCount  = empPayments.filter(p => (p.date || '').startsWith(m)).length
