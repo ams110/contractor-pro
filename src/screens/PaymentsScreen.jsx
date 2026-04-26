@@ -310,6 +310,11 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                 </button>
               ))}
             </div>
+            {projects.length > 0 && !form.project_id && (
+              <div style={{ fontSize:10, color:C.warning, marginTop:6, fontWeight:600 }}>
+                ⚠ بدون مشروع، الدفعة لن تظهر لأعضاء الفريق المقيّدين بمشاريع
+              </div>
+            )}
           </div>
         )}
 
