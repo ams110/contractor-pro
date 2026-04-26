@@ -16,8 +16,18 @@ function sendWhatsApp(phone, name, amount, date) {
   window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank')
 }
 
-export default function PaymentsScreen({ payments, employees, workDays, expenses = [], projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods }) {
+export default function PaymentsScreen({ payments, employees, workDays, expenses = [], projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods, allowedProjectIds = null }) {
   const methods = payMethods?.length ? payMethods : PAY_METHODS
+  const isPartialView = !!allowedProjectIds
+
+  // في العرض الجزئي: نحدّ المدفوع بما لا يتجاوز المكتسب المرئي لكل عامل
+  function calcDisplayPaid(empId) {
+    const paidRaw = payments.filter(p => p.employee_id === empId).reduce((s, p) => s + p.amount, 0)
+    if (!isPartialView) return paidRaw
+    const earned = workDays.filter(w => w.employee_id === empId && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
+    const wExp   = expenses.filter(e => e.employee_id === empId && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
+    return Math.min(paidRaw, earned + wExp)
+  }
 
   const currentMonth = todayStr().slice(0, 7)
   const [selectedEmp, setSelectedEmp] = useState(null)
@@ -51,8 +61,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
   function calcOwed(empId) {
     const earned = workDays.filter(w => w.employee_id === empId && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
     const wExp   = expenses.filter(e => e.employee_id === empId && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
-    const paid   = payments.filter(p => p.employee_id === empId).reduce((s, p) => s + p.amount, 0)
-    return Math.max(0, earned + wExp - paid)
+    return Math.max(0, earned + wExp - calcDisplayPaid(empId))
   }
 
   function selectEmployee(emp) {
@@ -101,7 +110,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
   })
 
   const totalOwed = activeEmployees.reduce((s, e) => s + calcOwed(e.id), 0)
-  const totalPaid = payments.reduce((s, p) => s + p.amount, 0)
+  const totalPaid = activeEmployees.reduce((s, e) => s + calcDisplayPaid(e.id), 0)
 
   const showAmounts = permissions?.viewAmounts !== false
   const fmtA = (v) => showAmounts ? `${fmt(v)}₪` : '---'
@@ -160,7 +169,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
             {activeEmployees.map(emp => {
               const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
               const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
-              const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
+              const paid   = calcDisplayPaid(emp.id)
               const owed   = Math.max(0, earned + wExp - paid)
               const pct    = (earned + wExp) > 0 ? Math.min(100, Math.round((paid / (earned + wExp)) * 100)) : 100
               const grad   = owed > 0 ? GRAD.danger : GRAD.success
@@ -324,11 +333,15 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
       {/* ── سجل العامل المالي (modal) ── */}
       {selectedEmp && (() => {
         const emp = selectedEmp
-        const empWorkDays = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved')
-        const empExpenses = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved')
-        const empPayments = payments.filter(p => p.employee_id === emp.id)
-        const totalEarned = empWorkDays.reduce((s, w) => s + w.amount, 0) + empExpenses.reduce((s, e) => s + e.amount, 0)
-        const totalPaid   = empPayments.reduce((s, p) => s + p.amount, 0)
+        const empWorkDays  = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved')
+        const empExpenses  = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved')
+        const empPayments  = payments.filter(p => p.employee_id === emp.id)
+        const totalEarned  = empWorkDays.reduce((s, w) => s + w.amount, 0) + empExpenses.reduce((s, e) => s + e.amount, 0)
+        const totalPaidRaw = empPayments.reduce((s, p) => s + p.amount, 0)
+        // في العرض الجزئي: نحدّ المدفوع بالمكتسب المرئي لتجنّب مدفوع > مستحق
+        const totalPaid    = isPartialView ? Math.min(totalPaidRaw, totalEarned) : totalPaidRaw
+        const isSharedEmp  = isPartialView && totalPaidRaw > totalEarned
+        const scaleFactor  = isSharedEmp ? totalEarned / totalPaidRaw : 1
         const totalOwedEmp = Math.max(0, totalEarned - totalPaid)
         const gradEmp = totalOwedEmp > 0 ? GRAD.danger : GRAD.success
 
@@ -343,7 +356,9 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
         const monthDataAsc = allMonthsAsc.map(m => {
           const mEarned    = empWorkDays.filter(w => (w.date || '').startsWith(m)).reduce((s, w) => s + w.amount, 0)
                            + empExpenses.filter(e => (e.date || '').startsWith(m)).reduce((s, e) => s + e.amount, 0)
-          const mPaid      = empPayments.filter(p => (p.date || '').startsWith(m)).reduce((s, p) => s + p.amount, 0)
+          const mPaidRaw   = empPayments.filter(p => (p.date || '').startsWith(m)).reduce((s, p) => s + p.amount, 0)
+          // تطبيق معامل التحجيم على الدفعات الشهرية عند وجود بيانات جزئية
+          const mPaid      = Math.round(mPaidRaw * scaleFactor)
           const daysCount  = empWorkDays.filter(w => (w.date || '').startsWith(m)).length
           const paysCount  = empPayments.filter(p => (p.date || '').startsWith(m)).length
           runningBalance   = runningBalance + mEarned - mPaid
@@ -385,11 +400,17 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                     ×
                   </button>
                 </div>
+                {/* تنبيه: عامل مشترك في مشاريع غير مرئية */}
+                {isSharedEmp && (
+                  <div style={{ fontSize:10, color:C.textDim, background:'rgba(255,255,255,0.05)', border:`1px solid ${C.border}`, borderRadius:10, padding:'7px 12px', marginBottom:10 }}>
+                    🔀 بيانات جزئية — العامل مشارك في مشاريع غير مرئية لك
+                  </div>
+                )}
                 {/* الإجماليات */}
                 <div style={{ display:'flex', justifyContent:'space-around', background:`${C.border}33`, borderRadius:14, padding:'10px 8px' }}>
                   {[
                     { l:'المستحق الكلي', v: fmtA(totalEarned), c:C.text },
-                    { l:'المدفوع الكلي', v: fmtA(totalPaid),   c:C.success },
+                    { l: isSharedEmp ? 'المدفوع*' : 'المدفوع الكلي', v: fmtA(totalPaid), c:C.success },
                     { l:'المتبقي',       v: totalOwedEmp > 0 ? fmtA(totalOwedEmp) : 'مسدد ✓', c: totalOwedEmp > 0 ? C.accent : C.success },
                   ].map(s => (
                     <div key={s.l} style={{ textAlign:'center' }}>
