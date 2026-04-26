@@ -37,10 +37,10 @@ serve(async (req) => {
 
     if (!username || !password) return json({ error: 'username و password مطلوبان' }, 400)
 
-    // تحقق من تكرار اسم المستخدم
+    // تحقق من تكرار اسم المستخدم (per-owner فقط)
     const { data: existing } = await adminClient
-      .from('team_members').select('id').eq('username', username).maybeSingle()
-    if (existing) return json({ error: 'اسم المستخدم مستخدم مسبقاً' }, 409)
+      .from('team_members').select('id').eq('owner_id', ownerId).eq('username', username).maybeSingle()
+    if (existing) return json({ error: 'اسم المستخدم مستخدم مسبقاً لدى هذا الحساب' }, 409)
 
     // إنشاء auth user بإيميل داخلي — email_confirm: true يتجاوز تأكيد الإيميل
     const authEmail = `tm_${ownerId.slice(0, 8)}_${username}_${Date.now()}@contractor.app`
