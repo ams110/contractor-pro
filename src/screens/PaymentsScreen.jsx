@@ -16,7 +16,7 @@ function sendWhatsApp(phone, name, amount, date) {
   window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank')
 }
 
-export default function PaymentsScreen({ payments, employees, workDays, projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods }) {
+export default function PaymentsScreen({ payments, employees, workDays, expenses = [], projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods }) {
   const methods = payMethods?.length ? payMethods : PAY_METHODS
 
   const currentMonth = todayStr().slice(0, 7)
@@ -49,9 +49,10 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
   }
 
   function calcOwed(empId) {
-    const earned = workDays.filter(w => w.employee_id === empId).reduce((s, w) => s + w.amount, 0)
+    const earned = workDays.filter(w => w.employee_id === empId && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
+    const wExp   = expenses.filter(e => e.employee_id === empId && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
     const paid   = payments.filter(p => p.employee_id === empId).reduce((s, p) => s + p.amount, 0)
-    return Math.max(0, earned - paid)
+    return Math.max(0, earned + wExp - paid)
   }
 
   function selectEmployee(emp) {
@@ -93,9 +94,10 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
   }
 
   const activeEmployees = employees.filter(emp => {
-    const earned = workDays.filter(w => w.employee_id === emp.id).reduce((s, w) => s + w.amount, 0)
+    const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
+    const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
     const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
-    return earned > 0 || paid > 0
+    return earned + wExp > 0 || paid > 0
   })
 
   const totalOwed = activeEmployees.reduce((s, e) => s + calcOwed(e.id), 0)
@@ -153,10 +155,11 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
           <>
             <SectionLabel color={C.primary} style={{ marginBottom:12 }}>العمال</SectionLabel>
             {activeEmployees.map(emp => {
-              const earned = workDays.filter(w => w.employee_id === emp.id).reduce((s, w) => s + w.amount, 0)
+              const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
+              const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
               const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
-              const owed   = Math.max(0, earned - paid)
-              const pct    = earned > 0 ? Math.min(100, Math.round((paid / earned) * 100)) : 100
+              const owed   = Math.max(0, earned + wExp - paid)
+              const pct    = (earned + wExp) > 0 ? Math.min(100, Math.round((paid / (earned + wExp)) * 100)) : 100
               const grad   = owed > 0 ? GRAD.danger : GRAD.success
 
               return (
@@ -188,8 +191,8 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
                     {/* تفاصيل صغيرة */}
                     <div style={{ display:'flex', justifyContent:'space-around', marginBottom:10 }}>
                       {[
-                        { l:'مستحق', v:`${fmt(earned)}₪`, c:C.text },
-                        { l:'مدفوع', v:`${fmt(paid)}₪`,   c:C.success },
+                        { l:'مستحق', v:`${fmt(earned + wExp)}₪`, c:C.text },
+                        { l:'مدفوع', v:`${fmt(paid)}₪`,          c:C.success },
                         { l:'الراتب اليومي', v:`${fmt(emp.daily_rate || 0)}₪`, c:C.textDim },
                       ].map(s => (
                         <div key={s.l} style={{ textAlign:'center' }}>
