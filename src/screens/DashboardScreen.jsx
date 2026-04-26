@@ -57,7 +57,7 @@ function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, o
   )
 }
 
-export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly, taxEnabled = true, businessType = 'osek_moreh' }) {
+export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, permissions, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly, taxEnabled = true, businessType = 'osek_moreh' }) {
   const [alertsExpanded, setAlertsExpanded] = useState(true)
   const [showTax,        setShowTax]        = useState(false)
   const [addingTax,      setAddingTax]      = useState(null)  // 'income_tax' | 'bituach_leumi' | null
