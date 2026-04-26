@@ -98,6 +98,13 @@ export function useWorkDays(userId) {
     await refetch()
   }
 
+  async function bulkAddWorkDays(forms) {
+    const rows = forms.map(f => ({ ...f, user_id: userId }))
+    const { error } = await supabase.from('work_days').insert(rows)
+    if (error) throw error
+    await refetch()
+  }
+
   async function deleteWorkDay(id) {
     const { error } = await supabase.from('work_days').delete().eq('id', id).eq('user_id', userId)
     if (error) throw error
@@ -122,7 +129,7 @@ export function useWorkDays(userId) {
     await refetch()
   }
 
-  return { workDays: data, loading, error, addWorkDay, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, refetch }
+  return { workDays: data, loading, error, addWorkDay, bulkAddWorkDays, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, refetch }
 }
 
 /* ─── Expenses ─── */
