@@ -10,7 +10,8 @@ const CAT_ICONS  = { 'بضاعة':'🛒', 'مواد بناء / خامات':'🧱
 const CAT_COLORS = { 'بضاعة':C.pink, 'مواد بناء / خامات':C.orange, 'عدد وأدوات':C.blue, 'وقود وتنقلات':C.cyan, 'إيجار معدات':C.purple, 'خدمات مهنية':C.secondary, 'صيانة مركبات':C.warning, 'رواتب عمال':C.primary, 'تأمين':C.success, 'أخرى':C.textDim }
 const FILTER_CATS = ['الكل', 'مواد', 'بضاعة', 'عدد', 'وقود', 'إيجار', 'خدمات', 'رواتب', 'تأمين', 'أخرى']
 
-export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions, showVatExpenses = true }) {
+export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions, businessType, showVatExpenses = true }) {
+  const showVAT = businessType !== 'osek_patur' && showVatExpenses
   const [showForm,    setShowForm]    = useState(false)
   const [filter,      setFilter]      = useState('الكل')
   const [confirmDel,  setConfirmDel]  = useState(null)
@@ -128,7 +129,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
           <div style={{ height:3, background:GRAD.danger }} />
           <div style={{ padding:'14px 16px', display:'flex', justifyContent:'space-around' }}>
-            {showVatExpenses ? (
+            {showVAT ? (
               <>
                 <div style={{ textAlign:'center' }}>
                   <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>شامل الضريبة</div>
@@ -235,13 +236,13 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
                       <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
-                      {(() => {
+                      {showVAT && (() => {
                         const deduct = EXP_CAT_VAT[ex.category] ?? 1.00
                         const rate   = (ex.date || '') >= '2025-01-01' ? 0.18 : 0.17
                         if (deduct === 0) return <span style={{ fontSize:9, fontWeight:700, color:C.textDim, background:'rgba(255,255,255,0.06)', padding:'1px 6px', borderRadius:5, border:`1px solid ${C.border}` }}>لا مع"מ</span>
                         const vatAmt = Math.round((ex.amount || 0) * deduct * (rate / (1 + rate)))
                         const color  = deduct < 1 ? C.warning : C.cyan
-                        return <span style={{ fontSize:9, fontWeight:700, color, background:`${color}15`, padding:'1px 6px', borderRadius:5, border:`1px solid ${color}33` }}>{deduct < 1 ? '⅔ ' : ''}مع"מ {fmt(vatAmt)}₪</span>
+                        return <span style={{ fontSize:9, fontWeight:700, color, background:`${color}15`, padding:'1px 6px', borderRadius:5, border:`1px solid ${color}33` }}>{deduct < 1 ? '⅔ ' : ''}מע"מ {fmt(vatAmt)}₪</span>
                       })()}
                     </div>
                     <div style={{ fontSize:11, color:C.textDim, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -290,7 +291,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         <Input label="التاريخ"    value={form.date}   onChange={f('date')}   type="date" required />
         <Input label="المبلغ (₪)" value={form.amount} onChange={f('amount')} type="number" min="0.01" required />
 
-        {showVatExpenses && form.amount && parseFloat(form.amount) > 0 && (
+        {showVAT && form.amount && parseFloat(form.amount) > 0 && (
           <div style={{ marginTop:-8, marginBottom:14, padding:'8px 12px', background:`${C.border}33`, borderRadius:10, display:'flex', justifyContent:'space-between' }}>
             {(() => {
               const amt    = parseFloat(form.amount)
