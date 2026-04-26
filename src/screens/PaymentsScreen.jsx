@@ -227,7 +227,8 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
             <div style={{ position:'absolute', top:8, right:7, bottom:8, width:2, background:`${C.border}88`, borderRadius:1 }} />
 
             {[...payments].sort((a, b) => (b.date || '').localeCompare(a.date || '')).map((p, i) => {
-              const emp = employees.find(e => e.id === p.employee_id)
+              const emp     = employees.find(e => e.id === p.employee_id)
+              const projName = p.project_id ? projects.find(pr => pr.id === p.project_id)?.name : null
               return (
                 <div key={p.id} style={{ display:'flex', gap:12, marginBottom:10, position:'relative' }}>
                   {/* نقطة timeline */}
@@ -238,6 +239,11 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                       <div>
                         <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{emp?.name || '?'}</div>
                         <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{fmtDate(p.date)}{p.method ? ` • ${p.method}` : ''}</div>
+                        {projName && (
+                          <div style={{ fontSize:10, color:C.secondary, fontWeight:700, marginTop:3, background:`${C.secondary}18`, borderRadius:6, padding:'2px 7px', display:'inline-block' }}>
+                            🏗 {projName}
+                          </div>
+                        )}
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                         <div style={{ fontSize:16, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmtA(p.amount)}</div>
