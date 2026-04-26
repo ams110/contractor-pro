@@ -109,8 +109,16 @@ DROP POLICY IF EXISTS "user_client_receipts" ON client_receipts;
 CREATE POLICY "user_client_receipts" ON client_receipts FOR ALL
   USING (user_id = auth.uid() OR is_active_team_member_of(user_id));
 
+-- ─── 5b. RLS على جدول team_members ──────────────────────────────────────────
+ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "member_reads_own" ON team_members;
+CREATE POLICY "member_reads_own" ON team_members FOR SELECT
+  USING (member_id = auth.uid() OR owner_id = auth.uid());
+
 -- ─── 6. RPCs ─────────────────────────────────────────────────────────────────
 -- Drop first to allow return-type changes
+DROP FUNCTION IF EXISTS get_my_membership();
 DROP FUNCTION IF EXISTS get_team_auth_email(TEXT);
 DROP FUNCTION IF EXISTS get_owner_team_members();
 DROP FUNCTION IF EXISTS delete_team_member(UUID);
@@ -120,6 +128,15 @@ DROP FUNCTION IF EXISTS update_member_last_seen(UUID);
 DROP FUNCTION IF EXISTS log_screen_view(UUID,TEXT);
 DROP FUNCTION IF EXISTS get_member_activity(TEXT,INT);
 DROP FUNCTION IF EXISTS get_all_activity(INT);
+
+-- جلب بيانات العضو الحالي (SECURITY DEFINER يتجاوز RLS)
+CREATE OR REPLACE FUNCTION get_my_membership()
+RETURNS json LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  SELECT row_to_json(t) FROM team_members t
+  WHERE member_id = auth.uid() AND status = 'active'
+  LIMIT 1;
+$$;
+GRANT EXECUTE ON FUNCTION get_my_membership() TO authenticated;
 
 -- جلب اسم المستخدم → auth_email (لشاشة الدخول)
 CREATE OR REPLACE FUNCTION get_team_auth_email(p_username TEXT)
