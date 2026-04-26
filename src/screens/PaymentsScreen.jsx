@@ -63,6 +63,8 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
   function pickFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setFormError('حجم الملف يجب أن يكون أقل من 10MB'); return }
+    if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview)
     setReceiptFile(file)
     setPreview(URL.createObjectURL(file))
   }
@@ -321,7 +323,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
             {preview
               ? <div style={{ position:'relative' }}>
                   <img src={preview} alt="إثبات" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:12, border:`1px solid ${C.border}` }} />
-                  <button onClick={() => { setReceiptFile(null); setPreview('') }}
+                  <button onClick={() => { if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview); setReceiptFile(null); setPreview('') }}
                     style={{ position:'absolute', top:6, left:6, background:`${C.accent}dd`, border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', fontSize:14 }}>×</button>
                 </div>
               : <button onClick={() => fileRef.current.click()}

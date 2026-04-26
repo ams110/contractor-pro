@@ -227,6 +227,7 @@ export function validateWorkDay(form) {
   if (!form.employee_id) return 'اختر العامل'
   if (!form.project_id && form.day_type !== 'عطلة') return 'اختر المشروع'
   if (!form.date)        return 'التاريخ مطلوب'
+  if (form.date > todayStr()) return 'لا يمكن تسجيل يوم بتاريخ مستقبلي'
   if (form.day_type === 'ساعات') {
     const h = parseFloat(form.hours)
     if (!h || h <= 0)    return 'عدد الساعات يجب أن يكون أكبر من صفر'
