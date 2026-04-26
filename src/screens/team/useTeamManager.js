@@ -35,6 +35,12 @@ export function useTeamManager() {
   const [resetPassSaving, setResetPassSaving] = useState(false)
   const [resetPassErr,    setResetPassErr]    = useState('')
 
+  // ── Project access ──
+  const [editRestrictProjects,  setEditRestrictProjects]  = useState(false)
+  const [editAllowedProjects,   setEditAllowedProjects]   = useState([])
+  const [addRestrictProjects,   setAddRestrictProjects]   = useState(false)
+  const [addAllowedProjects,    setAddAllowedProjects]    = useState([])
+
   // ── Activity (per-member expandable) ──
   const [expandedActivity, setExpandedActivity] = useState(new Set())
   const [activityCache,    setActivityCache]    = useState({})
@@ -52,6 +58,8 @@ export function useTeamManager() {
     setShowAddMember(false)
     setAddStep(1)
     setAddMemberErr('')
+    setAddRestrictProjects(false)
+    setAddAllowedProjects([])
   }
 
   function handleRoleChange(role) {
@@ -76,11 +84,28 @@ export function useTeamManager() {
     setEditSelectedRole(detectRole(perms))
     setEditPermsErr('')
     setEditingMemberId(member.id)
+    const ids = member.allowed_project_ids || []
+    setEditRestrictProjects(ids.length > 0)
+    setEditAllowedProjects(ids)
   }
 
   function closeEditPerms() {
     setEditingMemberId(null)
     setEditPermsErr('')
+    setEditRestrictProjects(false)
+    setEditAllowedProjects([])
+  }
+
+  function toggleEditProject(id) {
+    setEditAllowedProjects(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
+  function toggleAddProject(id) {
+    setAddAllowedProjects(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
   }
 
   function handleEditRoleChange(role) {
@@ -138,6 +163,8 @@ export function useTeamManager() {
     editPermsSaving, setEditPermsSaving,
     editPermsErr, setEditPermsErr,
     handleEditRoleChange, toggleEditPerm,
+    editRestrictProjects, setEditRestrictProjects, editAllowedProjects, setEditAllowedProjects, toggleEditProject,
+    addRestrictProjects, setAddRestrictProjects, addAllowedProjects, setAddAllowedProjects, toggleAddProject,
 
     // confirmations
     confirmBlock, setConfirmBlock,

@@ -7,7 +7,7 @@ import { AddMemberModal } from './AddMemberModal.jsx'
 import { EditPermsPanel } from './EditPermsPanel.jsx'
 
 export default function TeamScreen({
-  teamMembers = [], permissions,
+  teamMembers = [], permissions, projects = [],
   addMember, updateMember, removeMember, blockMember, resetMemberPassword,
   getActivity, teamLoadError, reloadTeam,
 }) {
@@ -19,17 +19,19 @@ export default function TeamScreen({
   // ── Bridge: UI state → data hooks ──────────────────────────────────────────
 
   async function handleAddMember() {
-    const { memberForm, setAddingMember, setAddMemberErr, closeAddMember } = manager
+    const { memberForm, setAddingMember, setAddMemberErr, closeAddMember,
+            addRestrictProjects, addAllowedProjects } = manager
     setAddMemberErr('')
     setAddingMember(true)
     try {
       await addMember({
-        displayName: memberForm.displayName,
-        username:    memberForm.username,
-        password:    memberForm.password,
-        role:        memberForm.selectedRole === 'مخصص' ? 'عضو' : memberForm.selectedRole,
-        expiresAt:   memberForm.expiresAt || null,
-        perms:       memberForm.perms,
+        displayName:      memberForm.displayName,
+        username:         memberForm.username,
+        password:         memberForm.password,
+        role:             memberForm.selectedRole === 'مخصص' ? 'عضو' : memberForm.selectedRole,
+        expiresAt:        memberForm.expiresAt || null,
+        perms:            memberForm.perms,
+        allowedProjectIds: addRestrictProjects ? addAllowedProjects : [],
       })
       closeAddMember()
     } catch (e) {
@@ -40,11 +42,12 @@ export default function TeamScreen({
   }
 
   async function handleUpdatePerms() {
-    const { editingMemberId, editPerms, setEditPermsSaving, setEditPermsErr, closeEditPerms } = manager
+    const { editingMemberId, editPerms, setEditPermsSaving, setEditPermsErr, closeEditPerms,
+            editRestrictProjects, editAllowedProjects } = manager
     setEditPermsErr('')
     setEditPermsSaving(true)
     try {
-      await updateMember(editingMemberId, editPerms)
+      await updateMember(editingMemberId, editPerms, editRestrictProjects ? editAllowedProjects : [])
       closeEditPerms()
     } catch (e) {
       manager.setEditPermsErr(e.message)
@@ -153,10 +156,10 @@ export default function TeamScreen({
       )}
 
       {/* ── Add member modal ── */}
-      <AddMemberModal manager={manager} onSubmit={handleAddMember} />
+      <AddMemberModal manager={manager} onSubmit={handleAddMember} projects={projects} />
 
       {/* ── Edit perms panel ── */}
-      <EditPermsPanel member={editingMember} manager={manager} onSave={handleUpdatePerms} />
+      <EditPermsPanel member={editingMember} manager={manager} onSave={handleUpdatePerms} projects={projects} />
 
       {/* ── Reset password modal ── */}
       {manager.resetPassTarget && (
