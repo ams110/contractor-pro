@@ -35,6 +35,9 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
   const [approvingSaving, setApprovingSaving] = useState(false)
   const fileRef = useRef()
 
+  const [dateFrom,    setDateFrom]    = useState('')
+  const [dateTo,      setDateTo]      = useState('')
+
   const emptyForm = { date: todayStr(), employee_id:'', amount:'', method:'', project_id:'' }
   const [form, setForm] = useState(emptyForm)
   function f(key) { return v => setForm(prev => ({ ...prev, [key]: v })) }
@@ -223,12 +226,27 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
       {/* ── سجل الدفعات (timeline) ── */}
       {payments.length > 0 && (
         <div style={{ marginTop:8 }}>
-          <SectionLabel color={C.success}>سجل الدفعات</SectionLabel>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <SectionLabel color={C.success}>سجل الدفعات</SectionLabel>
+            <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                style={{ padding:'5px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:11, outline:'none', width:120 }} />
+              <span style={{ color:C.textDim, fontSize:11 }}>→</span>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                style={{ padding:'5px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:11, outline:'none', width:120 }} />
+              {(dateFrom || dateTo) && (
+                <button onClick={() => { setDateFrom(''); setDateTo('') }}
+                  style={{ padding:'5px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:'none', color:C.textDim, fontSize:11, cursor:'pointer' }}>✕</button>
+              )}
+            </div>
+          </div>
           <div style={{ position:'relative', paddingRight:20 }}>
             {/* خط Timeline */}
             <div style={{ position:'absolute', top:8, right:7, bottom:8, width:2, background:`${C.border}88`, borderRadius:1 }} />
 
-            {[...payments].sort((a, b) => (b.date || '').localeCompare(a.date || '')).map((p, i) => {
+            {[...payments]
+              .filter(p => (!dateFrom || (p.date||'') >= dateFrom) && (!dateTo || (p.date||'') <= dateTo))
+              .sort((a, b) => (b.date || '').localeCompare(a.date || '')).map((p, i) => {
               const emp     = employees.find(e => e.id === p.employee_id)
               const projName = p.project_id ? projects.find(pr => pr.id === p.project_id)?.name : null
               return (

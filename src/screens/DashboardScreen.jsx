@@ -58,6 +58,7 @@ function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, o
 }
 
 export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, permissions, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly, taxEnabled = true, businessType = 'osek_moreh' }) {
+  const [filterProjId,      setFilterProjId]      = useState(null)
   const [alertsExpanded,    setAlertsExpanded]    = useState(true)
   const [showTax,           setShowTax]           = useState(false)
   const [addingTax,         setAddingTax]         = useState(null)
@@ -69,17 +70,24 @@ export default function DashboardScreen({ projects, employees, workDays, expense
   const [showWorkerCost,    setShowWorkerCost]    = useState(false)
   const pieColors = [C.primary, C.blue, C.purple, C.orange, C.pink, C.cyan]
 
-  const totalLabor    = workDays.reduce((s, w) => s + (w.amount || 0), 0)
-  const totalExp      = expenses.reduce((s, e) => s + (e.amount || 0), 0)
-  const totalMaterials = expenses.filter(e => e.category === 'بضاعة').reduce((s, e) => s + (e.amount || 0), 0)
-  const totalPaid     = payments.reduce((s, p) => s + (p.amount || 0), 0)
-  const totalReceived = (clientReceipts || []).reduce((s, r) => s + (r.amount || 0), 0)
-  const totalContract = projects.reduce((s, p) => s + (parseFloat(p.price) || 0), 0)
+  // تصفية البيانات حسب المشروع المحدد
+  const _wr = filterProjId ? clientReceipts?.filter(r => r.project_id === filterProjId) : (clientReceipts || [])
+  const _wd = filterProjId ? workDays.filter(w => w.project_id === filterProjId) : workDays
+  const _ex = filterProjId ? expenses.filter(e => e.project_id === filterProjId) : expenses
+  const _py = filterProjId ? payments.filter(p => p.project_id === filterProjId) : payments
+  const _pr = filterProjId ? projects.filter(p => p.id === filterProjId) : projects
+
+  const totalLabor    = _wd.reduce((s, w) => s + (w.amount || 0), 0)
+  const totalExp      = _ex.reduce((s, e) => s + (e.amount || 0), 0)
+  const totalMaterials = _ex.filter(e => e.category === 'بضاعة').reduce((s, e) => s + (e.amount || 0), 0)
+  const totalPaid     = _py.reduce((s, p) => s + (p.amount || 0), 0)
+  const totalReceived = _wr.reduce((s, r) => s + (r.amount || 0), 0)
+  const totalContract = _pr.reduce((s, p) => s + (parseFloat(p.price) || 0), 0)
   // حساب المتبقي لكل مشروع على حدة لمنع مقبوضات اليوميات من إلغاء ديون المشاريع الثابتة
-  const totalPending  = projects.reduce((s, p) => {
+  const totalPending  = _pr.reduce((s, p) => {
     const price = parseFloat(p.price) || 0
     if (price === 0) return s
-    const received = (clientReceipts || []).filter(r => r.project_id === p.id).reduce((sum, r) => sum + (r.amount || 0), 0)
+    const received = _wr.filter(r => r.project_id === p.id).reduce((sum, r) => sum + (r.amount || 0), 0)
     return s + Math.max(0, price - received)
   }, 0)
   const netProfit     = totalReceived - totalExp - totalLabor
@@ -88,22 +96,22 @@ export default function DashboardScreen({ projects, employees, workDays, expense
   // VAT لآخر شهرين
   const twoMonthsAgo = new Date(); twoMonthsAgo.setDate(twoMonthsAgo.getDate() - 60)
   const twoMonthsAgoStr = twoMonthsAgo.toISOString().slice(0, 10)
-  const vatData = calcVATNet(clientReceipts || [], expenses, twoMonthsAgoStr, todayStr())
+  const vatData = calcVATNet(_wr, _ex, twoMonthsAgoStr, todayStr())
 
   // عتبة עוסק פטור: إيراد السنة الحالية
   const thisYear    = new Date().getFullYear().toString()
-  const yearRevenue = (clientReceipts || [])
+  const yearRevenue = _wr
     .filter(r => (r.date || '').startsWith(thisYear))
     .reduce((s, r) => s + (r.amount || 0), 0)
   const thresholdPct = Math.min(100, Math.round((yearRevenue / OSEK_PATUR_THRESHOLD) * 100))
 
   // متوسط الربح الشهري (لعرض التقدير الشهري فقط)
   const monthsData = {}
-  ;(clientReceipts || []).forEach(r => { const m = (r.date || '').slice(0,7); if (m) monthsData[m] = (monthsData[m] || 0) + r.amount })
+  _wr.forEach(r => { const m = (r.date || '').slice(0,7); if (m) monthsData[m] = (monthsData[m] || 0) + r.amount })
   const recentMonths = Object.keys(monthsData).sort().slice(-3)
   const avgMonthlyRevenue = recentMonths.length
     ? recentMonths.reduce((s, m) => s + monthsData[m], 0) / recentMonths.length : 0
-  const activeExpMonths = new Set(expenses.map(e => (e.date||'').slice(0,7))).size
+  const activeExpMonths = new Set(_ex.map(e => (e.date||'').slice(0,7))).size
   const avgMonthlyExpenses = totalExp / Math.max(1, activeExpMonths)
   const avgMonthlyNet = avgMonthlyRevenue - avgMonthlyExpenses
   // للعرض الشهري فقط (في الـ hint)
@@ -111,11 +119,11 @@ export default function DashboardScreen({ projects, employees, workDays, expense
 
   // ─── أفضل مشروع هذا الشهر ─────────────────────────────────────────────────
   const thisMonth = todayStr().slice(0, 7)
-  const bestProject = projects
+  const bestProject = _pr
     .map(p => {
-      const received = (clientReceipts || []).filter(r => r.project_id === p.id && (r.date||'').startsWith(thisMonth)).reduce((s,r) => s+r.amount, 0)
-      const labor    = workDays.filter(w => w.project_id === p.id).reduce((s,w) => s+w.amount, 0)
-      const exp      = expenses.filter(e => e.project_id === p.id).reduce((s,e) => s+e.amount, 0)
+      const received = _wr.filter(r => r.project_id === p.id && (r.date||'').startsWith(thisMonth)).reduce((s,r) => s+r.amount, 0)
+      const labor    = _wd.filter(w => w.project_id === p.id).reduce((s,w) => s+w.amount, 0)
+      const exp      = _ex.filter(e => e.project_id === p.id).reduce((s,e) => s+e.amount, 0)
       const profit   = received - labor - exp
       const margin   = received > 0 ? Math.round((profit / received) * 100) : null
       return { ...p, profit, margin, received }
@@ -128,15 +136,15 @@ export default function DashboardScreen({ projects, employees, workDays, expense
   // #79: التدفق النقدي الشهري (آخر 6 أشهر)
   const cashFlowData = (() => {
     const map = {}
-    ;(clientReceipts || []).forEach(r => {
+    _wr.forEach(r => {
       const m = (r.date||'').slice(0,7)
       if (m) { if (!map[m]) map[m] = { income:0, costs:0 }; map[m].income += r.amount || 0 }
     })
-    workDays.filter(w => w.status === 'approved').forEach(w => {
+    _wd.filter(w => w.status === 'approved').forEach(w => {
       const m = (w.date||'').slice(0,7)
       if (m) { if (!map[m]) map[m] = { income:0, costs:0 }; map[m].costs += w.amount || 0 }
     })
-    expenses.forEach(e => {
+    _ex.forEach(e => {
       const m = (e.date||'').slice(0,7)
       if (m) { if (!map[m]) map[m] = { income:0, costs:0 }; map[m].costs += e.amount || 0 }
     })
@@ -145,10 +153,10 @@ export default function DashboardScreen({ projects, employees, workDays, expense
   })()
 
   // #75: ربحية المشاريع
-  const projectProfitability = projects.map(p => {
-    const rev    = (clientReceipts || []).filter(r => r.project_id === p.id).reduce((s,r) => s+(r.amount||0), 0)
-    const labor  = workDays.filter(w => w.project_id === p.id).reduce((s,w) => s+(w.amount||0), 0)
-    const exp    = expenses.filter(e => e.project_id === p.id).reduce((s,e) => s+(e.amount||0), 0)
+  const projectProfitability = _pr.map(p => {
+    const rev    = _wr.filter(r => r.project_id === p.id).reduce((s,r) => s+(r.amount||0), 0)
+    const labor  = _wd.filter(w => w.project_id === p.id).reduce((s,w) => s+(w.amount||0), 0)
+    const exp    = _ex.filter(e => e.project_id === p.id).reduce((s,e) => s+(e.amount||0), 0)
     const profit = rev - labor - exp
     const margin = rev > 0 ? Math.round((profit / rev) * 100) : null
     return { id:p.id, name:p.name, rev, costs: labor+exp, profit, margin }
@@ -157,13 +165,13 @@ export default function DashboardScreen({ projects, employees, workDays, expense
   // #76: مقارنة شهرية (آخر 6 أشهر)
   const monthlyComparison = (() => {
     const map = {}
-    ;(clientReceipts || []).forEach(r => {
+    _wr.forEach(r => {
       const m = (r.date||'').slice(0,7); if (m) { if (!map[m]) map[m]={income:0,costs:0}; map[m].income += r.amount||0 }
     })
-    workDays.filter(w => w.status==='approved').forEach(w => {
+    _wd.filter(w => w.status==='approved').forEach(w => {
       const m = (w.date||'').slice(0,7); if (m) { if (!map[m]) map[m]={income:0,costs:0}; map[m].costs += w.amount||0 }
     })
-    expenses.forEach(e => {
+    _ex.forEach(e => {
       const m = (e.date||'').slice(0,7); if (m) { if (!map[m]) map[m]={income:0,costs:0}; map[m].costs += e.amount||0 }
     })
     return Object.entries(map).sort(([a],[b]) => b.localeCompare(a)).slice(0,6)
@@ -172,9 +180,9 @@ export default function DashboardScreen({ projects, employees, workDays, expense
 
   // #77: تكاليف العمال
   const workerCosts = employees.map(emp => {
-    const days   = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').length
-    const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s,w) => s+(w.amount||0), 0)
-    const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s,p) => s+(p.amount||0), 0)
+    const days   = _wd.filter(w => w.employee_id === emp.id && w.status === 'approved').length
+    const earned = _wd.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s,w) => s+(w.amount||0), 0)
+    const paid   = _py.filter(p => p.employee_id === emp.id).reduce((s,p) => s+(p.amount||0), 0)
     return { id:emp.id, name:emp.name, days, earned, paid, owed: Math.max(0, earned-paid) }
   }).filter(w => w.earned > 0 || w.paid > 0).sort((a,b) => b.earned - a.earned)
 
@@ -203,10 +211,10 @@ export default function DashboardScreen({ projects, employees, workDays, expense
   }
 
   // ─── عملاء متأخرون بالدفع ─────────────────────────────────────────────────
-  const overdueClients = projects
+  const overdueClients = _pr
     .filter(p => p.status === 'نشط' || p.status === 'مكتمل')
     .map(p => {
-      const result = isPaymentOverdue(p, clientReceipts || [])
+      const result = isPaymentOverdue(p, _wr)
       return result ? { ...p, ...result } : null
     })
     .filter(Boolean)
@@ -215,7 +223,7 @@ export default function DashboardScreen({ projects, employees, workDays, expense
   const expByCat = EXP_CATS
     .map(cat => ({
       name:  cat.split(' / ')[0].split(' ')[0],
-      value: expenses.filter(e => e.category === cat).reduce((s, e) => s + (e.amount || 0), 0),
+      value: _ex.filter(e => e.category === cat).reduce((s, e) => s + (e.amount || 0), 0),
     }))
     .filter(e => e.value > 0)
 
@@ -225,12 +233,12 @@ export default function DashboardScreen({ projects, employees, workDays, expense
   // عمال مديونية قديمة (أكثر من 14 يوم من آخر يوم عمل)
   const today = new Date(todayStr())
   employees.forEach(emp => {
-    const earned = workDays.filter(w => w.employee_id === emp.id).reduce((s, w) => s + w.amount, 0)
-    const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
+    const earned = _wd.filter(w => w.employee_id === emp.id).reduce((s, w) => s + w.amount, 0)
+    const paid   = _py.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
     const owed   = earned - paid
     if (owed <= 0) return
 
-    const lastDay = workDays
+    const lastDay = _wd
       .filter(w => w.employee_id === emp.id)
       .map(w => new Date(w.date))
       .sort((a, b) => b - a)[0]
@@ -250,9 +258,9 @@ export default function DashboardScreen({ projects, employees, workDays, expense
   })
 
   // مشاريع تجاوزت الميزانية
-  projects.filter(p => p.status === 'نشط' && p.price > 0).forEach(p => {
-    const spent = workDays.filter(w => w.project_id === p.id).reduce((s, w) => s + w.amount, 0)
-               + expenses.filter(e => e.project_id === p.id).reduce((s, e) => s + e.amount, 0)
+  _pr.filter(p => p.status === 'نشط' && p.price > 0).forEach(p => {
+    const spent = _wd.filter(w => w.project_id === p.id).reduce((s, w) => s + w.amount, 0)
+               + _ex.filter(e => e.project_id === p.id).reduce((s, e) => s + e.amount, 0)
     const pct   = spent / p.price
     if (pct >= 1) {
       alerts.push({ text: `${p.name} - تجاوز الميزانية كاملاً!`, color: C.accent, icon: '🚨', nav: 'projects', urgent: true })
@@ -262,8 +270,8 @@ export default function DashboardScreen({ projects, employees, workDays, expense
   })
 
   // مشاريع نشطة بدون تحصيل من العميل
-  projects.filter(p => p.status === 'نشط' && p.price > 0).forEach(p => {
-    const received = (clientReceipts || []).filter(r => r.project_id === p.id).reduce((s, r) => s + r.amount, 0)
+  _pr.filter(p => p.status === 'نشط' && p.price > 0).forEach(p => {
+    const received = _wr.filter(r => r.project_id === p.id).reduce((s, r) => s + r.amount, 0)
     if (received === 0) {
       alerts.push({ text: `${p.name} - ما في مقبوضات من العميل بعد`, color: C.blue, icon: '💵', nav: 'projects', urgent: false })
     }
@@ -277,11 +285,15 @@ export default function DashboardScreen({ projects, employees, workDays, expense
     alerts.push({ text: `إجمالي رواتب معلقة: ${fmtA(totalOwed)}`, color: C.warning, icon: '⚠️', nav: 'payments', urgent: false })
   }
 
-  // مشاريع تجاوزت تاريخ الانتهاء
+  // مشاريع تجاوزت تاريخ الانتهاء أو تقترب منه
   const today2 = todayStr()
-  projects.filter(p => p.status === 'نشط' && p.end_date && p.end_date < today2).forEach(p => {
-    const days = Math.floor((new Date(today2) - new Date(p.end_date)) / 86400000)
-    alerts.push({ text: `${p.name} — تجاوزت تاريخ الانتهاء بـ ${days} يوم`, color: C.accent, icon: '⏰', nav: 'projects', urgent: true })
+  projects.filter(p => p.status === 'نشط' && p.end_date).forEach(p => {
+    const daysLeft = Math.floor((new Date(p.end_date) - new Date(today2)) / 86400000)
+    if (daysLeft < 0) {
+      alerts.push({ text: `${p.name} — تجاوزت تاريخ الانتهاء بـ ${-daysLeft} يوم`, color: C.accent, icon: '⏰', nav: 'projects', urgent: true })
+    } else if (daysLeft <= 7) {
+      alerts.push({ text: `${p.name} — ينتهي خلال ${daysLeft === 0 ? 'اليوم' : `${daysLeft} يوم`}`, color: C.warning, icon: '⏳', nav: 'projects', urgent: false })
+    }
   })
 
   // #80: هامش الربح منخفض (< 20%)
@@ -302,6 +314,22 @@ export default function DashboardScreen({ projects, employees, workDays, expense
 
   return (
     <div className="fade-in" style={{ padding:16 }}>
+
+      {/* ─── فلتر المشاريع ─── */}
+      {projects.length > 1 && (
+        <div style={{ marginBottom:14, overflowX:'auto', display:'flex', gap:6, paddingBottom:4, scrollbarWidth:'none' }}>
+          <button onClick={() => setFilterProjId(null)}
+            style={{ flexShrink:0, padding:'6px 14px', borderRadius:20, border:`1.5px solid ${filterProjId === null ? C.primary : C.border}`, background: filterProjId === null ? `${C.primary}22` : 'rgba(255,255,255,0.04)', color: filterProjId === null ? C.primary : C.textDim, fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+            الكل
+          </button>
+          {projects.filter(p => p.status !== 'ملغي').map(p => (
+            <button key={p.id} onClick={() => setFilterProjId(p.id === filterProjId ? null : p.id)}
+              style={{ flexShrink:0, padding:'6px 14px', borderRadius:20, border:`1.5px solid ${filterProjId === p.id ? C.primary : C.border}`, background: filterProjId === p.id ? `${C.primary}22` : 'rgba(255,255,255,0.04)', color: filterProjId === p.id ? C.primary : C.textDim, fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ─── Hero ─── */}
       <div style={{ marginBottom:20, borderRadius:22, background:`linear-gradient(135deg, ${C.surface} 0%, #1e2d3d 100%)`, border:`1px solid ${C.border}`, overflow:'hidden', position:'relative' }}>

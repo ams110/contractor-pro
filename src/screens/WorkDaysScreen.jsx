@@ -253,6 +253,16 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     finally { setBulkSaving(false) }
   }
 
+  async function bulkApproveSelected() {
+    if (!selectedDayIds.size) return
+    setBulkSaving(true)
+    try {
+      await bulkUpdateWorkDays([...selectedDayIds], { status: 'approved' })
+      exitBulkMode()
+    } catch (e) { setBulkError(e.message) }
+    finally { setBulkSaving(false) }
+  }
+
   const hasFilter = filterEmp || filterProj || filterMonth
 
   const sorted = [...approvedDays]
@@ -963,16 +973,22 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
           <div style={{ fontSize:13, fontWeight:700, color: selectedDayIds.size > 0 ? C.primary : C.textDim }}>
             {selectedDayIds.size > 0 ? `${selectedDayIds.size} يوم محدد` : 'اضغط على أيام للتحديد'}
           </div>
-          <div style={{ display:'flex', gap:8 }}>
+          <div style={{ display:'flex', gap:6 }}>
             {selectedDayIds.size > 0 && (
-              <button onClick={() => setShowBulkProj(true)}
-                style={{ padding:'10px 16px', borderRadius:12, background:GRAD.brand, border:'none', color:'#000', fontSize:12, fontWeight:800, cursor:'pointer' }}>
-                🗂 تعديل المشروع
-              </button>
+              <>
+                <button onClick={bulkApproveSelected} disabled={bulkSaving}
+                  style={{ padding:'10px 14px', borderRadius:12, background:`${C.success}22`, border:`1px solid ${C.success}55`, color:C.success, fontSize:12, fontWeight:800, cursor:'pointer' }}>
+                  ✓ موافقة
+                </button>
+                <button onClick={() => setShowBulkProj(true)}
+                  style={{ padding:'10px 14px', borderRadius:12, background:GRAD.brand, border:'none', color:'#000', fontSize:12, fontWeight:800, cursor:'pointer' }}>
+                  🗂 مشروع
+                </button>
+              </>
             )}
             <button onClick={exitBulkMode}
-              style={{ padding:'10px 14px', borderRadius:12, background:'transparent', border:`1px solid ${C.border}`, color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
-              إلغاء
+              style={{ padding:'10px 12px', borderRadius:12, background:'transparent', border:`1px solid ${C.border}`, color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+              ✕
             </button>
           </div>
         </div>
