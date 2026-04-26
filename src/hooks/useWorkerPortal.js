@@ -149,6 +149,11 @@ export function useWorkerPortal() {
   async function requestPayment({ amount, projectId, method, notes }) {
     const session = loadSession()
     if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
+    const parsedAmount = parseFloat(amount)
+    if (!parsedAmount || parsedAmount <= 0)        throw new Error('المبلغ يجب أن يكون أكبر من صفر')
+    if (parsedAmount > 999_999)                    throw new Error('المبلغ يتجاوز الحد المسموح')
+    const pendingCount = payments.filter(p => p.status === 'pending').length
+    if (pendingCount >= 2)                         throw new Error('لديك طلبات دفعة معلقة — انتظر موافقة المشرف أولاً')
     const { data, error } = await supabase.rpc('worker_request_payment', {
       p_emp_id:     session.id,
       p_token:      session.token,

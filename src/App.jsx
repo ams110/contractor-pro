@@ -129,6 +129,23 @@ export default function App() {
     if (uid && !localStorage.getItem('cp_onboarded')) setShowOnboarding(true)
   }, [uid])
 
+  // تسجيل الخروج التلقائي بعد 30 دقيقة من عدم النشاط (للمالك فقط — أعضاء الفريق لهم جلسة مستقلة)
+  React.useEffect(() => {
+    if (!uid || effectiveOwnerId) return  // تجاهل أعضاء الفريق
+    let timer
+    const reset = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => supabase.auth.signOut(), 30 * 60 * 1000)
+    }
+    const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'pointermove']
+    events.forEach(e => window.addEventListener(e, reset, { passive: true }))
+    reset()
+    return () => {
+      clearTimeout(timer)
+      events.forEach(e => window.removeEventListener(e, reset))
+    }
+  }, [uid, effectiveOwnerId])
+
   // ─── تصفية البيانات حسب المشاريع المسموح بها (memoized لتجنب إعادة الحساب) ─
   const visibleProjects       = useMemo(() => allowedProjectIds ? projects.filter(p => allowedProjectIds.includes(p.id)) : projects, [projects, allowedProjectIds])
   const visibleWorkDays       = useMemo(() => allowedProjectIds ? workDays.filter(w => allowedProjectIds.includes(w.project_id)) : workDays, [workDays, allowedProjectIds])
