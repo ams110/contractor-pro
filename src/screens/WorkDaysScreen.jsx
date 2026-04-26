@@ -7,7 +7,7 @@ import { exportWorkDaysToExcel } from '../lib/export.js'
 const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange, 'عطلة': C.textDim }
 const DAY_ICONS = { 'كامل': '☀️', 'نص يوم': '🌤️', 'ساعات': '⏱️', 'مبلغ مسكر': '💵', 'عطلة': '🎉' }
 
-export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, bulkAddWorkDays, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [] }) {
+export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [] }) {
   const holidayDates = new Set((holidays || []).map(h => String(h.date).slice(0, 10)))
   const [showForm,    setShowForm]    = useState(false)
   const [editingDay,  setEditingDay]  = useState(null)
@@ -27,6 +27,12 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const [workerDetail,  setWorkerDetail]  = useState(null)
   const [openMonths,    setOpenMonths]    = useState(() => new Set([new Date().toISOString().slice(0, 7)]))
   const [openWorkers,   setOpenWorkers]   = useState(new Set())
+  const [bulkSelectMode, setBulkSelectMode] = useState(false)
+  const [selectedDayIds, setSelectedDayIds] = useState(new Set())
+  const [showBulkProj,   setShowBulkProj]   = useState(false)
+  const [bulkProjId,     setBulkProjId]     = useState('')
+  const [bulkSaving,     setBulkSaving]     = useState(false)
+  const [bulkError,      setBulkError]      = useState('')
 
   const emptyForm = { date: todayStr(), employee_id: '', project_id: '', day_type: 'كامل', hours: '8', customAmount: '' }
   const [form, setForm] = useState(emptyForm)
@@ -214,6 +220,33 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   async function handleApprove(id) { setApproving(id); try { await approveWorkDay(id) } finally { setApproving(null) } }
   async function handleReject(id)  { setApproving(id); try { await rejectWorkDay(id)  } finally { setApproving(null) } }
 
+  function toggleDaySelect(id) {
+    setSelectedDayIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function exitBulkMode() {
+    setBulkSelectMode(false)
+    setSelectedDayIds(new Set())
+    setShowBulkProj(false)
+    setBulkProjId('')
+    setBulkError('')
+  }
+
+  async function applyBulkProject() {
+    if (!bulkProjId) return setBulkError('اختر مشروعاً')
+    setBulkSaving(true)
+    setBulkError('')
+    try {
+      await bulkUpdateWorkDays([...selectedDayIds], { project_id: bulkProjId })
+      exitBulkMode()
+    } catch (e) { setBulkError(e.message) }
+    finally { setBulkSaving(false) }
+  }
+
   const hasFilter = filterEmp || filterProj || filterMonth
 
   const sorted = [...approvedDays]
@@ -255,7 +288,13 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               🔍 {hasFilter ? 'فلتر نشط' : 'فلتر'}
             </button>
           )}
-          <Btn onClick={openForm}>+ سجّل يوم</Btn>
+          {approvedDays.length > 0 && (
+            <button onClick={() => bulkSelectMode ? exitBulkMode() : setBulkSelectMode(true)}
+              style={{ padding:'10px 14px', borderRadius:12, border:`1.5px solid ${bulkSelectMode ? C.primary : C.border}`, background: bulkSelectMode ? `${C.primary}15` : 'rgba(255,255,255,0.04)', color: bulkSelectMode ? C.primary : C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+              ☑ {bulkSelectMode ? (selectedDayIds.size > 0 ? `${selectedDayIds.size} محدد` : 'تحديد') : 'تحديد'}
+            </button>
+          )}
+          {!bulkSelectMode && <Btn onClick={openForm}>+ سجّل يوم</Btn>}
         </div>
       </div>
 
@@ -389,6 +428,23 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             return (
               <>
                 {pendingDays.length > 0 && <SectionLabel color={C.primary}>الأيام الموافق عليها</SectionLabel>}
+                {bulkSelectMode && (
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, padding:'10px 14px', background:`${C.primary}10`, borderRadius:12, border:`1px solid ${C.primary}33` }}>
+                    <span style={{ fontSize:12, color:C.primary, fontWeight:700 }}>☑ وضع التحديد — اضغط على الأيام لتحديدها</span>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button onClick={() => setSelectedDayIds(new Set(sorted.map(d => d.id)))}
+                        style={{ fontSize:11, fontWeight:700, color:C.primary, background:`${C.primary}18`, border:`1px solid ${C.primary}44`, borderRadius:8, padding:'4px 10px', cursor:'pointer' }}>
+                        الكل
+                      </button>
+                      {selectedDayIds.size > 0 && (
+                        <button onClick={() => setSelectedDayIds(new Set())}
+                          style={{ fontSize:11, fontWeight:700, color:C.textDim, background:'transparent', border:`1px solid ${C.border}`, borderRadius:8, padding:'4px 10px', cursor:'pointer' }}>
+                          إلغاء الكل
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {hasFilter && (
                   <div style={{ fontSize:12, color:C.textDim, marginBottom:12, padding:'8px 14px', background:`${C.secondary}10`, borderRadius:10, border:`1px solid ${C.secondary}22` }}>
                     عرض {sorted.length} من {approvedDays.length} يوم
@@ -479,12 +535,15 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                     const dayNum    = (wd.date || '').slice(8, 10)
                                     const pillColor = DAY_TYPE_COLOR[wd.day_type] || C.primary
                                     const holiday   = holidayDates.has(String(wd.date).slice(0,10)) ? holidays.find(h => String(h.date).slice(0,10) === String(wd.date).slice(0,10)) : null
+                                    const isSel = bulkSelectMode && selectedDayIds.has(wd.id)
                                     return (
-                                      <div key={wd.id} style={{ padding:'10px 16px 10px 58px', display:'flex', justifyContent:'space-between', alignItems:'center', background: holiday ? `${C.warning}08` : idx%2===0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderTop:`1px solid ${C.border}` }}>
+                                      <div key={wd.id}
+                                        onClick={bulkSelectMode ? () => toggleDaySelect(wd.id) : undefined}
+                                        style={{ padding:'10px 16px 10px 58px', display:'flex', justifyContent:'space-between', alignItems:'center', background: isSel ? `${C.primary}12` : holiday ? `${C.warning}08` : idx%2===0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderTop:`1px solid ${C.border}`, cursor: bulkSelectMode ? 'pointer' : 'default', transition:'background .15s' }}>
                                         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                                          <div style={{ minWidth:36, height:40, borderRadius:10, background:`${pillColor}15`, border:`1px solid ${pillColor}30`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, flexShrink:0 }}>
-                                            <div style={{ fontSize:14, fontWeight:900, color:pillColor }}>{dayNum}</div>
-                                            <div style={{ fontSize:8, color:pillColor, opacity:0.8 }}>{DAY_ICONS[wd.day_type]||'📅'}</div>
+                                          <div style={{ minWidth:36, height:40, borderRadius:10, background: isSel ? `${C.primary}25` : `${pillColor}15`, border:`1px solid ${isSel ? C.primary : pillColor}30`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, flexShrink:0 }}>
+                                            <div style={{ fontSize:14, fontWeight:900, color: isSel ? C.primary : pillColor }}>{dayNum}</div>
+                                            <div style={{ fontSize:8, color: isSel ? C.primary : pillColor, opacity:0.8 }}>{DAY_ICONS[wd.day_type]||'📅'}</div>
                                           </div>
                                           <div>
                                             <div style={{ fontSize:12, color:C.textDim }}>{fmtDateFull(wd.date)}</div>
@@ -497,9 +556,17 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                           </div>
                                         </div>
                                         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                                          <span style={{ fontSize:14, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(wd.amount)}₪</span>
-                                          <button onClick={() => openEditDay(wd)} style={{ width:30, height:30, borderRadius:8, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✏️</button>
-                                          <button onClick={() => setConfirmDel(wd.id)} style={{ width:30, height:30, borderRadius:8, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>🗑️</button>
+                                          <span style={{ fontSize:14, fontWeight:900, color: isSel ? C.primary : C.accent, fontFamily:'monospace' }}>{fmt(wd.amount)}₪</span>
+                                          {bulkSelectMode ? (
+                                            <div style={{ width:26, height:26, borderRadius:8, border:`2px solid ${isSel ? C.primary : C.border}`, background: isSel ? C.primary : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, color:'#000', flexShrink:0, transition:'all .15s' }}>
+                                              {isSel && '✓'}
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <button onClick={() => openEditDay(wd)} style={{ width:30, height:30, borderRadius:8, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✏️</button>
+                                              <button onClick={() => setConfirmDel(wd.id)} style={{ width:30, height:30, borderRadius:8, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>🗑️</button>
+                                            </>
+                                          )}
                                         </div>
                                       </div>
                                     )
@@ -876,6 +943,74 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
           </div>
         )
       })()}
+
+      {/* ─── Bulk Select Floating Bar ─── */}
+      {bulkSelectMode && (
+        <div style={{ position:'fixed', bottom:100, left:0, right:0, margin:'0 auto', width:'calc(100% - 32px)', maxWidth:398, background:C.surface, borderRadius:20, border:`1.5px solid ${selectedDayIds.size > 0 ? C.primary + '66' : C.border}`, padding:'14px 18px', display:'flex', alignItems:'center', justifyContent:'space-between', zIndex:60, boxShadow:`0 8px 32px rgba(0,0,0,0.5)`, transition:'border-color .2s' }}>
+          <div style={{ fontSize:13, fontWeight:700, color: selectedDayIds.size > 0 ? C.primary : C.textDim }}>
+            {selectedDayIds.size > 0 ? `${selectedDayIds.size} يوم محدد` : 'اضغط على أيام للتحديد'}
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            {selectedDayIds.size > 0 && (
+              <button onClick={() => setShowBulkProj(true)}
+                style={{ padding:'10px 16px', borderRadius:12, background:GRAD.brand, border:'none', color:'#000', fontSize:12, fontWeight:800, cursor:'pointer' }}>
+                🗂 تعديل المشروع
+              </button>
+            )}
+            <button onClick={exitBulkMode}
+              style={{ padding:'10px 14px', borderRadius:12, background:'transparent', border:`1px solid ${C.border}`, color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+              إلغاء
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Bulk Project Picker ─── */}
+      {showBulkProj && (
+        <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)' }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowBulkProj(false); setBulkProjId(''); setBulkError('') } }}>
+          <div className="slide-up" style={{ width:'100%', maxWidth:480, background:C.surface, borderRadius:'20px 20px 0 0', padding:'20px 20px 32px', border:`1px solid ${C.borderMid}`, maxHeight:'80vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+              <div>
+                <div style={{ fontSize:15, fontWeight:800, color:C.text }}>🗂 تعديل المشروع</div>
+                <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>تطبيق على {selectedDayIds.size} يوم محدد</div>
+              </div>
+              <button onClick={() => { setShowBulkProj(false); setBulkProjId(''); setBulkError('') }}
+                style={{ background:'none', border:`1px solid ${C.border}`, borderRadius:10, color:C.textDim, fontSize:16, cursor:'pointer', padding:'4px 10px' }}>✕</button>
+            </div>
+
+            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:16 }}>
+              {projects.map(p => {
+                const sel = bulkProjId === p.id
+                return (
+                  <button key={p.id} onClick={() => setBulkProjId(p.id)}
+                    style={{ padding:'14px 16px', borderRadius:14, textAlign:'right', border:`1.5px solid ${sel ? C.primary : C.border}`, background: sel ? `${C.primary}18` : 'rgba(255,255,255,0.04)', color: sel ? C.primary : C.text, fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all .15s' }}>
+                    <span>{p.name}</span>
+                    {sel && <span style={{ fontSize:16, color:C.primary }}>✓</span>}
+                  </button>
+                )
+              })}
+            </div>
+
+            {bulkError && (
+              <div style={{ fontSize:11, color:C.accent, marginBottom:12, padding:'8px 12px', background:`${C.accent}12`, borderRadius:9 }}>
+                ⚠ {bulkError}
+              </div>
+            )}
+
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={applyBulkProject} disabled={!bulkProjId || bulkSaving}
+                style={{ flex:1, padding:'14px', borderRadius:14, background: !bulkProjId || bulkSaving ? C.border : GRAD.brand, border:'none', color: !bulkProjId || bulkSaving ? C.textDim : '#000', fontSize:14, fontWeight:800, cursor: !bulkProjId || bulkSaving ? 'default' : 'pointer', transition:'all .2s' }}>
+                {bulkSaving ? '⏳ جاري الحفظ...' : '✓ تطبيق'}
+              </button>
+              <button onClick={() => { setShowBulkProj(false); setBulkProjId(''); setBulkError('') }}
+                style={{ padding:'14px 20px', borderRadius:14, background:'transparent', border:`1px solid ${C.border}`, color:C.textDim, fontSize:14, fontWeight:700, cursor:'pointer' }}>
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
