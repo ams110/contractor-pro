@@ -212,8 +212,10 @@ export default function DashboardScreen({ projects, employees, workDays, expense
 
   // إجمالي رواتب معلقة
   const totalOwed = totalLabor - totalPaid
+  const showAmounts = permissions?.viewAmounts !== false
+  const fmtA = (v) => showAmounts ? `${fmt(v)}₪` : '---'
   if (totalOwed > 0 && !alerts.some(a => a.nav === 'payments' && a.urgent)) {
-    alerts.push({ text: `إجمالي رواتب معلقة: ${fmt(totalOwed)}₪`, color: C.warning, icon: '⚠️', nav: 'payments', urgent: false })
+    alerts.push({ text: `إجمالي رواتب معلقة: ${fmtA(totalOwed)}`, color: C.warning, icon: '⚠️', nav: 'payments', urgent: false })
   }
 
   // مشاريع تجاوزت تاريخ الانتهاء
@@ -252,9 +254,9 @@ export default function DashboardScreen({ projects, employees, workDays, expense
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
             {[
-              { l:'إجمالي المقبوض', v:`${fmt(totalReceived)}₪`, c:C.success },
-              { l:'صافي الربح',     v:`${fmt(netProfit)}₪`,     c:netProfit >= 0 ? C.primary : C.accent },
-              { l:'للتحصيل',        v:`${fmt(Math.max(0,totalPending))}₪`, c:C.warning },
+              { l:'إجمالي المقبوض', v: fmtA(totalReceived),              c:C.success },
+              { l:'صافي الربح',     v: fmtA(netProfit),                  c:netProfit >= 0 ? C.primary : C.accent },
+              { l:'للتحصيل',        v: fmtA(Math.max(0,totalPending)),   c:C.warning },
             ].map(s => (
               <div key={s.l} style={{ textAlign:'center', padding:'10px 4px', background:'rgba(255,255,255,0.04)', borderRadius:12, border:'1px solid rgba(255,255,255,0.07)' }}>
                 <div style={{ fontSize:9, color:C.textDim, marginBottom:4, fontWeight:600 }}>{s.l}</div>
@@ -267,12 +269,12 @@ export default function DashboardScreen({ projects, employees, workDays, expense
 
       {/* ─── إحصائيات ─── */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:20 }}>
-        <StatCard icon="💰" label="المقبوض من العملاء" value={`${fmt(totalReceived)}₪`} color={C.success} />
-        <StatCard icon="💸" label="إجمالي التكاليف"    value={`${fmt(totalExp + totalLabor)}₪`} color={C.accent} />
-        <StatCard icon="📈" label="صافي الربح"          value={`${fmt(netProfit)}₪`}  color={netProfit >= 0 ? C.primary : C.accent} />
-        <StatCard icon="⏳" label="متبقي للتحصيل"      value={`${fmt(Math.max(0, totalPending))}₪`} color={totalPending > 0 ? C.warning : C.success} />
+        <StatCard icon="💰" label="المقبوض من العملاء" value={fmtA(totalReceived)}              color={C.success} />
+        <StatCard icon="💸" label="إجمالي التكاليف"    value={fmtA(totalExp + totalLabor)}       color={C.accent} />
+        <StatCard icon="📈" label="صافي الربح"          value={fmtA(netProfit)}                   color={netProfit >= 0 ? C.primary : C.accent} />
+        <StatCard icon="⏳" label="متبقي للتحصيل"      value={fmtA(Math.max(0, totalPending))}   color={totalPending > 0 ? C.warning : C.success} />
         {totalMaterials > 0 && (
-          <StatCard icon="🧱" label="إجمالي البضاعة" value={`${fmt(totalMaterials)}₪`} color={C.orange} />
+          <StatCard icon="🧱" label="إجمالي البضاعة" value={fmtA(totalMaterials)} color={C.orange} />
         )}
       </div>
 

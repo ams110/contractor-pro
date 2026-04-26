@@ -103,6 +103,9 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
   const totalOwed = activeEmployees.reduce((s, e) => s + calcOwed(e.id), 0)
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0)
 
+  const showAmounts = permissions?.viewAmounts !== false
+  const fmtA = (v) => showAmounts ? `${fmt(v)}₪` : '---'
+
   return (
     <div className="fade-up" style={{ padding:16, paddingBottom:100 }}>
 
@@ -137,12 +140,12 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
           <div style={{ padding:'14px 16px', display:'flex', justifyContent:'space-around' }}>
             <div style={{ textAlign:'center' }}>
               <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>مدفوع للعمال</div>
-              <div style={{ fontSize:22, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmt(totalPaid)}₪</div>
+              <div style={{ fontSize:22, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmtA(totalPaid)}</div>
             </div>
             <div style={{ width:1, background:C.border }} />
             <div style={{ textAlign:'center' }}>
               <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>رواتب معلقة</div>
-              <div style={{ fontSize:22, fontWeight:900, color: totalOwed > 0 ? C.accent : C.success, fontFamily:'monospace' }}>{fmt(totalOwed)}₪</div>
+              <div style={{ fontSize:22, fontWeight:900, color: totalOwed > 0 ? C.accent : C.success, fontFamily:'monospace' }}>{fmtA(totalOwed)}</div>
             </div>
           </div>
         </GlassCard>
@@ -182,7 +185,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                       {/* owed badge */}
                       <div style={{ textAlign:'center', padding:'6px 12px', borderRadius:12, background: owed > 0 ? `${C.accent}20` : `${C.success}20`, border:`1px solid ${owed > 0 ? C.accent : C.success}44` }}>
                         <div style={{ fontSize:14, fontWeight:900, color: owed > 0 ? C.accent : C.success, fontFamily:'monospace' }}>
-                          {owed > 0 ? `${fmt(owed)}₪` : 'مسدد ✓'}
+                          {owed > 0 ? fmtA(owed) : 'مسدد ✓'}
                         </div>
                         <div style={{ fontSize:9, color:C.textDim }}>{owed > 0 ? 'متبقي' : ''}</div>
                       </div>
@@ -191,8 +194,8 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                     {/* تفاصيل صغيرة */}
                     <div style={{ display:'flex', justifyContent:'space-around', marginBottom:10 }}>
                       {[
-                        { l:'مستحق', v:`${fmt(earned + wExp)}₪`, c:C.text },
-                        { l:'مدفوع', v:`${fmt(paid)}₪`,          c:C.success },
+                        { l:'مستحق', v: fmtA(earned + wExp), c:C.text },
+                        { l:'مدفوع', v: fmtA(paid),         c:C.success },
                         { l:'الراتب اليومي', v:`${fmt(emp.daily_rate || 0)}₪`, c:C.textDim },
                       ].map(s => (
                         <div key={s.l} style={{ textAlign:'center' }}>
@@ -237,7 +240,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                         <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{fmtDate(p.date)}{p.method ? ` • ${p.method}` : ''}</div>
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                        <div style={{ fontSize:16, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmt(p.amount)}₪</div>
+                        <div style={{ fontSize:16, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmtA(p.amount)}</div>
                         {p.receipt_url && (
                           <a href={p.receipt_url} target="_blank" rel="noreferrer" style={{ textDecoration:'none', fontSize:16 }}>📎</a>
                         )}
@@ -280,7 +283,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                 return (
                   <button key={e.id} onClick={() => selectEmployee(e)}
                     style={{ padding:'8px 14px', borderRadius:12, border:`1.5px solid ${form.employee_id===e.id ? C.primary : C.border}`, background:form.employee_id===e.id ? `${C.primary}22` : C.bg, color:form.employee_id===e.id ? C.primary : C.textDim, fontSize:13, fontWeight:600, cursor:'pointer', transition:'all .2s' }}>
-                    {e.name}{owed > 0 ? ` (${fmt(owed)}₪)` : ''}
+                    {e.name}{owed > 0 ? ` (${fmtA(owed)})` : ''}
                   </button>
                 )
               })}
@@ -382,9 +385,9 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                 {/* الإجماليات */}
                 <div style={{ display:'flex', justifyContent:'space-around', background:`${C.border}33`, borderRadius:14, padding:'10px 8px' }}>
                   {[
-                    { l:'المستحق الكلي', v:`${fmt(totalEarned)}₪`, c:C.text },
-                    { l:'المدفوع الكلي', v:`${fmt(totalPaid)}₪`,   c:C.success },
-                    { l:'المتبقي',       v: totalOwedEmp > 0 ? `${fmt(totalOwedEmp)}₪` : 'مسدد ✓', c: totalOwedEmp > 0 ? C.accent : C.success },
+                    { l:'المستحق الكلي', v: fmtA(totalEarned), c:C.text },
+                    { l:'المدفوع الكلي', v: fmtA(totalPaid),   c:C.success },
+                    { l:'المتبقي',       v: totalOwedEmp > 0 ? fmtA(totalOwedEmp) : 'مسدد ✓', c: totalOwedEmp > 0 ? C.accent : C.success },
                   ].map(s => (
                     <div key={s.l} style={{ textAlign:'center' }}>
                       <div style={{ fontSize:9, color:C.textDim, fontWeight:600, marginBottom:2 }}>{s.l}</div>
