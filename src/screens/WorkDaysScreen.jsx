@@ -7,7 +7,7 @@ import { exportWorkDaysToExcel } from '../lib/export.js'
 const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange, 'عطلة': C.textDim }
 const DAY_ICONS = { 'كامل': '☀️', 'نص يوم': '🌤️', 'ساعات': '⏱️', 'مبلغ مسكر': '💵', 'عطلة': '🎉' }
 
-export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [] }) {
+export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, bulkAddWorkDays, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [] }) {
   const holidayDates = new Set((holidays || []).map(h => String(h.date).slice(0, 10)))
   const [showForm,    setShowForm]    = useState(false)
   const [editingDay,  setEditingDay]  = useState(null)
@@ -154,7 +154,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       if (entries.length === 0) return setFormError('كل السجلات موجودة مسبقاً — لا يوجد جديد للحفظ')
       setSaving(true)
       try {
-        await Promise.all(entries.map(e => addWorkDay(e)))
+        await bulkAddWorkDays(entries)
         closeForm()
       } catch (e) { setFormError(e.message) }
       finally { setSaving(false) }
