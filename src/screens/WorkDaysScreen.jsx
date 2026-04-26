@@ -33,6 +33,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const [bulkProjId,     setBulkProjId]     = useState('')
   const [bulkSaving,     setBulkSaving]     = useState(false)
   const [bulkError,      setBulkError]      = useState('')
+  const [rejectTarget,   setRejectTarget]   = useState(null)
+  const [rejectReason,   setRejectReason]   = useState('')
 
   const emptyForm = { date: todayStr(), employee_id: '', project_id: '', day_type: 'كامل', hours: '8', customAmount: '' }
   const [form, setForm] = useState(emptyForm)
@@ -218,7 +220,11 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   }
 
   async function handleApprove(id) { setApproving(id); try { await approveWorkDay(id) } finally { setApproving(null) } }
-  async function handleReject(id)  { setApproving(id); try { await rejectWorkDay(id)  } finally { setApproving(null) } }
+  async function confirmReject() {
+    if (!rejectTarget) return
+    setApproving(rejectTarget)
+    try { await rejectWorkDay(rejectTarget, rejectReason) } finally { setApproving(null); setRejectTarget(null); setRejectReason('') }
+  }
 
   function toggleDaySelect(id) {
     setSelectedDayIds(prev => {
@@ -392,7 +398,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                       style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? C.border : GRAD.success, border:'none', color: busy ? C.textDim : '#fff', fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', boxShadow: busy ? 'none' : `0 4px 18px ${C.success}44`, transition:'all .2s' }}>
                       {busy ? '...' : '✓ موافقة'}
                     </button>
-                    <button onClick={() => handleReject(wd.id)} disabled={busy}
+                    <button onClick={() => { setRejectTarget(wd.id); setRejectReason('') }} disabled={busy}
                       style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? 'transparent' : `${C.accent}12`, border:`1.5px solid ${busy ? C.border : C.accent + '55'}`, color: busy ? C.textDim : C.accent, fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', transition:'all .2s' }}>
                       {busy ? '...' : '✗ رفض'}
                     </button>
@@ -847,6 +853,13 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       </Modal>
 
       <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={async () => { await deleteWorkDay(confirmDel); setConfirmDel(null) }} message="حذف هذا اليوم؟" />
+
+      {/* ─── Reject with reason modal ─── */}
+      <Modal open={!!rejectTarget} onClose={() => { setRejectTarget(null); setRejectReason('') }} title="✗ رفض يوم العمل">
+        <div style={{ fontSize:13, color:C.textDim, marginBottom:14 }}>سيصل سبب الرفض للعامل في بوابته</div>
+        <Input label="سبب الرفض (اختياري)" value={rejectReason} onChange={v => setRejectReason(v)} />
+        <Btn onClick={confirmReject} full style={{ background:`${C.accent}cc`, marginTop:4 }}>✗ تأكيد الرفض</Btn>
+      </Modal>
 
       {/* ─── Worker detail panel ─── */}
       {workerDetail && (() => {
