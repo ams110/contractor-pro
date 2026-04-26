@@ -58,6 +58,10 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
   const [advSaving,  setAdvSaving]  = useState(false)
   const [advHistory, setAdvHistory] = useState(null)
 
+  // بحث وترتيب
+  const [search,  setSearch]  = useState('')
+  const [sortBy,  setSortBy]  = useState('name') // 'name' | 'owed' | 'rate'
+
   // نسخ رابط البوابة
   const [copied, setCopied] = useState(false)
 
@@ -200,6 +204,26 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         ))}
       </div>
 
+      {/* ── بحث وترتيب (تاب العمال فقط) ── */}
+      {tab === 'workers' && employees.length > 0 && (
+        <div style={{ display:'flex', gap:8, marginBottom:14 }}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="🔍 ابحث عن عامل..."
+            style={{ flex:1, padding:'9px 14px', borderRadius:12, border:`1.5px solid ${C.border}`, background:C.surface, color:C.text, fontSize:13, outline:'none', direction:'rtl' }}
+          />
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+            style={{ padding:'9px 10px', borderRadius:12, border:`1.5px solid ${C.border}`, background:C.surface, color:C.textDim, fontSize:12, outline:'none', cursor:'pointer' }}>
+            <option value="name">الاسم</option>
+            <option value="owed">المستحق</option>
+            <option value="rate">الراتب اليومي</option>
+          </select>
+        </div>
+      )}
+
       {tab === 'team' && (
         <TeamScreen
           teamMembers={teamMembers}
@@ -242,14 +266,25 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       )}
 
       {/* ── Worker List ── */}
-      {tab === 'workers' && (employees.length === 0
-        ? <EmptyState icon="👷" text="ما في عمال بعد — أضف أول عامل الآن" action="+ أضف عامل" onAction={openNew} />
-        : employees.map(w => {
-            const earned = workDays.filter(wd => wd.employee_id === w.id && wd.status === 'approved').reduce((s, wd) => s + wd.amount, 0)
-            const paid   = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
-            const wAdv   = advances.filter(a  => a.employee_id  === w.id).reduce((s, a)  => s + a.amount,  0)
-            const wExp   = expenses.filter(e  => e.employee_id  === w.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
-            const owed   = Math.max(0, earned + wExp - paid - wAdv)
+      {tab === 'workers' && (() => {
+        const withCalc = employees.map(w => {
+          const earned = workDays.filter(wd => wd.employee_id === w.id && wd.status === 'approved').reduce((s, wd) => s + wd.amount, 0)
+          const paid   = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
+          const wAdv   = advances.filter(a  => a.employee_id  === w.id).reduce((s, a)  => s + a.amount,  0)
+          const wExp   = expenses.filter(e  => e.employee_id  === w.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
+          return { ...w, _owed: Math.max(0, earned + wExp - paid - wAdv) }
+        })
+        const filtered = search.trim()
+          ? withCalc.filter(w => w.name.includes(search) || (w.specialization || '').includes(search))
+          : withCalc
+        const sorted = [...filtered].sort((a, b) =>
+          sortBy === 'owed' ? b._owed - a._owed :
+          sortBy === 'rate' ? b.daily_rate - a.daily_rate :
+          a.name.localeCompare(b.name, 'ar'))
+        if (employees.length === 0) return <EmptyState icon="👷" text="ما في عمال بعد — أضف أول عامل الآن" action="+ أضف عامل" onAction={openNew} />
+        if (sorted.length === 0) return <div style={{ textAlign:'center', color:C.textDim, padding:32, fontSize:13 }}>لا نتائج لـ "{search}"</div>
+        return sorted.map(w => {
+            const owed   = w._owed
             const specs_ = w.specialization ? w.specialization.split(',').map(s => s.trim()).filter(Boolean) : []
 
             return (
@@ -355,7 +390,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
               </GlassCard>
             )
           })
-      )}
+        })()}
 
       {/* ════════════════════════════════════
           Modal: إضافة / تعديل عامل
