@@ -157,6 +157,9 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
   const totalAdv = advances.reduce((s, a) => s + a.amount, 0)
   const totalOwed = Math.max(0, totalE + totalExp - totalP - totalAdv)
 
+  const showAmounts = permissions?.viewAmounts !== false
+  const fmtA = (v) => showAmounts ? `${fmt(v)}₪` : '---'
+
   return (
     <div className="fade-in" style={{ padding: 16, maxWidth: 520, margin: '0 auto' }}>
 
@@ -228,7 +231,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                   background: s.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text', textAlign: 'center', letterSpacing: '-0.5px',
                 }}>
-                  <AnimatedNumber value={s.value} suffix="₪" />
+                  {showAmounts ? <AnimatedNumber value={s.value} suffix="₪" /> : '---'}
                 </div>
               </div>
               <div style={{ height: 2, background: s.grad, borderRadius: '0 0 16px 16px' }} />
@@ -279,7 +282,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
                           }}>
-                            {fmt(owed)}₪ متبقي
+                            {fmtA(owed)} متبقي
                           </span>
                         )}
                       </div>
@@ -317,7 +320,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                       }}>
                         <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, marginBottom: 3 }}>{s.l}</div>
                         <div style={{ fontSize: 12, fontWeight: 800, color: s.c, fontFamily: 'monospace', letterSpacing: '-0.3px' }}>
-                          {fmt(s.v)}₪
+                          {fmtA(s.v)}
                         </div>
                       </div>
                     ))}
