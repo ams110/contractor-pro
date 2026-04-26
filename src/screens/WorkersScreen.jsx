@@ -32,7 +32,7 @@ function IconBtn({ icon, label, onClick, color = C.textDim, active, activeColor 
   )
 }
 
-export default function WorkersScreen({ employees, workDays, payments, advances = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, teamLoadError, reloadTeam }) {
+export default function WorkersScreen({ employees, workDays, payments, advances = [], expenses = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, teamLoadError, reloadTeam }) {
   const [tab,        setTab]        = useState('workers') // 'workers' | 'team'
   const [showForm,   setShowForm]   = useState(false)
   const [editing,    setEditing]    = useState(null)
@@ -151,10 +151,11 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
     }
   }
 
-  const totalE   = workDays.reduce((s, w) => s + w.amount, 0)
+  const totalE   = workDays.filter(w => w.status === 'approved').reduce((s, w) => s + w.amount, 0)
+  const totalExp = expenses.filter(e => e.employee_id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
   const totalP   = payments.reduce((s, p) => s + p.amount, 0)
   const totalAdv = advances.reduce((s, a) => s + a.amount, 0)
-  const totalOwed = Math.max(0, totalE - totalP - totalAdv)
+  const totalOwed = Math.max(0, totalE + totalExp - totalP - totalAdv)
 
   return (
     <div className="fade-in" style={{ padding: 16, maxWidth: 520, margin: '0 auto' }}>
@@ -240,10 +241,11 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       {tab === 'workers' && (employees.length === 0
         ? <EmptyState icon="👷" text="ما في عمال بعد — أضف أول عامل الآن" action="+ أضف عامل" onAction={openNew} />
         : employees.map(w => {
-            const earned = workDays.filter(wd => wd.employee_id === w.id).reduce((s, wd) => s + wd.amount, 0)
+            const earned = workDays.filter(wd => wd.employee_id === w.id && wd.status === 'approved').reduce((s, wd) => s + wd.amount, 0)
             const paid   = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
             const wAdv   = advances.filter(a  => a.employee_id  === w.id).reduce((s, a)  => s + a.amount,  0)
-            const owed   = Math.max(0, earned - paid - wAdv)
+            const wExp   = expenses.filter(e  => e.employee_id  === w.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
+            const owed   = Math.max(0, earned + wExp - paid - wAdv)
             const specs_ = w.specialization ? w.specialization.split(',').map(s => s.trim()).filter(Boolean) : []
 
             return (
@@ -302,10 +304,10 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                     marginBottom: 12,
                   }}>
                     {[
-                      { l: 'مستحق', v: earned, c: C.text,    bg: 'rgba(248,250,252,0.05)' },
-                      { l: 'مدفوع', v: paid,   c: C.success, bg: `${C.success}12` },
-                      { l: 'سلف',   v: wAdv,   c: C.warning, bg: `${C.warning}12` },
-                      { l: 'متبقي', v: owed,   c: owed > 0 ? C.accent : C.success, bg: owed > 0 ? `${C.accent}12` : `${C.success}12` },
+                      { l: 'مستحق', v: earned + wExp, c: C.text,    bg: 'rgba(248,250,252,0.05)' },
+                      { l: 'مدفوع', v: paid,         c: C.success, bg: `${C.success}12` },
+                      { l: 'سلف',   v: wAdv,         c: C.warning, bg: `${C.warning}12` },
+                      { l: 'متبقي', v: owed,         c: owed > 0 ? C.accent : C.success, bg: owed > 0 ? `${C.accent}12` : `${C.success}12` },
                     ].map((s, i) => (
                       <div key={i} style={{
                         textAlign: 'center', padding: '7px 4px',
