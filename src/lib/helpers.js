@@ -72,10 +72,12 @@ export function validateWorker(form) {
  * التحقق من صحة نموذج المصروف
  */
 export function validateExpense(form) {
-  if (!form.amount)                     return 'المبلغ مطلوب'
-  if (parseFloat(form.amount) <= 0)     return 'المبلغ يجب أن يكون أكبر من صفر'
-  if (!form.category)                   return 'التصنيف مطلوب'
-  if (!form.date)                       return 'التاريخ مطلوب'
+  if (!form.amount)                                  return 'المبلغ مطلوب'
+  const amt = parseFloat(form.amount)
+  if (isNaN(amt) || amt <= 0)                        return 'المبلغ يجب أن يكون أكبر من صفر'
+  if (amt > 9_999_999)                               return 'المبلغ يتجاوز الحد المسموح (9,999,999)'
+  if (!form.category)                                return 'التصنيف مطلوب'
+  if (!form.date)                                    return 'التاريخ مطلوب'
   return null
 }
 
@@ -83,9 +85,11 @@ export function validateExpense(form) {
  * التحقق من صحة نموذج الدفعة
  */
 export function validatePayment(form) {
-  if (!form.employee_id)                 return 'اختر العامل'
-  if (!form.amount)                      return 'المبلغ مطلوب'
-  if (parseFloat(form.amount) <= 0)      return 'المبلغ يجب أن يكون أكبر من صفر'
+  if (!form.employee_id)                             return 'اختر العامل'
+  if (!form.amount)                                  return 'المبلغ مطلوب'
+  const amt = parseFloat(form.amount)
+  if (isNaN(amt) || amt <= 0)                        return 'المبلغ يجب أن يكون أكبر من صفر'
+  if (amt > 9_999_999)                               return 'المبلغ يتجاوز الحد المسموح (9,999,999)'
   return null
 }
 

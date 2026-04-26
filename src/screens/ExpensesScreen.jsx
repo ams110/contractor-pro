@@ -111,7 +111,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
           <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{approvedExpenses.length} سجل</div>
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          {approvedExpenses.length > 0 && (
+          {permissions?.isOwner && approvedExpenses.length > 0 && (
             <button onClick={() => exportExpensesToExcel(approvedExpenses, projects)}
               style={{ padding:'8px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, fontSize:12, cursor:'pointer', fontWeight:600 }}>
               📊

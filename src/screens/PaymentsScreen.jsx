@@ -120,7 +120,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
           <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{payments.length} دفعة</div>
         </div>
         <div style={{ display:'flex', gap:8 }}>
-          {payments.length > 0 && (
+          {permissions?.isOwner && payments.length > 0 && (
             <button onClick={() => exportPaymentsToExcel(payments, employees)}
               style={{ padding:'8px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, fontSize:12, cursor:'pointer', fontWeight:600 }}>
               📊

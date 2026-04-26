@@ -376,7 +376,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                       />
                     )}
                     <IconBtn icon="📋" label="سجل" onClick={() => setAdvHistory(w)} />
-                    <IconBtn icon="📄" label="PDF" onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })} />
+                    {permissions?.isOwner && <IconBtn icon="📄" label="PDF" onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })} />}
                     <IconBtn icon="📊" label="إحصاء" onClick={() => setStatsWorker(w)} color={C.blue} activeColor={C.blue} />
                     <IconBtn icon="🔑" label="بيانات" onClick={() => openCreds(w)} color={C.purple} activeColor={C.purple} />
                     {permissions?.editWorkers !== false && (
