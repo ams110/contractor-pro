@@ -106,7 +106,7 @@ export default function App() {
 
   const uid = user?.id
 
-  const { teamMembers, permissions, effectiveOwnerId, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
+  const { teamMembers, permissions, effectiveOwnerId, allowedProjectIds, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
 
   const eid = effectiveOwnerId || uid
 
@@ -127,6 +127,12 @@ export default function App() {
   React.useEffect(() => {
     if (uid && !localStorage.getItem('cp_onboarded')) setShowOnboarding(true)
   }, [uid])
+
+  // ─── تصفية البيانات حسب المشاريع المسموح بها لعضو الفريق ────────────────
+  const visibleProjects      = allowedProjectIds ? projects.filter(p => allowedProjectIds.includes(p.id)) : projects
+  const visibleWorkDays      = allowedProjectIds ? workDays.filter(w => allowedProjectIds.includes(w.project_id)) : workDays
+  const visibleExpenses      = allowedProjectIds ? expenses.filter(e => allowedProjectIds.includes(e.project_id)) : expenses
+  const visibleClientReceipts = allowedProjectIds ? clientReceipts.filter(r => allowedProjectIds.includes(r.project_id)) : clientReceipts
 
   // ─── دوال الموافقة/الرفض مع إشعار توست ────────────────────────────────────
   const _approveWorkDay = id      => approveWorkDay(id).then(() => showToast('✓ تمت الموافقة على يوم العمل'))
@@ -188,14 +194,14 @@ export default function App() {
   // ─── الشاشة الحالية ──────────────────────────────────────────────────────
   const p = permissions
   function renderScreen() {
-    const commonData = { projects, employees, workDays, expenses, payments, clientReceipts }
+    const commonData = { projects: visibleProjects, employees, workDays: visibleWorkDays, expenses: visibleExpenses, payments, clientReceipts: visibleClientReceipts }
     switch (screen) {
       case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} />
-      case 'projects':  return p.viewProjects  ? <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} employees={employees} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />
-      case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={workDays} payments={payments} advances={advances} expenses={expenses} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} /> : <NoAccess />
-      case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} permissions={p} holidays={holidays} /> : <NoAccess />
-      case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={employees} userId={uid} permissions={p} businessType={businessType} /> : <NoAccess />
-      case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} expenses={expenses} projects={projects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />
+      case 'projects':  return p.viewProjects  ? <ProjectsScreen  projects={visibleProjects} workDays={visibleWorkDays} expenses={visibleExpenses} clientReceipts={visibleClientReceipts} employees={employees} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />
+      case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={visibleWorkDays} payments={payments} advances={advances} expenses={visibleExpenses} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} projects={projects} /> : <NoAccess />
+      case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={visibleWorkDays} employees={employees} projects={visibleProjects} addWorkDay={addWorkDay} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} permissions={p} holidays={holidays} /> : <NoAccess />
+      case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={visibleExpenses} projects={visibleProjects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={employees} userId={uid} permissions={p} businessType={businessType} /> : <NoAccess />
+      case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={visibleWorkDays} expenses={visibleExpenses} projects={visibleProjects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />
       case 'activity':  return (p.viewActivity || p.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />
       case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} setTaxEnabled={setTaxEnabled} setBusinessType={setBusinessType} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} />
       default:          return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
