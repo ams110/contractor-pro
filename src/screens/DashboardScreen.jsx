@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Legend } from 'recharts'
 import { C, GRAD, EXP_CATS, VAT, OSEK_PATUR_THRESHOLD } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, calcVATNet, calcBituachLeumi, calcBituachLeumiAnnual, estimateIncomeTax, pensionTaxSaving, isPaymentOverdue } from '../lib/helpers.js'
 import { StatCard, GlassCard, AnimatedNumber } from '../components/index.jsx'
@@ -58,11 +58,15 @@ function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, o
 }
 
 export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, permissions, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly, taxEnabled = true, businessType = 'osek_moreh' }) {
-  const [alertsExpanded, setAlertsExpanded] = useState(true)
-  const [showTax,        setShowTax]        = useState(false)
-  const [addingTax,      setAddingTax]      = useState(null)  // 'income_tax' | 'bituach_leumi' | null
-  const [taxForm,        setTaxForm]        = useState({ amount: '', date: todayStr(), period: '', notes: '' })
-  const [taxSaving,      setTaxSaving]      = useState(false)
+  const [alertsExpanded,    setAlertsExpanded]    = useState(true)
+  const [showTax,           setShowTax]           = useState(false)
+  const [addingTax,         setAddingTax]         = useState(null)
+  const [taxForm,           setTaxForm]           = useState({ amount: '', date: todayStr(), period: '', notes: '' })
+  const [taxSaving,         setTaxSaving]         = useState(false)
+  const [showCashFlow,      setShowCashFlow]      = useState(false)
+  const [showProfitability, setShowProfitability] = useState(false)
+  const [showMonthly,       setShowMonthly]       = useState(false)
+  const [showWorkerCost,    setShowWorkerCost]    = useState(false)
   const pieColors = [C.primary, C.blue, C.purple, C.orange, C.pink, C.cyan]
 
   const totalLabor    = workDays.reduce((s, w) => s + (w.amount || 0), 0)
@@ -118,6 +122,61 @@ export default function DashboardScreen({ projects, employees, workDays, expense
     })
     .filter(p => p.received > 0 && p.margin !== null)
     .sort((a, b) => b.margin - a.margin)[0]
+
+  // ─── بيانات التقارير ─────────────────────────────────────────────────────
+
+  // #79: التدفق النقدي الشهري (آخر 6 أشهر)
+  const cashFlowData = (() => {
+    const map = {}
+    ;(clientReceipts || []).forEach(r => {
+      const m = (r.date||'').slice(0,7)
+      if (m) { if (!map[m]) map[m] = { income:0, costs:0 }; map[m].income += r.amount || 0 }
+    })
+    workDays.filter(w => w.status === 'approved').forEach(w => {
+      const m = (w.date||'').slice(0,7)
+      if (m) { if (!map[m]) map[m] = { income:0, costs:0 }; map[m].costs += w.amount || 0 }
+    })
+    expenses.forEach(e => {
+      const m = (e.date||'').slice(0,7)
+      if (m) { if (!map[m]) map[m] = { income:0, costs:0 }; map[m].costs += e.amount || 0 }
+    })
+    return Object.entries(map).sort(([a],[b]) => a.localeCompare(b)).slice(-6)
+      .map(([m, d]) => ({ month: m.slice(5), income: Math.round(d.income), costs: Math.round(d.costs) }))
+  })()
+
+  // #75: ربحية المشاريع
+  const projectProfitability = projects.map(p => {
+    const rev    = (clientReceipts || []).filter(r => r.project_id === p.id).reduce((s,r) => s+(r.amount||0), 0)
+    const labor  = workDays.filter(w => w.project_id === p.id).reduce((s,w) => s+(w.amount||0), 0)
+    const exp    = expenses.filter(e => e.project_id === p.id).reduce((s,e) => s+(e.amount||0), 0)
+    const profit = rev - labor - exp
+    const margin = rev > 0 ? Math.round((profit / rev) * 100) : null
+    return { id:p.id, name:p.name, rev, costs: labor+exp, profit, margin }
+  }).filter(p => p.rev > 0 || p.costs > 0).sort((a,b) => (b.margin||0) - (a.margin||0))
+
+  // #76: مقارنة شهرية (آخر 6 أشهر)
+  const monthlyComparison = (() => {
+    const map = {}
+    ;(clientReceipts || []).forEach(r => {
+      const m = (r.date||'').slice(0,7); if (m) { if (!map[m]) map[m]={income:0,costs:0}; map[m].income += r.amount||0 }
+    })
+    workDays.filter(w => w.status==='approved').forEach(w => {
+      const m = (w.date||'').slice(0,7); if (m) { if (!map[m]) map[m]={income:0,costs:0}; map[m].costs += w.amount||0 }
+    })
+    expenses.forEach(e => {
+      const m = (e.date||'').slice(0,7); if (m) { if (!map[m]) map[m]={income:0,costs:0}; map[m].costs += e.amount||0 }
+    })
+    return Object.entries(map).sort(([a],[b]) => b.localeCompare(a)).slice(0,6)
+      .map(([m, d]) => ({ month: m, income: Math.round(d.income), costs: Math.round(d.costs), profit: Math.round(d.income - d.costs) }))
+  })()
+
+  // #77: تكاليف العمال
+  const workerCosts = employees.map(emp => {
+    const days   = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').length
+    const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s,w) => s+(w.amount||0), 0)
+    const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s,p) => s+(p.amount||0), 0)
+    return { id:emp.id, name:emp.name, days, earned, paid, owed: Math.max(0, earned-paid) }
+  }).filter(w => w.earned > 0 || w.paid > 0).sort((a,b) => b.earned - a.earned)
 
   // ─── پنسيه وضرائب ───────────────────────────────────────────────────────
   const annualNet       = Math.max(0, netProfit)
@@ -224,6 +283,14 @@ export default function DashboardScreen({ projects, employees, workDays, expense
     const days = Math.floor((new Date(today2) - new Date(p.end_date)) / 86400000)
     alerts.push({ text: `${p.name} — تجاوزت تاريخ الانتهاء بـ ${days} يوم`, color: C.accent, icon: '⏰', nav: 'projects', urgent: true })
   })
+
+  // #80: هامش الربح منخفض (< 20%)
+  if (totalReceived > 0) {
+    const overallMargin = (netProfit / totalReceived) * 100
+    if (overallMargin < 20 && overallMargin > -200) {
+      alerts.push({ text: `هامش الربح الإجمالي ${Math.round(overallMargin)}% — أقل من 20%`, color: overallMargin < 0 ? C.accent : C.warning, icon: overallMargin < 0 ? '🔴' : '📉', nav: null, urgent: overallMargin < 0 })
+    }
+  }
 
   // ترحيب للمستخدم الجديد
   if (!projects.length && !employees.length) {
@@ -387,6 +454,126 @@ export default function DashboardScreen({ projects, employees, workDays, expense
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ─── #79: التدفق النقدي ─── */}
+      {cashFlowData.length >= 2 && (
+        <div style={{ marginBottom:16 }}>
+          <button onClick={() => setShowCashFlow(v => !v)}
+            style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'13px 16px', background:`linear-gradient(90deg,${C.primary}18,${C.cyan}10)`, borderRadius:14, border:`1px solid ${C.primary}44`, cursor:'pointer', marginBottom: showCashFlow ? 10 : 0 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ width:28, height:28, borderRadius:8, background:`${C.primary}25`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>📈</div>
+              <span style={{ fontSize:13, fontWeight:800, color:C.text }}>التدفق النقدي الشهري</span>
+            </div>
+            <span style={{ fontSize:11, color:C.textDim, background:`${C.border}88`, borderRadius:8, padding:'3px 8px' }}>{showCashFlow ? '▲ إخفاء' : '▼ عرض'}</span>
+          </button>
+          {showCashFlow && (
+            <div style={{ background:C.card, borderRadius:14, border:`1px solid ${C.border}`, padding:'14px 8px' }}>
+              <div style={{ height:180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={cashFlowData} margin={{ top:4, right:4, left:-16, bottom:0 }} barGap={2}>
+                    <XAxis dataKey="month" tick={{ fill:C.textDim, fontSize:10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill:C.textDim, fontSize:9 }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `${Math.round(v/1000)}K` : v} />
+                    <Tooltip contentStyle={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:11 }} formatter={v => `${fmt(v)}₪`} />
+                    <Legend wrapperStyle={{ fontSize:10, color:C.textDim }} formatter={v => v === 'income' ? 'مقبوض' : 'تكاليف'} />
+                    <Bar dataKey="income" fill={C.primary} radius={[4,4,0,0]} maxBarSize={28} />
+                    <Bar dataKey="costs"  fill={C.accent}  radius={[4,4,0,0]} maxBarSize={28} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── #75: ربحية المشاريع ─── */}
+      {projectProfitability.length > 0 && showAmounts && (
+        <div style={{ marginBottom:16 }}>
+          <button onClick={() => setShowProfitability(v => !v)}
+            style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'13px 16px', background:`linear-gradient(90deg,${C.success}18,${C.primary}10)`, borderRadius:14, border:`1px solid ${C.success}44`, cursor:'pointer', marginBottom: showProfitability ? 10 : 0 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ width:28, height:28, borderRadius:8, background:`${C.success}25`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>🏗️</div>
+              <span style={{ fontSize:13, fontWeight:800, color:C.text }}>ربحية المشاريع</span>
+            </div>
+            <span style={{ fontSize:11, color:C.textDim, background:`${C.border}88`, borderRadius:8, padding:'3px 8px' }}>{showProfitability ? '▲ إخفاء' : '▼ عرض'}</span>
+          </button>
+          {showProfitability && (
+            <div style={{ background:C.card, borderRadius:14, border:`1px solid ${C.border}`, overflow:'hidden' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 70px 70px 44px', padding:'8px 12px', borderBottom:`1px solid ${C.border}` }}>
+                {['المشروع','مقبوض','تكاليف','هامش'].map(h => <div key={h} style={{ fontSize:9, color:C.textDim, fontWeight:700 }}>{h}</div>)}
+              </div>
+              {projectProfitability.map((p, i) => (
+                <div key={p.id} style={{ display:'grid', gridTemplateColumns:'1fr 70px 70px 44px', padding:'10px 12px', borderBottom: i < projectProfitability.length-1 ? `1px solid ${C.border}33` : 'none', alignItems:'center' }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', paddingLeft:4 }}>{p.name}</div>
+                  <div style={{ fontSize:11, fontFamily:'monospace', color:C.success, fontWeight:700 }}>{fmt(p.rev)}₪</div>
+                  <div style={{ fontSize:11, fontFamily:'monospace', color:C.accent,  fontWeight:700 }}>{fmt(p.costs)}₪</div>
+                  <div style={{ fontSize:11, fontWeight:900, color: p.margin === null ? C.textDim : p.margin >= 20 ? C.success : p.margin >= 0 ? C.warning : C.accent, textAlign:'center' }}>
+                    {p.margin !== null ? `${p.margin}%` : '—'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── #76: مقارنة شهرية ─── */}
+      {monthlyComparison.length >= 2 && showAmounts && (
+        <div style={{ marginBottom:16 }}>
+          <button onClick={() => setShowMonthly(v => !v)}
+            style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'13px 16px', background:`linear-gradient(90deg,${C.blue}18,${C.purple}10)`, borderRadius:14, border:`1px solid ${C.blue}44`, cursor:'pointer', marginBottom: showMonthly ? 10 : 0 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ width:28, height:28, borderRadius:8, background:`${C.blue}25`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>📅</div>
+              <span style={{ fontSize:13, fontWeight:800, color:C.text }}>مقارنة شهرية</span>
+            </div>
+            <span style={{ fontSize:11, color:C.textDim, background:`${C.border}88`, borderRadius:8, padding:'3px 8px' }}>{showMonthly ? '▲ إخفاء' : '▼ عرض'}</span>
+          </button>
+          {showMonthly && (
+            <div style={{ background:C.card, borderRadius:14, border:`1px solid ${C.border}`, overflow:'hidden' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'60px 1fr 1fr 1fr', padding:'8px 12px', borderBottom:`1px solid ${C.border}` }}>
+                {['الشهر','مقبوض','تكاليف','صافي'].map(h => <div key={h} style={{ fontSize:9, color:C.textDim, fontWeight:700 }}>{h}</div>)}
+              </div>
+              {monthlyComparison.map((m, i) => (
+                <div key={m.month} style={{ display:'grid', gridTemplateColumns:'60px 1fr 1fr 1fr', padding:'10px 12px', borderBottom: i < monthlyComparison.length-1 ? `1px solid ${C.border}33` : 'none', alignItems:'center' }}>
+                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600 }}>{m.month.slice(5)}/{m.month.slice(2,4)}</div>
+                  <div style={{ fontSize:11, fontFamily:'monospace', color:C.success, fontWeight:700 }}>{fmt(m.income)}</div>
+                  <div style={{ fontSize:11, fontFamily:'monospace', color:C.accent,  fontWeight:700 }}>{fmt(m.costs)}</div>
+                  <div style={{ fontSize:11, fontFamily:'monospace', color: m.profit >= 0 ? C.primary : C.accent, fontWeight:800 }}>{m.profit >= 0 ? '+' : ''}{fmt(m.profit)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── #77: تكاليف العمال ─── */}
+      {workerCosts.length > 0 && showAmounts && (
+        <div style={{ marginBottom:16 }}>
+          <button onClick={() => setShowWorkerCost(v => !v)}
+            style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'13px 16px', background:`linear-gradient(90deg,${C.orange}18,${C.warning}10)`, borderRadius:14, border:`1px solid ${C.orange}44`, cursor:'pointer', marginBottom: showWorkerCost ? 10 : 0 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ width:28, height:28, borderRadius:8, background:`${C.orange}25`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>👷</div>
+              <span style={{ fontSize:13, fontWeight:800, color:C.text }}>تكاليف العمال</span>
+            </div>
+            <span style={{ fontSize:11, color:C.textDim, background:`${C.border}88`, borderRadius:8, padding:'3px 8px' }}>{showWorkerCost ? '▲ إخفاء' : '▼ عرض'}</span>
+          </button>
+          {showWorkerCost && (
+            <div style={{ background:C.card, borderRadius:14, border:`1px solid ${C.border}`, overflow:'hidden' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 40px 70px 70px 65px', padding:'8px 12px', borderBottom:`1px solid ${C.border}` }}>
+                {['العامل','أيام','مستحق','مدفوع','متبقي'].map(h => <div key={h} style={{ fontSize:9, color:C.textDim, fontWeight:700 }}>{h}</div>)}
+              </div>
+              {workerCosts.map((w, i) => (
+                <div key={w.id} style={{ display:'grid', gridTemplateColumns:'1fr 40px 70px 70px 65px', padding:'10px 12px', borderBottom: i < workerCosts.length-1 ? `1px solid ${C.border}33` : 'none', alignItems:'center' }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', paddingLeft:4 }}>{w.name}</div>
+                  <div style={{ fontSize:11, color:C.textDim, fontWeight:600, textAlign:'center' }}>{w.days}</div>
+                  <div style={{ fontSize:11, fontFamily:'monospace', color:C.text,    fontWeight:700 }}>{fmt(w.earned)}</div>
+                  <div style={{ fontSize:11, fontFamily:'monospace', color:C.success,  fontWeight:700 }}>{fmt(w.paid)}</div>
+                  <div style={{ fontSize:11, fontFamily:'monospace', color: w.owed > 0 ? C.warning : C.success, fontWeight:800 }}>{fmt(w.owed)}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
