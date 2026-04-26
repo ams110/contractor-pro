@@ -30,6 +30,8 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
   function pickFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setFormError('حجم الملف يجب أن يكون أقل من 10MB'); return }
+    if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview)
     setReceiptFile(file)
     setScanMsg('')
     if (file.type.startsWith('image/')) setPreview(URL.createObjectURL(file))

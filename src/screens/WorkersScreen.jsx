@@ -540,7 +540,17 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         open={!!confirmDel}
         onClose={() => setConfirmDel(null)}
         onConfirm={async () => { await deleteEmployee(confirmDel); setConfirmDel(null) }}
-        message="حذف هذا العامل؟ لا يمكن التراجع عن هذا الإجراء."
+        message={(() => {
+          const w = employees.find(e => e.id === confirmDel)
+          if (!w) return 'حذف هذا العامل؟ لا يمكن التراجع.'
+          const earned = workDays.filter(d => d.employee_id === w.id && d.status === 'approved').reduce((s, d) => s + d.amount, 0)
+          const paid   = payments.filter(p => p.employee_id === w.id).reduce((s, p) => s + p.amount, 0)
+          const owed   = earned - paid
+          const hasDays = workDays.some(d => d.employee_id === w.id)
+          if (owed > 0) return `⚠️ ${w.name} عنده ${owed.toLocaleString()}₪ مستحقة غير مدفوعة. حذفه سيمسح كل سجلاته. متأكد؟`
+          if (hasDays)  return `حذف ${w.name}؟ سيتم مسح كل أيام عمله وسجلاته. لا يمكن التراجع.`
+          return `حذف ${w.name}؟ لا يمكن التراجع عن هذا الإجراء.`
+        })()}
       />
 
       {/* ════════════════════════════════════
