@@ -32,9 +32,7 @@ function IconBtn({ icon, label, onClick, color = C.textDim, active, activeColor 
   )
 }
 
-export default function WorkersScreen({ employees, workDays, payments, advances = [], expenses = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, teamLoadError, reloadTeam, projects = [], allowedProjectIds = null }) {
-  // عرض جزئي: عضو فريق مقيّد بمشاريع معينة → قد تكون دفعات العمال تشمل مشاريع غير مرئية
-  const isPartialView = !!allowedProjectIds
+export default function WorkersScreen({ employees, workDays, payments, advances = [], expenses = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, teamLoadError, reloadTeam, projects = [] }) {
   const [tab,        setTab]        = useState('workers') // 'workers' | 'team'
   const [showForm,   setShowForm]   = useState(false)
   const [editing,    setEditing]    = useState(null)
@@ -153,12 +151,10 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
     }
   }
 
-  const totalE    = workDays.filter(w => w.status === 'approved').reduce((s, w) => s + w.amount, 0)
-  const totalExp  = expenses.filter(e => e.employee_id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
-  const totalPRaw = payments.reduce((s, p) => s + p.amount, 0)
-  // في العرض الجزئي: نحدّ المدفوع بما لا يتجاوز المكتسب المرئي لتجنّب مدفوع > مستحق
-  const totalP    = isPartialView ? Math.min(totalPRaw, totalE + totalExp) : totalPRaw
-  const totalAdv  = advances.reduce((s, a) => s + a.amount, 0)
+  const totalE   = workDays.filter(w => w.status === 'approved').reduce((s, w) => s + w.amount, 0)
+  const totalExp = expenses.filter(e => e.employee_id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
+  const totalP   = payments.reduce((s, p) => s + p.amount, 0)
+  const totalAdv = advances.reduce((s, a) => s + a.amount, 0)
   const totalOwed = Math.max(0, totalE + totalExp - totalP - totalAdv)
 
   const showAmounts = permissions?.viewAmounts !== false
@@ -249,15 +245,11 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       {tab === 'workers' && (employees.length === 0
         ? <EmptyState icon="👷" text="ما في عمال بعد — أضف أول عامل الآن" action="+ أضف عامل" onAction={openNew} />
         : employees.map(w => {
-            const earned   = workDays.filter(wd => wd.employee_id === w.id && wd.status === 'approved').reduce((s, wd) => s + wd.amount, 0)
-            const paidRaw  = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
-            const wAdv     = advances.filter(a  => a.employee_id  === w.id).reduce((s, a)  => s + a.amount,  0)
-            const wExp     = expenses.filter(e  => e.employee_id  === w.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
-            const visTotal = earned + wExp
-            // في العرض الجزئي: العامل قد يكون مدفوعاً أكثر بسبب مشاريع غير مرئية → نحدّ العرض فقط
-            const paid     = isPartialView ? Math.min(paidRaw, visTotal) : paidRaw
-            const isShared = isPartialView && paidRaw > visTotal
-            const owed     = Math.max(0, visTotal - paid - wAdv)
+            const earned = workDays.filter(wd => wd.employee_id === w.id && wd.status === 'approved').reduce((s, wd) => s + wd.amount, 0)
+            const paid   = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
+            const wAdv   = advances.filter(a  => a.employee_id  === w.id).reduce((s, a)  => s + a.amount,  0)
+            const wExp   = expenses.filter(e  => e.employee_id  === w.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
+            const owed   = Math.max(0, earned + wExp - paid - wAdv)
             const specs_ = w.specialization ? w.specialization.split(',').map(s => s.trim()).filter(Boolean) : []
 
             return (
@@ -282,7 +274,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
 
                     {/* Name + rate + specs */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                         <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{w.name}</span>
                         {owed > 0 && (
                           <span style={{
@@ -292,11 +284,6 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                             backgroundClip: 'text',
                           }}>
                             {fmtA(owed)} متبقي
-                          </span>
-                        )}
-                        {isShared && (
-                          <span style={{ fontSize: 9, fontWeight: 700, color: C.textDim, background: 'rgba(255,255,255,0.07)', border: `1px solid ${C.border}`, borderRadius: 6, padding: '2px 6px' }}>
-                            🔀 مشاريع متعددة
                           </span>
                         )}
                       </div>
@@ -321,10 +308,10 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                     marginBottom: 12,
                   }}>
                     {[
-                      { l: 'مستحق', v: visTotal, c: C.text,    bg: 'rgba(248,250,252,0.05)' },
-                      { l: isShared ? 'مدفوع*' : 'مدفوع', v: paid, c: C.success, bg: `${C.success}12` },
-                      { l: 'سلف',   v: wAdv,    c: C.warning, bg: `${C.warning}12` },
-                      { l: 'متبقي', v: owed,    c: owed > 0 ? C.accent : C.success, bg: owed > 0 ? `${C.accent}12` : `${C.success}12` },
+                      { l: 'مستحق', v: earned + wExp, c: C.text,    bg: 'rgba(248,250,252,0.05)' },
+                      { l: 'مدفوع', v: paid,          c: C.success, bg: `${C.success}12` },
+                      { l: 'سلف',   v: wAdv,          c: C.warning, bg: `${C.warning}12` },
+                      { l: 'متبقي', v: owed,          c: owed > 0 ? C.accent : C.success, bg: owed > 0 ? `${C.accent}12` : `${C.success}12` },
                     ].map((s, i) => (
                       <div key={i} style={{
                         textAlign: 'center', padding: '7px 4px',
