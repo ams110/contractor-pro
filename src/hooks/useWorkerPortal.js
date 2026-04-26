@@ -177,10 +177,11 @@ export function useWorkerPortal() {
     return Object.entries(map).sort(([a], [b]) => b.localeCompare(a))
   })()
 
-  const totalEarned = workDays.filter(d => d.status === 'approved').reduce((s, d) => s + (d.amount || 0), 0)
-  const totalPaid   = payments.reduce((s, p) => s + (p.amount || 0), 0)
-  const totalOwed   = Math.max(0, totalEarned - totalPaid)
-  const pendingDays = workDays.filter(d => d.status === 'pending')
+  const totalEarned   = workDays.filter(d => d.status === 'approved').reduce((s, d) => s + (d.amount || 0), 0)
+  const totalExpenses = workerExpenses.filter(e => e.status === 'approved').reduce((s, e) => s + (e.amount || 0), 0)
+  const totalPaid     = payments.reduce((s, p) => s + (p.amount || 0), 0)
+  const totalOwed     = Math.max(0, totalEarned + totalExpenses - totalPaid)
+  const pendingDays   = workDays.filter(d => d.status === 'pending')
 
   async function changePassword(oldPass, newPass) {
     const session = loadSession()
@@ -202,7 +203,7 @@ export function useWorkerPortal() {
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
     login, logout, submitWorkDay, submitExpense, changePassword, requestPayment,
     refetch: () => worker?.id && loadData(worker.id),
-    monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
+    monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalOwed, pendingDays,
   }
 }
 

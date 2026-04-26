@@ -26,7 +26,8 @@ function fmtMonth(yyyymm) {
   return `${MONTHS_AR[parseInt(m, 10) - 1]} ${y}`
 }
 
-function SummaryCard({ earned, paid, owed, pendingCount }) {
+function SummaryCard({ earned, expenses, paid, owed, pendingCount }) {
+  const totalDue = earned + expenses
   return (
     <div style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderRadius: 20, border: `1px solid ${C.borderMid}`, marginBottom: 16, overflow: 'hidden' }}>
       <div style={{ height: 3, background: owed > 0 ? GRAD.danger : GRAD.success }} />
@@ -34,9 +35,9 @@ function SummaryCard({ earned, paid, owed, pendingCount }) {
         <div style={{ fontSize: 11, color: C.textDim, marginBottom: 12, fontWeight: 700, letterSpacing: '0.04em' }}>الملخص المالي الإجمالي</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           {[
-            { l: 'مستحق إجمالي', v: `${fmt(earned)}₪`, c: C.text },
-            { l: 'واصل',         v: `${fmt(paid)}₪`,   c: C.success },
-            { l: 'ضايل',         v: `${fmt(owed)}₪`,   c: owed > 0 ? C.accent : C.success },
+            { l: 'مستحق إجمالي', v: `${fmt(totalDue)}₪`, c: C.text },
+            { l: 'واصل',         v: `${fmt(paid)}₪`,     c: C.success },
+            { l: 'ضايل',         v: `${fmt(owed)}₪`,     c: owed > 0 ? C.accent : C.success },
           ].map(s => (
             <div key={s.l} style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 9, color: C.textDim, marginBottom: 4, fontWeight: 600 }}>{s.l}</div>
@@ -44,12 +45,18 @@ function SummaryCard({ earned, paid, owed, pendingCount }) {
             </div>
           ))}
         </div>
+        {expenses > 0 && (
+          <div style={{ marginTop: 8, padding: '6px 12px', background: `${C.warning}12`, borderRadius: 10, fontSize: 11, color: C.warning, fontWeight: 700, textAlign: 'center', border: `1px solid ${C.warning}22`, display: 'flex', justifyContent: 'space-between' }}>
+            <span>💸 مصاريف معتمدة مستحقة</span>
+            <span>{fmt(expenses)}₪</span>
+          </div>
+        )}
         {pendingCount > 0 && (
-          <div style={{ marginTop: 10, padding: '8px 12px', background: `${C.warning}18`, borderRadius: 10, fontSize: 12, color: C.warning, fontWeight: 700, textAlign: 'center', border: `1px solid ${C.warning}33` }}>
+          <div style={{ marginTop: 8, padding: '8px 12px', background: `${C.warning}18`, borderRadius: 10, fontSize: 12, color: C.warning, fontWeight: 700, textAlign: 'center', border: `1px solid ${C.warning}33` }}>
             ⏳ {pendingCount} يوم بانتظار موافقة المشرف
           </div>
         )}
-        {owed === 0 && earned > 0 && pendingCount === 0 && (
+        {owed === 0 && totalDue > 0 && pendingCount === 0 && (
           <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12, color: C.success, fontWeight: 700 }}>
             ✓ مسدد بالكامل
           </div>
@@ -831,7 +838,7 @@ export default function WorkerPortalScreen() {
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
     login, logout, submitWorkDay, submitExpense, changePassword, requestPayment,
-    monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
+    monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalOwed, pendingDays,
   } = useWorkerPortal()
 
   const holidaySet = new Set((holidays || []).map(h => String(h.date).slice(0, 10)))
@@ -892,7 +899,7 @@ export default function WorkerPortalScreen() {
 
       <div style={{ padding: 16, paddingBottom: 32 }}>
         {/* ملخص إجمالي */}
-        <SummaryCard earned={totalEarned} paid={totalPaid} owed={totalOwed} pendingCount={pendingDays.length} />
+        <SummaryCard earned={totalEarned} expenses={totalExpenses} paid={totalPaid} owed={totalOwed} pendingCount={pendingDays.length} />
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 4 }}>
