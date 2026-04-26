@@ -131,10 +131,16 @@ export default function App() {
   // ─── تصفية البيانات حسب المشاريع المسموح بها لعضو الفريق ────────────────
   const visibleProjects       = allowedProjectIds ? projects.filter(p => allowedProjectIds.includes(p.id)) : projects
   const visibleWorkDays       = allowedProjectIds ? workDays.filter(w => allowedProjectIds.includes(w.project_id)) : workDays
-  const visibleExpenses       = allowedProjectIds ? expenses.filter(e => allowedProjectIds.includes(e.project_id)) : expenses
   const visibleClientReceipts = allowedProjectIds ? clientReceipts.filter(r => allowedProjectIds.includes(r.project_id)) : clientReceipts
   // العمال المرئيون: فقط من لهم أيام عمل على المشاريع المسموح بها
   const visibleEmployeeIds    = allowedProjectIds ? new Set(visibleWorkDays.map(w => w.employee_id)) : null
+  // مصاريف العمال (employee_id موجود) → مرئية إذا العامل مرئي بغض النظر عن المشروع
+  // مصاريف المشروع العامة (بدون employee_id) → مرئية إذا المشروع مسموح به
+  const visibleExpenses       = allowedProjectIds
+    ? expenses.filter(e => e.employee_id
+        ? visibleEmployeeIds.has(e.employee_id)
+        : allowedProjectIds.includes(e.project_id))
+    : expenses
   const visibleEmployees      = visibleEmployeeIds ? employees.filter(e => visibleEmployeeIds.has(e.id)) : employees
   // المدفوعات والسلف: فقط للعمال المرئيين
   const visiblePayments       = visibleEmployeeIds ? payments.filter(p => visibleEmployeeIds.has(p.employee_id)) : payments
