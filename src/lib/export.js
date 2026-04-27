@@ -373,3 +373,101 @@ export function exportWorkerSalaryPDF({ worker, workDays, payments }) {
 
   doc.save(`${worker.name}-salary-${new Date().toISOString().slice(0,10)}.pdf`)
 }
+
+// #23: Worker employment contract PDF
+export function exportWorkerContractPDF({ worker, ownerName = '', contractorNumber = '' }) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  doc.setFont('helvetica')
+  const today = new Date().toLocaleDateString('en-GB')
+
+  // Header bar
+  doc.setFillColor(0, 212, 170)
+  doc.rect(0, 0, 210, 28, 'F')
+  doc.setFontSize(16)
+  doc.setTextColor(255)
+  doc.text('Contractor Pro - Employment Contract', 105, 11, { align: 'center' })
+  doc.setFontSize(9)
+  doc.text(`عقد توظيف / Employment Agreement  |  ${today}`, 105, 20, { align: 'center' })
+
+  // Worker info box
+  doc.setFillColor(245, 248, 252)
+  doc.roundedRect(14, 34, 182, 38, 3, 3, 'F')
+  doc.setFontSize(9)
+  doc.setTextColor(120)
+  doc.text('Worker / العامل', 190, 42, { align: 'right' })
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(30)
+  doc.text(worker.name, 190, 51, { align: 'right' })
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(100)
+  const infoLine = [worker.phone ? `Tel: ${worker.phone}` : '', worker.id_number ? `ID / ת.ז: ${worker.id_number}` : ''].filter(Boolean).join('   ')
+  if (infoLine) doc.text(infoLine, 190, 59, { align: 'right' })
+  if (worker.specialization) doc.text(`Specialization: ${worker.specialization}`, 18, 59)
+
+  // Section title
+  let y = 82
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(40)
+  doc.text('Contract Terms / شروط العقد', 105, y, { align: 'center' })
+  y += 8
+
+  // Terms table
+  const terms = [
+    ['Daily Rate / الأجر اليومي', `${worker.daily_rate} ILS`],
+    ['Start Date / تاريخ البدء', today],
+    ['Payment / طريقة الدفع', 'Cash / نقداً'],
+    ['Status / الحالة', worker.status || 'Active / نشط'],
+    ['Rating / التقييم', worker.performance_rating ? '★'.repeat(worker.performance_rating) + '☆'.repeat(5 - worker.performance_rating) : 'N/A'],
+  ]
+  doc.setFont('helvetica', 'normal')
+  terms.forEach(([label, value], i) => {
+    const bg = i % 2 === 0 ? [248, 249, 252] : [255, 255, 255]
+    doc.setFillColor(...bg)
+    doc.rect(14, y - 4, 182, 10, 'F')
+    doc.setFontSize(9)
+    doc.setTextColor(80)
+    doc.text(label, 18, y + 2)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(30)
+    doc.text(value, 190, y + 2, { align: 'right' })
+    doc.setFont('helvetica', 'normal')
+    y += 10
+  })
+
+  // Contract clauses
+  y += 8
+  doc.setDrawColor(220)
+  doc.line(14, y, 196, y)
+  y += 6
+  doc.setFontSize(8)
+  doc.setTextColor(100)
+  const clauses = [
+    '1. The worker agrees to perform the assigned work professionally and punctually.',
+    '2. Payment is based on approved working days at the agreed daily rate.',
+    '3. Advances are deducted from the total due amount.',
+    '4. Either party may terminate this agreement with 7 days written notice.',
+    '5. This contract is governed by applicable Israeli labor law.',
+  ]
+  clauses.forEach(c => { doc.text(c, 14, y); y += 7 })
+
+  // Signatures
+  y += 10
+  doc.setFontSize(9)
+  doc.setTextColor(80)
+  doc.line(14, y + 12, 88, y + 12)
+  doc.line(122, y + 12, 196, y + 12)
+  doc.text('Worker Signature / توقيع العامل', 51, y + 18, { align: 'center' })
+  doc.text(`Employer / صاحب العمل${ownerName ? '\n' + ownerName : ''}`, 159, y + 18, { align: 'center' })
+
+  // Footer
+  doc.setFontSize(7)
+  doc.setTextColor(160)
+  const footer = `Contractor Pro${contractorNumber ? ' • License: ' + contractorNumber : ''} • Generated ${today}`
+  doc.text(footer, 105, 288, { align: 'center' })
+
+  doc.save(`${worker.name}-contract-${new Date().toISOString().slice(0, 10)}.pdf`)
+}
