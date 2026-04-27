@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis
 import { C, GRAD, EXP_CATS, VAT, OSEK_PATUR_THRESHOLD } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, calcVATNet, calcBituachLeumi, calcBituachLeumiAnnual, estimateIncomeTax, pensionTaxSaving, isPaymentOverdue } from '../lib/helpers.js'
 import { StatCard, GlassCard, AnimatedNumber } from '../components/index.jsx'
+import TaxDashboard from '../components/TaxDashboard.jsx'
 
 function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, onDelete, hint }) {
   const [open, setOpen] = useState(false)
@@ -57,7 +58,7 @@ function TaxAdvanceBlock({ title, icon, color, estimate, paid, records, onAdd, o
   )
 }
 
-export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, permissions, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly, taxEnabled = true, businessType = 'osek_moreh' }) {
+export default function DashboardScreen({ projects, employees, workDays, expenses, payments, clientReceipts, onNav, permissions, taxAdvances = [], addTaxAdvance, deleteTaxAdvance, pensionMonthly = 0, setPensionMonthly, taxEnabled = true, businessType = 'osek_moreh', taxModules = {} }) {
   const [filterProjId,      setFilterProjId]      = useState(null)
   const [alertsExpanded,    setAlertsExpanded]    = useState(true)
   const [showTax,           setShowTax]           = useState(false)
@@ -605,151 +606,30 @@ export default function DashboardScreen({ projects, employees, workDays, expense
         </div>
       )}
 
-      {/* ─── قسم الضرائب ─── */}
-      {taxEnabled && <div style={{ marginBottom:16 }}>
-        <button onClick={() => setShowTax(t => !t)}
-          style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'13px 16px', background:`linear-gradient(90deg,${C.purple}18,${C.blue}10)`, borderRadius:14, border:`1px solid ${C.purple}44`, cursor:'pointer', marginBottom: showTax ? 10 : 0, transition:'all .2s' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+      {/* ─── المحاسب الضريبي ─── */}
+      {taxEnabled && (
+        <div style={{ marginBottom:16 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, padding:'12px 16px', background:`linear-gradient(90deg,${C.purple}18,${C.blue}10)`, borderRadius:14, border:`1px solid ${C.purple}44` }}>
             <div style={{ width:28, height:28, borderRadius:8, background:`${C.purple}25`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14 }}>🇮🇱</div>
-            <span style={{ fontSize:13, fontWeight:800, color:C.text }}>ملخص الضرائب الإسرائيلية</span>
+            <span style={{ fontSize:13, fontWeight:800, color:C.text }}>المحاسب الضريبي</span>
           </div>
-          <span style={{ fontSize:11, color:C.textDim, background:`${C.border}88`, borderRadius:8, padding:'3px 8px' }}>{showTax ? '▲ إخفاء' : '▼ عرض'}</span>
-        </button>
-
-        {showTax && (
-          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            {/* نوع العيسك */}
-            <div style={{ padding:'10px 14px', background:`${C.purple}12`, borderRadius:12, border:`1px solid ${C.purple}33`, fontSize:11, color:C.purple, fontWeight:700 }}>
-              {businessType === 'osek_patur' ? '🏷️ עוסק פטור — معفى من الضريبة على القيمة المضافة' : '🏷️ עוסק מורשה — ملزم بـ מע"מ'}
-            </div>
-
-            {/* VAT — فقط لـ עוסק מורשה */}
-            {businessType !== 'osek_patur' && <div style={{ padding:'14px', background:C.card, borderRadius:14, border:`1px solid ${C.border}`, position:'relative', overflow:'hidden' }}>
-              <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:`linear-gradient(90deg,${C.success},${C.primary})` }} />
-              <div style={{ fontSize:12, fontWeight:800, color:C.text, marginBottom:12 }}>
-                {'💳 מע"מ לתשלום'} <span style={{ fontSize:10, color:C.textDim, fontWeight:500 }}>(شهرين الأخيرين)</span>
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
-                {[
-                  { l:'VAT محصّل', v:`${fmt(vatData.vatOut)}₪`, c:C.success },
-                  { l:'VAT مدفوع', v:`${fmt(vatData.vatIn)}₪`,  c:C.primary },
-                  { l:'الصافي',    v:`${fmt(vatData.net)}₪`,    c:vatData.net > 0 ? C.accent : C.success },
-                ].map(s => (
-                  <div key={s.l} style={{ textAlign:'center', padding:'9px 4px', background:'rgba(255,255,255,0.04)', borderRadius:10, border:'1px solid rgba(255,255,255,0.07)' }}>
-                    <div style={{ fontSize:9, color:C.textDim, marginBottom:4, fontWeight:600 }}>{s.l}</div>
-                    <div style={{ fontSize:13, fontWeight:900, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
-                  </div>
-                ))}
-              </div>
-              {vatData.net > 0 && (
-                <div style={{ marginTop:10, padding:'8px 12px', background:`${C.accent}15`, borderRadius:10, fontSize:11, color:C.accent, fontWeight:600 }}>
-                  {'⚠ يجب دفع '}{fmt(vatData.net)}{'₪ מע"מ للضريبة'}
-                </div>
-              )}
-            </div>}
-
-            {/* עוסק פטור — الحد السنوي يظهر دائماً */}
-            <div style={{ padding:'14px', background:C.card, borderRadius:14, border:`1px solid ${C.border}` }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-                <div style={{ fontSize:12, fontWeight:800, color:C.text }}>{'עוסק פטור'} — الحد السنوي</div>
-                <div style={{ fontSize:11, color: thresholdPct >= 95 ? C.accent : thresholdPct >= 80 ? C.warning : C.textDim, fontWeight:700 }}>{thresholdPct}%</div>
-              </div>
-              <div style={{ height:10, background:`${C.border}66`, borderRadius:5, overflow:'hidden' }}>
-                <div style={{ height:'100%', width:`${thresholdPct}%`, borderRadius:5, background: thresholdPct >= 95 ? `linear-gradient(90deg,${C.accent},#FF8A80)` : thresholdPct >= 80 ? `linear-gradient(90deg,${C.warning},${C.orange})` : `linear-gradient(90deg,${C.success},${C.primary})`, transition:'width .6s cubic-bezier(0.34,1.56,0.64,1)' }} />
-              </div>
-              <div style={{ display:'flex', justifyContent:'space-between', marginTop:6, fontSize:10, color:C.textDim }}>
-                <span>{fmt(yearRevenue)}₪</span><span>/ {fmt(OSEK_PATUR_THRESHOLD)}₪</span>
-              </div>
-              {thresholdPct >= 80 && (
-                <div style={{ marginTop:8, padding:'8px 12px', background:`${thresholdPct >= 95 ? C.accent : C.warning}15`, borderRadius:10, fontSize:11, color: thresholdPct >= 95 ? C.accent : C.warning, fontWeight:600 }}>
-                  {thresholdPct >= 95 ? '🚨 وصلت للحد! استشر محاسبك' : '⚠ اقتربت من الحد — تنبّه'}
-                </div>
-              )}
-            </div>
-
-            {/* פנסיה */}
-            <div style={{ padding:'14px', background:C.card, borderRadius:14, border:`1px solid ${C.purple}55` }}>
-              <div style={{ fontSize:12, fontWeight:800, color:C.text, marginBottom:4 }}>{'🏦 פנסיה'} — خصم من ضريبة الدخل</div>
-              <div style={{ fontSize:9, color:C.textMuted, marginBottom:12 }}>حتى 16% من الدخل قابل للخصم (2024)</div>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                <label style={{ fontSize:11, color:C.textDim, whiteSpace:'nowrap', fontWeight:600 }}>قسط شهري:</label>
-                <input type="number" min="0" value={pensionMonthly || ''} onChange={e => setPensionMonthly && setPensionMonthly(e.target.value)} placeholder="0"
-                  style={{ flex:1, padding:'9px 12px', borderRadius:10, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:14, fontWeight:700, fontFamily:'monospace', outline:'none', boxSizing:'border-box' }} />
-                <span style={{ fontSize:11, color:C.textDim }}>₪/شهر</span>
-              </div>
-              {pensionAnnual > 0 && (
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
-                  {[
-                    { l:'سنوياً',    v:`${fmt(pensionAnnual)}₪`, c:C.text },
-                    { l:'معترف به', v:`${fmt(pensionActual)}₪`, c:pensionActual < pensionAnnual ? C.warning : C.success },
-                    { l:'وفر ضريبي', v:`${fmt(pensionSaving)}₪`, c:C.success },
-                  ].map(s => (
-                    <div key={s.l} style={{ textAlign:'center', padding:'9px 4px', background:'rgba(255,255,255,0.04)', borderRadius:10, border:'1px solid rgba(255,255,255,0.07)' }}>
-                      <div style={{ fontSize:9, color:C.textDim, marginBottom:4, fontWeight:600 }}>{s.l}</div>
-                      <div style={{ fontSize:12, fontWeight:900, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {pensionAnnual > 0 && pensionActual < pensionAnnual && (
-                <div style={{ marginTop:8, padding:'8px 12px', background:`${C.warning}15`, borderRadius:10, fontSize:10, color:C.warning }}>
-                  {'⚠ الحد المعترف به 16% من دخلك ('}{fmt(pensionMaxAllowed)}{'₪)'}
-                </div>
-              )}
-              {pensionAnnual > 0 && pensionSaving > 0 && (
-                <div style={{ marginTop:6, padding:'8px 12px', background:`${C.success}15`, borderRadius:10, fontSize:10, color:C.success, fontWeight:600 }}>
-                  {'✓ الپنسيه توفّر لك '}{fmt(pensionSaving)}{'₪ من الضريبة'}
-                </div>
-              )}
-              {!pensionMonthly && (
-                <div style={{ padding:'8px 12px', background:`${C.blue}15`, borderRadius:10, fontSize:10, color:C.blue }}>
-                  {'💡 لو بتدفع پنسيه، أدخل المبلغ وشوف كم بتوفر'}
-                </div>
-              )}
-            </div>
-
-            <TaxAdvanceBlock title="מס הכנסה — ضريبة الدخل" icon="📋" color={C.blue} estimate={itEstimate} paid={itPaidYear}
-              records={taxAdvances.filter(a => a.type === 'income_tax' && (a.date||'').startsWith(thisYear))}
-              onAdd={() => { setAddingTax('income_tax'); setTaxForm({ amount: '', date: todayStr(), period: todayStr().slice(0,7), notes: '' }) }}
-              onDelete={deleteTaxAdvance} hint="شرائح 2024" />
-
-            <TaxAdvanceBlock title="ביטוח לאומי + בריאות" icon="🏥" color={C.warning} estimate={blEstimate} paid={blPaidYear}
-              records={taxAdvances.filter(a => a.type === 'bituach_leumi' && (a.date||'').startsWith(thisYear))}
-              onAdd={() => { setAddingTax('bituach_leumi'); setTaxForm({ amount: '', date: todayStr(), period: todayStr().slice(0,7), notes: '' }) }}
-              onDelete={deleteTaxAdvance} hint="9.82% / 16.23%" />
-          </div>
-        )}
-      </div>}
-
-      {/* ─── مودال مقدمة ضريبية ─── */}
-      {addingTax && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(10px)', zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center' }} onClick={() => setAddingTax(null)}>
-          <div className="slide-up" style={{ width:'100%', maxWidth:430, background:C.surface, borderRadius:'28px 28px 0 0', padding:24, paddingBottom:36, boxShadow:'0 -12px 50px rgba(0,0,0,0.6)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display:'flex', justifyContent:'center', marginBottom:12 }}>
-              <div style={{ width:40, height:4, borderRadius:2, background:C.border }} />
-            </div>
-            <div style={{ fontSize:15, fontWeight:800, color:C.text, marginBottom:20 }}>
-              {addingTax === 'income_tax' ? '📋 دفعة מס הכנסה' : '🏥 דפعة ביטוח לאומי'}
-            </div>
-            {[
-              { label:'المبلغ (₪) *', key:'amount', type:'number', placeholder:'0' },
-              { label:'التاريخ',      key:'date',   type:'date' },
-              { label:'الفترة (2024-01)', key:'period', type:'text', placeholder:'YYYY-MM' },
-            ].map(f => (
-              <div key={f.key} style={{ marginBottom:12 }}>
-                <label style={{ fontSize:11, color:C.textDim, display:'block', marginBottom:5, fontWeight:600 }}>{f.label}</label>
-                <input type={f.type} value={taxForm[f.key]} placeholder={f.placeholder} min={f.type === 'number' ? 1 : undefined}
-                  onChange={e => setTaxForm(p => ({ ...p, [f.key]: e.target.value }))}
-                  style={{ width:'100%', padding:'12px 14px', borderRadius:12, border:`1.5px solid ${C.border}`, background:C.card, color:C.text, fontSize:15, fontWeight:700, boxSizing:'border-box', outline:'none' }} />
-              </div>
-            ))}
-            <button onClick={saveTaxAdvance} disabled={taxSaving || !taxForm.amount}
-              style={{ width:'100%', padding:14, borderRadius:14, background: !taxForm.amount ? C.border : `linear-gradient(135deg,${C.primary},#0EA5E9)`, border:'none', color: !taxForm.amount ? C.textDim : C.bg, fontSize:15, fontWeight:800, cursor: taxForm.amount ? 'pointer' : 'default', boxShadow: taxForm.amount ? `0 6px 20px ${C.primary}44` : 'none', transition:'all .2s' }}>
-              {taxSaving ? 'جاري الحفظ...' : '✓ سجّل الدفعة'}
-            </button>
-          </div>
+          <TaxDashboard
+            employees={employees}
+            payments={payments}
+            clientReceipts={clientReceipts}
+            expenses={expenses}
+            taxAdvances={taxAdvances}
+            addTaxAdvance={addTaxAdvance}
+            deleteTaxAdvance={deleteTaxAdvance}
+            pensionMonthly={pensionMonthly}
+            setPensionMonthly={setPensionMonthly}
+            businessType={businessType}
+            taxModules={taxModules}
+            compact={false}
+          />
         </div>
       )}
+
     </div>
   )
 }
