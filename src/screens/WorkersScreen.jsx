@@ -104,7 +104,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
     }
   }
 
-  const emptyForm = { name:'', phone:'', specialization:'', daily_rate:'', status:'نشط', can_submit_expenses: true, can_request_payment: true }
+  const emptyForm = { name:'', phone:'', specialization:'', daily_rate:'', status:'نشط', can_submit_expenses: true, can_request_payment: true, id_number: '' }
   const [form, setForm] = useState(emptyForm)
 
   function f(key) { return v => setForm(prev => ({ ...prev, [key]: v })) }
@@ -397,7 +397,10 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       ════════════════════════════════════ */}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? '✏️ تعديل عامل' : '👷 عامل جديد'}>
         <Input label="الاسم"             value={form.name}       onChange={f('name')}       required />
-        <Input label="التلفون"           value={form.phone}      onChange={f('phone')}      type="tel" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <Input label="التلفون"           value={form.phone}      onChange={f('phone')}      type="tel" />
+          <Input label="رقم الهوية ת.ז (اختياري)" value={form.id_number || ''} onChange={f('id_number')} />
+        </div>
         <Input label="الأجر اليومي (₪)" value={form.daily_rate} onChange={f('daily_rate')} type="number" min="1" required />
 
         {/* اختيار التخصصات */}
@@ -683,6 +686,8 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         onClose={() => setStatsWorker(null)}
         worker={statsWorker}
         workDays={workDays}
+        payments={payments}
+        advances={advances}
         holidays={holidays || []}
         addHoliday={addHoliday}
         deleteHoliday={deleteHoliday}

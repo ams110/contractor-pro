@@ -314,6 +314,53 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
         </div>
       </div>
 
+      {/* ─── Today's Attendance ─── */}
+      {(() => {
+        const today = todayStr()
+        const todayDays = workDays.filter(wd => String(wd.date).slice(0, 10) === today)
+        if (todayDays.length === 0 && employees.filter(e => e.status === 'نشط').length === 0) return null
+        const presentIds = new Set(todayDays.map(wd => wd.employee_id))
+        const activeEmpsToday = employees.filter(e => e.status === 'نشط')
+        const approvedToday = todayDays.filter(wd => wd.status === 'approved').length
+        const pendingToday  = todayDays.filter(wd => wd.status === 'pending').length
+        const absentCount   = activeEmpsToday.filter(e => !presentIds.has(e.id)).length
+        return (
+          <div style={{ marginBottom: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '12px 14px', border: `1px solid ${C.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: C.text }}>📋 الحضور اليوم</span>
+              <span style={{ fontSize: 10, color: C.textDim }}>{new Date().toLocaleDateString('ar-EG', { weekday:'long', day:'numeric', month:'long' })}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: todayDays.length > 0 ? 10 : 0 }}>
+              {[
+                { label: 'موافق عليه', count: approvedToday, color: C.success },
+                { label: 'معلق',       count: pendingToday,  color: C.warning },
+                { label: 'غائب',       count: absentCount,   color: C.accent  },
+              ].map(s => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: `${s.color}15`, border: `1px solid ${s.color}33` }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, display: 'inline-block' }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: s.color }}>{s.count} {s.label}</span>
+                </div>
+              ))}
+            </div>
+            {todayDays.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {todayDays.slice(0, 8).map(wd => {
+                  const emp = employees.find(e => e.id === wd.employee_id)
+                  if (!emp) return null
+                  const color = wd.status === 'approved' ? C.success : wd.status === 'pending' ? C.warning : C.textDim
+                  return (
+                    <span key={wd.id} style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 10, background: `${color}18`, color, border: `1px solid ${color}33` }}>
+                      {emp.name.split(' ')[0]}
+                    </span>
+                  )
+                })}
+                {todayDays.length > 8 && <span style={{ fontSize: 10, color: C.textDim, padding: '3px 6px' }}>+{todayDays.length - 8}</span>}
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
       {/* ─── Filter Bar ─── */}
       {showFilters && (
         <GlassCard style={{ marginBottom:20, padding:'16px 18px' }}>

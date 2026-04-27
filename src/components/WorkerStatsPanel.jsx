@@ -67,7 +67,7 @@ function MonthCalendar({ year, month, workDays, holidays }) {
   )
 }
 
-export default function WorkerStatsPanel({ open, onClose, worker, workDays, holidays, addHoliday, deleteHoliday }) {
+export default function WorkerStatsPanel({ open, onClose, worker, workDays, payments = [], advances = [], holidays, addHoliday, deleteHoliday }) {
   const [year,       setYear]       = useState(new Date().getFullYear())
   const [openMonth,  setOpenMonth]  = useState(null)
   const [showAddHol, setShowAddHol] = useState(false)
@@ -78,6 +78,16 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, holi
 
   const myDays       = workDays.filter(w => w.employee_id === worker.id)
   const yearHolidays = holidays.filter(h => String(h.date).startsWith(String(year)))
+
+  // Cumulative all-time stats
+  const allApproved    = myDays.filter(w => w.status === 'approved')
+  const totalDaysEver  = allApproved.length
+  const totalEarnedEver = allApproved.reduce((s, w) => s + (w.amount || 0), 0)
+  const totalPaidEver  = payments.filter(p => p.employee_id === worker.id).reduce((s, p) => s + (p.amount || 0), 0)
+  const totalAdvEver   = advances.filter(a => a.employee_id === worker.id).reduce((s, a) => s + (a.amount || 0), 0)
+  const totalOwedEver  = Math.max(0, totalEarnedEver - totalPaidEver - totalAdvEver)
+  const projIds        = new Set(allApproved.map(w => w.project_id).filter(Boolean))
+  const totalProjects  = projIds.size
 
   const monthStats = MONTHS_AR.map((name, mi) => {
     const prefix  = ym(year, mi)
@@ -119,6 +129,37 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, holi
         </div>
 
         <div style={{ overflowY: 'auto', flex: 1, padding: 16 }}>
+
+          {/* Cumulative Stats */}
+          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '12px 14px', border: `1px solid ${C.border}`, marginBottom: 14 }}>
+            <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 10, letterSpacing: '0.04em' }}>📈 الإحصائيات الإجمالية (منذ البداية)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 6 }}>
+              {[
+                { l: 'أيام العمل', v: totalDaysEver, suffix: 'يوم', c: C.primary },
+                { l: 'المشاريع',   v: totalProjects, suffix: 'مشروع', c: C.secondary },
+                { l: 'إجمالي مستحق', v: `${totalEarnedEver.toLocaleString()}₪`, c: C.text },
+              ].map(s => (
+                <div key={s.l} style={{ textAlign: 'center', padding: '8px 4px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 9, color: C.textDim, fontWeight: 600, marginBottom: 3 }}>{s.l}</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: s.c }}>
+                    {typeof s.v === 'number' ? s.v : s.v}
+                    {s.suffix && <span style={{ fontSize: 9, marginRight: 2, fontWeight: 500, color: C.textDim }}>{s.suffix}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              {[
+                { l: 'مجموع المدفوع', v: `${totalPaidEver.toLocaleString()}₪`, c: C.success },
+                { l: 'المتبقي',       v: `${totalOwedEver.toLocaleString()}₪`, c: totalOwedEver > 0 ? C.accent : C.success },
+              ].map(s => (
+                <div key={s.l} style={{ textAlign: 'center', padding: '7px 4px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 9, color: C.textDim, fontWeight: 600, marginBottom: 3 }}>{s.l}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: s.c, fontFamily: 'monospace' }}>{s.v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Year Selector */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.card, borderRadius: 12, padding: '10px 16px', border: `1px solid ${C.border}`, marginBottom: 16 }}>

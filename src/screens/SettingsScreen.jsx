@@ -46,7 +46,7 @@ const TBL_AR    = {
 const ACTION_ICON = { insert: '➕', update: '✏️', delete: '🗑️', view: '👁️' }
 const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, view: C.textDim }
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, addMember, resetMemberPassword, updateMember, removeMember, blockMember, getActivity, reloadTeam }) {
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, saveContractorNumber, permissions, teamMembers, addMember, resetMemberPassword, updateMember, removeMember, blockMember, getActivity, reloadTeam }) {
   const { signOut, registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, user } = useAuth()
   const [confirmSignOut,   setConfirmSignOut]   = useState(false)
   const [passkeyStatus,    setPasskeyStatus]    = useState('')
@@ -54,8 +54,10 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
   const [newSpec,          setNewSpec]          = useState('')
   const [newExpCat,        setNewExpCat]        = useState('')
   const [newPayMethod,     setNewPayMethod]     = useState('')
-  const [editingName,      setEditingName]      = useState(false)
-  const [nameInput,        setNameInput]        = useState('')
+  const [editingName,        setEditingName]        = useState(false)
+  const [nameInput,          setNameInput]          = useState('')
+  const [editingContractor,  setEditingContractor]  = useState(false)
+  const [contractorInput,    setContractorInput]    = useState('')
   const [uploadError,      setUploadError]      = useState('')
   const [showAddMember,    setShowAddMember]    = useState(false)
   const [memberForm,       setMemberForm]       = useState(emptyMemberForm)
@@ -186,6 +188,37 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
             </button>
           </div>
           {uploadError && <div style={{ fontSize:11, color:C.accent, marginTop:8 }}>{uploadError}</div>}
+
+          {/* Contractor number */}
+          {saveContractorNumber && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 6 }}>🪪 رقم ترخيص المقاول (اختياري)</div>
+              {editingContractor
+                ? <div style={{ display: 'flex', gap: 6 }}>
+                    <input autoFocus value={contractorInput} onChange={e => setContractorInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter')  { saveContractorNumber(contractorInput); setEditingContractor(false) }
+                        if (e.key === 'Escape') { setEditingContractor(false) }
+                      }}
+                      placeholder="مثال: 12345"
+                      dir="ltr"
+                      style={{ flex: 1, padding: '8px 12px', borderRadius: 10, border: `1.5px solid ${C.primary}`, background: C.surface, color: C.text, fontSize: 14, fontWeight: 700, outline: 'none' }}
+                    />
+                    <button onClick={() => { saveContractorNumber(contractorInput); setEditingContractor(false) }}
+                      style={{ padding: '8px 12px', borderRadius: 10, background: GRAD.brand, color: '#000', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 800 }}>
+                      {profSaving ? '...' : '✓'}
+                    </button>
+                  </div>
+                : <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: profile?.contractor_number ? C.text : C.textDim, fontFamily: 'monospace' }}>
+                      {profile?.contractor_number || 'لم يُضف بعد'}
+                    </span>
+                    <button onClick={() => { setContractorInput(profile?.contractor_number || ''); setEditingContractor(true) }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.textDim }}>✏️</button>
+                  </div>
+              }
+            </div>
+          )}
         </div>
       </GlassCard>
 

@@ -831,13 +831,85 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
   )
 }
 
+// ─── فورم طلب سلفة ───────────────────────────────────────────────────────────
+function RequestAdvanceForm({ onRequest }) {
+  const [amount,   setAmount]   = useState('')
+  const [notes,    setNotes]    = useState('')
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState('')
+  const [success,  setSuccess]  = useState(false)
+
+  async function submit() {
+    setError('')
+    setLoading(true)
+    try {
+      await onRequest({ amount, notes })
+      setSuccess(true)
+      setAmount('')
+      setNotes('')
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (success) return (
+    <div style={{ textAlign: 'center', padding: '36px 16px' }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم إرسال طلب السلفة</div>
+      <div style={{ fontSize: 12, color: C.textDim }}>سيراجعه المشرف قريباً</div>
+    </div>
+  )
+
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.border}`, padding: 20, direction: 'rtl' }}>
+      <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 4 }}>💵 طلب سلفة</div>
+      <div style={{ fontSize: 11, color: C.textDim, marginBottom: 18 }}>
+        اطلب سلفة من راتبك — ستُخصم تلقائياً من مستحقاتك
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 11, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 700 }}>مبلغ السلفة (₪) *</label>
+        <input
+          type="number" min="1" value={amount} onChange={e => setAmount(e.target.value)}
+          placeholder="أدخل المبلغ"
+          style={{ width: '100%', padding: '13px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 16, fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }}
+        />
+      </div>
+
+      <div style={{ marginBottom: 18 }}>
+        <label style={{ fontSize: 11, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 700 }}>السبب / الملاحظات (اختياري)</label>
+        <textarea
+          value={notes} onChange={e => setNotes(e.target.value)}
+          placeholder="مثال: ضرورة طارئة..."
+          rows={3}
+          style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+        />
+      </div>
+
+      {error && (
+        <div style={{ padding: '10px 14px', borderRadius: 12, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, color: C.accent, fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
+          ⚠ {error}
+        </div>
+      )}
+
+      <button onClick={submit} disabled={loading || !amount}
+        style={{ width: '100%', padding: 16, borderRadius: 14, border: 'none', cursor: loading || !amount ? 'default' : 'pointer', fontWeight: 800, fontSize: 14, background: loading || !amount ? C.border : GRAD.warm, color: '#000', transition: 'all .2s' }}>
+        {loading ? '⏳ جاري الإرسال...' : '💵 إرسال الطلب'}
+      </button>
+    </div>
+  )
+}
+
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
   const {
     worker, workDays, payments, projects, holidays, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
-    login, logout, submitWorkDay, submitExpense, changePassword, requestPayment,
+    login, logout, submitWorkDay, submitExpense, changePassword, requestPayment, requestAdvance,
     monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalOwed, pendingDays,
   } = useWorkerPortal()
 
@@ -866,6 +938,7 @@ export default function WorkerPortalScreen() {
     { id: 'submit',  label: '📤 يوم' },
     ...(canExpense ? [{ id: 'expense', label: '💸 مصروف' }] : []),
     ...(canSalary  ? [{ id: 'salary',  label: '💰 راتب'   }] : []),
+    ...(canSalary  ? [{ id: 'advance', label: '💵 سلفة'   }] : []),
     { id: 'monthly', label: '📅 شهري' },
     { id: 'account', label: '⚙️ حساب' },
   ]
@@ -1005,6 +1078,11 @@ export default function WorkerPortalScreen() {
             unpaidDays={workDays.filter(d => d.status === 'approved').sort((a, b) => b.date.localeCompare(a.date))}
             totalOwed={totalOwed}
           />
+        )}
+
+        {/* تبويب طلب سلفة */}
+        {tab === 'advance' && (
+          <RequestAdvanceForm onRequest={requestAdvance} />
         )}
 
         {/* تبويب الحساب وتغيير كلمة المرور */}
