@@ -16,7 +16,7 @@ function sendWhatsApp(phone, name, amount, date) {
   window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank')
 }
 
-export default function PaymentsScreen({ payments, employees, workDays, projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods }) {
+export default function PaymentsScreen({ payments, employees, workDays, expenses = [], projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods }) {
   const methods = payMethods?.length ? payMethods : PAY_METHODS
 
   const currentMonth = todayStr().slice(0, 7)
@@ -35,6 +35,9 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
   const [approvingSaving, setApprovingSaving] = useState(false)
   const fileRef = useRef()
 
+  const [dateFrom,    setDateFrom]    = useState('')
+  const [dateTo,      setDateTo]      = useState('')
+
   const emptyForm = { date: todayStr(), employee_id:'', amount:'', method:'', project_id:'' }
   const [form, setForm] = useState(emptyForm)
   function f(key) { return v => setForm(prev => ({ ...prev, [key]: v })) }
@@ -49,9 +52,10 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
   }
 
   function calcOwed(empId) {
-    const earned = workDays.filter(w => w.employee_id === empId).reduce((s, w) => s + w.amount, 0)
+    const earned = workDays.filter(w => w.employee_id === empId && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
+    const wExp   = expenses.filter(e => e.employee_id === empId && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
     const paid   = payments.filter(p => p.employee_id === empId).reduce((s, p) => s + p.amount, 0)
-    return Math.max(0, earned - paid)
+    return Math.max(0, earned + wExp - paid)
   }
 
   function selectEmployee(emp) {
@@ -62,6 +66,8 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
   function pickFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setFormError('حجم الملف يجب أن يكون أقل من 10MB'); return }
+    if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview)
     setReceiptFile(file)
     setPreview(URL.createObjectURL(file))
   }
@@ -93,13 +99,17 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
   }
 
   const activeEmployees = employees.filter(emp => {
-    const earned = workDays.filter(w => w.employee_id === emp.id).reduce((s, w) => s + w.amount, 0)
+    const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
+    const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
     const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
-    return earned > 0 || paid > 0
+    return earned + wExp > 0 || paid > 0
   })
 
   const totalOwed = activeEmployees.reduce((s, e) => s + calcOwed(e.id), 0)
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0)
+
+  const showAmounts = permissions?.viewAmounts !== false
+  const fmtA = (v) => showAmounts ? `${fmt(v)}₪` : '---'
 
   return (
     <div className="fade-up" style={{ padding:16, paddingBottom:100 }}>
@@ -113,7 +123,7 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
           <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{payments.length} دفعة</div>
         </div>
         <div style={{ display:'flex', gap:8 }}>
-          {payments.length > 0 && (
+          {permissions?.isOwner && payments.length > 0 && (
             <button onClick={() => exportPaymentsToExcel(payments, employees)}
               style={{ padding:'8px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, fontSize:12, cursor:'pointer', fontWeight:600 }}>
               📊
@@ -135,12 +145,12 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
           <div style={{ padding:'14px 16px', display:'flex', justifyContent:'space-around' }}>
             <div style={{ textAlign:'center' }}>
               <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>مدفوع للعمال</div>
-              <div style={{ fontSize:22, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmt(totalPaid)}₪</div>
+              <div style={{ fontSize:22, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmtA(totalPaid)}</div>
             </div>
             <div style={{ width:1, background:C.border }} />
             <div style={{ textAlign:'center' }}>
               <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>رواتب معلقة</div>
-              <div style={{ fontSize:22, fontWeight:900, color: totalOwed > 0 ? C.accent : C.success, fontFamily:'monospace' }}>{fmt(totalOwed)}₪</div>
+              <div style={{ fontSize:22, fontWeight:900, color: totalOwed > 0 ? C.accent : C.success, fontFamily:'monospace' }}>{fmtA(totalOwed)}</div>
             </div>
           </div>
         </GlassCard>
@@ -153,10 +163,11 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
           <>
             <SectionLabel color={C.primary} style={{ marginBottom:12 }}>العمال</SectionLabel>
             {activeEmployees.map(emp => {
-              const earned = workDays.filter(w => w.employee_id === emp.id).reduce((s, w) => s + w.amount, 0)
+              const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
+              const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
               const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
-              const owed   = Math.max(0, earned - paid)
-              const pct    = earned > 0 ? Math.min(100, Math.round((paid / earned) * 100)) : 100
+              const owed   = Math.max(0, earned + wExp - paid)
+              const pct    = (earned + wExp) > 0 ? Math.min(100, Math.round((paid / (earned + wExp)) * 100)) : 100
               const grad   = owed > 0 ? GRAD.danger : GRAD.success
 
               return (
@@ -179,7 +190,7 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
                       {/* owed badge */}
                       <div style={{ textAlign:'center', padding:'6px 12px', borderRadius:12, background: owed > 0 ? `${C.accent}20` : `${C.success}20`, border:`1px solid ${owed > 0 ? C.accent : C.success}44` }}>
                         <div style={{ fontSize:14, fontWeight:900, color: owed > 0 ? C.accent : C.success, fontFamily:'monospace' }}>
-                          {owed > 0 ? `${fmt(owed)}₪` : 'مسدد ✓'}
+                          {owed > 0 ? fmtA(owed) : 'مسدد ✓'}
                         </div>
                         <div style={{ fontSize:9, color:C.textDim }}>{owed > 0 ? 'متبقي' : ''}</div>
                       </div>
@@ -188,8 +199,8 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
                     {/* تفاصيل صغيرة */}
                     <div style={{ display:'flex', justifyContent:'space-around', marginBottom:10 }}>
                       {[
-                        { l:'مستحق', v:`${fmt(earned)}₪`, c:C.text },
-                        { l:'مدفوع', v:`${fmt(paid)}₪`,   c:C.success },
+                        { l:'مستحق', v: fmtA(earned + wExp), c:C.text },
+                        { l:'مدفوع', v: fmtA(paid),         c:C.success },
                         { l:'الراتب اليومي', v:`${fmt(emp.daily_rate || 0)}₪`, c:C.textDim },
                       ].map(s => (
                         <div key={s.l} style={{ textAlign:'center' }}>
@@ -215,13 +226,29 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
       {/* ── سجل الدفعات (timeline) ── */}
       {payments.length > 0 && (
         <div style={{ marginTop:8 }}>
-          <SectionLabel color={C.success}>سجل الدفعات</SectionLabel>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <SectionLabel color={C.success}>سجل الدفعات</SectionLabel>
+            <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                style={{ padding:'5px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:11, outline:'none', width:120 }} />
+              <span style={{ color:C.textDim, fontSize:11 }}>→</span>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                style={{ padding:'5px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:11, outline:'none', width:120 }} />
+              {(dateFrom || dateTo) && (
+                <button onClick={() => { setDateFrom(''); setDateTo('') }}
+                  style={{ padding:'5px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:'none', color:C.textDim, fontSize:11, cursor:'pointer' }}>✕</button>
+              )}
+            </div>
+          </div>
           <div style={{ position:'relative', paddingRight:20 }}>
             {/* خط Timeline */}
             <div style={{ position:'absolute', top:8, right:7, bottom:8, width:2, background:`${C.border}88`, borderRadius:1 }} />
 
-            {[...payments].sort((a, b) => (b.date || '').localeCompare(a.date || '')).map((p, i) => {
-              const emp = employees.find(e => e.id === p.employee_id)
+            {[...payments]
+              .filter(p => (!dateFrom || (p.date||'') >= dateFrom) && (!dateTo || (p.date||'') <= dateTo))
+              .sort((a, b) => (b.date || '').localeCompare(a.date || '')).map((p, i) => {
+              const emp     = employees.find(e => e.id === p.employee_id)
+              const projName = p.project_id ? projects.find(pr => pr.id === p.project_id)?.name : null
               return (
                 <div key={p.id} style={{ display:'flex', gap:12, marginBottom:10, position:'relative' }}>
                   {/* نقطة timeline */}
@@ -232,9 +259,14 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
                       <div>
                         <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{emp?.name || '?'}</div>
                         <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{fmtDate(p.date)}{p.method ? ` • ${p.method}` : ''}</div>
+                        {projName && (
+                          <div style={{ fontSize:10, color:C.secondary, fontWeight:700, marginTop:3, background:`${C.secondary}18`, borderRadius:6, padding:'2px 7px', display:'inline-block' }}>
+                            🏗 {projName}
+                          </div>
+                        )}
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                        <div style={{ fontSize:16, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmt(p.amount)}₪</div>
+                        <div style={{ fontSize:16, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmtA(p.amount)}</div>
                         {p.receipt_url && (
                           <a href={p.receipt_url} target="_blank" rel="noreferrer" style={{ textDecoration:'none', fontSize:16 }}>📎</a>
                         )}
@@ -277,11 +309,30 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
                 return (
                   <button key={e.id} onClick={() => selectEmployee(e)}
                     style={{ padding:'8px 14px', borderRadius:12, border:`1.5px solid ${form.employee_id===e.id ? C.primary : C.border}`, background:form.employee_id===e.id ? `${C.primary}22` : C.bg, color:form.employee_id===e.id ? C.primary : C.textDim, fontSize:13, fontWeight:600, cursor:'pointer', transition:'all .2s' }}>
-                    {e.name}{owed > 0 ? ` (${fmt(owed)}₪)` : ''}
+                    {e.name}{owed > 0 ? ` (${fmtA(owed)})` : ''}
                   </button>
                 )
               })}
             </div>
+          </div>
+        )}
+
+        {projects.length > 0 && (
+          <div style={{ marginBottom:14 }}>
+            <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>المشروع</label>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {projects.map(p => (
+                <button key={p.id} onClick={() => setForm(prev => ({ ...prev, project_id: prev.project_id === p.id ? '' : p.id }))}
+                  style={{ padding:'8px 14px', borderRadius:12, border:`1.5px solid ${form.project_id===p.id ? C.secondary : C.border}`, background:form.project_id===p.id ? `${C.secondary}22` : C.bg, color:form.project_id===p.id ? C.secondary : C.textDim, fontSize:13, fontWeight:600, cursor:'pointer', transition:'all .2s' }}>
+                  {p.name}
+                </button>
+              ))}
+            </div>
+            {projects.length > 0 && !form.project_id && (
+              <div style={{ fontSize:10, color:C.warning, marginTop:6, fontWeight:600 }}>
+                ⚠ بدون مشروع، الدفعة لن تظهر لأعضاء الفريق المقيّدين بمشاريع
+              </div>
+            )}
           </div>
         )}
 
@@ -295,7 +346,7 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
             {preview
               ? <div style={{ position:'relative' }}>
                   <img src={preview} alt="إثبات" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:12, border:`1px solid ${C.border}` }} />
-                  <button onClick={() => { setReceiptFile(null); setPreview('') }}
+                  <button onClick={() => { if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview); setReceiptFile(null); setPreview('') }}
                     style={{ position:'absolute', top:6, left:6, background:`${C.accent}dd`, border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', fontSize:14 }}>×</button>
                 </div>
               : <button onClick={() => fileRef.current.click()}
@@ -318,22 +369,25 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
       {/* ── سجل العامل المالي (modal) ── */}
       {selectedEmp && (() => {
         const emp = selectedEmp
-        const empWorkDays = workDays.filter(w => w.employee_id === emp.id)
-        const empPayments = payments.filter(p => p.employee_id === emp.id)
-        const totalEarned = empWorkDays.reduce((s, w) => s + w.amount, 0)
-        const totalPaid   = empPayments.reduce((s, p) => s + p.amount, 0)
+        const empWorkDays  = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved')
+        const empExpenses  = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved')
+        const empPayments  = payments.filter(p => p.employee_id === emp.id)
+        const totalEarned  = empWorkDays.reduce((s, w) => s + w.amount, 0) + empExpenses.reduce((s, e) => s + e.amount, 0)
+        const totalPaid    = empPayments.reduce((s, p) => s + p.amount, 0)
         const totalOwedEmp = Math.max(0, totalEarned - totalPaid)
         const gradEmp = totalOwedEmp > 0 ? GRAD.danger : GRAD.success
 
         // بناء بيانات الأشهر مع رصيد تراكمي (من الأقدم للأحدث)
         const allMonthsAsc = [...new Set([
           ...empWorkDays.map(w => (w.date || '').slice(0, 7)),
+          ...empExpenses.map(e => (e.date || '').slice(0, 7)),
           ...empPayments.map(p => (p.date || '').slice(0, 7)),
         ]).values()].filter(Boolean).sort((a, b) => a.localeCompare(b))
 
         let runningBalance = 0
         const monthDataAsc = allMonthsAsc.map(m => {
           const mEarned    = empWorkDays.filter(w => (w.date || '').startsWith(m)).reduce((s, w) => s + w.amount, 0)
+                           + empExpenses.filter(e => (e.date || '').startsWith(m)).reduce((s, e) => s + e.amount, 0)
           const mPaid      = empPayments.filter(p => (p.date || '').startsWith(m)).reduce((s, p) => s + p.amount, 0)
           const daysCount  = empWorkDays.filter(w => (w.date || '').startsWith(m)).length
           const paysCount  = empPayments.filter(p => (p.date || '').startsWith(m)).length
@@ -379,9 +433,9 @@ export default function PaymentsScreen({ payments, employees, workDays, projects
                 {/* الإجماليات */}
                 <div style={{ display:'flex', justifyContent:'space-around', background:`${C.border}33`, borderRadius:14, padding:'10px 8px' }}>
                   {[
-                    { l:'المستحق الكلي', v:`${fmt(totalEarned)}₪`, c:C.text },
-                    { l:'المدفوع الكلي', v:`${fmt(totalPaid)}₪`,   c:C.success },
-                    { l:'المتبقي',       v: totalOwedEmp > 0 ? `${fmt(totalOwedEmp)}₪` : 'مسدد ✓', c: totalOwedEmp > 0 ? C.accent : C.success },
+                    { l:'المستحق الكلي', v: fmtA(totalEarned), c:C.text },
+                    { l: 'المدفوع الكلي', v: fmtA(totalPaid), c:C.success },
+                    { l:'المتبقي',       v: totalOwedEmp > 0 ? fmtA(totalOwedEmp) : 'مسدد ✓', c: totalOwedEmp > 0 ? C.accent : C.success },
                   ].map(s => (
                     <div key={s.l} style={{ textAlign:'center' }}>
                       <div style={{ fontSize:9, color:C.textDim, fontWeight:600, marginBottom:2 }}>{s.l}</div>

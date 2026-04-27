@@ -126,6 +126,15 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     setDetail(null)
   }
 
+  function duplicateProject(p) {
+    setForm({ ...p, id: undefined, name: `${p.name} (نسخة)`, price: String(p.price || ''), start_date: '', end_date: '', notes: p.notes || '', locations: p.locations || [], status: 'نشط' })
+    setNewLocation('')
+    setEditing(null)
+    setFormError('')
+    setShowForm(true)
+    setDetail(null)
+  }
+
   function openReceiptForm(projId) {
     setReceiptForm(emptyReceipt)
     setEditingReceiptId(null)
@@ -268,9 +277,16 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   }
 
   const [sortBy, setSortBy] = useState('date') // 'date' | 'profit'
+  const [search, setSearch] = useState('')
+  const [showCompare, setShowCompare] = useState(false)
+  const [compareIds, setCompareIds] = useState(new Set())
+  const [compareReady, setCompareReady] = useState(false)
+
+  const archivedCount = projects.filter(p => p.status === 'مؤرشف').length
 
   const filtered = projects
-    .filter(p => filter === 'الكل' || p.status === filter)
+    .filter(p => filter === 'مؤرشف' ? p.status === 'مؤرشف' : (filter === 'الكل' ? p.status !== 'مؤرشف' : p.status === filter))
+    .filter(p => !search.trim() || p.name.includes(search.trim()) || (p.client_name || '').includes(search.trim()))
     .map(p => {
       const labor    = workDays.filter(w => w.project_id === p.id).reduce((s, w) => s + w.amount, 0)
       const exp      = expenses.filter(e => e.project_id === p.id).reduce((s, e) => s + e.amount, 0)
@@ -318,6 +334,23 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           >
             ← رجوع
           </button>
+          {permissions?.editProjects !== false && (
+            <button onClick={() => duplicateProject(proj)}
+              style={{ display:'flex', alignItems:'center', gap:6, background:`${C.blue}18`, border:`1px solid ${C.blue}44`, borderRadius:12, padding:'8px 14px', color:C.blue, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+              📋 نسخ
+            </button>
+          )}
+          {permissions?.editProjects !== false && (
+            <button
+              onClick={async () => {
+                const newStatus = proj.status === 'مؤرشف' ? 'مكتمل' : 'مؤرشف'
+                await updateProject(proj.id, { status: newStatus })
+                setDetail(null)
+              }}
+              style={{ display:'flex', alignItems:'center', gap:6, background:`${C.textDim}18`, border:`1px solid ${C.textDim}44`, borderRadius:12, padding:'8px 14px', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+              {proj.status === 'مؤرشف' ? '🔄 إلغاء أرشفة' : '🗄 أرشفة'}
+            </button>
+          )}
           <button
             onClick={() => exportProjectToPDF({ project: proj, workDays, expenses, clientReceipts, employees: employees || [] })}
             style={{
@@ -629,6 +662,20 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           >
             {sortBy === 'profit' ? 'الأكثر ربحاً' : 'الأحدث'}
           </button>
+          {projects.length >= 2 && (
+            <button
+              onClick={() => { setShowCompare(true); setCompareIds(new Set()); setCompareReady(false) }}
+              style={{
+                padding: '9px 13px', borderRadius: 12,
+                border: `1px solid ${C.blue}55`,
+                background: `${C.blue}12`,
+                color: C.blue, fontSize: 11, fontWeight: 700,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              ⚖️ مقارنة
+            </button>
+          )}
           {permissions?.editProjects !== false && (<>
             <button
               onClick={openMultiReceipt}
@@ -648,7 +695,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
       </div>
 
       {/* ── Filter row ── */}
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 16, scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 10, scrollbarWidth: 'none' }}>
         {['الكل', 'نشط', 'مكتمل', 'عرض سعر'].map(tab => (
           <FilterChip
             key={tab}
@@ -658,6 +705,26 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
             color={tab === 'نشط' ? C.success : tab === 'مكتمل' ? C.secondary : tab === 'عرض سعر' ? C.warning : C.primary}
           />
         ))}
+        {archivedCount > 0 && (
+          <FilterChip
+            label={`🗄 أرشيف (${archivedCount})`}
+            active={filter === 'مؤرشف'}
+            onClick={() => setFilter(filter === 'مؤرشف' ? 'الكل' : 'مؤرشف')}
+            color={C.textDim}
+          />
+        )}
+      </div>
+
+      {/* ── Search ── */}
+      <div style={{ position: 'relative', marginBottom: 16 }}>
+        <span style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', fontSize:14, pointerEvents:'none', opacity:0.5 }}>🔍</span>
+        <input
+          value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث باسم المشروع أو العميل..."
+          style={{ width:'100%', padding:'10px 38px 10px 36px', borderRadius:12, border:`1px solid ${search ? C.primary+'66' : C.border}`, background:'rgba(255,255,255,0.04)', color:C.text, fontSize:12, outline:'none', boxSizing:'border-box', direction:'rtl' }}
+        />
+        {search && (
+          <button onClick={() => setSearch('')} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:C.textDim, fontSize:14, cursor:'pointer', padding:0 }}>✕</button>
+        )}
       </div>
 
       {/* ── Project cards ── */}
@@ -700,6 +767,15 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                   <div style={{ fontSize: 15, fontWeight: 800, color: C.text, flex: 1, paddingLeft: 10 }}>{pr.name}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                     <Badge text={pr.status} color={statusBadgeColor(pr.status)} />
+                    {permissions?.editProjects !== false && pr.status !== 'مؤرشف' && (
+                      <button
+                        onClick={e => { e.stopPropagation(); updateProject(pr.id, { status: 'مؤرشف' }) }}
+                        title="أرشفة المشروع"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, opacity: 0.4, padding: '2px 4px', color: C.textDim, transition: 'opacity .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}
+                      >🗄</button>
+                    )}
                   </div>
                 </div>
 
@@ -924,6 +1000,104 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
         <Btn onClick={saveMultiReceipts} full disabled={multiSaving || multiSelProjs.size === 0}>
           {multiSaving ? 'جاري الحفظ...' : `✓ حفظ ${multiSelProjs.size > 0 ? multiSelProjs.size + ' دفعة' : 'الدفعات'}`}
         </Btn>
+      </Modal>
+
+      {/* ═══════════════════════════════════
+          #21 Modal: مقارنة المشاريع
+      ═══════════════════════════════════ */}
+      <Modal open={showCompare} onClose={() => setShowCompare(false)} title="⚖️ مقارنة المشاريع">
+        {/* Step 1: pick projects */}
+        {!compareReady ? (
+          <>
+            <div style={{ fontSize: 12, color: C.textDim, marginBottom: 14, textAlign: 'center' }}>
+              اختر 2–4 مشاريع للمقارنة {compareIds.size > 0 && `(${compareIds.size} محدد)`}
+            </div>
+            {projects.slice(0, 20).map(p => {
+              const sel = compareIds.has(p.id)
+              return (
+                <button key={p.id} onClick={() => {
+                  setCompareIds(prev => {
+                    const next = new Set(prev)
+                    if (next.has(p.id)) next.delete(p.id)
+                    else if (next.size < 4) next.add(p.id)
+                    return next
+                  })
+                }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    width: '100%', padding: '11px 14px', borderRadius: 12, marginBottom: 6, cursor: 'pointer',
+                    border: `1.5px solid ${sel ? C.blue + '88' : C.border}`,
+                    background: sel ? `${C.blue}14` : 'rgba(255,255,255,0.03)',
+                    transition: 'all .15s',
+                  }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: sel ? C.blue : C.text }}>{p.name}</span>
+                  <span style={{ fontSize: 11, color: C.textDim }}>{p.status}</span>
+                </button>
+              )
+            })}
+            {compareIds.size >= 2 && (
+              <Btn onClick={() => setCompareReady(true)} full style={{ marginTop: 8 }}>
+                ⚖️ قارن {compareIds.size} مشاريع
+              </Btn>
+            )}
+          </>
+        ) : (() => {
+          // Build enriched data for selected projects (compareReady === true)
+          const selected = [...compareIds].map(id => {
+            const p = projects.find(x => x.id === id)
+            if (!p) return null
+            const labor    = workDays.filter(w => w.project_id === id).reduce((s, w) => s + (w.amount || 0), 0)
+            const exp      = expenses.filter(e => e.project_id === id).reduce((s, e) => s + (e.amount || 0), 0)
+            const received = (clientReceipts || []).filter(r => r.project_id === id).reduce((s, r) => s + (r.amount || 0), 0)
+            const profit   = received - labor - exp
+            const margin   = received > 0 ? ((profit / received) * 100).toFixed(1) : null
+            const workerCnt = new Set(workDays.filter(w => w.project_id === id).map(w => w.employee_id)).size
+            return { ...p, labor, exp, received, profit, margin, workerCnt }
+          }).filter(Boolean)
+
+          const rows = [
+            { label: 'الحالة',           fn: p => p.status },
+            { label: 'قيمة العقد',       fn: p => p.price > 0 ? `${fmt(p.price)}₪` : '—' },
+            { label: 'المقبوض',          fn: p => `${fmt(p.received)}₪` },
+            { label: 'تكلفة العمال',     fn: p => `${fmt(p.labor)}₪` },
+            { label: 'المصاريف',         fn: p => `${fmt(p.exp)}₪` },
+            { label: 'صافي الربح',       fn: p => `${fmt(Math.abs(p.profit))}₪`, color: p => p.profit >= 0 ? C.success : C.accent },
+            { label: 'هامش الربح',       fn: p => p.margin !== null ? `${p.margin}%` : '—', color: p => p.margin >= 20 ? C.success : p.margin >= 0 ? C.warning : C.accent },
+            { label: 'عدد العمال',       fn: p => String(p.workerCnt) },
+          ]
+
+          return (
+            <>
+              <button onClick={() => { setCompareIds(new Set()); setCompareReady(false) }} style={{ marginBottom: 14, padding: '7px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                ← تغيير الاختيار
+              </button>
+              {/* Header row */}
+              <div style={{ display: 'grid', gridTemplateColumns: `120px repeat(${selected.length}, 1fr)`, gap: 2, marginBottom: 4 }}>
+                <div />
+                {selected.map(p => (
+                  <div key={p.id} style={{ fontSize: 11, fontWeight: 800, color: C.primary, textAlign: 'center', padding: '4px 6px', background: `${C.primary}12`, borderRadius: 8 }}>
+                    {p.name.length > 12 ? p.name.slice(0, 11) + '…' : p.name}
+                  </div>
+                ))}
+              </div>
+              {rows.map((row, ri) => (
+                <div key={ri} style={{ display: 'grid', gridTemplateColumns: `120px repeat(${selected.length}, 1fr)`, gap: 2, marginBottom: 2 }}>
+                  <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, display: 'flex', alignItems: 'center', paddingRight: 4 }}>{row.label}</div>
+                  {selected.map(p => (
+                    <div key={p.id} style={{
+                      fontSize: 12, fontWeight: 700, textAlign: 'center', padding: '7px 4px',
+                      background: ri % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
+                      borderRadius: 8,
+                      color: row.color ? row.color(p) : C.text,
+                    }}>
+                      {row.fn(p)}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </>
+          )
+        })()}
       </Modal>
     </div>
   )

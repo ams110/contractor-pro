@@ -3,13 +3,15 @@ import { C, GRAD } from '../../constants/index.js'
 import { Btn, GlassCard } from '../../components/index.jsx'
 import { PERM_LABELS, PRESET_ROLES } from './teamConstants.js'
 
-export function AddMemberModal({ manager, onSubmit }) {
+export function AddMemberModal({ manager, onSubmit, projects = [] }) {
   const {
     showAddMember, closeAddMember,
     memberForm, setMemberForm,
     addingMember, addMemberErr, setAddMemberErr,
     addStep, setAddStep,
     handleRoleChange, togglePerm,
+    addRestrictProjects, setAddRestrictProjects,
+    addAllowedProjects, setAddAllowedProjects, toggleAddProject,
   } = manager
 
   if (!showAddMember) return null
@@ -153,6 +155,45 @@ export function AddMemberModal({ manager, onSubmit }) {
                   </label>
                 )
               })}
+            </div>
+
+            {/* Project access restriction */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={addRestrictProjects}
+                  onChange={e => {
+                    setAddRestrictProjects(e.target.checked)
+                    if (!e.target.checked) setAddAllowedProjects([])
+                  }}
+                  style={{ accentColor: C.primary }}
+                />
+                <span style={{ fontSize: 11, fontWeight: 700, color: addRestrictProjects ? C.text : C.textDim }}>
+                  🗂 تقييد المشاريع (يرى مشاريع محددة فقط)
+                </span>
+              </label>
+              {addRestrictProjects && (
+                projects.length === 0
+                  ? <div style={{ fontSize: 11, color: C.textDim, padding: '6px 10px' }}>لا توجد مشاريع</div>
+                  : <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {projects.map(proj => {
+                        const sel = addAllowedProjects.includes(proj.id)
+                        return (
+                          <label key={proj.id} style={{
+                            display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                            borderRadius: 9, cursor: 'pointer', fontSize: 11,
+                            background: sel ? `${C.primary}15` : 'rgba(255,255,255,0.03)',
+                            border: `1px solid ${sel ? C.primary + '44' : C.border}`,
+                            color: sel ? C.text : C.textDim,
+                          }}>
+                            <input type="checkbox" checked={sel} onChange={() => toggleAddProject(proj.id)} style={{ accentColor: C.primary }} />
+                            {proj.name}
+                          </label>
+                        )
+                      })}
+                    </div>
+              )}
             </div>
 
             {addMemberErr && <ErrorMsg msg={addMemberErr} />}

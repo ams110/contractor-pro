@@ -10,9 +10,11 @@ const CAT_ICONS  = { 'بضاعة':'🛒', 'مواد بناء / خامات':'🧱
 const CAT_COLORS = { 'بضاعة':C.pink, 'مواد بناء / خامات':C.orange, 'عدد وأدوات':C.blue, 'وقود وتنقلات':C.cyan, 'إيجار معدات':C.purple, 'خدمات مهنية':C.secondary, 'صيانة مركبات':C.warning, 'رواتب عمال':C.primary, 'تأمين':C.success, 'أخرى':C.textDim }
 const FILTER_CATS = ['الكل', 'مواد', 'بضاعة', 'عدد', 'وقود', 'إيجار', 'خدمات', 'رواتب', 'تأمين', 'أخرى']
 
-export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions, showVatExpenses = true }) {
+export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions, businessType, showVatExpenses = true }) {
+  const showVAT = businessType !== 'osek_patur' && showVatExpenses
   const [showForm,    setShowForm]    = useState(false)
   const [filter,      setFilter]      = useState('الكل')
+  const [search,      setSearch]      = useState('')
   const [confirmDel,  setConfirmDel]  = useState(null)
   const [formError,   setFormError]   = useState('')
   const [saving,      setSaving]      = useState(false)
@@ -29,6 +31,8 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
   function pickFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setFormError('حجم الملف يجب أن يكون أقل من 10MB'); return }
+    if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview)
     setReceiptFile(file)
     setScanMsg('')
     if (file.type.startsWith('image/')) setPreview(URL.createObjectURL(file))
@@ -84,7 +88,9 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
     return s + (e.amount || 0) * deduct * (rate / (1 + rate))
   }, 0))
   const noVAT  = total - totalVATIn
-  const filtered = approvedExpenses.filter(e => filter === 'الكل' || e.category?.includes(filter))
+  const filtered = approvedExpenses
+    .filter(e => filter === 'الكل' || e.category?.includes(filter))
+    .filter(e => !search.trim() || (e.vendor || '').includes(search.trim()) || (e.category || '').includes(search.trim()) || String(e.amount).includes(search.trim()))
   const sorted   = [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
 
   function catColor(cat) {
@@ -108,7 +114,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
           <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{approvedExpenses.length} سجل</div>
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          {approvedExpenses.length > 0 && (
+          {permissions?.isOwner && approvedExpenses.length > 0 && (
             <button onClick={() => exportExpensesToExcel(approvedExpenses, projects)}
               style={{ padding:'8px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, fontSize:12, cursor:'pointer', fontWeight:600 }}>
               📊
@@ -128,7 +134,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
           <div style={{ height:3, background:GRAD.danger }} />
           <div style={{ padding:'14px 16px', display:'flex', justifyContent:'space-around' }}>
-            {showVatExpenses ? (
+            {showVAT ? (
               <>
                 <div style={{ textAlign:'center' }}>
                   <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>شامل الضريبة</div>
@@ -206,6 +212,16 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         </div>
       )}
 
+      {/* ── بحث ── */}
+      <div style={{ position:'relative', marginBottom:10 }}>
+        <span style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', fontSize:14, pointerEvents:'none', opacity:0.5 }}>🔍</span>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالمورد أو التصنيف أو المبلغ..."
+          style={{ width:'100%', padding:'9px 38px 9px 36px', borderRadius:12, border:`1px solid ${search ? C.primary+'66' : C.border}`, background:'rgba(255,255,255,0.04)', color:C.text, fontSize:12, outline:'none', boxSizing:'border-box', direction:'rtl' }} />
+        {search && (
+          <button onClick={() => setSearch('')} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:C.textDim, fontSize:14, cursor:'pointer', padding:0 }}>✕</button>
+        )}
+      </div>
+
       {/* ── فلتر التصنيف ── */}
       <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:4, marginBottom:16, scrollbarWidth:'none' }}>
         {FILTER_CATS.map(cat => (
@@ -235,13 +251,13 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
                       <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
-                      {(() => {
+                      {showVAT && (() => {
                         const deduct = EXP_CAT_VAT[ex.category] ?? 1.00
                         const rate   = (ex.date || '') >= '2025-01-01' ? 0.18 : 0.17
                         if (deduct === 0) return <span style={{ fontSize:9, fontWeight:700, color:C.textDim, background:'rgba(255,255,255,0.06)', padding:'1px 6px', borderRadius:5, border:`1px solid ${C.border}` }}>لا مع"מ</span>
                         const vatAmt = Math.round((ex.amount || 0) * deduct * (rate / (1 + rate)))
                         const color  = deduct < 1 ? C.warning : C.cyan
-                        return <span style={{ fontSize:9, fontWeight:700, color, background:`${color}15`, padding:'1px 6px', borderRadius:5, border:`1px solid ${color}33` }}>{deduct < 1 ? '⅔ ' : ''}مع"מ {fmt(vatAmt)}₪</span>
+                        return <span style={{ fontSize:9, fontWeight:700, color, background:`${color}15`, padding:'1px 6px', borderRadius:5, border:`1px solid ${color}33` }}>{deduct < 1 ? '⅔ ' : ''}מע"מ {fmt(vatAmt)}₪</span>
                       })()}
                     </div>
                     <div style={{ fontSize:11, color:C.textDim, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -290,7 +306,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         <Input label="التاريخ"    value={form.date}   onChange={f('date')}   type="date" required />
         <Input label="المبلغ (₪)" value={form.amount} onChange={f('amount')} type="number" min="0.01" required />
 
-        {showVatExpenses && form.amount && parseFloat(form.amount) > 0 && (
+        {showVAT && form.amount && parseFloat(form.amount) > 0 && (
           <div style={{ marginTop:-8, marginBottom:14, padding:'8px 12px', background:`${C.border}33`, borderRadius:10, display:'flex', justifyContent:'space-between' }}>
             {(() => {
               const amt    = parseFloat(form.amount)

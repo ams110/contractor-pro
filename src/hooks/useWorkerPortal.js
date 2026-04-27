@@ -149,6 +149,11 @@ export function useWorkerPortal() {
   async function requestPayment({ amount, projectId, method, notes }) {
     const session = loadSession()
     if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
+    const parsedAmount = parseFloat(amount)
+    if (!parsedAmount || parsedAmount <= 0)        throw new Error('المبلغ يجب أن يكون أكبر من صفر')
+    if (parsedAmount > 999_999)                    throw new Error('المبلغ يتجاوز الحد المسموح')
+    const pendingCount = payments.filter(p => p.status === 'pending').length
+    if (pendingCount >= 2)                         throw new Error('لديك طلبات دفعة معلقة — انتظر موافقة المشرف أولاً')
     const { data, error } = await supabase.rpc('worker_request_payment', {
       p_emp_id:     session.id,
       p_token:      session.token,
@@ -177,10 +182,29 @@ export function useWorkerPortal() {
     return Object.entries(map).sort(([a], [b]) => b.localeCompare(a))
   })()
 
-  const totalEarned = workDays.filter(d => d.status === 'approved').reduce((s, d) => s + (d.amount || 0), 0)
-  const totalPaid   = payments.reduce((s, p) => s + (p.amount || 0), 0)
-  const totalOwed   = Math.max(0, totalEarned - totalPaid)
-  const pendingDays = workDays.filter(d => d.status === 'pending')
+  const totalEarned   = workDays.filter(d => d.status === 'approved').reduce((s, d) => s + (d.amount || 0), 0)
+  const totalExpenses = workerExpenses.filter(e => e.status === 'approved').reduce((s, e) => s + (e.amount || 0), 0)
+  const totalPaid     = payments.reduce((s, p) => s + (p.amount || 0), 0)
+  const totalOwed     = Math.max(0, totalEarned + totalExpenses - totalPaid)
+  const pendingDays   = workDays.filter(d => d.status === 'pending')
+
+  async function requestAdvance({ amount, notes }) {
+    const session = loadSession()
+    if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
+    const parsedAmount = parseFloat(amount)
+    if (!parsedAmount || parsedAmount <= 0) throw new Error('المبلغ يجب أن يكون أكبر من صفر')
+    if (parsedAmount > 999_999)             throw new Error('المبلغ يتجاوز الحد المسموح')
+    const { data, error } = await supabase.rpc('worker_request_advance', {
+      p_emp_id: session.id,
+      p_token:  session.token,
+      p_amount: parsedAmount,
+      p_notes:  notes || '',
+    })
+    if (error) throw new Error(error.message)
+    if (data?.error) throw new Error(data.error)
+    await loadData(session.id)
+    return data
+  }
 
   async function changePassword(oldPass, newPass) {
     const session = loadSession()
@@ -200,9 +224,9 @@ export function useWorkerPortal() {
     worker, workDays, payments, projects, holidays, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
-    login, logout, submitWorkDay, submitExpense, changePassword, requestPayment,
+    login, logout, submitWorkDay, submitExpense, changePassword, requestPayment, requestAdvance,
     refetch: () => worker?.id && loadData(worker.id),
-    monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
+    monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalOwed, pendingDays,
   }
 }
 

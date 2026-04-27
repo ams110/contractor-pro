@@ -4,7 +4,7 @@ import { fmt, fmtDate, todayStr, validateWorker } from '../lib/helpers.js'
 import { GlassCard, Card, StatCard, Modal, Input, Btn, Badge, EmptyState, ConfirmDialog, AnimatedNumber } from '../components/index.jsx'
 import { setWorkerCredentials, resetWorkerPassword } from '../hooks/useWorkerPortal.js'
 import WorkerStatsPanel from '../components/WorkerStatsPanel.jsx'
-import { exportWorkerSalaryPDF } from '../lib/export.js'
+import { exportWorkerSalaryPDF, exportWorkerContractPDF } from '../lib/export.js'
 import TeamScreen from './team/TeamScreen.jsx'
 
 /* ── tiny icon button helper ── */
@@ -32,7 +32,32 @@ function IconBtn({ icon, label, onClick, color = C.textDim, active, activeColor 
   )
 }
 
-export default function WorkersScreen({ employees, workDays, payments, advances = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, teamLoadError, reloadTeam }) {
+/* ── StarRating: inline read/write star widget ── */
+function StarRating({ value, onChange, readonly }) {
+  const [hov, setHov] = useState(0)
+  return (
+    <div style={{ display: 'flex', gap: 1 }}>
+      {[1, 2, 3, 4, 5].map(n => (
+        <span
+          key={n}
+          onClick={readonly ? undefined : () => onChange(value === n ? null : n)}
+          onMouseEnter={readonly ? undefined : () => setHov(n)}
+          onMouseLeave={readonly ? undefined : () => setHov(0)}
+          style={{
+            fontSize: 13,
+            cursor: readonly ? 'default' : 'pointer',
+            color: n <= (hov || value || 0) ? '#FBBF24' : C.textDim,
+            opacity: n <= (hov || value || 0) ? 1 : 0.35,
+            transition: 'color .12s, opacity .12s',
+            lineHeight: 1,
+          }}
+        >★</span>
+      ))}
+    </div>
+  )
+}
+
+export default function WorkersScreen({ employees, workDays, payments, advances = [], expenses = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, teamLoadError, reloadTeam, projects = [], profile }) {
   const [tab,        setTab]        = useState('workers') // 'workers' | 'team'
   const [showForm,   setShowForm]   = useState(false)
   const [editing,    setEditing]    = useState(null)
@@ -57,6 +82,10 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
   const [advError,   setAdvError]   = useState('')
   const [advSaving,  setAdvSaving]  = useState(false)
   const [advHistory, setAdvHistory] = useState(null)
+
+  // بحث وترتيب
+  const [search,  setSearch]  = useState('')
+  const [sortBy,  setSortBy]  = useState('name') // 'name' | 'owed' | 'rate'
 
   // نسخ رابط البوابة
   const [copied, setCopied] = useState(false)
@@ -100,7 +129,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
     }
   }
 
-  const emptyForm = { name:'', phone:'', specialization:'', daily_rate:'', status:'نشط', can_submit_expenses: true, can_request_payment: true }
+  const emptyForm = { name:'', phone:'', specialization:'', daily_rate:'', status:'نشط', can_submit_expenses: true, can_request_payment: true, id_number: '', notes: '' }
   const [form, setForm] = useState(emptyForm)
 
   function f(key) { return v => setForm(prev => ({ ...prev, [key]: v })) }
@@ -151,10 +180,14 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
     }
   }
 
-  const totalE   = workDays.reduce((s, w) => s + w.amount, 0)
+  const totalE   = workDays.filter(w => w.status === 'approved').reduce((s, w) => s + w.amount, 0)
+  const totalExp = expenses.filter(e => e.employee_id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
   const totalP   = payments.reduce((s, p) => s + p.amount, 0)
   const totalAdv = advances.reduce((s, a) => s + a.amount, 0)
-  const totalOwed = Math.max(0, totalE - totalP - totalAdv)
+  const totalOwed = Math.max(0, totalE + totalExp - totalP - totalAdv)
+
+  const showAmounts = permissions?.viewAmounts !== false
+  const fmtA = (v) => showAmounts ? `${fmt(v)}₪` : '---'
 
   return (
     <div className="fade-in" style={{ padding: 16, maxWidth: 520, margin: '0 auto' }}>
@@ -196,10 +229,31 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         ))}
       </div>
 
+      {/* ── بحث وترتيب (تاب العمال فقط) ── */}
+      {tab === 'workers' && employees.length > 0 && (
+        <div style={{ display:'flex', gap:8, marginBottom:14 }}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="🔍 ابحث عن عامل..."
+            style={{ flex:1, padding:'9px 14px', borderRadius:12, border:`1.5px solid ${C.border}`, background:C.surface, color:C.text, fontSize:13, outline:'none', direction:'rtl' }}
+          />
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+            style={{ padding:'9px 10px', borderRadius:12, border:`1.5px solid ${C.border}`, background:C.surface, color:C.textDim, fontSize:12, outline:'none', cursor:'pointer' }}>
+            <option value="name">الاسم</option>
+            <option value="owed">المستحق</option>
+            <option value="rate">الراتب اليومي</option>
+          </select>
+        </div>
+      )}
+
       {tab === 'team' && (
         <TeamScreen
           teamMembers={teamMembers}
           permissions={permissions}
+          projects={projects}
           addMember={addMember}
           updateMember={updateMember}
           removeMember={removeMember}
@@ -227,7 +281,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                   background: s.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text', textAlign: 'center', letterSpacing: '-0.5px',
                 }}>
-                  <AnimatedNumber value={s.value} suffix="₪" />
+                  {showAmounts ? <AnimatedNumber value={s.value} suffix="₪" /> : '---'}
                 </div>
               </div>
               <div style={{ height: 2, background: s.grad, borderRadius: '0 0 16px 16px' }} />
@@ -237,13 +291,25 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       )}
 
       {/* ── Worker List ── */}
-      {tab === 'workers' && (employees.length === 0
-        ? <EmptyState icon="👷" text="ما في عمال بعد — أضف أول عامل الآن" action="+ أضف عامل" onAction={openNew} />
-        : employees.map(w => {
-            const earned = workDays.filter(wd => wd.employee_id === w.id).reduce((s, wd) => s + wd.amount, 0)
-            const paid   = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
-            const wAdv   = advances.filter(a  => a.employee_id  === w.id).reduce((s, a)  => s + a.amount,  0)
-            const owed   = Math.max(0, earned - paid - wAdv)
+      {tab === 'workers' && (() => {
+        const withCalc = employees.map(w => {
+          const earned = workDays.filter(wd => wd.employee_id === w.id && wd.status === 'approved').reduce((s, wd) => s + wd.amount, 0)
+          const paid   = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
+          const wAdv   = advances.filter(a  => a.employee_id  === w.id).reduce((s, a)  => s + a.amount,  0)
+          const wExp   = expenses.filter(e  => e.employee_id  === w.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
+          return { ...w, _owed: Math.max(0, earned + wExp - paid - wAdv), _earned: earned, _paid: paid, _adv: wAdv, _exp: wExp }
+        })
+        const filtered = search.trim()
+          ? withCalc.filter(w => w.name.includes(search) || (w.specialization || '').includes(search))
+          : withCalc
+        const sorted = [...filtered].sort((a, b) =>
+          sortBy === 'owed' ? b._owed - a._owed :
+          sortBy === 'rate' ? b.daily_rate - a.daily_rate :
+          a.name.localeCompare(b.name, 'ar'))
+        if (employees.length === 0) return <EmptyState icon="👷" text="ما في عمال بعد — أضف أول عامل الآن" action="+ أضف عامل" onAction={openNew} />
+        if (sorted.length === 0) return <div style={{ textAlign:'center', color:C.textDim, padding:32, fontSize:13 }}>لا نتائج لـ "{search}"</div>
+        return sorted.map(w => {
+            const owed   = w._owed
             const specs_ = w.specialization ? w.specialization.split(',').map(s => s.trim()).filter(Boolean) : []
 
             return (
@@ -277,7 +343,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
                           }}>
-                            {fmt(owed)}₪ متبقي
+                            {fmtA(owed)} متبقي
                           </span>
                         )}
                       </div>
@@ -294,6 +360,24 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                       )}
                       {specs_.length === 0 && <Badge text="عام" color={C.blue} />}
                     </div>
+
+                    {/* Worker notes snippet */}
+                    {w.notes && (
+                      <div style={{ marginTop: 5, fontSize: 11, color: C.textDim, lineHeight: 1.4, fontStyle: 'italic', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                        📝 {w.notes}
+                      </div>
+                    )}
+
+                    {/* Star rating — always visible, editable by owner/editWorkers */}
+                    <div style={{ marginTop: 4 }}>
+                      <StarRating
+                        value={w.performance_rating || 0}
+                        readonly={permissions?.editWorkers === false}
+                        onChange={async val => {
+                          try { await updateEmployee(w.id, { performance_rating: val }) } catch {}
+                        }}
+                      />
+                    </div>
                   </div>
 
                   {/* ── Stats Mini Grid ── */}
@@ -302,10 +386,10 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                     marginBottom: 12,
                   }}>
                     {[
-                      { l: 'مستحق', v: earned, c: C.text,    bg: 'rgba(248,250,252,0.05)' },
-                      { l: 'مدفوع', v: paid,   c: C.success, bg: `${C.success}12` },
-                      { l: 'سلف',   v: wAdv,   c: C.warning, bg: `${C.warning}12` },
-                      { l: 'متبقي', v: owed,   c: owed > 0 ? C.accent : C.success, bg: owed > 0 ? `${C.accent}12` : `${C.success}12` },
+                      { l: 'مستحق', v: w._earned + w._exp, c: C.text,    bg: 'rgba(248,250,252,0.05)' },
+                      { l: 'مدفوع', v: w._paid,         c: C.success, bg: `${C.success}12` },
+                      { l: 'سلف',   v: w._adv,          c: C.warning, bg: `${C.warning}12` },
+                      { l: 'متبقي', v: owed,          c: owed > 0 ? C.accent : C.success, bg: owed > 0 ? `${C.accent}12` : `${C.success}12` },
                     ].map((s, i) => (
                       <div key={i} style={{
                         textAlign: 'center', padding: '7px 4px',
@@ -315,7 +399,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                       }}>
                         <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, marginBottom: 3 }}>{s.l}</div>
                         <div style={{ fontSize: 12, fontWeight: 800, color: s.c, fontFamily: 'monospace', letterSpacing: '-0.3px' }}>
-                          {fmt(s.v)}₪
+                          {fmtA(s.v)}
                         </div>
                       </div>
                     ))}
@@ -335,7 +419,8 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                       />
                     )}
                     <IconBtn icon="📋" label="سجل" onClick={() => setAdvHistory(w)} />
-                    <IconBtn icon="📄" label="PDF" onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })} />
+                    {permissions?.isOwner && <IconBtn icon="📄" label="راتب" onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })} />}
+                    {permissions?.isOwner && <IconBtn icon="📝" label="عقد" onClick={() => exportWorkerContractPDF({ worker: w, ownerName: profile?.full_name || '', contractorNumber: profile?.contractor_number || '' })} color={C.blue} activeColor={C.blue} />}
                     <IconBtn icon="📊" label="إحصاء" onClick={() => setStatsWorker(w)} color={C.blue} activeColor={C.blue} />
                     <IconBtn icon="🔑" label="بيانات" onClick={() => openCreds(w)} color={C.purple} activeColor={C.purple} />
                     {permissions?.editWorkers !== false && (
@@ -349,15 +434,30 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
               </GlassCard>
             )
           })
-      )}
+        })()}
 
       {/* ════════════════════════════════════
           Modal: إضافة / تعديل عامل
       ════════════════════════════════════ */}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? '✏️ تعديل عامل' : '👷 عامل جديد'}>
         <Input label="الاسم"             value={form.name}       onChange={f('name')}       required />
-        <Input label="التلفون"           value={form.phone}      onChange={f('phone')}      type="tel" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <Input label="التلفون"           value={form.phone}      onChange={f('phone')}      type="tel" />
+          <Input label="رقم الهوية ת.ז (اختياري)" value={form.id_number || ''} onChange={f('id_number')} />
+        </div>
         <Input label="الأجر اليومي (₪)" value={form.daily_rate} onChange={f('daily_rate')} type="number" min="1" required />
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'block', marginBottom: 8, letterSpacing: '0.03em' }}>
+            ملاحظات <span style={{ fontWeight: 400 }}>(اختياري)</span>
+          </label>
+          <textarea
+            value={form.notes || ''}
+            onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+            rows={2}
+            placeholder="مهارات خاصة، تفاصيل العقد، تعليمات..."
+            style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 12, resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.6 }}
+          />
+        </div>
 
         {/* اختيار التخصصات */}
         <div style={{ marginBottom: 16 }}>
@@ -534,7 +634,17 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         open={!!confirmDel}
         onClose={() => setConfirmDel(null)}
         onConfirm={async () => { await deleteEmployee(confirmDel); setConfirmDel(null) }}
-        message="حذف هذا العامل؟ لا يمكن التراجع عن هذا الإجراء."
+        message={(() => {
+          const w = employees.find(e => e.id === confirmDel)
+          if (!w) return 'حذف هذا العامل؟ لا يمكن التراجع.'
+          const earned = workDays.filter(d => d.employee_id === w.id && d.status === 'approved').reduce((s, d) => s + d.amount, 0)
+          const paid   = payments.filter(p => p.employee_id === w.id).reduce((s, p) => s + p.amount, 0)
+          const owed   = earned - paid
+          const hasDays = workDays.some(d => d.employee_id === w.id)
+          if (owed > 0) return `⚠️ ${w.name} عنده ${owed.toLocaleString()}₪ مستحقة غير مدفوعة. حذفه سيمسح كل سجلاته. متأكد؟`
+          if (hasDays)  return `حذف ${w.name}؟ سيتم مسح كل أيام عمله وسجلاته. لا يمكن التراجع.`
+          return `حذف ${w.name}؟ لا يمكن التراجع عن هذا الإجراء.`
+        })()}
       />
 
       {/* ════════════════════════════════════
@@ -632,6 +742,8 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         onClose={() => setStatsWorker(null)}
         worker={statsWorker}
         workDays={workDays}
+        payments={payments}
+        advances={advances}
         holidays={holidays || []}
         addHoliday={addHoliday}
         deleteHoliday={deleteHoliday}

@@ -37,6 +37,18 @@ export function useProfile(userId) {
     }
   }
 
+  async function saveContractorNumber(contractor_number) {
+    setSaving(true)
+    try {
+      const { error } = await supabase.from('profiles')
+        .upsert({ id: userId, full_name: profile.full_name, avatar_url: profile.avatar_url, contractor_number }, { onConflict: 'id' })
+      if (error) throw error
+      setProfile(prev => ({ ...prev, contractor_number }))
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function uploadAvatar(file) {
     setUploading(true)
     try {
@@ -61,5 +73,5 @@ export function useProfile(userId) {
     }
   }
 
-  return { profile, loading, saving, uploading, saveName, uploadAvatar }
+  return { profile, loading, saving, uploading, saveName, uploadAvatar, saveContractorNumber }
 }

@@ -75,9 +75,9 @@ export function useTeam(userId, userEmail) {
   }
 
   // إضافة عضو عبر Edge Function (يتجاوز تأكيد الإيميل)
-  async function addMember({ displayName, username, password, role, expiresAt, perms }) {
+  async function addMember({ displayName, username, password, role, expiresAt, perms, allowedProjectIds }) {
     const { data: fnData, error: fnErr } = await supabase.functions.invoke('create-team-member', {
-      body: { displayName, username, password, role, expiresAt, perms, ownerId: userId },
+      body: { displayName, username, password, role, expiresAt, perms, ownerId: userId, allowedProjectIds },
     })
     if (fnErr) throw new Error(`Function error: ${fnErr.message}`)
     if (fnData?.error) throw new Error(fnData.error)
@@ -93,21 +93,22 @@ export function useTeam(userId, userEmail) {
     if (fnData?.error) throw new Error(fnData.error)
   }
 
-  async function updateMember(id, perms) {
+  async function updateMember(id, perms, allowedProjectIds) {
     const { data, error } = await supabase.rpc('update_team_member_perms', {
-      p_id:                id,
-      p_can_view_projects: perms.can_view_projects ?? false,
-      p_can_edit_projects: perms.can_edit_projects ?? false,
-      p_can_view_workers:  perms.can_view_workers  ?? false,
-      p_can_edit_workers:  perms.can_edit_workers  ?? false,
-      p_can_view_expenses: perms.can_view_expenses ?? false,
-      p_can_add_expenses:  perms.can_add_expenses  ?? false,
-      p_can_view_payments: perms.can_view_payments ?? false,
-      p_can_add_payments:  perms.can_add_payments  ?? false,
-      p_can_delete:        perms.can_delete        ?? false,
-      p_can_manage_team:   perms.can_manage_team   ?? false,
-      p_can_view_amounts:  perms.can_view_amounts  ?? true,
-      p_can_view_activity: perms.can_view_activity ?? false,
+      p_id:                  id,
+      p_can_view_projects:   perms.can_view_projects ?? false,
+      p_can_edit_projects:   perms.can_edit_projects ?? false,
+      p_can_view_workers:    perms.can_view_workers  ?? false,
+      p_can_edit_workers:    perms.can_edit_workers  ?? false,
+      p_can_view_expenses:   perms.can_view_expenses ?? false,
+      p_can_add_expenses:    perms.can_add_expenses  ?? false,
+      p_can_view_payments:   perms.can_view_payments ?? false,
+      p_can_add_payments:    perms.can_add_payments  ?? false,
+      p_can_delete:          perms.can_delete        ?? false,
+      p_can_manage_team:     perms.can_manage_team   ?? false,
+      p_can_view_amounts:    perms.can_view_amounts  ?? true,
+      p_can_view_activity:   perms.can_view_activity ?? false,
+      p_allowed_project_ids: (allowedProjectIds?.length > 0) ? allowedProjectIds : null,
     })
     if (error) throw error
     if (data?.error) throw new Error(data.error)
@@ -138,11 +139,12 @@ export function useTeam(userId, userEmail) {
     return data || []
   }
 
-  const permissions      = membership ? rowToPerms(membership) : OWNER_PERMS
-  const effectiveOwnerId = membership ? membership.owner_id : userId
+  const permissions        = membership ? rowToPerms(membership) : OWNER_PERMS
+  const effectiveOwnerId   = membership ? membership.owner_id : userId
+  const allowedProjectIds  = membership?.allowed_project_ids || null
 
   return {
-    membership, teamMembers, permissions, effectiveOwnerId,
+    membership, teamMembers, permissions, effectiveOwnerId, allowedProjectIds,
     loading, isBlocked, isExpired, teamLoadError,
     addMember, resetMemberPassword, updateMember, removeMember, blockMember,
     getActivity, getAllActivity,

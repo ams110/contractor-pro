@@ -46,16 +46,23 @@ const TBL_AR    = {
 const ACTION_ICON = { insert: '➕', update: '✏️', delete: '🗑️', view: '👁️' }
 const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, view: C.textDim }
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, permissions, teamMembers, addMember, resetMemberPassword, updateMember, removeMember, blockMember, getActivity, reloadTeam }) {
-  const { signOut, registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, user } = useAuth()
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, saveContractorNumber, permissions, teamMembers, addMember, resetMemberPassword, updateMember, removeMember, blockMember, getActivity, reloadTeam }) {
+  const { signOut, registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, setPin, hasPinSet, removePin, user } = useAuth()
   const [confirmSignOut,   setConfirmSignOut]   = useState(false)
   const [passkeyStatus,    setPasskeyStatus]    = useState('')
   const [passkeyLoading,   setPasskeyLoading]   = useState(false)
+  const [pinStep,          setPinStep]          = useState(null) // null | 'enter' | 'confirm'
+  const [pinInput,         setPinInput]         = useState('')
+  const [pinConfirm,       setPinConfirm]       = useState('')
+  const [pinStatus,        setPinStatus]        = useState('')
+  const [pinError,         setPinError]         = useState('')
   const [newSpec,          setNewSpec]          = useState('')
   const [newExpCat,        setNewExpCat]        = useState('')
   const [newPayMethod,     setNewPayMethod]     = useState('')
-  const [editingName,      setEditingName]      = useState(false)
-  const [nameInput,        setNameInput]        = useState('')
+  const [editingName,        setEditingName]        = useState(false)
+  const [nameInput,          setNameInput]          = useState('')
+  const [editingContractor,  setEditingContractor]  = useState(false)
+  const [contractorInput,    setContractorInput]    = useState('')
   const [uploadError,      setUploadError]      = useState('')
   const [showAddMember,    setShowAddMember]    = useState(false)
   const [memberForm,       setMemberForm]       = useState(emptyMemberForm)
@@ -186,6 +193,37 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
             </button>
           </div>
           {uploadError && <div style={{ fontSize:11, color:C.accent, marginTop:8 }}>{uploadError}</div>}
+
+          {/* Contractor number */}
+          {saveContractorNumber && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 6 }}>🪪 رقم ترخيص المقاول (اختياري)</div>
+              {editingContractor
+                ? <div style={{ display: 'flex', gap: 6 }}>
+                    <input autoFocus value={contractorInput} onChange={e => setContractorInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter')  { saveContractorNumber(contractorInput); setEditingContractor(false) }
+                        if (e.key === 'Escape') { setEditingContractor(false) }
+                      }}
+                      placeholder="مثال: 12345"
+                      dir="ltr"
+                      style={{ flex: 1, padding: '8px 12px', borderRadius: 10, border: `1.5px solid ${C.primary}`, background: C.surface, color: C.text, fontSize: 14, fontWeight: 700, outline: 'none' }}
+                    />
+                    <button onClick={() => { saveContractorNumber(contractorInput); setEditingContractor(false) }}
+                      style={{ padding: '8px 12px', borderRadius: 10, background: GRAD.brand, color: '#000', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 800 }}>
+                      {profSaving ? '...' : '✓'}
+                    </button>
+                  </div>
+                : <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: profile?.contractor_number ? C.text : C.textDim, fontFamily: 'monospace' }}>
+                      {profile?.contractor_number || 'لم يُضف بعد'}
+                    </span>
+                    <button onClick={() => { setContractorInput(profile?.contractor_number || ''); setEditingContractor(true) }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.textDim }}>✏️</button>
+                  </div>
+              }
+            </div>
+          )}
         </div>
       </GlassCard>
 
@@ -219,6 +257,70 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
           {passkeyStatus && (
             <div style={{ fontSize:12, marginTop:8, color: passkeyStatus.startsWith('✓') ? C.success : C.accent, textAlign:'center', fontWeight:600 }}>
               {passkeyStatus}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── PIN Login ── */}
+      {permissions?.isOwner && (
+        <div style={{ marginBottom:16 }}>
+          {hasPinSet() ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <div style={{ padding:'10px 14px', background:`${C.secondary}15`, borderRadius:12, border:`1px solid ${C.secondary}33`, fontSize:12, color:C.secondary, fontWeight:700, textAlign:'center' }}>
+                ✓ الدخول بـ PIN مفعّل على هذا الجهاز
+              </div>
+              <Btn onClick={() => { removePin(); setPinStatus('تم حذف الـ PIN'); setPinStep(null) }} variant="outline" full>
+                🗑️ حذف الـ PIN
+              </Btn>
+            </div>
+          ) : pinStep === null ? (
+            <Btn onClick={() => { setPinStep('enter'); setPinInput(''); setPinConfirm(''); setPinError('') }} variant="outline" full>
+              🔢 إعداد الدخول بـ PIN (4–6 أرقام)
+            </Btn>
+          ) : (
+            <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:16, padding:16, border:`1px solid ${C.border}` }}>
+              <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:12, textAlign:'center' }}>
+                {pinStep === 'enter' ? '🔢 أدخل PIN جديد (4–6 أرقام)' : '🔁 أعد الإدخال للتأكيد'}
+              </div>
+              <input
+                type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6}
+                value={pinStep === 'enter' ? pinInput : pinConfirm}
+                onChange={e => { const v = e.target.value.replace(/\D/g, ''); pinStep === 'enter' ? setPinInput(v) : setPinConfirm(v); setPinError('') }}
+                placeholder="••••••"
+                style={{ width:'100%', padding:'12px', borderRadius:12, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:C.text, fontSize:22, letterSpacing:8, textAlign:'center', outline:'none', boxSizing:'border-box', fontFamily:'monospace' }}
+                autoFocus
+              />
+              {pinError && <div style={{ fontSize:11, color:C.accent, textAlign:'center', marginTop:6, fontWeight:600 }}>⚠ {pinError}</div>}
+              <div style={{ display:'flex', gap:8, marginTop:10 }}>
+                <button onClick={() => { setPinStep(null); setPinInput(''); setPinConfirm('') }}
+                  style={{ flex:1, padding:'10px', borderRadius:12, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                  إلغاء
+                </button>
+                <button
+                  onClick={async () => {
+                    const val = pinStep === 'enter' ? pinInput : pinConfirm
+                    if (val.length < 4) return setPinError('PIN يجب أن يكون 4 أرقام على الأقل')
+                    if (pinStep === 'enter') {
+                      setPinStep('confirm')
+                    } else {
+                      if (pinConfirm !== pinInput) return setPinError('الرمزان غير متطابقَين')
+                      try {
+                        await setPin(pinInput)
+                        setPinStep(null); setPinInput(''); setPinConfirm('')
+                        setPinStatus('✓ تم تفعيل الـ PIN بنجاح!')
+                      } catch (e) { setPinError(e.message) }
+                    }
+                  }}
+                  style={{ flex:2, padding:'10px', borderRadius:12, border:'none', background:GRAD.brand, color:'#000', fontSize:12, fontWeight:800, cursor:'pointer' }}>
+                  {pinStep === 'enter' ? 'التالي →' : '✓ حفظ PIN'}
+                </button>
+              </div>
+            </div>
+          )}
+          {pinStatus && (
+            <div style={{ fontSize:12, marginTop:8, color: pinStatus.startsWith('✓') ? C.success : C.accent, textAlign:'center', fontWeight:600 }}>
+              {pinStatus}
             </div>
           )}
         </div>
@@ -587,22 +689,26 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
         </GlassCard>
       )}
 
-      {/* ── التصدير ── */}
-      <SectionLabel color={C.primary}>📤 تصدير البيانات</SectionLabel>
-      <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:24 }}>
-        <button onClick={() => exportFullReportToExcel({ projects, employees, workDays, expenses, payments, clientReceipts: clientReceipts || [] })}
-          style={{ padding:'13px 16px', borderRadius:14, border:'none', background:GRAD.success, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 4px 16px ${C.success}44` }}>
-          📊 تصدير تقرير Excel كامل
-        </button>
-        <button onClick={() => exportTaxSummary({ year: new Date().getFullYear(), clientReceipts: clientReceipts || [], expenses, projects })}
-          style={{ padding:'13px 16px', borderRadius:14, border:'none', background:GRAD.purple, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 4px 16px ${C.purple}44` }}>
-          🇮🇱 تصدير ملخص ضريبي للمحاسب
-        </button>
-        <button onClick={exportData}
-          style={{ padding:'13px 16px', borderRadius:14, border:`1.5px solid ${C.blue}44`, background:`${C.blue}15`, color:C.blue, fontSize:13, fontWeight:800, cursor:'pointer' }}>
-          📥 نسخة احتياطية (JSON)
-        </button>
-      </div>
+      {/* ── التصدير (المالك فقط) ── */}
+      {permissions?.isOwner && (
+        <>
+          <SectionLabel color={C.primary}>📤 تصدير البيانات</SectionLabel>
+          <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:24 }}>
+            <button onClick={() => exportFullReportToExcel({ projects, employees, workDays, expenses, payments, clientReceipts: clientReceipts || [] })}
+              style={{ padding:'13px 16px', borderRadius:14, border:'none', background:GRAD.success, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 4px 16px ${C.success}44` }}>
+              📊 تصدير تقرير Excel كامل
+            </button>
+            <button onClick={() => exportTaxSummary({ year: new Date().getFullYear(), clientReceipts: clientReceipts || [], expenses, projects })}
+              style={{ padding:'13px 16px', borderRadius:14, border:'none', background:GRAD.purple, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 4px 16px ${C.purple}44` }}>
+              🇮🇱 تصدير ملخص ضريبي للمحاسب
+            </button>
+            <button onClick={exportData}
+              style={{ padding:'13px 16px', borderRadius:14, border:`1.5px solid ${C.blue}44`, background:`${C.blue}15`, color:C.blue, fontSize:13, fontWeight:800, cursor:'pointer' }}>
+              📥 نسخة احتياطية (JSON)
+            </button>
+          </div>
+        </>
+      )}
 
       <ConfirmDialog open={confirmSignOut} onClose={() => setConfirmSignOut(false)} onConfirm={signOut} message="متأكد بدك تسجّل خروج؟" />
     </div>

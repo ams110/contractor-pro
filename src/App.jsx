@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabase.js'
 import { C, NAV } from './constants/index.js'
 import { useAuth }           from './hooks/useAuth.js'
@@ -18,15 +18,16 @@ import { useTeam, teamMemberSignIn }      from './hooks/useTeam.js'
 import LoginScreen        from './screens/LoginScreen.jsx'
 import WorkerPortalScreen from './screens/WorkerPortalScreen.jsx'
 import DashboardScreen    from './screens/DashboardScreen.jsx'
-import ProjectsScreen     from './screens/ProjectsScreen.jsx'
-import WorkersScreen      from './screens/WorkersScreen.jsx'
-import WorkDaysScreen     from './screens/WorkDaysScreen.jsx'
-import ExpensesScreen     from './screens/ExpensesScreen.jsx'
-import PaymentsScreen     from './screens/PaymentsScreen.jsx'
-import SettingsScreen     from './screens/SettingsScreen.jsx'
-import ActivityScreen    from './screens/ActivityScreen.jsx'
+const ProjectsScreen  = lazy(() => import('./screens/ProjectsScreen.jsx'))
+const WorkersScreen   = lazy(() => import('./screens/WorkersScreen.jsx'))
+const WorkDaysScreen  = lazy(() => import('./screens/WorkDaysScreen.jsx'))
+const ExpensesScreen  = lazy(() => import('./screens/ExpensesScreen.jsx'))
+const PaymentsScreen  = lazy(() => import('./screens/PaymentsScreen.jsx'))
+const SettingsScreen  = lazy(() => import('./screens/SettingsScreen.jsx'))
+const ActivityScreen  = lazy(() => import('./screens/ActivityScreen.jsx'))
 import SearchOverlay        from './components/SearchOverlay.jsx'
 import NotificationsPanel   from './components/NotificationsPanel.jsx'
+import ErrorBoundary        from './components/ErrorBoundary.jsx'
 import { LoadingSpinner }   from './components/index.jsx'
 import { GRAD }             from './constants/index.js'
 import { useNotifications } from './hooks/useNotifications.js'
@@ -106,13 +107,13 @@ export default function App() {
 
   const uid = user?.id
 
-  const { teamMembers, permissions, effectiveOwnerId, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
+  const { teamMembers, permissions, effectiveOwnerId, allowedProjectIds, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
 
   const eid = effectiveOwnerId || uid
 
   const { projects,       loading: pLoad,  addProject,    updateProject,    deleteProject   } = useProjects(eid)
   const { employees,      loading: eLoad,  addEmployee,   updateEmployee,   deleteEmployee  } = useEmployees(eid)
-  const { workDays,       loading: wLoad,  addWorkDay, updateWorkDay,  deleteWorkDay, approveWorkDay, rejectWorkDay } = useWorkDays(eid)
+  const { workDays,       loading: wLoad,  addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays,  deleteWorkDay, approveWorkDay, rejectWorkDay } = useWorkDays(eid)
   const { expenses,       loading: xLoad,  addExpense, deleteExpense, approveExpense, rejectExpense } = useExpenses(eid)
   const { payments,       loading: pyLoad, addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest } = usePayments(eid)
   const { advances,                        addAdvance,                      deleteAdvance   } = useAdvances(eid)
@@ -120,13 +121,46 @@ export default function App() {
   const { clientReceipts, loading: crLoad, addReceipt, updateReceipt,        deleteReceipt   } = useClientReceipts(eid)
   const { specs, expCats, payMethods, pensionMonthly, taxEnabled, businessType, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly, setTaxEnabled, setBusinessType } = useSettings(eid)
   const { holidays, addHoliday, deleteHoliday }                                               = useHolidays(eid)
-  const { profile, saving: profSaving, uploading, saveName, uploadAvatar }                   = useProfile(uid)
+  const { profile, saving: profSaving, uploading, saveName, uploadAvatar, saveContractorNumber } = useProfile(uid)
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
   useSalaryAlerts(uid, employees, workDays, payments)
 
   React.useEffect(() => {
     if (uid && !localStorage.getItem('cp_onboarded')) setShowOnboarding(true)
   }, [uid])
+
+  // تسجيل الخروج التلقائي بعد 30 دقيقة من عدم النشاط (للمالك فقط — أعضاء الفريق لهم جلسة مستقلة)
+  React.useEffect(() => {
+    if (!uid || effectiveOwnerId) return  // تجاهل أعضاء الفريق
+    let timer
+    const reset = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => supabase.auth.signOut(), 30 * 60 * 1000)
+    }
+    const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'pointermove']
+    events.forEach(e => window.addEventListener(e, reset, { passive: true }))
+    reset()
+    return () => {
+      clearTimeout(timer)
+      events.forEach(e => window.removeEventListener(e, reset))
+    }
+  }, [uid, effectiveOwnerId])
+
+  // ─── تصفية البيانات حسب المشاريع المسموح بها (memoized لتجنب إعادة الحساب) ─
+  const visibleProjects       = useMemo(() => allowedProjectIds ? projects.filter(p => allowedProjectIds.includes(p.id)) : projects, [projects, allowedProjectIds])
+  const visibleWorkDays       = useMemo(() => allowedProjectIds ? workDays.filter(w => allowedProjectIds.includes(w.project_id)) : workDays, [workDays, allowedProjectIds])
+  const visibleClientReceipts = useMemo(() => allowedProjectIds ? clientReceipts.filter(r => allowedProjectIds.includes(r.project_id)) : clientReceipts, [clientReceipts, allowedProjectIds])
+  const visibleEmployeeIds    = useMemo(() => allowedProjectIds ? new Set(visibleWorkDays.map(w => w.employee_id)) : null, [visibleWorkDays, allowedProjectIds])
+  const visibleExpenses       = useMemo(() => allowedProjectIds
+    ? expenses.filter(e => e.employee_id
+        ? visibleEmployeeIds.has(e.employee_id)
+        : allowedProjectIds.includes(e.project_id))
+    : expenses, [expenses, allowedProjectIds, visibleEmployeeIds])
+  const visibleEmployees      = useMemo(() => visibleEmployeeIds ? employees.filter(e => visibleEmployeeIds.has(e.id)) : employees, [employees, visibleEmployeeIds])
+  const visiblePayments       = useMemo(() => allowedProjectIds
+    ? payments.filter(p => p.project_id && allowedProjectIds.includes(p.project_id))
+    : payments, [payments, allowedProjectIds])
+  const visibleAdvances       = useMemo(() => visibleEmployeeIds ? advances.filter(a => visibleEmployeeIds.has(a.employee_id)) : advances, [advances, visibleEmployeeIds])
 
   // ─── دوال الموافقة/الرفض مع إشعار توست ────────────────────────────────────
   const _approveWorkDay = id      => approveWorkDay(id).then(() => showToast('✓ تمت الموافقة على يوم العمل'))
@@ -188,18 +222,20 @@ export default function App() {
   // ─── الشاشة الحالية ──────────────────────────────────────────────────────
   const p = permissions
   function renderScreen() {
-    const commonData = { projects, employees, workDays, expenses, payments, clientReceipts }
+    const commonData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts }
+    let content
     switch (screen) {
-      case 'dashboard': return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} />
-      case 'projects':  return p.viewProjects  ? <ProjectsScreen  projects={projects} workDays={workDays} expenses={expenses} clientReceipts={clientReceipts} employees={employees} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />
-      case 'workers':   return p.viewWorkers   ? <WorkersScreen   employees={employees} workDays={workDays} payments={payments} advances={advances} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} /> : <NoAccess />
-      case 'workdays':  return p.editWorkers   ? <WorkDaysScreen  workDays={workDays} employees={employees} projects={projects} addWorkDay={addWorkDay} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} permissions={p} holidays={holidays} /> : <NoAccess />
-      case 'expenses':  return p.viewExpenses  ? <ExpensesScreen  expenses={expenses} projects={projects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={employees} userId={uid} permissions={p} /> : <NoAccess />
-      case 'payments':  return p.viewPayments  ? <PaymentsScreen  payments={payments} employees={employees} workDays={workDays} projects={projects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />
-      case 'activity':  return (p.viewActivity || p.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />
-      case 'settings':  return <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} setTaxEnabled={setTaxEnabled} setBusinessType={setBusinessType} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} />
-      default:          return <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
+      case 'dashboard': content = <DashboardScreen {...commonData} onNav={setScreen} permissions={p} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} />; break
+      case 'projects':  content = p.viewProjects  ? <ProjectsScreen  projects={visibleProjects} workDays={visibleWorkDays} expenses={visibleExpenses} clientReceipts={visibleClientReceipts} employees={visibleEmployees} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
+      case 'workers':   content = p.viewWorkers   ? <WorkersScreen   employees={visibleEmployees} workDays={visibleWorkDays} payments={visiblePayments} advances={visibleAdvances} expenses={visibleExpenses} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} projects={projects} profile={profile} /> : <NoAccess />; break
+      case 'workdays':  content = p.editWorkers   ? <WorkDaysScreen  workDays={visibleWorkDays} employees={visibleEmployees} projects={visibleProjects} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} permissions={p} holidays={holidays} /> : <NoAccess />; break
+      case 'expenses':  content = p.viewExpenses  ? <ExpensesScreen  expenses={visibleExpenses} projects={visibleProjects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={visibleEmployees} userId={uid} permissions={p} businessType={businessType} /> : <NoAccess />; break
+      case 'payments':  content = p.viewPayments  ? <PaymentsScreen  payments={visiblePayments} employees={visibleEmployees} workDays={visibleWorkDays} expenses={visibleExpenses} projects={visibleProjects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
+      case 'activity':  content = (p.viewActivity || p.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />; break
+      case 'settings':  content = <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} setTaxEnabled={setTaxEnabled} setBusinessType={setBusinessType} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} saveContractorNumber={saveContractorNumber} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} />; break
+      default:          content = <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
     }
+    return <ErrorBoundary key={screen}>{content}</ErrorBoundary>
   }
 
   return (
@@ -251,7 +287,9 @@ export default function App() {
 
       {/* المحتوى */}
       <div style={{ paddingBottom:96 }}>
-        {renderScreen()}
+        <Suspense fallback={<div style={{ display:'flex', justifyContent:'center', padding:48 }}><LoadingSpinner /></div>}>
+          {renderScreen()}
+        </Suspense>
       </div>
 
       {/* ─── Floating Bottom Nav ─── */}

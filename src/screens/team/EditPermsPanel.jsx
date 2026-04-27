@@ -3,12 +3,14 @@ import { C, GRAD } from '../../constants/index.js'
 import { Btn } from '../../components/index.jsx'
 import { PERM_LABELS, PRESET_ROLES } from './teamConstants.js'
 
-export function EditPermsPanel({ member, manager, onSave }) {
+export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
   const {
     editingMemberId, closeEditPerms,
     editPerms, editSelectedRole,
     editPermsSaving, editPermsErr,
     handleEditRoleChange, toggleEditPerm,
+    editRestrictProjects, setEditRestrictProjects,
+    editAllowedProjects, setEditAllowedProjects, toggleEditProject,
   } = manager
 
   if (!editingMemberId || !member) return null
@@ -70,6 +72,45 @@ export function EditPermsPanel({ member, manager, onSave }) {
               </label>
             )
           })}
+        </div>
+
+        {/* Project access restriction */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 6 }}>
+            <input
+              type="checkbox"
+              checked={editRestrictProjects}
+              onChange={e => {
+                setEditRestrictProjects(e.target.checked)
+                if (!e.target.checked) setEditAllowedProjects([])
+              }}
+              style={{ accentColor: C.primary }}
+            />
+            <span style={{ fontSize: 11, fontWeight: 700, color: editRestrictProjects ? C.text : C.textDim }}>
+              🗂 تقييد المشاريع (يرى مشاريع محددة فقط)
+            </span>
+          </label>
+          {editRestrictProjects && (
+            projects.length === 0
+              ? <div style={{ fontSize: 11, color: C.textDim, padding: '6px 10px' }}>لا توجد مشاريع</div>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {projects.map(proj => {
+                    const sel = editAllowedProjects.includes(proj.id)
+                    return (
+                      <label key={proj.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                        borderRadius: 9, cursor: 'pointer', fontSize: 11,
+                        background: sel ? `${C.primary}15` : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${sel ? C.primary + '44' : C.border}`,
+                        color: sel ? C.text : C.textDim,
+                      }}>
+                        <input type="checkbox" checked={sel} onChange={() => toggleEditProject(proj.id)} style={{ accentColor: C.primary }} />
+                        {proj.name}
+                      </label>
+                    )
+                  })}
+                </div>
+          )}
         </div>
 
         {editPermsErr && (

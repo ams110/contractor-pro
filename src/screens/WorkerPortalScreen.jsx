@@ -26,7 +26,8 @@ function fmtMonth(yyyymm) {
   return `${MONTHS_AR[parseInt(m, 10) - 1]} ${y}`
 }
 
-function SummaryCard({ earned, paid, owed, pendingCount }) {
+function SummaryCard({ earned, expenses, paid, owed, pendingCount }) {
+  const totalDue = earned + expenses
   return (
     <div style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderRadius: 20, border: `1px solid ${C.borderMid}`, marginBottom: 16, overflow: 'hidden' }}>
       <div style={{ height: 3, background: owed > 0 ? GRAD.danger : GRAD.success }} />
@@ -34,9 +35,9 @@ function SummaryCard({ earned, paid, owed, pendingCount }) {
         <div style={{ fontSize: 11, color: C.textDim, marginBottom: 12, fontWeight: 700, letterSpacing: '0.04em' }}>الملخص المالي الإجمالي</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
           {[
-            { l: 'مستحق إجمالي', v: `${fmt(earned)}₪`, c: C.text },
-            { l: 'واصل',         v: `${fmt(paid)}₪`,   c: C.success },
-            { l: 'ضايل',         v: `${fmt(owed)}₪`,   c: owed > 0 ? C.accent : C.success },
+            { l: 'مستحق إجمالي', v: `${fmt(totalDue)}₪`, c: C.text },
+            { l: 'واصل',         v: `${fmt(paid)}₪`,     c: C.success },
+            { l: 'ضايل',         v: `${fmt(owed)}₪`,     c: owed > 0 ? C.accent : C.success },
           ].map(s => (
             <div key={s.l} style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 9, color: C.textDim, marginBottom: 4, fontWeight: 600 }}>{s.l}</div>
@@ -44,12 +45,18 @@ function SummaryCard({ earned, paid, owed, pendingCount }) {
             </div>
           ))}
         </div>
+        {expenses > 0 && (
+          <div style={{ marginTop: 8, padding: '6px 12px', background: `${C.warning}12`, borderRadius: 10, fontSize: 11, color: C.warning, fontWeight: 700, textAlign: 'center', border: `1px solid ${C.warning}22`, display: 'flex', justifyContent: 'space-between' }}>
+            <span>💸 مصاريف معتمدة مستحقة</span>
+            <span>{fmt(expenses)}₪</span>
+          </div>
+        )}
         {pendingCount > 0 && (
-          <div style={{ marginTop: 10, padding: '8px 12px', background: `${C.warning}18`, borderRadius: 10, fontSize: 12, color: C.warning, fontWeight: 700, textAlign: 'center', border: `1px solid ${C.warning}33` }}>
+          <div style={{ marginTop: 8, padding: '8px 12px', background: `${C.warning}18`, borderRadius: 10, fontSize: 12, color: C.warning, fontWeight: 700, textAlign: 'center', border: `1px solid ${C.warning}33` }}>
             ⏳ {pendingCount} يوم بانتظار موافقة المشرف
           </div>
         )}
-        {owed === 0 && earned > 0 && pendingCount === 0 && (
+        {owed === 0 && totalDue > 0 && pendingCount === 0 && (
           <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12, color: C.success, fontWeight: 700 }}>
             ✓ مسدد بالكامل
           </div>
@@ -824,14 +831,86 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
   )
 }
 
+// ─── فورم طلب سلفة ───────────────────────────────────────────────────────────
+function RequestAdvanceForm({ onRequest }) {
+  const [amount,   setAmount]   = useState('')
+  const [notes,    setNotes]    = useState('')
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState('')
+  const [success,  setSuccess]  = useState(false)
+
+  async function submit() {
+    setError('')
+    setLoading(true)
+    try {
+      await onRequest({ amount, notes })
+      setSuccess(true)
+      setAmount('')
+      setNotes('')
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (success) return (
+    <div style={{ textAlign: 'center', padding: '36px 16px' }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم إرسال طلب السلفة</div>
+      <div style={{ fontSize: 12, color: C.textDim }}>سيراجعه المشرف قريباً</div>
+    </div>
+  )
+
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.border}`, padding: 20, direction: 'rtl' }}>
+      <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 4 }}>💵 طلب سلفة</div>
+      <div style={{ fontSize: 11, color: C.textDim, marginBottom: 18 }}>
+        اطلب سلفة من راتبك — ستُخصم تلقائياً من مستحقاتك
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 11, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 700 }}>مبلغ السلفة (₪) *</label>
+        <input
+          type="number" min="1" value={amount} onChange={e => setAmount(e.target.value)}
+          placeholder="أدخل المبلغ"
+          style={{ width: '100%', padding: '13px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 16, fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }}
+        />
+      </div>
+
+      <div style={{ marginBottom: 18 }}>
+        <label style={{ fontSize: 11, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 700 }}>السبب / الملاحظات (اختياري)</label>
+        <textarea
+          value={notes} onChange={e => setNotes(e.target.value)}
+          placeholder="مثال: ضرورة طارئة..."
+          rows={3}
+          style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+        />
+      </div>
+
+      {error && (
+        <div style={{ padding: '10px 14px', borderRadius: 12, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, color: C.accent, fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
+          ⚠ {error}
+        </div>
+      )}
+
+      <button onClick={submit} disabled={loading || !amount}
+        style={{ width: '100%', padding: 16, borderRadius: 14, border: 'none', cursor: loading || !amount ? 'default' : 'pointer', fontWeight: 800, fontSize: 14, background: loading || !amount ? C.border : GRAD.warm, color: '#000', transition: 'all .2s' }}>
+        {loading ? '⏳ جاري الإرسال...' : '💵 إرسال الطلب'}
+      </button>
+    </div>
+  )
+}
+
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
   const {
     worker, workDays, payments, projects, holidays, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
-    login, logout, submitWorkDay, submitExpense, changePassword, requestPayment,
-    monthlyBreakdown, totalEarned, totalPaid, totalOwed, pendingDays,
+    login, logout, submitWorkDay, submitExpense, changePassword, requestPayment, requestAdvance,
+    monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalOwed, pendingDays,
   } = useWorkerPortal()
 
   const holidaySet = new Set((holidays || []).map(h => String(h.date).slice(0, 10)))
@@ -859,6 +938,7 @@ export default function WorkerPortalScreen() {
     { id: 'submit',  label: '📤 يوم' },
     ...(canExpense ? [{ id: 'expense', label: '💸 مصروف' }] : []),
     ...(canSalary  ? [{ id: 'salary',  label: '💰 راتب'   }] : []),
+    ...(canSalary  ? [{ id: 'advance', label: '💵 سلفة'   }] : []),
     { id: 'monthly', label: '📅 شهري' },
     { id: 'account', label: '⚙️ حساب' },
   ]
@@ -892,7 +972,7 @@ export default function WorkerPortalScreen() {
 
       <div style={{ padding: 16, paddingBottom: 32 }}>
         {/* ملخص إجمالي */}
-        <SummaryCard earned={totalEarned} paid={totalPaid} owed={totalOwed} pendingCount={pendingDays.length} />
+        <SummaryCard earned={totalEarned} expenses={totalExpenses} paid={totalPaid} owed={totalOwed} pendingCount={pendingDays.length} />
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 4 }}>
@@ -998,6 +1078,11 @@ export default function WorkerPortalScreen() {
             unpaidDays={workDays.filter(d => d.status === 'approved').sort((a, b) => b.date.localeCompare(a.date))}
             totalOwed={totalOwed}
           />
+        )}
+
+        {/* تبويب طلب سلفة */}
+        {tab === 'advance' && (
+          <RequestAdvanceForm onRequest={requestAdvance} />
         )}
 
         {/* تبويب الحساب وتغيير كلمة المرور */}

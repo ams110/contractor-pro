@@ -1,15 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase.js'
 
-/**
- * Hook عام لجلب بيانات من Supabase مع تحديث تلقائي
- * @param {string} table - اسم الجدول
- * @param {string} userId - معرّف المستخدم
- */
 function useTable(table, userId) {
   const [data,    setData]    = useState([])
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
+  const activeRef = useRef(true)
 
   const fetch = useCallback(async () => {
     if (!userId) return
@@ -20,6 +16,7 @@ function useTable(table, userId) {
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
+    if (!activeRef.current) return
     if (err) setError(err.message)
     else     setData(rows || [])
     setLoading(false)
@@ -27,12 +24,18 @@ function useTable(table, userId) {
 
   useEffect(() => {
     if (!userId) return
+    activeRef.current = true
     fetch()
+    // اسم فريد لكل subscription لمنع التراكم عند إعادة الـ mount
+    const channelName = `${table}_rt_${userId}_${Date.now()}`
     const channel = supabase
-      .channel(`${table}_${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table, filter: `user_id=eq.${userId}` }, fetch)
+      .channel(channelName)
+      .on('postgres_changes', { event: '*', schema: 'public', table }, () => fetch())
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      activeRef.current = false
+      supabase.removeChannel(channel)
+    }
   }, [fetch, userId])
 
   return { data, loading, error, refetch: fetch, setData }
@@ -68,8 +71,9 @@ export function useEmployees(userId) {
   const { data, loading, error, refetch } = useTable('employees', userId)
 
   async function addEmployee(form) {
-    const { error } = await supabase.from('employees').insert({ ...form, user_id: userId })
+    const { data: inserted, error } = await supabase.from('employees').insert({ ...form, user_id: userId }).select().single()
     if (error) throw error
+    if (!inserted?.id) throw new Error('فشل إنشاء العامل — حاول مجدداً')
     await refetch()
   }
 
@@ -98,6 +102,13 @@ export function useWorkDays(userId) {
     await refetch()
   }
 
+  async function bulkAddWorkDays(forms) {
+    const rows = forms.map(f => ({ ...f, user_id: userId }))
+    const { error } = await supabase.from('work_days').insert(rows)
+    if (error) throw error
+    await refetch()
+  }
+
   async function deleteWorkDay(id) {
     const { error } = await supabase.from('work_days').delete().eq('id', id).eq('user_id', userId)
     if (error) throw error
@@ -116,13 +127,19 @@ export function useWorkDays(userId) {
     await refetch()
   }
 
+  async function bulkUpdateWorkDays(ids, updates) {
+    const { error } = await supabase.from('work_days').update(updates).in('id', ids).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
   async function updateWorkDay(id, updates) {
     const { error } = await supabase.from('work_days').update(updates).eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
   }
 
-  return { workDays: data, loading, error, addWorkDay, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, refetch }
+  return { workDays: data, loading, error, addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays, deleteWorkDay, approveWorkDay, rejectWorkDay, refetch }
 }
 
 /* ─── Expenses ─── */

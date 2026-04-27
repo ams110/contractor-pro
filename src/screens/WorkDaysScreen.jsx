@@ -7,7 +7,7 @@ import { exportWorkDaysToExcel } from '../lib/export.js'
 const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange, 'عطلة': C.textDim }
 const DAY_ICONS = { 'كامل': '☀️', 'نص يوم': '🌤️', 'ساعات': '⏱️', 'مبلغ مسكر': '💵', 'عطلة': '🎉' }
 
-export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, updateWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [] }) {
+export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [] }) {
   const holidayDates = new Set((holidays || []).map(h => String(h.date).slice(0, 10)))
   const [showForm,    setShowForm]    = useState(false)
   const [editingDay,  setEditingDay]  = useState(null)
@@ -16,6 +16,9 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const [saving,      setSaving]      = useState(false)
   const [approving,   setApproving]   = useState(null)
   const [multiMode,   setMultiMode]   = useState(false)
+  const [rangeMode,   setRangeMode]   = useState(false)
+  const [dateFrom,    setDateFrom]    = useState(todayStr())
+  const [dateTo,      setDateTo]      = useState(todayStr())
   const [multiEmps,   setMultiEmps]   = useState(new Set())
   const [showFilters,   setShowFilters]   = useState(false)
   const [filterEmp,     setFilterEmp]     = useState('')
@@ -24,6 +27,14 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const [workerDetail,  setWorkerDetail]  = useState(null)
   const [openMonths,    setOpenMonths]    = useState(() => new Set([new Date().toISOString().slice(0, 7)]))
   const [openWorkers,   setOpenWorkers]   = useState(new Set())
+  const [bulkSelectMode, setBulkSelectMode] = useState(false)
+  const [selectedDayIds, setSelectedDayIds] = useState(new Set())
+  const [showBulkProj,   setShowBulkProj]   = useState(false)
+  const [bulkProjId,     setBulkProjId]     = useState('')
+  const [bulkSaving,     setBulkSaving]     = useState(false)
+  const [bulkError,      setBulkError]      = useState('')
+  const [rejectTarget,   setRejectTarget]   = useState(null)
+  const [rejectReason,   setRejectReason]   = useState('')
 
   const emptyForm = { date: todayStr(), employee_id: '', project_id: '', day_type: 'كامل', hours: '8', customAmount: '' }
   const [form, setForm] = useState(emptyForm)
@@ -67,10 +78,24 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     })
   }
 
+  function getDatesInRange(from, to) {
+    const dates = []
+    let cur = new Date(from)
+    const end = new Date(to)
+    while (cur <= end) {
+      dates.push(cur.toISOString().slice(0, 10))
+      cur.setDate(cur.getDate() + 1)
+    }
+    return dates
+  }
+
   function openForm() {
     setFormError('')
     setEditingDay(null)
     setMultiEmps(new Set())
+    setRangeMode(false)
+    setDateFrom(todayStr())
+    setDateTo(todayStr())
     setForm(emptyForm)
     setHolidayWorked(false)
     setHolidaySubType('كامل')
@@ -98,6 +123,9 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     setShowForm(false)
     setEditingDay(null)
     setMultiMode(false)
+    setRangeMode(false)
+    setDateFrom(todayStr())
+    setDateTo(todayStr())
     setMultiEmps(new Set())
     setForm(emptyForm)
     setHolidayWorked(false)
@@ -108,6 +136,38 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   async function save() {
     const isHolidayOff = form.day_type === 'عطلة' && !holidayWorked
     const effectiveType = (form.day_type === 'عطلة' && holidayWorked) ? holidaySubType : form.day_type
+
+    // ── وضع النطاق الزمني ─────────────────────────────────────────────────────
+    if (rangeMode) {
+      const workers = multiMode ? [...multiEmps] : (form.employee_id ? [form.employee_id] : [])
+      if (workers.length === 0) return setFormError('اختر عامل واحد على الأقل')
+      if (!form.project_id && !isHolidayOff) return setFormError('اختر المشروع')
+      if (!dateFrom || !dateTo) return setFormError('حدد نطاق التاريخ')
+      if (dateTo < dateFrom) return setFormError('تاريخ النهاية يجب أن يكون بعد تاريخ البداية')
+      if (effectiveType === 'مبلغ مسكر') {
+        const a = parseFloat(form.customAmount)
+        if (!a || a <= 0) return setFormError('أدخل المبلغ المسكر')
+      }
+      const dates = getDatesInRange(dateFrom, dateTo)
+      const entries = []
+      for (const date of dates) {
+        for (const empId of workers) {
+          const dup = workDays.find(w => w.employee_id === empId && String(w.date).slice(0,10) === date && w.project_id === form.project_id)
+          if (dup) continue
+          const emp = employees.find(e => e.id === empId)
+          const amount = effectiveType === 'مبلغ مسكر' ? parseFloat(form.customAmount) : calcSalary(emp.daily_rate, effectiveType, form.hours)
+          entries.push({ date, employee_id: empId, project_id: form.project_id || null, location: form.location || undefined, day_type: effectiveType, hours: parseFloat(form.hours) || 8, amount })
+        }
+      }
+      if (entries.length === 0) return setFormError('كل السجلات موجودة مسبقاً — لا يوجد جديد للحفظ')
+      setSaving(true)
+      try {
+        await bulkAddWorkDays(entries)
+        closeForm()
+      } catch (e) { setFormError(e.message) }
+      finally { setSaving(false) }
+      return
+    }
 
     if (multiMode) {
       if (multiEmps.size === 0) return setFormError('اختر عامل واحد على الأقل')
@@ -160,7 +220,48 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   }
 
   async function handleApprove(id) { setApproving(id); try { await approveWorkDay(id) } finally { setApproving(null) } }
-  async function handleReject(id)  { setApproving(id); try { await rejectWorkDay(id)  } finally { setApproving(null) } }
+  async function confirmReject() {
+    if (!rejectTarget) return
+    setApproving(rejectTarget)
+    try { await rejectWorkDay(rejectTarget, rejectReason) } finally { setApproving(null); setRejectTarget(null); setRejectReason('') }
+  }
+
+  function toggleDaySelect(id) {
+    setSelectedDayIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function exitBulkMode() {
+    setBulkSelectMode(false)
+    setSelectedDayIds(new Set())
+    setShowBulkProj(false)
+    setBulkProjId('')
+    setBulkError('')
+  }
+
+  async function applyBulkProject() {
+    if (!bulkProjId) return setBulkError('اختر مشروعاً')
+    setBulkSaving(true)
+    setBulkError('')
+    try {
+      await bulkUpdateWorkDays([...selectedDayIds], { project_id: bulkProjId })
+      exitBulkMode()
+    } catch (e) { setBulkError(e.message) }
+    finally { setBulkSaving(false) }
+  }
+
+  async function bulkApproveSelected() {
+    if (!selectedDayIds.size) return
+    setBulkSaving(true)
+    try {
+      await bulkUpdateWorkDays([...selectedDayIds], { status: 'approved' })
+      exitBulkMode()
+    } catch (e) { setBulkError(e.message) }
+    finally { setBulkSaving(false) }
+  }
 
   const hasFilter = filterEmp || filterProj || filterMonth
 
@@ -203,9 +304,62 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               🔍 {hasFilter ? 'فلتر نشط' : 'فلتر'}
             </button>
           )}
-          <Btn onClick={openForm}>+ سجّل يوم</Btn>
+          {approvedDays.length > 0 && (
+            <button onClick={() => bulkSelectMode ? exitBulkMode() : setBulkSelectMode(true)}
+              style={{ padding:'10px 14px', borderRadius:12, border:`1.5px solid ${bulkSelectMode ? C.primary : C.border}`, background: bulkSelectMode ? `${C.primary}15` : 'rgba(255,255,255,0.04)', color: bulkSelectMode ? C.primary : C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+              ☑ {bulkSelectMode ? (selectedDayIds.size > 0 ? `${selectedDayIds.size} محدد` : 'تحديد') : 'تحديد'}
+            </button>
+          )}
+          {!bulkSelectMode && <Btn onClick={openForm}>+ سجّل يوم</Btn>}
         </div>
       </div>
+
+      {/* ─── Today's Attendance ─── */}
+      {(() => {
+        const today = todayStr()
+        const todayDays = workDays.filter(wd => String(wd.date).slice(0, 10) === today)
+        if (todayDays.length === 0 && employees.filter(e => e.status === 'نشط').length === 0) return null
+        const presentIds = new Set(todayDays.map(wd => wd.employee_id))
+        const activeEmpsToday = employees.filter(e => e.status === 'نشط')
+        const approvedToday = todayDays.filter(wd => wd.status === 'approved').length
+        const pendingToday  = todayDays.filter(wd => wd.status === 'pending').length
+        const absentCount   = activeEmpsToday.filter(e => !presentIds.has(e.id)).length
+        return (
+          <div style={{ marginBottom: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '12px 14px', border: `1px solid ${C.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: C.text }}>📋 الحضور اليوم</span>
+              <span style={{ fontSize: 10, color: C.textDim }}>{new Date().toLocaleDateString('ar-EG', { weekday:'long', day:'numeric', month:'long' })}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: todayDays.length > 0 ? 10 : 0 }}>
+              {[
+                { label: 'موافق عليه', count: approvedToday, color: C.success },
+                { label: 'معلق',       count: pendingToday,  color: C.warning },
+                { label: 'غائب',       count: absentCount,   color: C.accent  },
+              ].map(s => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: `${s.color}15`, border: `1px solid ${s.color}33` }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, display: 'inline-block' }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: s.color }}>{s.count} {s.label}</span>
+                </div>
+              ))}
+            </div>
+            {todayDays.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {todayDays.slice(0, 8).map(wd => {
+                  const emp = employees.find(e => e.id === wd.employee_id)
+                  if (!emp) return null
+                  const color = wd.status === 'approved' ? C.success : wd.status === 'pending' ? C.warning : C.textDim
+                  return (
+                    <span key={wd.id} style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 10, background: `${color}18`, color, border: `1px solid ${color}33` }}>
+                      {emp.name.split(' ')[0]}
+                    </span>
+                  )
+                })}
+                {todayDays.length > 8 && <span style={{ fontSize: 10, color: C.textDim, padding: '3px 6px' }}>+{todayDays.length - 8}</span>}
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* ─── Filter Bar ─── */}
       {showFilters && (
@@ -301,7 +455,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                       style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? C.border : GRAD.success, border:'none', color: busy ? C.textDim : '#fff', fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', boxShadow: busy ? 'none' : `0 4px 18px ${C.success}44`, transition:'all .2s' }}>
                       {busy ? '...' : '✓ موافقة'}
                     </button>
-                    <button onClick={() => handleReject(wd.id)} disabled={busy}
+                    <button onClick={() => { setRejectTarget(wd.id); setRejectReason('') }} disabled={busy}
                       style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? 'transparent' : `${C.accent}12`, border:`1.5px solid ${busy ? C.border : C.accent + '55'}`, color: busy ? C.textDim : C.accent, fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', transition:'all .2s' }}>
                       {busy ? '...' : '✗ رفض'}
                     </button>
@@ -337,6 +491,23 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             return (
               <>
                 {pendingDays.length > 0 && <SectionLabel color={C.primary}>الأيام الموافق عليها</SectionLabel>}
+                {bulkSelectMode && (
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, padding:'10px 14px', background:`${C.primary}10`, borderRadius:12, border:`1px solid ${C.primary}33` }}>
+                    <span style={{ fontSize:12, color:C.primary, fontWeight:700 }}>☑ وضع التحديد — اضغط على الأيام لتحديدها</span>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button onClick={() => setSelectedDayIds(new Set(sorted.map(d => d.id)))}
+                        style={{ fontSize:11, fontWeight:700, color:C.primary, background:`${C.primary}18`, border:`1px solid ${C.primary}44`, borderRadius:8, padding:'4px 10px', cursor:'pointer' }}>
+                        الكل
+                      </button>
+                      {selectedDayIds.size > 0 && (
+                        <button onClick={() => setSelectedDayIds(new Set())}
+                          style={{ fontSize:11, fontWeight:700, color:C.textDim, background:'transparent', border:`1px solid ${C.border}`, borderRadius:8, padding:'4px 10px', cursor:'pointer' }}>
+                          إلغاء الكل
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {hasFilter && (
                   <div style={{ fontSize:12, color:C.textDim, marginBottom:12, padding:'8px 14px', background:`${C.secondary}10`, borderRadius:10, border:`1px solid ${C.secondary}22` }}>
                     عرض {sorted.length} من {approvedDays.length} يوم
@@ -427,12 +598,15 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                     const dayNum    = (wd.date || '').slice(8, 10)
                                     const pillColor = DAY_TYPE_COLOR[wd.day_type] || C.primary
                                     const holiday   = holidayDates.has(String(wd.date).slice(0,10)) ? holidays.find(h => String(h.date).slice(0,10) === String(wd.date).slice(0,10)) : null
+                                    const isSel = bulkSelectMode && selectedDayIds.has(wd.id)
                                     return (
-                                      <div key={wd.id} style={{ padding:'10px 16px 10px 58px', display:'flex', justifyContent:'space-between', alignItems:'center', background: holiday ? `${C.warning}08` : idx%2===0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderTop:`1px solid ${C.border}` }}>
+                                      <div key={wd.id}
+                                        onClick={bulkSelectMode ? () => toggleDaySelect(wd.id) : undefined}
+                                        style={{ padding:'10px 16px 10px 58px', display:'flex', justifyContent:'space-between', alignItems:'center', background: isSel ? `${C.primary}12` : holiday ? `${C.warning}08` : idx%2===0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderTop:`1px solid ${C.border}`, cursor: bulkSelectMode ? 'pointer' : 'default', transition:'background .15s' }}>
                                         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                                          <div style={{ minWidth:36, height:40, borderRadius:10, background:`${pillColor}15`, border:`1px solid ${pillColor}30`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, flexShrink:0 }}>
-                                            <div style={{ fontSize:14, fontWeight:900, color:pillColor }}>{dayNum}</div>
-                                            <div style={{ fontSize:8, color:pillColor, opacity:0.8 }}>{DAY_ICONS[wd.day_type]||'📅'}</div>
+                                          <div style={{ minWidth:36, height:40, borderRadius:10, background: isSel ? `${C.primary}25` : `${pillColor}15`, border:`1px solid ${isSel ? C.primary : pillColor}30`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, flexShrink:0 }}>
+                                            <div style={{ fontSize:14, fontWeight:900, color: isSel ? C.primary : pillColor }}>{dayNum}</div>
+                                            <div style={{ fontSize:8, color: isSel ? C.primary : pillColor, opacity:0.8 }}>{DAY_ICONS[wd.day_type]||'📅'}</div>
                                           </div>
                                           <div>
                                             <div style={{ fontSize:12, color:C.textDim }}>{fmtDateFull(wd.date)}</div>
@@ -445,9 +619,17 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                           </div>
                                         </div>
                                         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                                          <span style={{ fontSize:14, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(wd.amount)}₪</span>
-                                          <button onClick={() => openEditDay(wd)} style={{ width:30, height:30, borderRadius:8, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✏️</button>
-                                          <button onClick={() => setConfirmDel(wd.id)} style={{ width:30, height:30, borderRadius:8, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>🗑️</button>
+                                          <span style={{ fontSize:14, fontWeight:900, color: isSel ? C.primary : C.accent, fontFamily:'monospace' }}>{fmt(wd.amount)}₪</span>
+                                          {bulkSelectMode ? (
+                                            <div style={{ width:26, height:26, borderRadius:8, border:`2px solid ${isSel ? C.primary : C.border}`, background: isSel ? C.primary : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, color:'#000', flexShrink:0, transition:'all .15s' }}>
+                                              {isSel && '✓'}
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <button onClick={() => openEditDay(wd)} style={{ width:30, height:30, borderRadius:8, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✏️</button>
+                                              <button onClick={() => setConfirmDel(wd.id)} style={{ width:30, height:30, borderRadius:8, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>🗑️</button>
+                                            </>
+                                          )}
                                         </div>
                                       </div>
                                     )
@@ -474,21 +656,51 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               <div style={{ fontSize:14, color:C.textDim, lineHeight:1.8 }}>لازم تضيف عمال ومشاريع أول!</div>
             </div>
           : <>
-              {/* Multi-mode toggle — hidden in edit mode */}
+              {/* Toggles — hidden in edit mode */}
               {!editingDay && (
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:`1px solid ${multiMode ? C.secondary + '55' : C.border}` }}>
-                  <div>
-                    <div style={{ fontSize:13, fontWeight:700, color: multiMode ? C.secondary : C.text }}>👥 تسجيل لعدة عمال</div>
-                    <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>نفس اليوم والمشروع لأكثر من عامل</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:18 }}>
+                  {/* Multi-worker toggle */}
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:`1px solid ${multiMode ? C.secondary + '55' : C.border}` }}>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color: multiMode ? C.secondary : C.text }}>👥 عدة عمال</div>
+                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>نفس المشروع لأكثر من عامل</div>
+                    </div>
+                    <button onClick={() => { setMultiMode(v => !v); setMultiEmps(new Set()); setForm(prev => ({ ...prev, employee_id: '' })) }}
+                      style={{ width:48, height:26, borderRadius:13, background: multiMode ? C.secondary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
+                      <div style={{ position:'absolute', top:3, left: multiMode ? 25 : 3, width:20, height:20, borderRadius:10, background:'#fff', transition:'all .25s', boxShadow:'0 2px 6px rgba(0,0,0,0.4)' }} />
+                    </button>
                   </div>
-                  <button onClick={() => { setMultiMode(v => !v); setMultiEmps(new Set()); setForm(prev => ({ ...prev, employee_id: '' })) }}
-                    style={{ width:48, height:26, borderRadius:13, background: multiMode ? C.secondary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
-                    <div style={{ position:'absolute', top:3, left: multiMode ? 25 : 3, width:20, height:20, borderRadius:10, background:'#fff', transition:'all .25s', boxShadow:'0 2px 6px rgba(0,0,0,0.4)' }} />
-                  </button>
+                  {/* Date range toggle */}
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:`1px solid ${rangeMode ? C.primary + '55' : C.border}` }}>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color: rangeMode ? C.primary : C.text }}>📅 نطاق تواريخ</div>
+                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>من تاريخ إلى تاريخ دفعة واحدة</div>
+                    </div>
+                    <button onClick={() => setRangeMode(v => !v)}
+                      style={{ width:48, height:26, borderRadius:13, background: rangeMode ? C.primary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
+                      <div style={{ position:'absolute', top:3, left: rangeMode ? 25 : 3, width:20, height:20, borderRadius:10, background:'#fff', transition:'all .25s', boxShadow:'0 2px 6px rgba(0,0,0,0.4)' }} />
+                    </button>
+                  </div>
                 </div>
               )}
 
-              <Input label="التاريخ" value={form.date} onChange={f('date')} type="date" required />
+              {/* Date inputs */}
+              {rangeMode && !editingDay ? (
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:18 }}>
+                  <div>
+                    <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:6, letterSpacing:'0.04em', textTransform:'uppercase' }}>من تاريخ</label>
+                    <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                      style={{ width:'100%', padding:'11px 12px', borderRadius:12, border:`1.5px solid ${C.primary}55`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:13, boxSizing:'border-box', outline:'none' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:6, letterSpacing:'0.04em', textTransform:'uppercase' }}>إلى تاريخ</label>
+                    <input type="date" value={dateTo} min={dateFrom} onChange={e => setDateTo(e.target.value)}
+                      style={{ width:'100%', padding:'11px 12px', borderRadius:12, border:`1.5px solid ${C.primary}55`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:13, boxSizing:'border-box', outline:'none' }} />
+                  </div>
+                </div>
+              ) : (
+                <Input label="التاريخ" value={form.date} onChange={f('date')} type="date" required />
+              )}
 
               {/* Holiday indicator */}
               {(() => {
@@ -663,18 +875,48 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 )
               )}
 
+              {/* Range mode summary */}
+              {rangeMode && !editingDay && dateFrom && dateTo && dateTo >= dateFrom && (
+                (() => {
+                  const workers = multiMode ? [...multiEmps] : (form.employee_id ? [form.employee_id] : [])
+                  const days = getDatesInRange(dateFrom, dateTo).length
+                  const total = workers.length * days
+                  if (total === 0) return null
+                  return (
+                    <div style={{ padding:'14px 16px', borderRadius:14, marginBottom:16, background:`${C.primary}0d`, border:`1.5px solid ${C.primary}33` }}>
+                      <div style={{ fontSize:11, color:C.textDim, fontWeight:700, marginBottom:6, textTransform:'uppercase', letterSpacing:'0.04em' }}>ملخص التسجيل</div>
+                      <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+                        <span style={{ fontSize:13, color:C.text }}>📅 <b style={{ color:C.primary }}>{days}</b> يوم</span>
+                        <span style={{ fontSize:13, color:C.text }}>👷 <b style={{ color:C.secondary }}>{workers.length}</b> عامل</span>
+                        <span style={{ fontSize:13, color:C.text }}>📋 <b style={{ color:C.success }}>{total}</b> سجل سيُنشأ</span>
+                      </div>
+                      <div style={{ fontSize:10, color:C.textDim, marginTop:6 }}>السجلات المكررة ستُتجاهل تلقائياً</div>
+                    </div>
+                  )
+                })()
+              )}
+
               {formError && (
                 <div style={{ fontSize:12, color:C.accent, marginBottom:16, padding:'12px 16px', borderRadius:12, background:`${C.accent}10`, border:`1px solid ${C.accent}33` }}>⚠ {formError}</div>
               )}
 
-              <Btn onClick={save} full disabled={saving || (!multiMode && (!form.employee_id || (!form.project_id && form.day_type !== 'عطلة'))) || (multiMode && (multiEmps.size === 0 || (!form.project_id && form.day_type !== 'عطلة')))}>
-                {saving ? 'جاري الحفظ...' : multiMode ? `✓ سجّل لـ ${multiEmps.size || '...'} عمال` : '✓ سجّل اليوم'}
+              <Btn onClick={save} full disabled={saving || (!rangeMode && !multiMode && (!form.employee_id || (!form.project_id && form.day_type !== 'عطلة'))) || (!rangeMode && multiMode && (multiEmps.size === 0 || (!form.project_id && form.day_type !== 'عطلة'))) || (rangeMode && !form.project_id && form.day_type !== 'عطلة')}>
+                {saving ? 'جاري الحفظ...' : rangeMode
+                  ? `✓ سجّل ${(multiMode ? multiEmps.size : (form.employee_id ? 1 : 0)) * (dateFrom && dateTo && dateTo >= dateFrom ? getDatesInRange(dateFrom, dateTo).length : 0)} سجل`
+                  : multiMode ? `✓ سجّل لـ ${multiEmps.size || '...'} عمال` : '✓ سجّل اليوم'}
               </Btn>
             </>
         }
       </Modal>
 
       <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={async () => { await deleteWorkDay(confirmDel); setConfirmDel(null) }} message="حذف هذا اليوم؟" />
+
+      {/* ─── Reject with reason modal ─── */}
+      <Modal open={!!rejectTarget} onClose={() => { setRejectTarget(null); setRejectReason('') }} title="✗ رفض يوم العمل">
+        <div style={{ fontSize:13, color:C.textDim, marginBottom:14 }}>سيصل سبب الرفض للعامل في بوابته</div>
+        <Input label="سبب الرفض (اختياري)" value={rejectReason} onChange={v => setRejectReason(v)} />
+        <Btn onClick={confirmReject} full style={{ background:`${C.accent}cc`, marginTop:4 }}>✗ تأكيد الرفض</Btn>
+      </Modal>
 
       {/* ─── Worker detail panel ─── */}
       {workerDetail && (() => {
@@ -771,6 +1013,80 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
           </div>
         )
       })()}
+
+      {/* ─── Bulk Select Floating Bar ─── */}
+      {bulkSelectMode && (
+        <div style={{ position:'fixed', bottom:100, left:0, right:0, margin:'0 auto', width:'calc(100% - 32px)', maxWidth:398, background:C.surface, borderRadius:20, border:`1.5px solid ${selectedDayIds.size > 0 ? C.primary + '66' : C.border}`, padding:'14px 18px', display:'flex', alignItems:'center', justifyContent:'space-between', zIndex:60, boxShadow:`0 8px 32px rgba(0,0,0,0.5)`, transition:'border-color .2s' }}>
+          <div style={{ fontSize:13, fontWeight:700, color: selectedDayIds.size > 0 ? C.primary : C.textDim }}>
+            {selectedDayIds.size > 0 ? `${selectedDayIds.size} يوم محدد` : 'اضغط على أيام للتحديد'}
+          </div>
+          <div style={{ display:'flex', gap:6 }}>
+            {selectedDayIds.size > 0 && (
+              <>
+                <button onClick={bulkApproveSelected} disabled={bulkSaving}
+                  style={{ padding:'10px 14px', borderRadius:12, background:`${C.success}22`, border:`1px solid ${C.success}55`, color:C.success, fontSize:12, fontWeight:800, cursor:'pointer' }}>
+                  ✓ موافقة
+                </button>
+                <button onClick={() => setShowBulkProj(true)}
+                  style={{ padding:'10px 14px', borderRadius:12, background:GRAD.brand, border:'none', color:'#000', fontSize:12, fontWeight:800, cursor:'pointer' }}>
+                  🗂 مشروع
+                </button>
+              </>
+            )}
+            <button onClick={exitBulkMode}
+              style={{ padding:'10px 12px', borderRadius:12, background:'transparent', border:`1px solid ${C.border}`, color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Bulk Project Picker ─── */}
+      {showBulkProj && (
+        <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)' }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowBulkProj(false); setBulkProjId(''); setBulkError('') } }}>
+          <div className="slide-up" style={{ width:'100%', maxWidth:480, background:C.surface, borderRadius:'20px 20px 0 0', padding:'20px 20px 32px', border:`1px solid ${C.borderMid}`, maxHeight:'80vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+              <div>
+                <div style={{ fontSize:15, fontWeight:800, color:C.text }}>🗂 تعديل المشروع</div>
+                <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>تطبيق على {selectedDayIds.size} يوم محدد</div>
+              </div>
+              <button onClick={() => { setShowBulkProj(false); setBulkProjId(''); setBulkError('') }}
+                style={{ background:'none', border:`1px solid ${C.border}`, borderRadius:10, color:C.textDim, fontSize:16, cursor:'pointer', padding:'4px 10px' }}>✕</button>
+            </div>
+
+            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:16 }}>
+              {projects.map(p => {
+                const sel = bulkProjId === p.id
+                return (
+                  <button key={p.id} onClick={() => setBulkProjId(p.id)}
+                    style={{ padding:'14px 16px', borderRadius:14, textAlign:'right', border:`1.5px solid ${sel ? C.primary : C.border}`, background: sel ? `${C.primary}18` : 'rgba(255,255,255,0.04)', color: sel ? C.primary : C.text, fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all .15s' }}>
+                    <span>{p.name}</span>
+                    {sel && <span style={{ fontSize:16, color:C.primary }}>✓</span>}
+                  </button>
+                )
+              })}
+            </div>
+
+            {bulkError && (
+              <div style={{ fontSize:11, color:C.accent, marginBottom:12, padding:'8px 12px', background:`${C.accent}12`, borderRadius:9 }}>
+                ⚠ {bulkError}
+              </div>
+            )}
+
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={applyBulkProject} disabled={!bulkProjId || bulkSaving}
+                style={{ flex:1, padding:'14px', borderRadius:14, background: !bulkProjId || bulkSaving ? C.border : GRAD.brand, border:'none', color: !bulkProjId || bulkSaving ? C.textDim : '#000', fontSize:14, fontWeight:800, cursor: !bulkProjId || bulkSaving ? 'default' : 'pointer', transition:'all .2s' }}>
+                {bulkSaving ? '⏳ جاري الحفظ...' : '✓ تطبيق'}
+              </button>
+              <button onClick={() => { setShowBulkProj(false); setBulkProjId(''); setBulkError('') }}
+                style={{ padding:'14px 20px', borderRadius:14, background:'transparent', border:`1px solid ${C.border}`, color:C.textDim, fontSize:14, fontWeight:700, cursor:'pointer' }}>
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

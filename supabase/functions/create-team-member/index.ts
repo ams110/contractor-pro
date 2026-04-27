@@ -30,7 +30,7 @@ serve(async (req) => {
     const { data: { user }, error: authErr } = await callerClient.auth.getUser()
     if (authErr || !user) return json({ error: 'Unauthorized' }, 401)
 
-    const { displayName, username, password, role, expiresAt, perms, ownerId } = await req.json()
+    const { displayName, username, password, role, expiresAt, perms, ownerId, allowedProjectIds } = await req.json()
 
     // تحقق أن المُرسِل هو المالك
     if (user.id !== ownerId) return json({ error: 'غير مصرح' }, 403)
@@ -65,6 +65,7 @@ serve(async (req) => {
       status:       'active',
       expires_at:   expiresAt || null,
       ...perms,
+      allowed_project_ids: (allowedProjectIds?.length > 0) ? allowedProjectIds : null,
     })
 
     if (dbErr) {
