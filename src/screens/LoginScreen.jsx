@@ -88,8 +88,9 @@ export default function LoginScreen({ teamMemberSignIn }) {
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
   const [info,     setInfo]     = useState('')
-  const [showPin,  setShowPin]  = useState(false)
-  const [pinError, setPinError] = useState('')
+  const [showPin,          setShowPin]          = useState(false)
+  const [pinError,         setPinError]         = useState('')
+  const [sessionExpiredMsg, setSessionExpiredMsg] = useState(false)
 
   const [tmUsername, setTmUsername] = useState('')
   const [tmPassword, setTmPassword] = useState('')
@@ -97,7 +98,7 @@ export default function LoginScreen({ teamMemberSignIn }) {
   const passkeyOk  = isPasskeySupported()
   const passkeyReg = hasPasskeyRegistered()
   const pinOk      = hasPinSet()
-  function clearMsg() { setError(''); setInfo('') }
+  function clearMsg() { setError(''); setInfo(''); setSessionExpiredMsg(false) }
 
   async function handleForgotPassword() {
     clearMsg()
@@ -141,7 +142,13 @@ export default function LoginScreen({ teamMemberSignIn }) {
     clearMsg()
     setLoading(true)
     try { await signInWithPasskey() }
-    catch (err) { setError(err.message || 'لم تنجح عملية البصمة') }
+    catch (err) {
+      if (err.name === 'SessionExpiredError') {
+        setSessionExpiredMsg(true)
+      } else {
+        setError(err.message || 'لم تنجح عملية البصمة')
+      }
+    }
     finally { setLoading(false) }
   }
 
@@ -151,7 +158,12 @@ export default function LoginScreen({ teamMemberSignIn }) {
     try {
       await signInWithPin(pin)
     } catch (err) {
-      setPinError(err.message || 'PIN غير صحيح')
+      if (err.name === 'SessionExpiredError') {
+        setShowPin(false)
+        setSessionExpiredMsg(true)
+      } else {
+        setPinError(err.message || 'PIN غير صحيح')
+      }
     } finally {
       setLoading(false)
     }
@@ -271,6 +283,11 @@ export default function LoginScreen({ teamMemberSignIn }) {
                   <Input label="كلمة المرور" value={password} onChange={setPassword} type="password" placeholder="••••••••" required
                     error={password.length > 0 && password.length < 6 ? 'أقل من 6 أحرف' : ''} />
 
+                  {sessionExpiredMsg && (
+                    <div style={{ padding:'10px 14px', background:`${C.warning}18`, border:`1px solid ${C.warning}44`, borderRadius:12, fontSize:12, color:C.warning, marginBottom:14, fontWeight:600, lineHeight:1.5 }}>
+                      🔄 انتهت جلستك — سجّل دخولك مرة واحدة بكلمة المرور وسيعمل الـ PIN والبصمة تلقائياً
+                    </div>
+                  )}
                   {error && <Alert type="error">{error}</Alert>}
                   {info  && <Alert type="success">{info}</Alert>}
 

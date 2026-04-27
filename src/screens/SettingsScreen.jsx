@@ -51,7 +51,11 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
   const [confirmSignOut,   setConfirmSignOut]   = useState(false)
   const [passkeyStatus,    setPasskeyStatus]    = useState('')
   const [passkeyLoading,   setPasskeyLoading]   = useState(false)
-  const [pinStep,          setPinStep]          = useState(null) // null | 'enter' | 'confirm'
+  const [pkStep,           setPkStep]           = useState(null) // null | 'password'
+  const [pkPassword,       setPkPassword]       = useState('')
+  const [pkError,          setPkError]          = useState('')
+  const [pinStep,          setPinStep]          = useState(null) // null | 'password' | 'enter' | 'confirm'
+  const [pinPassword,      setPinPassword]      = useState('')
   const [pinInput,         setPinInput]         = useState('')
   const [pinConfirm,       setPinConfirm]       = useState('')
   const [pinStatus,        setPinStatus]        = useState('')
@@ -103,10 +107,16 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
   }
 
   async function handleRegisterPasskey() {
-    setPasskeyLoading(true); setPasskeyStatus('')
-    try { await registerPasskey(); setPasskeyStatus('✓ تم تفعيل البصمة بنجاح!') }
-    catch (e) { setPasskeyStatus(`⚠ ${e.message}`) }
-    finally   { setPasskeyLoading(false) }
+    if (!pkPassword) { setPkStep('password'); setPkError(''); return }
+    setPasskeyLoading(true); setPasskeyStatus(''); setPkError('')
+    try {
+      await registerPasskey(pkPassword)
+      setPasskeyStatus('✓ تم تفعيل البصمة بنجاح!')
+      setPkStep(null); setPkPassword('')
+    } catch (e) {
+      if (e.message === 'كلمة المرور غير صحيحة') { setPkError(e.message) }
+      else { setPasskeyStatus(`⚠ ${e.message}`); setPkStep(null); setPkPassword('') }
+    } finally { setPasskeyLoading(false) }
   }
 
   function exportData() {
@@ -249,8 +259,30 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                 🗑️ إلغاء تفعيل البصمة
               </Btn>
             </div>
+          ) : pkStep === 'password' ? (
+            <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:16, padding:16, border:`1px solid ${C.border}` }}>
+              <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:4, textAlign:'center' }}>🔐 أدخل كلمة مرورك الحالية</div>
+              <div style={{ fontSize:10, color:C.textDim, textAlign:'center', marginBottom:10 }}>مطلوب مرة واحدة فقط — لحفظ الدخول بشكل دائم</div>
+              <input
+                type="password"
+                value={pkPassword}
+                onChange={e => { setPkPassword(e.target.value); setPkError('') }}
+                placeholder="••••••••"
+                style={{ width:'100%', padding:'12px', borderRadius:12, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:C.text, fontSize:16, letterSpacing:2, textAlign:'center', outline:'none', boxSizing:'border-box', fontFamily:'monospace' }}
+                autoFocus
+              />
+              {pkError && <div style={{ fontSize:11, color:C.accent, textAlign:'center', marginTop:6, fontWeight:600 }}>⚠ {pkError}</div>}
+              <div style={{ display:'flex', gap:8, marginTop:10 }}>
+                <button onClick={() => { setPkStep(null); setPkPassword(''); setPkError('') }}
+                  style={{ flex:1, padding:'10px', borderRadius:12, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>إلغاء</button>
+                <button onClick={handleRegisterPasskey} disabled={passkeyLoading || !pkPassword}
+                  style={{ flex:2, padding:'10px', borderRadius:12, border:'none', background: passkeyLoading || !pkPassword ? C.surface : C.primary, color:'white', fontSize:12, fontWeight:700, cursor: passkeyLoading || !pkPassword ? 'not-allowed' : 'pointer' }}>
+                  {passkeyLoading ? '...' : 'تفعيل البصمة 👆'}
+                </button>
+              </div>
+            </div>
           ) : (
-            <Btn onClick={handleRegisterPasskey} disabled={passkeyLoading} variant="outline" full>
+            <Btn onClick={() => { setPkStep('password'); setPkPassword(''); setPkError('') }} disabled={passkeyLoading} variant="outline" full>
               {passkeyLoading ? '...' : '👆 تفعيل الدخول بالبصمة / Face ID'}
             </Btn>
           )}
@@ -275,45 +307,61 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
               </Btn>
             </div>
           ) : pinStep === null ? (
-            <Btn onClick={() => { setPinStep('enter'); setPinInput(''); setPinConfirm(''); setPinError('') }} variant="outline" full>
+            <Btn onClick={() => { setPinStep('password'); setPinPassword(''); setPinInput(''); setPinConfirm(''); setPinError('') }} variant="outline" full>
               🔢 إعداد الدخول بـ PIN (4–6 أرقام)
             </Btn>
           ) : (
             <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:16, padding:16, border:`1px solid ${C.border}` }}>
-              <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:12, textAlign:'center' }}>
-                {pinStep === 'enter' ? '🔢 أدخل PIN جديد (4–6 أرقام)' : '🔁 أعد الإدخال للتأكيد'}
+              <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:4, textAlign:'center' }}>
+                {pinStep === 'password' ? '🔐 أدخل كلمة مرورك الحالية' : pinStep === 'enter' ? '🔢 أدخل PIN جديد (4–6 أرقام)' : '🔁 أعد الإدخال للتأكيد'}
               </div>
+              {pinStep === 'password' && (
+                <div style={{ fontSize:10, color:C.textDim, textAlign:'center', marginBottom:10 }}>مطلوب مرة واحدة فقط — لحفظ الدخول بشكل دائم</div>
+              )}
               <input
-                type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6}
-                value={pinStep === 'enter' ? pinInput : pinConfirm}
-                onChange={e => { const v = e.target.value.replace(/\D/g, ''); pinStep === 'enter' ? setPinInput(v) : setPinConfirm(v); setPinError('') }}
-                placeholder="••••••"
-                style={{ width:'100%', padding:'12px', borderRadius:12, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:C.text, fontSize:22, letterSpacing:8, textAlign:'center', outline:'none', boxSizing:'border-box', fontFamily:'monospace' }}
+                key={pinStep}
+                type="password"
+                inputMode={pinStep === 'password' ? 'text' : 'numeric'}
+                pattern={pinStep === 'password' ? undefined : '[0-9]*'}
+                maxLength={pinStep === 'password' ? undefined : 6}
+                value={pinStep === 'password' ? pinPassword : pinStep === 'enter' ? pinInput : pinConfirm}
+                onChange={e => {
+                  setPinError('')
+                  if (pinStep === 'password') setPinPassword(e.target.value)
+                  else { const v = e.target.value.replace(/\D/g, ''); pinStep === 'enter' ? setPinInput(v) : setPinConfirm(v) }
+                }}
+                placeholder={pinStep === 'password' ? '••••••••' : '••••••'}
+                style={{ width:'100%', padding:'12px', borderRadius:12, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:C.text, fontSize: pinStep === 'password' ? 16 : 22, letterSpacing: pinStep === 'password' ? 2 : 8, textAlign:'center', outline:'none', boxSizing:'border-box', fontFamily:'monospace' }}
                 autoFocus
               />
               {pinError && <div style={{ fontSize:11, color:C.accent, textAlign:'center', marginTop:6, fontWeight:600 }}>⚠ {pinError}</div>}
               <div style={{ display:'flex', gap:8, marginTop:10 }}>
-                <button onClick={() => { setPinStep(null); setPinInput(''); setPinConfirm('') }}
+                <button onClick={() => { setPinStep(null); setPinPassword(''); setPinInput(''); setPinConfirm('') }}
                   style={{ flex:1, padding:'10px', borderRadius:12, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
                   إلغاء
                 </button>
                 <button
                   onClick={async () => {
-                    const val = pinStep === 'enter' ? pinInput : pinConfirm
-                    if (val.length < 4) return setPinError('PIN يجب أن يكون 4 أرقام على الأقل')
-                    if (pinStep === 'enter') {
-                      setPinStep('confirm')
+                    if (pinStep === 'password') {
+                      if (!pinPassword) return setPinError('أدخل كلمة المرور')
+                      setPinStep('enter')
                     } else {
-                      if (pinConfirm !== pinInput) return setPinError('الرمزان غير متطابقَين')
-                      try {
-                        await setPin(pinInput)
-                        setPinStep(null); setPinInput(''); setPinConfirm('')
-                        setPinStatus('✓ تم تفعيل الـ PIN بنجاح!')
-                      } catch (e) { setPinError(e.message) }
+                      const val = pinStep === 'enter' ? pinInput : pinConfirm
+                      if (val.length < 4) return setPinError('PIN يجب أن يكون 4 أرقام على الأقل')
+                      if (pinStep === 'enter') {
+                        setPinStep('confirm')
+                      } else {
+                        if (pinConfirm !== pinInput) return setPinError('الرمزان غير متطابقَين')
+                        try {
+                          await setPin(pinInput, pinPassword)
+                          setPinStep(null); setPinPassword(''); setPinInput(''); setPinConfirm('')
+                          setPinStatus('✓ تم تفعيل الـ PIN بنجاح!')
+                        } catch (e) { setPinError(e.message) }
+                      }
                     }
                   }}
                   style={{ flex:2, padding:'10px', borderRadius:12, border:'none', background:GRAD.brand, color:'#000', fontSize:12, fontWeight:800, cursor:'pointer' }}>
-                  {pinStep === 'enter' ? 'التالي →' : '✓ حفظ PIN'}
+                  {pinStep === 'confirm' ? '✓ حفظ PIN' : 'التالي →'}
                 </button>
               </div>
             </div>
