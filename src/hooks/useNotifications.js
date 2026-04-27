@@ -1,9 +1,19 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { usePushNotifications } from './usePushNotifications.js'
+
+const TYPE_TAG = {
+  advance_request: 'advance',
+  work_day:        'workday',
+  salary:          'salary',
+  team:            'team',
+}
 
 export function useNotifications(userId) {
   const [notifications, setNotifications] = useState([])
   const [unreadCount,   setUnreadCount]   = useState(0)
+  const { notify } = usePushNotifications()
+  const initialized = useRef(false)
 
   const fetch = useCallback(async () => {
     if (!userId) return
@@ -18,15 +28,24 @@ export function useNotifications(userId) {
     setUnreadCount(rows.filter(n => !n.read).length)
   }, [userId])
 
+  const handleNew = useCallback((payload) => {
+    fetch()
+    if (!initialized.current) return
+    const n = payload.new
+    if (!n) return
+    const tag = TYPE_TAG[n.type] || 'general'
+    notify(n.title || 'Contractor Pro', n.body || n.message || '', tag)
+  }, [fetch, notify])
+
   useEffect(() => {
     if (!userId) return
-    fetch()
+    fetch().then(() => { initialized.current = true })
     const channel = supabase
       .channel(`notif_${userId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, fetch)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, handleNew)
       .subscribe()
-    return () => supabase.removeChannel(channel)
-  }, [fetch, userId])
+    return () => { supabase.removeChannel(channel); initialized.current = false }
+  }, [fetch, handleNew, userId])
 
   async function markAllRead() {
     if (!userId) return
@@ -49,3 +68,4 @@ export function useNotifications(userId) {
 
   return { notifications, unreadCount, markAllRead, markRead, deleteAll, refetch: fetch }
 }
+
