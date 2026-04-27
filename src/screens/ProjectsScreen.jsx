@@ -282,8 +282,10 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   const [compareIds, setCompareIds] = useState(new Set())
   const [compareReady, setCompareReady] = useState(false)
 
+  const archivedCount = projects.filter(p => p.status === 'مؤرشف').length
+
   const filtered = projects
-    .filter(p => filter === 'الكل' || p.status === filter)
+    .filter(p => filter === 'مؤرشف' ? p.status === 'مؤرشف' : (filter === 'الكل' ? p.status !== 'مؤرشف' : p.status === filter))
     .filter(p => !search.trim() || p.name.includes(search.trim()) || (p.client_name || '').includes(search.trim()))
     .map(p => {
       const labor    = workDays.filter(w => w.project_id === p.id).reduce((s, w) => s + w.amount, 0)
@@ -336,6 +338,17 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
             <button onClick={() => duplicateProject(proj)}
               style={{ display:'flex', alignItems:'center', gap:6, background:`${C.blue}18`, border:`1px solid ${C.blue}44`, borderRadius:12, padding:'8px 14px', color:C.blue, fontSize:12, fontWeight:700, cursor:'pointer' }}>
               📋 نسخ
+            </button>
+          )}
+          {permissions?.editProjects !== false && (
+            <button
+              onClick={async () => {
+                const newStatus = proj.status === 'مؤرشف' ? 'مكتمل' : 'مؤرشف'
+                await updateProject(proj.id, { status: newStatus })
+                setDetail(null)
+              }}
+              style={{ display:'flex', alignItems:'center', gap:6, background:`${C.textDim}18`, border:`1px solid ${C.textDim}44`, borderRadius:12, padding:'8px 14px', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+              {proj.status === 'مؤرشف' ? '🔄 إلغاء أرشفة' : '🗄 أرشفة'}
             </button>
           )}
           <button
@@ -692,6 +705,14 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
             color={tab === 'نشط' ? C.success : tab === 'مكتمل' ? C.secondary : tab === 'عرض سعر' ? C.warning : C.primary}
           />
         ))}
+        {archivedCount > 0 && (
+          <FilterChip
+            label={`🗄 أرشيف (${archivedCount})`}
+            active={filter === 'مؤرشف'}
+            onClick={() => setFilter(filter === 'مؤرشف' ? 'الكل' : 'مؤرشف')}
+            color={C.textDim}
+          />
+        )}
       </div>
 
       {/* ── Search ── */}
@@ -746,6 +767,15 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                   <div style={{ fontSize: 15, fontWeight: 800, color: C.text, flex: 1, paddingLeft: 10 }}>{pr.name}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                     <Badge text={pr.status} color={statusBadgeColor(pr.status)} />
+                    {permissions?.editProjects !== false && pr.status !== 'مؤرشف' && (
+                      <button
+                        onClick={e => { e.stopPropagation(); updateProject(pr.id, { status: 'مؤرشف' }) }}
+                        title="أرشفة المشروع"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, opacity: 0.4, padding: '2px 4px', color: C.textDim, transition: 'opacity .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}
+                      >🗄</button>
+                    )}
                   </div>
                 </div>
 

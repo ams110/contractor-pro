@@ -129,7 +129,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
     }
   }
 
-  const emptyForm = { name:'', phone:'', specialization:'', daily_rate:'', status:'نشط', can_submit_expenses: true, can_request_payment: true, id_number: '' }
+  const emptyForm = { name:'', phone:'', specialization:'', daily_rate:'', status:'نشط', can_submit_expenses: true, can_request_payment: true, id_number: '', notes: '' }
   const [form, setForm] = useState(emptyForm)
 
   function f(key) { return v => setForm(prev => ({ ...prev, [key]: v })) }
@@ -361,6 +361,13 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                       {specs_.length === 0 && <Badge text="عام" color={C.blue} />}
                     </div>
 
+                    {/* Worker notes snippet */}
+                    {w.notes && (
+                      <div style={{ marginTop: 5, fontSize: 11, color: C.textDim, lineHeight: 1.4, fontStyle: 'italic', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                        📝 {w.notes}
+                      </div>
+                    )}
+
                     {/* Star rating — always visible, editable by owner/editWorkers */}
                     <div style={{ marginTop: 4 }}>
                       <StarRating
@@ -439,6 +446,18 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
           <Input label="رقم الهوية ת.ז (اختياري)" value={form.id_number || ''} onChange={f('id_number')} />
         </div>
         <Input label="الأجر اليومي (₪)" value={form.daily_rate} onChange={f('daily_rate')} type="number" min="1" required />
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'block', marginBottom: 8, letterSpacing: '0.03em' }}>
+            ملاحظات <span style={{ fontWeight: 400 }}>(اختياري)</span>
+          </label>
+          <textarea
+            value={form.notes || ''}
+            onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+            rows={2}
+            placeholder="مهارات خاصة، تفاصيل العقد، تعليمات..."
+            style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 12, resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.6 }}
+          />
+        </div>
 
         {/* اختيار التخصصات */}
         <div style={{ marginBottom: 16 }}>
