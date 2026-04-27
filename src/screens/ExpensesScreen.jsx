@@ -14,6 +14,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
   const showVAT = businessType !== 'osek_patur' && showVatExpenses
   const [showForm,    setShowForm]    = useState(false)
   const [filter,      setFilter]      = useState('الكل')
+  const [search,      setSearch]      = useState('')
   const [confirmDel,  setConfirmDel]  = useState(null)
   const [formError,   setFormError]   = useState('')
   const [saving,      setSaving]      = useState(false)
@@ -87,7 +88,9 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
     return s + (e.amount || 0) * deduct * (rate / (1 + rate))
   }, 0))
   const noVAT  = total - totalVATIn
-  const filtered = approvedExpenses.filter(e => filter === 'الكل' || e.category?.includes(filter))
+  const filtered = approvedExpenses
+    .filter(e => filter === 'الكل' || e.category?.includes(filter))
+    .filter(e => !search.trim() || (e.vendor || '').includes(search.trim()) || (e.category || '').includes(search.trim()) || String(e.amount).includes(search.trim()))
   const sorted   = [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
 
   function catColor(cat) {
@@ -208,6 +211,16 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
           })}
         </div>
       )}
+
+      {/* ── بحث ── */}
+      <div style={{ position:'relative', marginBottom:10 }}>
+        <span style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', fontSize:14, pointerEvents:'none', opacity:0.5 }}>🔍</span>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالمورد أو التصنيف أو المبلغ..."
+          style={{ width:'100%', padding:'9px 38px 9px 36px', borderRadius:12, border:`1px solid ${search ? C.primary+'66' : C.border}`, background:'rgba(255,255,255,0.04)', color:C.text, fontSize:12, outline:'none', boxSizing:'border-box', direction:'rtl' }} />
+        {search && (
+          <button onClick={() => setSearch('')} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:C.textDim, fontSize:14, cursor:'pointer', padding:0 }}>✕</button>
+        )}
+      </div>
 
       {/* ── فلتر التصنيف ── */}
       <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:4, marginBottom:16, scrollbarWidth:'none' }}>

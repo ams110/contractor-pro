@@ -272,7 +272,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
           const paid   = payments.filter(p  => p.employee_id  === w.id).reduce((s, p)  => s + p.amount,  0)
           const wAdv   = advances.filter(a  => a.employee_id  === w.id).reduce((s, a)  => s + a.amount,  0)
           const wExp   = expenses.filter(e  => e.employee_id  === w.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
-          return { ...w, _owed: Math.max(0, earned + wExp - paid - wAdv) }
+          return { ...w, _owed: Math.max(0, earned + wExp - paid - wAdv), _earned: earned, _paid: paid, _adv: wAdv, _exp: wExp }
         })
         const filtered = search.trim()
           ? withCalc.filter(w => w.name.includes(search) || (w.specialization || '').includes(search))
@@ -343,9 +343,9 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                     marginBottom: 12,
                   }}>
                     {[
-                      { l: 'مستحق', v: earned + wExp, c: C.text,    bg: 'rgba(248,250,252,0.05)' },
-                      { l: 'مدفوع', v: paid,          c: C.success, bg: `${C.success}12` },
-                      { l: 'سلف',   v: wAdv,          c: C.warning, bg: `${C.warning}12` },
+                      { l: 'مستحق', v: w._earned + w._exp, c: C.text,    bg: 'rgba(248,250,252,0.05)' },
+                      { l: 'مدفوع', v: w._paid,         c: C.success, bg: `${C.success}12` },
+                      { l: 'سلف',   v: w._adv,          c: C.warning, bg: `${C.warning}12` },
                       { l: 'متبقي', v: owed,          c: owed > 0 ? C.accent : C.success, bg: owed > 0 ? `${C.accent}12` : `${C.success}12` },
                     ].map((s, i) => (
                       <div key={i} style={{
