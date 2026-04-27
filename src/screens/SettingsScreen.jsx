@@ -47,10 +47,15 @@ const ACTION_ICON = { insert: '➕', update: '✏️', delete: '🗑️', view: 
 const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, view: C.textDim }
 
 export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, saveContractorNumber, permissions, teamMembers, addMember, resetMemberPassword, updateMember, removeMember, blockMember, getActivity, reloadTeam }) {
-  const { signOut, registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, user } = useAuth()
+  const { signOut, registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, setPin, hasPinSet, removePin, user } = useAuth()
   const [confirmSignOut,   setConfirmSignOut]   = useState(false)
   const [passkeyStatus,    setPasskeyStatus]    = useState('')
   const [passkeyLoading,   setPasskeyLoading]   = useState(false)
+  const [pinStep,          setPinStep]          = useState(null) // null | 'enter' | 'confirm'
+  const [pinInput,         setPinInput]         = useState('')
+  const [pinConfirm,       setPinConfirm]       = useState('')
+  const [pinStatus,        setPinStatus]        = useState('')
+  const [pinError,         setPinError]         = useState('')
   const [newSpec,          setNewSpec]          = useState('')
   const [newExpCat,        setNewExpCat]        = useState('')
   const [newPayMethod,     setNewPayMethod]     = useState('')
@@ -252,6 +257,70 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
           {passkeyStatus && (
             <div style={{ fontSize:12, marginTop:8, color: passkeyStatus.startsWith('✓') ? C.success : C.accent, textAlign:'center', fontWeight:600 }}>
               {passkeyStatus}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── PIN Login ── */}
+      {permissions?.isOwner && (
+        <div style={{ marginBottom:16 }}>
+          {hasPinSet() ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <div style={{ padding:'10px 14px', background:`${C.secondary}15`, borderRadius:12, border:`1px solid ${C.secondary}33`, fontSize:12, color:C.secondary, fontWeight:700, textAlign:'center' }}>
+                ✓ الدخول بـ PIN مفعّل على هذا الجهاز
+              </div>
+              <Btn onClick={() => { removePin(); setPinStatus('تم حذف الـ PIN'); setPinStep(null) }} variant="outline" full>
+                🗑️ حذف الـ PIN
+              </Btn>
+            </div>
+          ) : pinStep === null ? (
+            <Btn onClick={() => { setPinStep('enter'); setPinInput(''); setPinConfirm(''); setPinError('') }} variant="outline" full>
+              🔢 إعداد الدخول بـ PIN (4–6 أرقام)
+            </Btn>
+          ) : (
+            <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:16, padding:16, border:`1px solid ${C.border}` }}>
+              <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:12, textAlign:'center' }}>
+                {pinStep === 'enter' ? '🔢 أدخل PIN جديد (4–6 أرقام)' : '🔁 أعد الإدخال للتأكيد'}
+              </div>
+              <input
+                type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6}
+                value={pinStep === 'enter' ? pinInput : pinConfirm}
+                onChange={e => { const v = e.target.value.replace(/\D/g, ''); pinStep === 'enter' ? setPinInput(v) : setPinConfirm(v); setPinError('') }}
+                placeholder="••••••"
+                style={{ width:'100%', padding:'12px', borderRadius:12, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:C.text, fontSize:22, letterSpacing:8, textAlign:'center', outline:'none', boxSizing:'border-box', fontFamily:'monospace' }}
+                autoFocus
+              />
+              {pinError && <div style={{ fontSize:11, color:C.accent, textAlign:'center', marginTop:6, fontWeight:600 }}>⚠ {pinError}</div>}
+              <div style={{ display:'flex', gap:8, marginTop:10 }}>
+                <button onClick={() => { setPinStep(null); setPinInput(''); setPinConfirm('') }}
+                  style={{ flex:1, padding:'10px', borderRadius:12, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                  إلغاء
+                </button>
+                <button
+                  onClick={async () => {
+                    const val = pinStep === 'enter' ? pinInput : pinConfirm
+                    if (val.length < 4) return setPinError('PIN يجب أن يكون 4 أرقام على الأقل')
+                    if (pinStep === 'enter') {
+                      setPinStep('confirm')
+                    } else {
+                      if (pinConfirm !== pinInput) return setPinError('الرمزان غير متطابقَين')
+                      try {
+                        await setPin(pinInput)
+                        setPinStep(null); setPinInput(''); setPinConfirm('')
+                        setPinStatus('✓ تم تفعيل الـ PIN بنجاح!')
+                      } catch (e) { setPinError(e.message) }
+                    }
+                  }}
+                  style={{ flex:2, padding:'10px', borderRadius:12, border:'none', background:GRAD.brand, color:'#000', fontSize:12, fontWeight:800, cursor:'pointer' }}>
+                  {pinStep === 'enter' ? 'التالي →' : '✓ حفظ PIN'}
+                </button>
+              </div>
+            </div>
+          )}
+          {pinStatus && (
+            <div style={{ fontSize:12, marginTop:8, color: pinStatus.startsWith('✓') ? C.success : C.accent, textAlign:'center', fontWeight:600 }}>
+              {pinStatus}
             </div>
           )}
         </div>

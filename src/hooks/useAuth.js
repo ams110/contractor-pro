@@ -7,6 +7,12 @@ import {
 
 const PASSKEY_KEY = 'cpro_passkey_cred'
 const SESSION_KEY = 'cpro_passkey_sess'
+const PIN_HASH_KEY = 'cpro_pin_hash'
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
 
 export function useAuth() {
   const [user,    setUser]    = useState(null)
@@ -146,11 +152,58 @@ export function useAuth() {
     localStorage.removeItem(SESSION_KEY)
   }
 
+  // ─── PIN Login ────────────────────────────────────────────────────────────
+
+  /** تعيين PIN جديد (6 أرقام) */
+  async function setPin(pin) {
+    if (!user) throw new Error('يجب تسجيل الدخول أولاً')
+    if (!/^\d{4,6}$/.test(pin)) throw new Error('PIN يجب أن يكون 4–6 أرقام')
+    const hash = await sha256(pin + user.email)
+    localStorage.setItem(PIN_HASH_KEY, hash)
+    localStorage.setItem('cpro_pin_email', user.email)
+    // احفظ الجلسة الحالية
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        access_token:  session.access_token,
+        refresh_token: session.refresh_token,
+      }))
+    }
+  }
+
+  /** تسجيل دخول بالـ PIN */
+  async function signInWithPin(pin) {
+    const stored = localStorage.getItem(PIN_HASH_KEY)
+    if (!stored) throw new Error('لم يتم تعيين PIN على هذا الجهاز')
+    // نحتاج email لإعادة الـ hash — نحفظه محلياً عند الإعداد
+    const savedEmail = localStorage.getItem('cpro_pin_email')
+    if (!savedEmail) throw new Error('أعد تعيين الـ PIN من الإعدادات')
+    const hash = await sha256(pin + savedEmail)
+    if (hash !== stored) throw new Error('PIN غير صحيح')
+
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) throw new Error('انتهت الجلسة — سجّل دخولك بكلمة المرور مرة واحدة')
+    const { access_token, refresh_token } = JSON.parse(raw)
+    const { error } = await supabase.auth.setSession({ access_token, refresh_token })
+    if (error) {
+      localStorage.removeItem(SESSION_KEY)
+      throw new Error('انتهت الجلسة — سجّل دخولك بكلمة المرور مرة واحدة ثم أعد تعيين الـ PIN')
+    }
+  }
+
+  function hasPinSet() { return !!localStorage.getItem(PIN_HASH_KEY) }
+
+  function removePin() {
+    localStorage.removeItem(PIN_HASH_KEY)
+    localStorage.removeItem('cpro_pin_email')
+  }
+
   return {
     user, loading,
     signUp, signIn, signOut,
     registerPasskey, signInWithPasskey,
     isPasskeySupported, hasPasskeyRegistered, removePasskey,
+    setPin, signInWithPin, hasPinSet, removePin,
   }
 }
 
