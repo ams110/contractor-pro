@@ -26,8 +26,8 @@ export function useAuth() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      // احفظ الجلسة لاستخدامها مع البصمة لاحقاً
-      if (session && localStorage.getItem(PASSKEY_KEY)) {
+      // بعد أي login ناجح: جدّد الجلسة المخزّنة إذا كان PIN أو بصمة مفعّلَين
+      if (session && (localStorage.getItem(PASSKEY_KEY) || localStorage.getItem(PIN_HASH_KEY))) {
         localStorage.setItem(SESSION_KEY, JSON.stringify({
           access_token:  session.access_token,
           refresh_token: session.refresh_token,
@@ -123,12 +123,12 @@ export function useAuth() {
 
     // البصمة نجحت — استعد الجلسة
     const raw = localStorage.getItem(SESSION_KEY)
-    if (!raw) throw new Error('انتهت الجلسة، سجّل دخولك بكلمة المرور مرة واحدة')
+    if (!raw) { const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e }
     const { access_token, refresh_token } = JSON.parse(raw)
     const { error } = await supabase.auth.setSession({ access_token, refresh_token })
     if (error) {
       localStorage.removeItem(SESSION_KEY)
-      throw new Error('انتهت الجلسة، سجّل دخولك بكلمة المرور مرة واحدة ثم أعد تفعيل البصمة')
+      const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e
     }
   }
 
@@ -182,12 +182,12 @@ export function useAuth() {
     if (hash !== stored) throw new Error('PIN غير صحيح')
 
     const raw = localStorage.getItem(SESSION_KEY)
-    if (!raw) throw new Error('انتهت الجلسة — سجّل دخولك بكلمة المرور مرة واحدة')
+    if (!raw) { const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e }
     const { access_token, refresh_token } = JSON.parse(raw)
     const { error } = await supabase.auth.setSession({ access_token, refresh_token })
     if (error) {
       localStorage.removeItem(SESSION_KEY)
-      throw new Error('انتهت الجلسة — سجّل دخولك بكلمة المرور مرة واحدة ثم أعد تعيين الـ PIN')
+      const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e
     }
   }
 
