@@ -188,6 +188,24 @@ export function useWorkerPortal() {
   const totalOwed     = Math.max(0, totalEarned + totalExpenses - totalPaid)
   const pendingDays   = workDays.filter(d => d.status === 'pending')
 
+  async function requestAdvance({ amount, notes }) {
+    const session = loadSession()
+    if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
+    const parsedAmount = parseFloat(amount)
+    if (!parsedAmount || parsedAmount <= 0) throw new Error('المبلغ يجب أن يكون أكبر من صفر')
+    if (parsedAmount > 999_999)             throw new Error('المبلغ يتجاوز الحد المسموح')
+    const { data, error } = await supabase.rpc('worker_request_advance', {
+      p_emp_id: session.id,
+      p_token:  session.token,
+      p_amount: parsedAmount,
+      p_notes:  notes || '',
+    })
+    if (error) throw new Error(error.message)
+    if (data?.error) throw new Error(data.error)
+    await loadData(session.id)
+    return data
+  }
+
   async function changePassword(oldPass, newPass) {
     const session = loadSession()
     if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
@@ -206,7 +224,7 @@ export function useWorkerPortal() {
     worker, workDays, payments, projects, holidays, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
-    login, logout, submitWorkDay, submitExpense, changePassword, requestPayment,
+    login, logout, submitWorkDay, submitExpense, changePassword, requestPayment, requestAdvance,
     refetch: () => worker?.id && loadData(worker.id),
     monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalOwed, pendingDays,
   }
