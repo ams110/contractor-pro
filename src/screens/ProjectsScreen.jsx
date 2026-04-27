@@ -126,6 +126,15 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     setDetail(null)
   }
 
+  function duplicateProject(p) {
+    setForm({ ...p, id: undefined, name: `${p.name} (نسخة)`, price: String(p.price || ''), start_date: '', end_date: '', notes: p.notes || '', locations: p.locations || [], status: 'نشط' })
+    setNewLocation('')
+    setEditing(null)
+    setFormError('')
+    setShowForm(true)
+    setDetail(null)
+  }
+
   function openReceiptForm(projId) {
     setReceiptForm(emptyReceipt)
     setEditingReceiptId(null)
@@ -268,9 +277,11 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   }
 
   const [sortBy, setSortBy] = useState('date') // 'date' | 'profit'
+  const [search, setSearch] = useState('')
 
   const filtered = projects
     .filter(p => filter === 'الكل' || p.status === filter)
+    .filter(p => !search.trim() || p.name.includes(search.trim()) || (p.client_name || '').includes(search.trim()))
     .map(p => {
       const labor    = workDays.filter(w => w.project_id === p.id).reduce((s, w) => s + w.amount, 0)
       const exp      = expenses.filter(e => e.project_id === p.id).reduce((s, e) => s + e.amount, 0)
@@ -318,6 +329,12 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           >
             ← رجوع
           </button>
+          {permissions?.editProjects !== false && (
+            <button onClick={() => duplicateProject(proj)}
+              style={{ display:'flex', alignItems:'center', gap:6, background:`${C.blue}18`, border:`1px solid ${C.blue}44`, borderRadius:12, padding:'8px 14px', color:C.blue, fontSize:12, fontWeight:700, cursor:'pointer' }}>
+              📋 نسخ
+            </button>
+          )}
           <button
             onClick={() => exportProjectToPDF({ project: proj, workDays, expenses, clientReceipts, employees: employees || [] })}
             style={{
@@ -648,7 +665,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
       </div>
 
       {/* ── Filter row ── */}
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 16, scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 10, scrollbarWidth: 'none' }}>
         {['الكل', 'نشط', 'مكتمل', 'عرض سعر'].map(tab => (
           <FilterChip
             key={tab}
@@ -658,6 +675,18 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
             color={tab === 'نشط' ? C.success : tab === 'مكتمل' ? C.secondary : tab === 'عرض سعر' ? C.warning : C.primary}
           />
         ))}
+      </div>
+
+      {/* ── Search ── */}
+      <div style={{ position: 'relative', marginBottom: 16 }}>
+        <span style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', fontSize:14, pointerEvents:'none', opacity:0.5 }}>🔍</span>
+        <input
+          value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث باسم المشروع أو العميل..."
+          style={{ width:'100%', padding:'10px 38px 10px 36px', borderRadius:12, border:`1px solid ${search ? C.primary+'66' : C.border}`, background:'rgba(255,255,255,0.04)', color:C.text, fontSize:12, outline:'none', boxSizing:'border-box', direction:'rtl' }}
+        />
+        {search && (
+          <button onClick={() => setSearch('')} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:C.textDim, fontSize:14, cursor:'pointer', padding:0 }}>✕</button>
+        )}
       </div>
 
       {/* ── Project cards ── */}
