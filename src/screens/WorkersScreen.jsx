@@ -4,7 +4,7 @@ import { fmt, fmtDate, todayStr, validateWorker } from '../lib/helpers.js'
 import { GlassCard, Card, StatCard, Modal, Input, Btn, Badge, EmptyState, ConfirmDialog, AnimatedNumber } from '../components/index.jsx'
 import { setWorkerCredentials, resetWorkerPassword } from '../hooks/useWorkerPortal.js'
 import WorkerStatsPanel from '../components/WorkerStatsPanel.jsx'
-import { exportWorkerSalaryPDF } from '../lib/export.js'
+import { exportWorkerSalaryPDF, exportWorkerContractPDF } from '../lib/export.js'
 import TeamScreen from './team/TeamScreen.jsx'
 
 /* ── tiny icon button helper ── */
@@ -32,7 +32,32 @@ function IconBtn({ icon, label, onClick, color = C.textDim, active, activeColor 
   )
 }
 
-export default function WorkersScreen({ employees, workDays, payments, advances = [], expenses = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, teamLoadError, reloadTeam, projects = [] }) {
+/* ── StarRating: inline read/write star widget ── */
+function StarRating({ value, onChange, readonly }) {
+  const [hov, setHov] = useState(0)
+  return (
+    <div style={{ display: 'flex', gap: 1 }}>
+      {[1, 2, 3, 4, 5].map(n => (
+        <span
+          key={n}
+          onClick={readonly ? undefined : () => onChange(value === n ? null : n)}
+          onMouseEnter={readonly ? undefined : () => setHov(n)}
+          onMouseLeave={readonly ? undefined : () => setHov(0)}
+          style={{
+            fontSize: 13,
+            cursor: readonly ? 'default' : 'pointer',
+            color: n <= (hov || value || 0) ? '#FBBF24' : C.textDim,
+            opacity: n <= (hov || value || 0) ? 1 : 0.35,
+            transition: 'color .12s, opacity .12s',
+            lineHeight: 1,
+          }}
+        >★</span>
+      ))}
+    </div>
+  )
+}
+
+export default function WorkersScreen({ employees, workDays, payments, advances = [], expenses = [], addAdvance, deleteAdvance, specs, addEmployee, updateEmployee, deleteEmployee, permissions, holidays, addHoliday, deleteHoliday, teamMembers = [], addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, teamLoadError, reloadTeam, projects = [], profile }) {
   const [tab,        setTab]        = useState('workers') // 'workers' | 'team'
   const [showForm,   setShowForm]   = useState(false)
   const [editing,    setEditing]    = useState(null)
@@ -335,6 +360,17 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                       )}
                       {specs_.length === 0 && <Badge text="عام" color={C.blue} />}
                     </div>
+
+                    {/* Star rating — always visible, editable by owner/editWorkers */}
+                    <div style={{ marginTop: 4 }}>
+                      <StarRating
+                        value={w.performance_rating || 0}
+                        readonly={permissions?.editWorkers === false}
+                        onChange={async val => {
+                          try { await updateEmployee(w.id, { performance_rating: val }) } catch {}
+                        }}
+                      />
+                    </div>
                   </div>
 
                   {/* ── Stats Mini Grid ── */}
@@ -376,7 +412,8 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                       />
                     )}
                     <IconBtn icon="📋" label="سجل" onClick={() => setAdvHistory(w)} />
-                    {permissions?.isOwner && <IconBtn icon="📄" label="PDF" onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })} />}
+                    {permissions?.isOwner && <IconBtn icon="📄" label="راتب" onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })} />}
+                    {permissions?.isOwner && <IconBtn icon="📝" label="عقد" onClick={() => exportWorkerContractPDF({ worker: w, ownerName: profile?.full_name || '', contractorNumber: profile?.contractor_number || '' })} color={C.blue} activeColor={C.blue} />}
                     <IconBtn icon="📊" label="إحصاء" onClick={() => setStatsWorker(w)} color={C.blue} activeColor={C.blue} />
                     <IconBtn icon="🔑" label="بيانات" onClick={() => openCreds(w)} color={C.purple} activeColor={C.purple} />
                     {permissions?.editWorkers !== false && (
