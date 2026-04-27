@@ -620,22 +620,26 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
         </GlassCard>
       )}
 
-      {/* ── التصدير ── */}
-      <SectionLabel color={C.primary}>📤 تصدير البيانات</SectionLabel>
-      <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:24 }}>
-        <button onClick={() => exportFullReportToExcel({ projects, employees, workDays, expenses, payments, clientReceipts: clientReceipts || [] })}
-          style={{ padding:'13px 16px', borderRadius:14, border:'none', background:GRAD.success, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 4px 16px ${C.success}44` }}>
-          📊 تصدير تقرير Excel كامل
-        </button>
-        <button onClick={() => exportTaxSummary({ year: new Date().getFullYear(), clientReceipts: clientReceipts || [], expenses, projects })}
-          style={{ padding:'13px 16px', borderRadius:14, border:'none', background:GRAD.purple, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 4px 16px ${C.purple}44` }}>
-          🇮🇱 تصدير ملخص ضريبي للمحاسب
-        </button>
-        <button onClick={exportData}
-          style={{ padding:'13px 16px', borderRadius:14, border:`1.5px solid ${C.blue}44`, background:`${C.blue}15`, color:C.blue, fontSize:13, fontWeight:800, cursor:'pointer' }}>
-          📥 نسخة احتياطية (JSON)
-        </button>
-      </div>
+      {/* ── التصدير (المالك فقط) ── */}
+      {permissions?.isOwner && (
+        <>
+          <SectionLabel color={C.primary}>📤 تصدير البيانات</SectionLabel>
+          <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:24 }}>
+            <button onClick={() => exportFullReportToExcel({ projects, employees, workDays, expenses, payments, clientReceipts: clientReceipts || [] })}
+              style={{ padding:'13px 16px', borderRadius:14, border:'none', background:GRAD.success, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 4px 16px ${C.success}44` }}>
+              📊 تصدير تقرير Excel كامل
+            </button>
+            <button onClick={() => exportTaxSummary({ year: new Date().getFullYear(), clientReceipts: clientReceipts || [], expenses, projects })}
+              style={{ padding:'13px 16px', borderRadius:14, border:'none', background:GRAD.purple, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 4px 16px ${C.purple}44` }}>
+              🇮🇱 تصدير ملخص ضريبي للمحاسب
+            </button>
+            <button onClick={exportData}
+              style={{ padding:'13px 16px', borderRadius:14, border:`1.5px solid ${C.blue}44`, background:`${C.blue}15`, color:C.blue, fontSize:13, fontWeight:800, cursor:'pointer' }}>
+              📥 نسخة احتياطية (JSON)
+            </button>
+          </div>
+        </>
+      )}
 
       <ConfirmDialog open={confirmSignOut} onClose={() => setConfirmSignOut(false)} onConfirm={signOut} message="متأكد بدك تسجّل خروج؟" />
     </div>
