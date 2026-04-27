@@ -3,6 +3,7 @@ import { C, GRAD } from '../constants/index.js'
 import { Btn, GlassCard, SectionLabel, ConfirmDialog } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { exportFullReportToExcel, exportTaxSummary } from '../lib/export.js'
+import { usePushNotifications, getNotifPrefs, setNotifPref } from '../hooks/usePushNotifications.js'
 
 const PERM_LABELS = [
   ['can_view_projects',  'مشاهدة المشاريع'],
@@ -48,6 +49,14 @@ const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, v
 
 export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, saveContractorNumber, permissions, teamMembers, addMember, resetMemberPassword, updateMember, removeMember, blockMember, getActivity, reloadTeam }) {
   const { signOut, registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, setPin, hasPinSet, removePin, user } = useAuth()
+  const { supported: pushSupported, permission: pushPerm, requestPermission } = usePushNotifications()
+  const [notifPrefs, setNotifPrefsState] = useState(() => getNotifPrefs())
+
+  function toggleNotifPref(key) {
+    const current = notifPrefs[key] !== false
+    setNotifPref(key, !current)
+    setNotifPrefsState(p => ({ ...p, [key]: !current }))
+  }
   const [confirmSignOut,   setConfirmSignOut]   = useState(false)
   const [passkeyStatus,    setPasskeyStatus]    = useState('')
   const [passkeyLoading,   setPasskeyLoading]   = useState(false)
@@ -372,6 +381,55 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
             </div>
           )}
         </div>
+      )}
+
+      {/* ── إشعارات Push ── */}
+      {pushSupported && (
+        <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
+          <div style={{ height:3, background:'linear-gradient(90deg,#F59E0B,#EF4444)' }} />
+          <div style={{ padding:'14px 16px' }}>
+            <SectionLabel color={C.warning}>🔔 إشعارات التطبيق</SectionLabel>
+
+            {pushPerm !== 'granted' ? (
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontSize:11, color:C.textDim, marginBottom:10 }}>
+                  فعّل الإشعارات لتلقّي تنبيهات فورية حتى عندما التبويب في الخلفية
+                </div>
+                <button onClick={async () => { await requestPermission(); setNotifPrefsState(getNotifPrefs()) }}
+                  style={{ padding:'10px 24px', borderRadius:12, border:'none', background:'linear-gradient(90deg,#F59E0B,#EF4444)', color:'#fff', fontSize:12, fontWeight:800, cursor:'pointer' }}>
+                  🔔 تفعيل الإشعارات
+                </button>
+                {pushPerm === 'denied' && (
+                  <div style={{ fontSize:10, color:C.accent, marginTop:8 }}>
+                    تم رفض الإذن — افتح إعدادات المتصفح وأعد التفعيل يدوياً
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[
+                  { key:'advance',  label:'طلبات السلفة',    icon:'💰' },
+                  { key:'workday',  label:'أيام العمل',       icon:'📅' },
+                  { key:'salary',   label:'تذكيرات الراتب',   icon:'💳' },
+                  { key:'team',     label:'نشاط الفريق',      icon:'👥' },
+                  { key:'general',  label:'إشعارات أخرى',     icon:'📢' },
+                ].map(({ key, label, icon }) => {
+                  const on = notifPrefs[key] !== false
+                  return (
+                    <div key={key} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'rgba(255,255,255,0.04)', borderRadius:10, border:`1px solid ${C.border}` }}>
+                      <span style={{ fontSize:12, color:C.text, fontWeight:600 }}>{icon} {label}</span>
+                      <button onClick={() => toggleNotifPref(key)}
+                        style={{ width:40, height:22, borderRadius:11, border:'none', cursor:'pointer', position:'relative', background: on ? C.warning : C.surface, transition:'background .2s', flexShrink:0 }}>
+                        <div style={{ position:'absolute', top:2, left: on ? 20 : 2, width:18, height:18, borderRadius:'50%', background:'#fff', transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }} />
+                      </button>
+                    </div>
+                  )
+                })}
+                <div style={{ fontSize:10, color:C.textDim, textAlign:'center', marginTop:4 }}>الإشعارات تعمل عند فتح التطبيق أو وجوده في الخلفية</div>
+              </div>
+            )}
+          </div>
+        </GlassCard>
       )}
 
       {/* ── التخصصات ── */}
