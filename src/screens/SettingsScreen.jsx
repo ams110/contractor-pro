@@ -51,6 +51,9 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
   const [confirmSignOut,   setConfirmSignOut]   = useState(false)
   const [passkeyStatus,    setPasskeyStatus]    = useState('')
   const [passkeyLoading,   setPasskeyLoading]   = useState(false)
+  const [pkStep,           setPkStep]           = useState(null) // null | 'password'
+  const [pkPassword,       setPkPassword]       = useState('')
+  const [pkError,          setPkError]          = useState('')
   const [pinStep,          setPinStep]          = useState(null) // null | 'password' | 'enter' | 'confirm'
   const [pinPassword,      setPinPassword]      = useState('')
   const [pinInput,         setPinInput]         = useState('')
@@ -104,10 +107,16 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
   }
 
   async function handleRegisterPasskey() {
-    setPasskeyLoading(true); setPasskeyStatus('')
-    try { await registerPasskey(); setPasskeyStatus('✓ تم تفعيل البصمة بنجاح!') }
-    catch (e) { setPasskeyStatus(`⚠ ${e.message}`) }
-    finally   { setPasskeyLoading(false) }
+    if (!pkPassword) { setPkStep('password'); setPkError(''); return }
+    setPasskeyLoading(true); setPasskeyStatus(''); setPkError('')
+    try {
+      await registerPasskey(pkPassword)
+      setPasskeyStatus('✓ تم تفعيل البصمة بنجاح!')
+      setPkStep(null); setPkPassword('')
+    } catch (e) {
+      if (e.message === 'كلمة المرور غير صحيحة') { setPkError(e.message) }
+      else { setPasskeyStatus(`⚠ ${e.message}`); setPkStep(null); setPkPassword('') }
+    } finally { setPasskeyLoading(false) }
   }
 
   function exportData() {
@@ -250,8 +259,30 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                 🗑️ إلغاء تفعيل البصمة
               </Btn>
             </div>
+          ) : pkStep === 'password' ? (
+            <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:16, padding:16, border:`1px solid ${C.border}` }}>
+              <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:4, textAlign:'center' }}>🔐 أدخل كلمة مرورك الحالية</div>
+              <div style={{ fontSize:10, color:C.textDim, textAlign:'center', marginBottom:10 }}>مطلوب مرة واحدة فقط — لحفظ الدخول بشكل دائم</div>
+              <input
+                type="password"
+                value={pkPassword}
+                onChange={e => { setPkPassword(e.target.value); setPkError('') }}
+                placeholder="••••••••"
+                style={{ width:'100%', padding:'12px', borderRadius:12, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:C.text, fontSize:16, letterSpacing:2, textAlign:'center', outline:'none', boxSizing:'border-box', fontFamily:'monospace' }}
+                autoFocus
+              />
+              {pkError && <div style={{ fontSize:11, color:C.accent, textAlign:'center', marginTop:6, fontWeight:600 }}>⚠ {pkError}</div>}
+              <div style={{ display:'flex', gap:8, marginTop:10 }}>
+                <button onClick={() => { setPkStep(null); setPkPassword(''); setPkError('') }}
+                  style={{ flex:1, padding:'10px', borderRadius:12, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>إلغاء</button>
+                <button onClick={handleRegisterPasskey} disabled={passkeyLoading || !pkPassword}
+                  style={{ flex:2, padding:'10px', borderRadius:12, border:'none', background: passkeyLoading || !pkPassword ? C.surface : C.primary, color:'white', fontSize:12, fontWeight:700, cursor: passkeyLoading || !pkPassword ? 'not-allowed' : 'pointer' }}>
+                  {passkeyLoading ? '...' : 'تفعيل البصمة 👆'}
+                </button>
+              </div>
+            </div>
           ) : (
-            <Btn onClick={handleRegisterPasskey} disabled={passkeyLoading} variant="outline" full>
+            <Btn onClick={() => { setPkStep('password'); setPkPassword(''); setPkError('') }} disabled={passkeyLoading} variant="outline" full>
               {passkeyLoading ? '...' : '👆 تفعيل الدخول بالبصمة / Face ID'}
             </Btn>
           )}

@@ -9,6 +9,8 @@ const PASSKEY_KEY  = 'cpro_passkey_cred'
 const SESSION_KEY  = 'cpro_passkey_sess'
 const PIN_HASH_KEY = 'cpro_pin_hash'
 const PIN_CREDS_KEY = 'cpro_pin_creds'
+const PK_KEY_KEY   = 'cpro_pk_key'
+const PK_CREDS_KEY = 'cpro_pk_creds'
 
 async function sha256(text) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
@@ -74,8 +76,12 @@ export function useAuth() {
   // ─── WebAuthn / Passkeys (بدون Edge Functions) ────────────────────────────
 
   /** تفعيل البصمة على الجهاز الحالي */
-  async function registerPasskey() {
+  async function registerPasskey(password) {
     if (!user) throw new Error('يجب تسجيل الدخول أولاً')
+
+    // verify password first
+    const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: user.email, password })
+    if (verifyErr) throw new Error('كلمة المرور غير صحيحة')
 
     // challenge عشوائي محلي (كافٍ لتطبيق شخصي)
     const challenge = new Uint8Array(32)
@@ -101,8 +107,19 @@ export function useAuth() {
       throw new Error('خطأ في تسجيل البصمة: ' + e.message)
     }
 
-    // احفظ معرّف البصمة + الجلسة الحالية
+    // احفظ معرّف البصمة
     localStorage.setItem(PASSKEY_KEY, credential.id)
+
+    // شفّر الـ credentials بمفتاح عشوائي (دائمة — لا تعتمد على التوكنات)
+    const rawKey = crypto.getRandomValues(new Uint8Array(32))
+    const aesKey = await crypto.subtle.importKey('raw', rawKey, { name: 'AES-GCM' }, true, ['encrypt'])
+    const iv     = crypto.getRandomValues(new Uint8Array(12))
+    const data   = new TextEncoder().encode(JSON.stringify({ email: user.email, password }))
+    const enc    = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, data)
+    localStorage.setItem(PK_KEY_KEY,   JSON.stringify({ key: Array.from(rawKey), iv: Array.from(iv) }))
+    localStorage.setItem(PK_CREDS_KEY, JSON.stringify(Array.from(new Uint8Array(enc))))
+
+    // احتفظ بالجلسة أيضاً كـ fallback
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       localStorage.setItem(SESSION_KEY, JSON.stringify({
@@ -134,7 +151,20 @@ export function useAuth() {
       throw new Error('فشلت البصمة: ' + e.message)
     }
 
-    // البصمة نجحت — استعد الجلسة
+    // البصمة نجحت — المسار الجديد: credentials مشفّرة → دخول مباشر
+    const keyStr = localStorage.getItem(PK_KEY_KEY)
+    const encStr = localStorage.getItem(PK_CREDS_KEY)
+    if (keyStr && encStr) {
+      const { key: rawKey, iv } = JSON.parse(keyStr)
+      const aesKey = await crypto.subtle.importKey('raw', new Uint8Array(rawKey), { name: 'AES-GCM' }, false, ['decrypt'])
+      const dec    = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(iv) }, aesKey, new Uint8Array(JSON.parse(encStr)))
+      const { email, password } = JSON.parse(new TextDecoder().decode(dec))
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw new Error('فشل تسجيل الدخول — أعد تفعيل البصمة من الإعدادات')
+      return
+    }
+
+    // fallback للأجهزة القديمة (قبل هذا التحديث)
     const raw = localStorage.getItem(SESSION_KEY)
     if (!raw) { const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e }
     const { access_token, refresh_token } = JSON.parse(raw)
@@ -163,6 +193,8 @@ export function useAuth() {
   function removePasskey() {
     localStorage.removeItem(PASSKEY_KEY)
     localStorage.removeItem(SESSION_KEY)
+    localStorage.removeItem(PK_KEY_KEY)
+    localStorage.removeItem(PK_CREDS_KEY)
   }
 
   // ─── PIN Login ────────────────────────────────────────────────────────────
