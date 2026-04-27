@@ -47,7 +47,7 @@ const TBL_AR    = {
 const ACTION_ICON = { insert: '➕', update: '✏️', delete: '🗑️', view: '👁️' }
 const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, view: C.textDim }
 
-export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, saveContractorNumber, permissions, teamMembers, addMember, resetMemberPassword, updateMember, removeMember, blockMember, getActivity, reloadTeam }) {
+export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, taxModules = {}, setTaxModule, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, saveContractorNumber, permissions, teamMembers, addMember, resetMemberPassword, updateMember, removeMember, blockMember, getActivity, reloadTeam }) {
   const { signOut, registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, setPin, hasPinSet, removePin, user } = useAuth()
   const { supported: pushSupported, permission: pushPerm, requestPermission } = usePushNotifications()
   const [notifPrefs, setNotifPrefsState] = useState(() => getNotifPrefs())
@@ -513,21 +513,21 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
         <div style={{ padding:'14px 16px' }}>
           <SectionLabel color={C.secondary}>🇮🇱 إعدادات الضرائب</SectionLabel>
 
-          {/* Toggle لوحة الضرائب */}
+          {/* Master toggle */}
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', background:'rgba(255,255,255,0.04)', borderRadius:12, marginBottom:12, border:`1px solid ${C.border}` }}>
             <div>
               <div style={{ fontSize:12, fontWeight:700, color:C.text }}>لوحة الضرائب في الرئيسية</div>
-              <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>إظهار ملخص ضريبي في الداشبورد</div>
+              <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>إظهار المحاسب الضريبي في الداشبورد</div>
             </div>
             <button onClick={() => setTaxEnabled && setTaxEnabled(!taxEnabled)}
-              style={{ width:46, height:26, borderRadius:13, border:'none', cursor:'pointer', position:'relative', background: taxEnabled ? C.primary : C.textMuted, transition:'background .2s' }}>
+              style={{ width:46, height:26, borderRadius:13, border:'none', cursor:'pointer', position:'relative', background: taxEnabled ? C.primary : C.surface, transition:'background .2s' }}>
               <div style={{ position:'absolute', top:3, left: taxEnabled ? 23 : 3, width:20, height:20, borderRadius:'50%', background:'#fff', transition:'left .2s', boxShadow:'0 1px 4px rgba(0,0,0,0.3)' }} />
             </button>
           </div>
 
           {/* نوع العيسك */}
           <div style={{ fontSize:11, color:C.textDim, marginBottom:8, fontWeight:600 }}>نوع العيسك:</div>
-          <div style={{ display:'flex', gap:8 }}>
+          <div style={{ display:'flex', gap:8, marginBottom:14 }}>
             {[
               { val:'osek_moreh', label:'עוסק מורשה', desc:'ملزم بـ מע"מ' },
               { val:'osek_patur', label:'עוסק פטור',  desc:'معفى من מע"מ' },
@@ -542,6 +542,32 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
               )
             })}
           </div>
+
+          {/* Per-module toggles */}
+          {taxEnabled && setTaxModule && (
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <div style={{ fontSize:11, color:C.textDim, fontWeight:600, marginBottom:2 }}>الوحدات المفعّلة:</div>
+              {[
+                { key:'vat',              label:'مع"מ (VAT)',            icon:'🧾', show: businessType !== 'osek_patur' },
+                { key:'incomeTax',        label:'מס הכנסה',              icon:'💰' },
+                { key:'bituachLeumi',     label:'ביטוח לאומי',            icon:'🏥' },
+                { key:'workerDeductions', label:'استقطاعات العمال',       icon:'👷' },
+                { key:'pensionCalc',      label:'חיסכון פנסיוני',         icon:'🔵' },
+                { key:'annualSummary',    label:'الملخص السنوي',           icon:'📊' },
+              ].filter(m => m.show !== false).map(({ key, label, icon }) => {
+                const on = taxModules[key] !== false
+                return (
+                  <div key={key} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 10px', background:'rgba(255,255,255,0.03)', borderRadius:9, border:`1px solid ${C.border}` }}>
+                    <span style={{ fontSize:11, color:C.text, fontWeight:600 }}>{icon} {label}</span>
+                    <button onClick={() => setTaxModule(key, !on)}
+                      style={{ width:38, height:20, borderRadius:10, border:'none', cursor:'pointer', position:'relative', background: on ? C.secondary : C.surface, transition:'background .2s', flexShrink:0 }}>
+                      <div style={{ position:'absolute', top:2, left: on ? 19 : 2, width:16, height:16, borderRadius:'50%', background:'#fff', transition:'left .2s', boxShadow:'0 1px 2px rgba(0,0,0,.3)' }} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </GlassCard>
 

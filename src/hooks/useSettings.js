@@ -1,19 +1,39 @@
 import { useState, useEffect } from 'react'
 import { SPECS, EXP_CATS, PAY_METHODS } from '../constants/index.js'
 
+const DEFAULT_TAX_MODULES = {
+  vat:              true,
+  incomeTax:        true,
+  bituachLeumi:     true,
+  workerDeductions: true,
+  pensionCalc:      true,
+  annualSummary:    true,
+}
+
+const DEFAULTS = {
+  specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS,
+  taxEnabled: true, businessType: 'osek_moreh',
+  taxModules: DEFAULT_TAX_MODULES,
+}
+
 export function useSettings(userId) {
   const key = userId ? `settings_${userId}` : null
 
   function load() {
-    if (!key) return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh' }
+    if (!key) return DEFAULTS
     try {
       const saved = localStorage.getItem(key)
       if (saved) {
         const parsed = JSON.parse(saved)
-        return { payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh', ...parsed }
+        return {
+          ...DEFAULTS,
+          payMethods: PAY_METHODS,
+          ...parsed,
+          taxModules: { ...DEFAULT_TAX_MODULES, ...(parsed.taxModules || {}) },
+        }
       }
     } catch {}
-    return { specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS, taxEnabled: true, businessType: 'osek_moreh' }
+    return DEFAULTS
   }
 
   const [settings, setSettings] = useState(load)
@@ -32,31 +52,23 @@ export function useSettings(userId) {
     if (!s || settings.specs.includes(s)) return
     save({ ...settings, specs: [...settings.specs, s] })
   }
-
-  function removeSpec(spec) {
-    save({ ...settings, specs: settings.specs.filter(s => s !== spec) })
-  }
+  function removeSpec(spec) { save({ ...settings, specs: settings.specs.filter(s => s !== spec) }) }
 
   function addExpCat(cat) {
     const c = cat.trim()
     if (!c || settings.expCats.includes(c)) return
     save({ ...settings, expCats: [...settings.expCats, c] })
   }
+  function removeExpCat(cat) { save({ ...settings, expCats: settings.expCats.filter(c => c !== cat) }) }
 
-  function removeExpCat(cat) {
-    save({ ...settings, expCats: settings.expCats.filter(c => c !== cat) })
-  }
+  function setPensionMonthly(amount) { save({ ...settings, pensionMonthly: parseFloat(amount) || 0 }) }
 
-  function setPensionMonthly(amount) {
-    save({ ...settings, pensionMonthly: parseFloat(amount) || 0 })
-  }
+  function setTaxEnabled(val) { save({ ...settings, taxEnabled: !!val }) }
 
-  function setTaxEnabled(val) {
-    save({ ...settings, taxEnabled: !!val })
-  }
+  function setBusinessType(val) { save({ ...settings, businessType: val }) }
 
-  function setBusinessType(val) {
-    save({ ...settings, businessType: val })
+  function setTaxModule(moduleKey, val) {
+    save({ ...settings, taxModules: { ...settings.taxModules, [moduleKey]: !!val } })
   }
 
   function addPayMethod(method) {
@@ -64,23 +76,22 @@ export function useSettings(userId) {
     if (!m || settings.payMethods.includes(m)) return
     save({ ...settings, payMethods: [...settings.payMethods, m] })
   }
-
-  function removePayMethod(method) {
-    save({ ...settings, payMethods: settings.payMethods.filter(m => m !== method) })
-  }
+  function removePayMethod(method) { save({ ...settings, payMethods: settings.payMethods.filter(m => m !== method) }) }
 
   return {
-    specs:      settings.specs,
-    expCats:    settings.expCats,
-    payMethods: settings.payMethods || PAY_METHODS,
+    specs:          settings.specs,
+    expCats:        settings.expCats,
+    payMethods:     settings.payMethods || PAY_METHODS,
     pensionMonthly: settings.pensionMonthly || 0,
     taxEnabled:     settings.taxEnabled !== false,
     businessType:   settings.businessType || 'osek_moreh',
+    taxModules:     settings.taxModules || DEFAULT_TAX_MODULES,
     addSpec,        removeSpec,
     addExpCat,      removeExpCat,
     addPayMethod,   removePayMethod,
     setPensionMonthly,
     setTaxEnabled,
     setBusinessType,
+    setTaxModule,
   }
 }
