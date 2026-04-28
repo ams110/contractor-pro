@@ -95,11 +95,12 @@ export const OSEK_PATUR_THRESHOLD = 120000
 export const BITUACH_LEUMI_RATE   = 0.105
 
 export const NAV = [
-  { id: 'dashboard', icon: '📊', label: 'الرئيسية' },
-  { id: 'projects',  icon: '🏗️', label: 'المشاريع' },
-  { id: 'workers',   icon: '👷', label: 'العمال'   },
-  { id: 'workdays',  icon: '📅', label: 'أيام'     },
-  { id: 'expenses',  icon: '💸', label: 'المصاريف' },
-  { id: 'payments',  icon: '💰', label: 'الرواتب'  },
-  { id: 'settings',  icon: '⚙️', label: 'إعدادات'  },
+  { id: 'dashboard',  icon: '📊', label: 'الرئيسية' },
+  { id: 'projects',   icon: '🏗️', label: 'المشاريع' },
+  { id: 'workers',    icon: '👷', label: 'العمال'   },
+  { id: 'workdays',   icon: '📅', label: 'أيام'     },
+  { id: 'expenses',   icon: '💸', label: 'المصاريف' },
+  { id: 'payments',   icon: '💰', label: 'الرواتب'  },
+  { id: 'accounting', icon: '🧾', label: 'المحاسبة' },
+  { id: 'settings',   icon: '⚙️', label: 'إعدادات'  },
 ]
