@@ -102,6 +102,7 @@ export const NAV = [
   { id: 'expenses',   icon: '💸', label: 'مصاريف'  },
   { id: 'payments',   icon: '💰', label: 'رواتب'   },
   { id: 'tracker',    icon: '📋', label: 'تتبع'     },
+  { id: 'materials',  icon: '🪵', label: 'بضاعة'   },
   { id: 'accounting', icon: '🧮', label: 'محاسبة'  },
   { id: 'settings',   icon: '⚙️', label: 'إعدادات' },
 ]

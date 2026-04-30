@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react'
 import { C, GRAD, EXP_CATS } from '../constants/index.js'
 import { fmt, fmtDate, fmtDateFull, todayStr } from '../lib/helpers.js'
 import { useWorkerPortal } from '../hooks/useWorkerPortal.js'
+import { useMaterialLogs } from '../hooks/useMaterialLogs.js'
 import { uploadWorkerReceipt } from '../lib/storage.js'
 import { supabase } from '../lib/supabase.js'
 
@@ -903,6 +904,122 @@ function RequestAdvanceForm({ onRequest }) {
   )
 }
 
+// ─── فورم تسجيل بضاعة ────────────────────────────────────────────────────────
+const MATERIAL_UNITS = ['قطعة', 'كيس', 'م', 'م²', 'م³', 'طن', 'لتر', 'يوم', 'ساعة', 'متر طولي']
+
+function SubmitMaterialForm({ worker, projects }) {
+  const { workerAddMaterialLog, loading, error } = useMaterialLogs()
+  const [form,    setForm]    = useState({ date: todayStr(), itemName: '', quantity: '', unit: 'قطعة', projectId: '', notes: '' })
+  const [done,    setDone]    = useState(false)
+  const [formErr, setFormErr] = useState('')
+
+  function set(field, val) { setForm(p => ({ ...p, [field]: val })) }
+
+  async function handleSubmit() {
+    if (!form.itemName.trim())                      return setFormErr('أدخل اسم المادة')
+    if (!parseFloat(form.quantity) || parseFloat(form.quantity) <= 0) return setFormErr('أدخل الكمية')
+    setFormErr('')
+    try {
+      await workerAddMaterialLog({
+        employeeId: worker.id,
+        projectId:  form.projectId || null,
+        date:       form.date,
+        itemName:   form.itemName.trim(),
+        quantity:   parseFloat(form.quantity),
+        unit:       form.unit,
+        notes:      form.notes,
+      })
+      setDone(true)
+      setForm({ date: todayStr(), itemName: '', quantity: '', unit: 'قطعة', projectId: '', notes: '' })
+      setTimeout(() => setDone(false), 3000)
+    } catch { /* error from hook */ }
+  }
+
+  const canSubmit = !loading && form.itemName.trim() && parseFloat(form.quantity) > 0
+
+  return (
+    <div style={{ paddingBottom: 16 }}>
+      {done && (
+        <div style={{ textAlign: 'center', padding: '30px 16px' }}>
+          <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم التسجيل!</div>
+          <div style={{ fontSize: 12, color: C.textDim, marginBottom: 16 }}>تم حفظ سجل البضاعة بنجاح</div>
+          <button onClick={() => setDone(false)}
+            style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            + تسجيل مادة أخرى
+          </button>
+        </div>
+      )}
+
+      {!done && (
+        <>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>التاريخ</label>
+            <input type="date" value={form.date} max={todayStr()} onChange={e => set('date', e.target.value)}
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>اسم المادة *</label>
+            <input value={form.itemName} onChange={e => set('itemName', e.target.value)}
+              placeholder="مثال: أسمنت بورتلاند"
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+            <div>
+              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>الكمية *</label>
+              <input type="number" min="0" step="any" value={form.quantity} onChange={e => set('quantity', e.target.value)}
+                placeholder="0"
+                style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 15, fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>الوحدة</label>
+              <select value={form.unit} onChange={e => set('unit', e.target.value)}
+                style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none' }}>
+                {MATERIAL_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {projects.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المشروع</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {projects.map(p => (
+                  <button key={p.id} onClick={() => set('projectId', form.projectId === p.id ? '' : p.id)}
+                    style={{ padding: '7px 12px', borderRadius: 10, border: `1.5px solid ${form.projectId === p.id ? C.primary : C.border}`, background: form.projectId === p.id ? `${C.primary}22` : C.bg, color: form.projectId === p.id ? C.primary : C.textDim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>ملاحظات</label>
+            <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
+              placeholder="أي تفاصيل إضافية..."
+              rows={2}
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
+          </div>
+
+          {(formErr || error) && (
+            <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 12, fontSize: 13, color: C.accent, border: `1px solid ${C.accent}33` }}>
+              ⚠ {formErr || error}
+            </div>
+          )}
+
+          <button onClick={handleSubmit} disabled={!canSubmit}
+            style={{ width: '100%', padding: 14, borderRadius: 14, background: !canSubmit ? C.border : GRAD.brand, border: 'none', color: !canSubmit ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: !canSubmit ? 'default' : 'pointer' }}>
+            {loading ? '⏳ جاري الحفظ...' : '🪵 سجّل البضاعة'}
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
   const {
@@ -935,12 +1052,13 @@ export default function WorkerPortalScreen() {
   const canSalary  = worker.can_request_payment !== false
 
   const tabs = [
-    { id: 'submit',  label: '📤 يوم' },
-    ...(canExpense ? [{ id: 'expense', label: '💸 مصروف' }] : []),
-    ...(canSalary  ? [{ id: 'salary',  label: '💰 راتب'   }] : []),
-    ...(canSalary  ? [{ id: 'advance', label: '💵 سلفة'   }] : []),
-    { id: 'monthly', label: '📅 شهري' },
-    { id: 'account', label: '⚙️ حساب' },
+    { id: 'submit',   label: '📤 يوم'    },
+    ...(canExpense ? [{ id: 'expense',  label: '💸 مصروف' }] : []),
+    { id: 'materials', label: '🪵 بضاعة' },
+    ...(canSalary  ? [{ id: 'salary',   label: '💰 راتب'  }] : []),
+    ...(canSalary  ? [{ id: 'advance',  label: '💵 سلفة'  }] : []),
+    { id: 'monthly',  label: '📅 شهري'  },
+    { id: 'account',  label: '⚙️ حساب'  },
   ]
 
   return (
@@ -1083,6 +1201,11 @@ export default function WorkerPortalScreen() {
         {/* تبويب طلب سلفة */}
         {tab === 'advance' && (
           <RequestAdvanceForm onRequest={requestAdvance} />
+        )}
+
+        {/* تبويب البضاعة */}
+        {tab === 'materials' && (
+          <SubmitMaterialForm worker={worker} projects={projects} />
         )}
 
         {/* تبويب الحساب وتغيير كلمة المرور */}
