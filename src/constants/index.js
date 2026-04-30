@@ -101,6 +101,7 @@ export const NAV = [
   { id: 'workdays',   icon: '📅', label: 'أيام'     },
   { id: 'expenses',   icon: '💸', label: 'مصاريف'  },
   { id: 'payments',   icon: '💰', label: 'رواتب'   },
+  { id: 'tracker',    icon: '📋', label: 'تتبع'     },
   { id: 'accounting', icon: '🧮', label: 'محاسبة'  },
   { id: 'settings',   icon: '⚙️', label: 'إعدادات' },
 ]
