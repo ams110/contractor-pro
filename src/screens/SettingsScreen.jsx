@@ -507,70 +507,6 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
         </div>
       </GlassCard>
 
-      {/* ── إعدادات الضرائب ── */}
-      <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
-        <div style={{ height:3, background:'linear-gradient(90deg,#6366F1,#3B82F6)' }} />
-        <div style={{ padding:'14px 16px' }}>
-          <SectionLabel color={C.secondary}>🇮🇱 إعدادات الضرائب</SectionLabel>
-
-          {/* Master toggle */}
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', background:'rgba(255,255,255,0.04)', borderRadius:12, marginBottom:12, border:`1px solid ${C.border}` }}>
-            <div>
-              <div style={{ fontSize:12, fontWeight:700, color:C.text }}>لوحة الضرائب في الرئيسية</div>
-              <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>إظهار المحاسب الضريبي في الداشبورد</div>
-            </div>
-            <button onClick={() => setTaxEnabled && setTaxEnabled(!taxEnabled)}
-              style={{ width:46, height:26, borderRadius:13, border:'none', cursor:'pointer', position:'relative', background: taxEnabled ? C.primary : C.surface, transition:'background .2s' }}>
-              <div style={{ position:'absolute', top:3, left: taxEnabled ? 23 : 3, width:20, height:20, borderRadius:'50%', background:'#fff', transition:'left .2s', boxShadow:'0 1px 4px rgba(0,0,0,0.3)' }} />
-            </button>
-          </div>
-
-          {/* نوع العيسك */}
-          <div style={{ fontSize:11, color:C.textDim, marginBottom:8, fontWeight:600 }}>نوع العيسك:</div>
-          <div style={{ display:'flex', gap:8, marginBottom:14 }}>
-            {[
-              { val:'osek_moreh', label:'עוסק מורשה', desc:'ملزم بـ מע"מ' },
-              { val:'osek_patur', label:'עוסק פטור',  desc:'معفى من מע"מ' },
-            ].map(opt => {
-              const sel = businessType === opt.val
-              return (
-                <button key={opt.val} onClick={() => setBusinessType && setBusinessType(opt.val)}
-                  style={{ flex:1, padding:'10px 8px', borderRadius:12, border:`2px solid ${sel ? C.secondary : C.border}`, background: sel ? `${C.secondary}18` : 'transparent', cursor:'pointer', textAlign:'center', transition:'all .2s' }}>
-                  <div style={{ fontSize:12, fontWeight:800, color: sel ? C.secondary : C.text }}>{opt.label}</div>
-                  <div style={{ fontSize:9, color:C.textDim, marginTop:2 }}>{opt.desc}</div>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Per-module toggles */}
-          {taxEnabled && setTaxModule && (
-            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-              <div style={{ fontSize:11, color:C.textDim, fontWeight:600, marginBottom:2 }}>الوحدات المفعّلة:</div>
-              {[
-                { key:'vat',              label:'مع"מ (VAT)',            icon:'🧾', show: businessType !== 'osek_patur' },
-                { key:'incomeTax',        label:'מס הכנסה',              icon:'💰' },
-                { key:'bituachLeumi',     label:'ביטוח לאומי',            icon:'🏥' },
-                { key:'workerDeductions', label:'استقطاعات العمال',       icon:'👷' },
-                { key:'pensionCalc',      label:'חיסכון פנסיוני',         icon:'🔵' },
-                { key:'annualSummary',    label:'الملخص السنوي',           icon:'📊' },
-              ].filter(m => m.show !== false).map(({ key, label, icon }) => {
-                const on = taxModules[key] !== false
-                return (
-                  <div key={key} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 10px', background:'rgba(255,255,255,0.03)', borderRadius:9, border:`1px solid ${C.border}` }}>
-                    <span style={{ fontSize:11, color:C.text, fontWeight:600 }}>{icon} {label}</span>
-                    <button onClick={() => setTaxModule(key, !on)}
-                      style={{ width:38, height:20, borderRadius:10, border:'none', cursor:'pointer', position:'relative', background: on ? C.secondary : C.surface, transition:'background .2s', flexShrink:0 }}>
-                      <div style={{ position:'absolute', top:2, left: on ? 19 : 2, width:16, height:16, borderRadius:'50%', background:'#fff', transition:'left .2s', boxShadow:'0 1px 2px rgba(0,0,0,.3)' }} />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </GlassCard>
-
       {/* ── الأعياد والعطل ── */}
       <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
         <div style={{ height:3, background:GRAD.warm }} />
@@ -620,23 +556,6 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
               </div>
             ))
           }
-        </div>
-      </GlassCard>
-
-      {/* ── پنسيه ── */}
-      <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
-        <div style={{ height:3, background:GRAD.purple }} />
-        <div style={{ padding:'14px 16px' }}>
-          <SectionLabel color={C.purple}>🏦 פנסיה — القسط الشهري</SectionLabel>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <input type="number" min="0" value={pensionMonthly || ''}
-              onChange={e => setPensionMonthly && setPensionMonthly(e.target.value)}
-              placeholder="0"
-              style={{ flex:1, padding:'10px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:17, fontWeight:700, fontFamily:'monospace', outline:'none' }}
-            />
-            <span style={{ fontSize:13, color:C.textDim }}>₪/شهر</span>
-          </div>
-          <div style={{ fontSize:10, color:C.textDim, marginTop:8 }}>يُستخدم لحساب الخصم الضريبي في لوحة الضرائب</div>
         </div>
       </GlassCard>
 
