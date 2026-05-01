@@ -422,8 +422,7 @@ async function compressImage(file, maxPx = 1200) {
 }
 
 // ─── Extras Tab ───────────────────────────────────────────────────────────────
-const EMPTY_EXTRA    = { title: '', qty: '', unit: 'م', unitPrice: '', status: 'pending', notes: '', photo: '', plotId: '', houseId: '', taskId: '' }
-const EXTRAS_FLOOR   = 'زيادات'
+const EMPTY_EXTRA = { title: '', qty: '', unit: 'م', unitPrice: '', status: 'pending', notes: '', photo: '', plotId: '', houseId: '', floorId: '', taskId: '' }
 
 function extraToTaskStatus(s) {
   return s === 'done' ? 'done' : s === 'approved' ? 'in_progress' : 'pending'
@@ -438,18 +437,15 @@ function syncExtraInTracker(trackerData, extra, existingTaskId) {
       ...p,
       houses: p.houses.map(h => h.id !== extra.houseId ? h : {
         ...h,
-        floors: (() => {
-          const idx = h.floors.findIndex(f => f.name === EXTRAS_FLOOR)
-          if (idx >= 0) {
-            const floor   = h.floors[idx]
-            const tIdx    = floor.tasks.findIndex(t => t.id === taskId)
-            const tasks   = tIdx >= 0
-              ? floor.tasks.map(t => t.id === taskId ? { ...t, name: extra.title, status: taskStatus } : t)
-              : [...floor.tasks, { id: taskId, name: extra.title, status: taskStatus }]
-            return h.floors.map((f, i) => i === idx ? { ...f, tasks } : f)
-          }
-          return [...h.floors, { id: uid(), name: EXTRAS_FLOOR, tasks: [{ id: taskId, name: extra.title, status: taskStatus }] }]
-        })()
+        floors: h.floors.map(f => f.id !== extra.floorId ? f : {
+          ...f,
+          tasks: (() => {
+            const tIdx = f.tasks.findIndex(t => t.id === taskId)
+            return tIdx >= 0
+              ? f.tasks.map(t => t.id === taskId ? { ...t, name: extra.title, status: taskStatus } : t)
+              : [...f.tasks, { id: taskId, name: extra.title, status: taskStatus }]
+          })()
+        })
       })
     })
   }
@@ -457,14 +453,16 @@ function syncExtraInTracker(trackerData, extra, existingTaskId) {
 }
 
 function removeExtraFromTracker(trackerData, extra) {
-  if (!extra.taskId || !extra.plotId || !extra.houseId) return trackerData
+  if (!extra.taskId || !extra.plotId || !extra.houseId || !extra.floorId) return trackerData
   return {
     ...trackerData,
     plots: (trackerData.plots || []).map(p => p.id !== extra.plotId ? p : {
       ...p,
       houses: p.houses.map(h => h.id !== extra.houseId ? h : {
         ...h,
-        floors: h.floors.map(f => f.name !== EXTRAS_FLOOR ? f : { ...f, tasks: f.tasks.filter(t => t.id !== extra.taskId) })
+        floors: h.floors.map(f => f.id !== extra.floorId ? f : {
+          ...f, tasks: f.tasks.filter(t => t.id !== extra.taskId)
+        })
       })
     })
   }
@@ -487,11 +485,13 @@ function ExtrasTab({ projectId }) {
   function persistTracker(t) { setTracker(t); saveTracker(projectId, t) }
   function setF(field, val) { setForm(p => ({ ...p, [field]: val })) }
 
-  const plots   = tracker.plots || []
-  const selPlot = plots.find(p => p.id === form.plotId)
-  const houses  = selPlot?.houses || []
+  const plots    = tracker.plots || []
+  const selPlot  = plots.find(p => p.id === form.plotId)
+  const houses   = selPlot?.houses || []
+  const selHouse = houses.find(h => h.id === form.houseId)
+  const floors   = selHouse?.floors || []
 
-  const isValid = form.title.trim() && parseFloat(form.qty) > 0 && parseFloat(form.unitPrice) >= 0 && form.photo && form.plotId && form.houseId
+  const isValid = form.title.trim() && parseFloat(form.qty) > 0 && parseFloat(form.unitPrice) >= 0 && form.photo && form.plotId && form.houseId && form.floorId
 
   function handleSave() {
     if (!isValid) return
@@ -512,7 +512,7 @@ function ExtrasTab({ projectId }) {
   }
 
   function startEdit(extra) {
-    setForm({ title: extra.title, qty: extra.qty, unit: extra.unit, unitPrice: extra.unitPrice, status: extra.status, notes: extra.notes || '', photo: extra.photo || '', plotId: extra.plotId || '', houseId: extra.houseId || '', taskId: extra.taskId || '' })
+    setForm({ title: extra.title, qty: extra.qty, unit: extra.unit, unitPrice: extra.unitPrice, status: extra.status, notes: extra.notes || '', photo: extra.photo || '', plotId: extra.plotId || '', houseId: extra.houseId || '', floorId: extra.floorId || '', taskId: extra.taskId || '' })
     setEditingExtra(extra.id)
     setShowForm(false)
   }
@@ -522,7 +522,7 @@ function ExtrasTab({ projectId }) {
     const newStatus  = EXTRA_STATUS_ORDER[(EXTRA_STATUS_ORDER.indexOf(extra.status) + 1) % EXTRA_STATUS_ORDER.length]
     const updated    = { ...extra, status: newStatus }
     persist(extras.map(e => e.id !== id ? e : updated))
-    if (extra.plotId && extra.houseId) {
+    if (extra.plotId && extra.houseId && extra.floorId) {
       const { updatedTracker } = syncExtraInTracker(tracker, updated, extra.taskId)
       persistTracker(updatedTracker)
     }
@@ -558,12 +558,23 @@ function ExtrasTab({ projectId }) {
         </div>
         <div>
           <div style={{ fontSize: 10, color: !form.houseId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700 }}>🏠 البيت *</div>
-          <select value={form.houseId} onChange={e => setF('houseId', e.target.value)} disabled={!form.plotId}
+          <select value={form.houseId}
+            onChange={e => setForm(p => ({ ...p, houseId: e.target.value, floorId: '' }))}
+            disabled={!form.plotId}
             style={{ width: '100%', padding: '9px 8px', borderRadius: 9, border: `1px solid ${form.houseId ? C.border : C.accent + '88'}`, background: C.bg, color: form.houseId ? C.text : C.textDim, fontSize: 12, boxSizing: 'border-box', outline: 'none', opacity: form.plotId ? 1 : 0.4 }}>
             <option value="">اختر بيت</option>
             {houses.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
           </select>
         </div>
+      </div>
+
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontSize: 10, color: !form.floorId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700 }}>🏢 الطابق *</div>
+        <select value={form.floorId} onChange={e => setF('floorId', e.target.value)} disabled={!form.houseId}
+          style={{ width: '100%', padding: '9px 8px', borderRadius: 9, border: `1px solid ${form.floorId ? C.border : C.accent + '88'}`, background: C.bg, color: form.floorId ? C.text : C.textDim, fontSize: 12, boxSizing: 'border-box', outline: 'none', opacity: form.houseId ? 1 : 0.4 }}>
+          <option value="">اختر طابق</option>
+          {floors.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
       </div>
 
       {plots.length === 0 && (
@@ -695,8 +706,9 @@ function ExtrasTab({ projectId }) {
         extras.map(extra => {
           const s   = EXTRA_STATUS[extra.status] || EXTRA_STATUS.pending
           const tot      = (parseFloat(extra.qty) || 0) * (parseFloat(extra.unitPrice) || 0)
-          const xPlot    = tracker.plots?.find(p => p.id === extra.plotId)
-          const xHouse   = xPlot?.houses?.find(h => h.id === extra.houseId)
+          const xPlot  = tracker.plots?.find(p => p.id === extra.plotId)
+          const xHouse = xPlot?.houses?.find(h => h.id === extra.houseId)
+          const xFloor = xHouse?.floors?.find(f => f.id === extra.floorId)
           if (editingExtra === extra.id) return null
           return (
             <div key={extra.id} style={{ background: C.card, borderRadius: 13, border: `1px solid ${C.border}`, padding: '11px 13px', marginBottom: 7 }}>
@@ -704,10 +716,11 @@ function ExtrasTab({ projectId }) {
                 <img src={extra.photo} alt="" onClick={() => window.open(extra.photo, '_blank')}
                   style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 9, marginBottom: 10, border: `1px solid ${C.border}`, display: 'block', cursor: 'zoom-in' }} />
               )}
-              {(xPlot || xHouse) && (
+              {(xPlot || xHouse || xFloor) && (
                 <div style={{ display: 'flex', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
                   {xPlot  && <span style={{ fontSize: 10, color: C.primary,   background: `${C.primary}15`,   padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.primary}22`   }}>🏘️ {xPlot.name}</span>}
                   {xHouse && <span style={{ fontSize: 10, color: C.secondary, background: `${C.secondary}15`, padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.secondary}22` }}>🏠 {xHouse.name}</span>}
+                  {xFloor && <span style={{ fontSize: 10, color: C.orange,    background: `${C.orange}15`,    padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.orange}22`    }}>🏢 {xFloor.name}</span>}
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
