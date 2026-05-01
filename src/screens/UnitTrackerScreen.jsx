@@ -4,7 +4,11 @@ import { fmt, uid } from '../lib/helpers.js'
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 function loadTracker(pid) {
-  try { return JSON.parse(localStorage.getItem(`tracker_${pid}`)) || { plots: [] } } catch { return { plots: [] } }
+  try {
+    const d = JSON.parse(localStorage.getItem(`tracker_${pid}`))
+    if (!d || !Array.isArray(d.plots)) return { plots: [] }
+    return d
+  } catch { return { plots: [] } }
 }
 function saveTracker(pid, data) { localStorage.setItem(`tracker_${pid}`, JSON.stringify(data)) }
 function loadExtras(pid) {
@@ -36,9 +40,9 @@ function pct(tasks) {
   if (!tasks.length) return 0
   return Math.round(tasks.filter(t => t.status === 'done').length / tasks.length * 100)
 }
-function plotTasks(plot)   { return plot.houses.flatMap(h => h.floors.flatMap(f => f.tasks)) }
-function houseTasks(house) { return house.floors.flatMap(f => f.tasks) }
-function allTasks(data)    { return data.plots.flatMap(plotTasks) }
+function plotTasks(plot)   { return (plot.houses  || []).flatMap(h => (h.floors || []).flatMap(f => f.tasks || [])) }
+function houseTasks(house) { return (house.floors || []).flatMap(f => f.tasks || []) }
+function allTasks(data)    { return (data.plots   || []).flatMap(plotTasks) }
 
 // ─── shared UI ────────────────────────────────────────────────────────────────
 function ProgressBar({ p: pval, height = 5 }) {
