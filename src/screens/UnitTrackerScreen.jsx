@@ -422,20 +422,29 @@ async function compressImage(file, maxPx = 1200) {
 }
 
 // ─── Extras Tab ───────────────────────────────────────────────────────────────
-const EMPTY_EXTRA = { title: '', qty: '', unit: 'م', unitPrice: '', status: 'pending', notes: '', photo: '' }
+const EMPTY_EXTRA = { title: '', qty: '', unit: 'م', unitPrice: '', status: 'pending', notes: '', photo: '', plotId: '', houseId: '' }
 
 function ExtrasTab({ projectId }) {
   const [extras,       setExtras]       = useState(() => loadExtras(projectId))
   const [showForm,     setShowForm]     = useState(false)
   const [editingExtra, setEditingExtra] = useState(null)
   const [form,         setForm]         = useState(EMPTY_EXTRA)
+  const [tracker,      setTracker]      = useState(() => loadTracker(projectId))
 
-  useEffect(() => { setExtras(loadExtras(projectId)); setShowForm(false); setEditingExtra(null) }, [projectId])
+  useEffect(() => {
+    setExtras(loadExtras(projectId))
+    setTracker(loadTracker(projectId))
+    setShowForm(false); setEditingExtra(null)
+  }, [projectId])
 
   function persist(items) { setExtras(items); saveExtras(projectId, items) }
   function setF(field, val) { setForm(p => ({ ...p, [field]: val })) }
 
-  const isValid = form.title.trim() && parseFloat(form.qty) > 0 && parseFloat(form.unitPrice) >= 0 && form.photo
+  const plots      = tracker.plots || []
+  const selPlot    = plots.find(p => p.id === form.plotId)
+  const houses     = selPlot?.houses || []
+
+  const isValid = form.title.trim() && parseFloat(form.qty) > 0 && parseFloat(form.unitPrice) >= 0 && form.photo && form.plotId && form.houseId
 
   function handleSave() {
     if (!isValid) return
@@ -450,7 +459,7 @@ function ExtrasTab({ projectId }) {
   }
 
   function startEdit(extra) {
-    setForm({ title: extra.title, qty: extra.qty, unit: extra.unit, unitPrice: extra.unitPrice, status: extra.status, notes: extra.notes || '', photo: extra.photo || '' })
+    setForm({ title: extra.title, qty: extra.qty, unit: extra.unit, unitPrice: extra.unitPrice, status: extra.status, notes: extra.notes || '', photo: extra.photo || '', plotId: extra.plotId || '', houseId: extra.houseId || '' })
     setEditingExtra(extra.id)
     setShowForm(false)
   }
@@ -469,6 +478,33 @@ function ExtrasTab({ projectId }) {
 
       <input value={form.title} onChange={e => setF('title', e.target.value)} placeholder="الوصف *"
         style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', marginBottom: 8 }} />
+
+      {/* ربط بالقطعة والبيت */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+        <div>
+          <div style={{ fontSize: 10, color: !form.plotId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700 }}>🏘️ القطعة *</div>
+          <select value={form.plotId}
+            onChange={e => setForm(p => ({ ...p, plotId: e.target.value, houseId: '' }))}
+            style={{ width: '100%', padding: '9px 8px', borderRadius: 9, border: `1px solid ${form.plotId ? C.border : C.accent + '88'}`, background: C.bg, color: form.plotId ? C.text : C.textDim, fontSize: 12, boxSizing: 'border-box', outline: 'none' }}>
+            <option value="">اختر قطعة</option>
+            {plots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: !form.houseId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700 }}>🏠 البيت *</div>
+          <select value={form.houseId} onChange={e => setF('houseId', e.target.value)} disabled={!form.plotId}
+            style={{ width: '100%', padding: '9px 8px', borderRadius: 9, border: `1px solid ${form.houseId ? C.border : C.accent + '88'}`, background: C.bg, color: form.houseId ? C.text : C.textDim, fontSize: 12, boxSizing: 'border-box', outline: 'none', opacity: form.plotId ? 1 : 0.4 }}>
+            <option value="">اختر بيت</option>
+            {houses.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {plots.length === 0 && (
+        <div style={{ fontSize: 11, color: C.warning, background: `${C.warning}11`, border: `1px solid ${C.warning}33`, borderRadius: 8, padding: '7px 10px', marginBottom: 8 }}>
+          ⚠ لا توجد قطع في هذا المشروع — أضف قطعة من تبويب التتبع أولاً
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
         <div>
@@ -579,13 +615,21 @@ function ExtrasTab({ projectId }) {
       ) : (
         extras.map(extra => {
           const s   = EXTRA_STATUS[extra.status] || EXTRA_STATUS.pending
-          const tot = (parseFloat(extra.qty) || 0) * (parseFloat(extra.unitPrice) || 0)
+          const tot      = (parseFloat(extra.qty) || 0) * (parseFloat(extra.unitPrice) || 0)
+          const xPlot    = tracker.plots?.find(p => p.id === extra.plotId)
+          const xHouse   = xPlot?.houses?.find(h => h.id === extra.houseId)
           if (editingExtra === extra.id) return null
           return (
             <div key={extra.id} style={{ background: C.card, borderRadius: 13, border: `1px solid ${C.border}`, padding: '11px 13px', marginBottom: 7 }}>
               {extra.photo && (
                 <img src={extra.photo} alt="" onClick={() => window.open(extra.photo, '_blank')}
                   style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 9, marginBottom: 10, border: `1px solid ${C.border}`, display: 'block', cursor: 'zoom-in' }} />
+              )}
+              {(xPlot || xHouse) && (
+                <div style={{ display: 'flex', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
+                  {xPlot  && <span style={{ fontSize: 10, color: C.primary,   background: `${C.primary}15`,   padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.primary}22`   }}>🏘️ {xPlot.name}</span>}
+                  {xHouse && <span style={{ fontSize: 10, color: C.secondary, background: `${C.secondary}15`, padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.secondary}22` }}>🏠 {xHouse.name}</span>}
+                </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                 <div style={{ flex: 1, minWidth: 0, paddingLeft: 8 }}>
