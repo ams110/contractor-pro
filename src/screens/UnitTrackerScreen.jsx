@@ -422,7 +422,53 @@ async function compressImage(file, maxPx = 1200) {
 }
 
 // ─── Extras Tab ───────────────────────────────────────────────────────────────
-const EMPTY_EXTRA = { title: '', qty: '', unit: 'م', unitPrice: '', status: 'pending', notes: '', photo: '', plotId: '', houseId: '' }
+const EMPTY_EXTRA    = { title: '', qty: '', unit: 'م', unitPrice: '', status: 'pending', notes: '', photo: '', plotId: '', houseId: '', taskId: '' }
+const EXTRAS_FLOOR   = 'زيادات'
+
+function extraToTaskStatus(s) {
+  return s === 'done' ? 'done' : s === 'approved' ? 'in_progress' : 'pending'
+}
+
+function syncExtraInTracker(trackerData, extra, existingTaskId) {
+  const taskId     = existingTaskId || uid()
+  const taskStatus = extraToTaskStatus(extra.status)
+  const updated = {
+    ...trackerData,
+    plots: (trackerData.plots || []).map(p => p.id !== extra.plotId ? p : {
+      ...p,
+      houses: p.houses.map(h => h.id !== extra.houseId ? h : {
+        ...h,
+        floors: (() => {
+          const idx = h.floors.findIndex(f => f.name === EXTRAS_FLOOR)
+          if (idx >= 0) {
+            const floor   = h.floors[idx]
+            const tIdx    = floor.tasks.findIndex(t => t.id === taskId)
+            const tasks   = tIdx >= 0
+              ? floor.tasks.map(t => t.id === taskId ? { ...t, name: extra.title, status: taskStatus } : t)
+              : [...floor.tasks, { id: taskId, name: extra.title, status: taskStatus }]
+            return h.floors.map((f, i) => i === idx ? { ...f, tasks } : f)
+          }
+          return [...h.floors, { id: uid(), name: EXTRAS_FLOOR, tasks: [{ id: taskId, name: extra.title, status: taskStatus }] }]
+        })()
+      })
+    })
+  }
+  return { updatedTracker: updated, taskId }
+}
+
+function removeExtraFromTracker(trackerData, extra) {
+  if (!extra.taskId || !extra.plotId || !extra.houseId) return trackerData
+  return {
+    ...trackerData,
+    plots: (trackerData.plots || []).map(p => p.id !== extra.plotId ? p : {
+      ...p,
+      houses: p.houses.map(h => h.id !== extra.houseId ? h : {
+        ...h,
+        floors: h.floors.map(f => f.name !== EXTRAS_FLOOR ? f : { ...f, tasks: f.tasks.filter(t => t.id !== extra.taskId) })
+      })
+    })
+  }
+}
 
 function ExtrasTab({ projectId }) {
   const [extras,       setExtras]       = useState(() => loadExtras(projectId))
@@ -438,34 +484,54 @@ function ExtrasTab({ projectId }) {
   }, [projectId])
 
   function persist(items) { setExtras(items); saveExtras(projectId, items) }
+  function persistTracker(t) { setTracker(t); saveTracker(projectId, t) }
   function setF(field, val) { setForm(p => ({ ...p, [field]: val })) }
 
-  const plots      = tracker.plots || []
-  const selPlot    = plots.find(p => p.id === form.plotId)
-  const houses     = selPlot?.houses || []
+  const plots   = tracker.plots || []
+  const selPlot = plots.find(p => p.id === form.plotId)
+  const houses  = selPlot?.houses || []
 
   const isValid = form.title.trim() && parseFloat(form.qty) > 0 && parseFloat(form.unitPrice) >= 0 && form.photo && form.plotId && form.houseId
 
   function handleSave() {
     if (!isValid) return
     if (editingExtra) {
-      persist(extras.map(e => e.id === editingExtra ? { ...form, id: editingExtra } : e))
+      const prev = extras.find(e => e.id === editingExtra)
+      const { updatedTracker, taskId } = syncExtraInTracker(tracker, { ...form, id: editingExtra }, prev?.taskId)
+      persist(extras.map(e => e.id === editingExtra ? { ...form, id: editingExtra, taskId } : e))
+      persistTracker(updatedTracker)
       setEditingExtra(null)
     } else {
-      persist([{ ...form, id: uid(), createdAt: new Date().toISOString() }, ...extras])
+      const newId = uid()
+      const { updatedTracker, taskId } = syncExtraInTracker(tracker, { ...form, id: newId }, null)
+      persist([{ ...form, id: newId, taskId, createdAt: new Date().toISOString() }, ...extras])
+      persistTracker(updatedTracker)
       setShowForm(false)
     }
     setForm(EMPTY_EXTRA)
   }
 
   function startEdit(extra) {
-    setForm({ title: extra.title, qty: extra.qty, unit: extra.unit, unitPrice: extra.unitPrice, status: extra.status, notes: extra.notes || '', photo: extra.photo || '', plotId: extra.plotId || '', houseId: extra.houseId || '' })
+    setForm({ title: extra.title, qty: extra.qty, unit: extra.unit, unitPrice: extra.unitPrice, status: extra.status, notes: extra.notes || '', photo: extra.photo || '', plotId: extra.plotId || '', houseId: extra.houseId || '', taskId: extra.taskId || '' })
     setEditingExtra(extra.id)
     setShowForm(false)
   }
 
   function cycleStatus(id) {
-    persist(extras.map(e => e.id !== id ? e : { ...e, status: EXTRA_STATUS_ORDER[(EXTRA_STATUS_ORDER.indexOf(e.status) + 1) % EXTRA_STATUS_ORDER.length] }))
+    const extra      = extras.find(e => e.id === id)
+    const newStatus  = EXTRA_STATUS_ORDER[(EXTRA_STATUS_ORDER.indexOf(extra.status) + 1) % EXTRA_STATUS_ORDER.length]
+    const updated    = { ...extra, status: newStatus }
+    persist(extras.map(e => e.id !== id ? e : updated))
+    if (extra.plotId && extra.houseId) {
+      const { updatedTracker } = syncExtraInTracker(tracker, updated, extra.taskId)
+      persistTracker(updatedTracker)
+    }
+  }
+
+  function deleteExtra(extra) {
+    if (!window.confirm('حذف هذه الزيادة؟')) return
+    persist(extras.filter(e => e.id !== extra.id))
+    persistTracker(removeExtraFromTracker(tracker, extra))
   }
 
   const approvedTotal = extras.filter(e => e.status === 'approved' || e.status === 'done')
@@ -662,7 +728,7 @@ function ExtrasTab({ projectId }) {
                   style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>⟳ الحالة</button>
                 <button onClick={() => startEdit(extra)}
                   style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.primary}44`, background: `${C.primary}11`, color: C.primary, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>✏️ تعديل</button>
-                <button onClick={() => { if (window.confirm('حذف هذه الزيادة؟')) persist(extras.filter(e => e.id !== extra.id)) }}
+                <button onClick={() => deleteExtra(extra)}
                   style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>🗑 حذف</button>
               </div>
             </div>
