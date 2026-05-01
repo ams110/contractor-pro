@@ -72,8 +72,8 @@ function AddRow({ placeholder, onAdd, onCancel }) {
 }
 
 // ─── Tracking Tab ─────────────────────────────────────────────────────────────
-function TrackingTab({ projectId }) {
-  const [data, setData] = useState(() => loadTracker(projectId))
+function TrackingTab({ projectId, trackerData, onTrackerSave }) {
+  const data = trackerData
 
   const [openPlots,  setOpenPlots]  = useState({})
   const [openHouses, setOpenHouses] = useState({})
@@ -85,16 +85,14 @@ function TrackingTab({ projectId }) {
   const [addingTask,  setAddingTask]  = useState(null)  // floorId
 
   useEffect(() => {
-    const d = loadTracker(projectId)
-    setData(d)
     setAddingPlot(false); setAddingHouse(null); setAddingFloor(null); setAddingTask(null)
-    if (d.plots[0]) {
-      setOpenPlots({ [d.plots[0].id]: true })
-      if (d.plots[0].houses[0]) setOpenHouses({ [d.plots[0].houses[0].id]: true })
+    if (trackerData.plots[0]) {
+      setOpenPlots({ [trackerData.plots[0].id]: true })
+      if (trackerData.plots[0].houses[0]) setOpenHouses({ [trackerData.plots[0].houses[0].id]: true })
     }
   }, [projectId])
 
-  function save(next) { setData(next); saveTracker(projectId, next) }
+  function save(next) { onTrackerSave(next) }
 
   // ── plot CRUD ──
   function addPlot(name) {
@@ -468,24 +466,22 @@ function removeExtraFromTracker(trackerData, extra) {
   }
 }
 
-function ExtrasTab({ projectId }) {
+function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
   const [extras,       setExtras]       = useState(() => loadExtras(projectId))
   const [showForm,     setShowForm]     = useState(false)
   const [editingExtra, setEditingExtra] = useState(null)
   const [form,         setForm]         = useState(EMPTY_EXTRA)
-  const [tracker,      setTracker]      = useState(() => loadTracker(projectId))
 
   useEffect(() => {
     setExtras(loadExtras(projectId))
-    setTracker(loadTracker(projectId))
     setShowForm(false); setEditingExtra(null)
   }, [projectId])
 
   function persist(items) { setExtras(items); saveExtras(projectId, items) }
-  function persistTracker(t) { setTracker(t); saveTracker(projectId, t) }
+  function persistTracker(t) { onTrackerSave(t) }
   function setF(field, val) { setForm(p => ({ ...p, [field]: val })) }
 
-  const plots    = tracker.plots || []
+  const plots    = trackerData.plots || []
   const selPlot  = plots.find(p => p.id === form.plotId)
   const houses   = selPlot?.houses || []
   const selHouse = houses.find(h => h.id === form.houseId)
@@ -497,13 +493,13 @@ function ExtrasTab({ projectId }) {
     if (!isValid) return
     if (editingExtra) {
       const prev = extras.find(e => e.id === editingExtra)
-      const { updatedTracker, taskId } = syncExtraInTracker(tracker, { ...form, id: editingExtra }, prev?.taskId)
+      const { updatedTracker, taskId } = syncExtraInTracker(trackerData, { ...form, id: editingExtra }, prev?.taskId)
       persist(extras.map(e => e.id === editingExtra ? { ...form, id: editingExtra, taskId } : e))
       persistTracker(updatedTracker)
       setEditingExtra(null)
     } else {
       const newId = uid()
-      const { updatedTracker, taskId } = syncExtraInTracker(tracker, { ...form, id: newId }, null)
+      const { updatedTracker, taskId } = syncExtraInTracker(trackerData, { ...form, id: newId }, null)
       persist([{ ...form, id: newId, taskId, createdAt: new Date().toISOString() }, ...extras])
       persistTracker(updatedTracker)
       setShowForm(false)
@@ -523,7 +519,7 @@ function ExtrasTab({ projectId }) {
     const updated    = { ...extra, status: newStatus }
     persist(extras.map(e => e.id !== id ? e : updated))
     if (extra.plotId && extra.houseId && extra.floorId) {
-      const { updatedTracker } = syncExtraInTracker(tracker, updated, extra.taskId)
+      const { updatedTracker } = syncExtraInTracker(trackerData, updated, extra.taskId)
       persistTracker(updatedTracker)
     }
   }
@@ -531,7 +527,7 @@ function ExtrasTab({ projectId }) {
   function deleteExtra(extra) {
     if (!window.confirm('حذف هذه الزيادة؟')) return
     persist(extras.filter(e => e.id !== extra.id))
-    persistTracker(removeExtraFromTracker(tracker, extra))
+    persistTracker(removeExtraFromTracker(trackerData, extra))
   }
 
   const approvedTotal = extras.filter(e => e.status === 'approved' || e.status === 'done')
@@ -706,7 +702,7 @@ function ExtrasTab({ projectId }) {
         extras.map(extra => {
           const s   = EXTRA_STATUS[extra.status] || EXTRA_STATUS.pending
           const tot      = (parseFloat(extra.qty) || 0) * (parseFloat(extra.unitPrice) || 0)
-          const xPlot  = tracker.plots?.find(p => p.id === extra.plotId)
+          const xPlot  = trackerData.plots?.find(p => p.id === extra.plotId)
           const xHouse = xPlot?.houses?.find(h => h.id === extra.houseId)
           const xFloor = xHouse?.floors?.find(f => f.id === extra.floorId)
           if (editingExtra === extra.id) return null
@@ -761,10 +757,14 @@ function ExtrasTab({ projectId }) {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function UnitTrackerScreen({ projects = [] }) {
-  const [projectId, setProjectId] = useState(projects[0]?.id || '')
-  const [tab,       setTab]       = useState('track')
+  const [projectId,   setProjectId]   = useState(projects[0]?.id || '')
+  const [tab,         setTab]         = useState('track')
+  const [trackerData, setTrackerData] = useState(() => loadTracker(projects[0]?.id || ''))
 
   useEffect(() => { if (!projectId && projects.length) setProjectId(projects[0].id) }, [projects])
+  useEffect(() => { setTrackerData(loadTracker(projectId)) }, [projectId])
+
+  function saveTrackerData(next) { setTrackerData(next); saveTracker(projectId, next) }
 
   const TABS = [
     { id: 'track',  label: '📐 تتبع الأعمال' },
@@ -810,8 +810,8 @@ export default function UnitTrackerScreen({ projects = [] }) {
             ))}
           </div>
 
-          {tab === 'track'  && <TrackingTab projectId={projectId} key={`track-${projectId}`} />}
-          {tab === 'extras' && <ExtrasTab   projectId={projectId} key={`extras-${projectId}`} />}
+          {tab === 'track'  && <TrackingTab projectId={projectId} trackerData={trackerData} onTrackerSave={saveTrackerData} key={`track-${projectId}`} />}
+          {tab === 'extras' && <ExtrasTab   projectId={projectId} trackerData={trackerData} onTrackerSave={saveTrackerData} key={`extras-${projectId}`} />}
         </>
       )}
     </div>
