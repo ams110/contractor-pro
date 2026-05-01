@@ -556,19 +556,32 @@ function ExtrasTab({ projectId }) {
               style={{ position: 'absolute', top: 7, left: 7, width: 26, height: 26, borderRadius: 99, background: `${C.accent}dd`, border: 'none', color: '#fff', fontSize: 12, cursor: 'pointer', fontWeight: 800, lineHeight: 1 }}>✕</button>
           </div>
         ) : (
-          <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '18px 0', borderRadius: 10, border: `2px dashed ${C.accent}66`, background: `${C.accent}08`, cursor: 'pointer' }}>
-            <span style={{ fontSize: 28 }}>📷</span>
-            <span style={{ fontSize: 12, color: C.accent, fontWeight: 700 }}>اضغط لالتقاط أو اختيار صورة</span>
-            <span style={{ fontSize: 10, color: C.textDim }}>مطلوب لحفظ الزيادة</span>
-            <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
-              onChange={async e => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                const b64 = await compressImage(file)
-                setF('photo', b64)
-                e.target.value = ''
-              }} />
-          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '16px 0', borderRadius: 10, border: `2px dashed ${C.accent}66`, background: `${C.accent}08`, cursor: 'pointer' }}>
+              <span style={{ fontSize: 26 }}>📷</span>
+              <span style={{ fontSize: 11, color: C.accent, fontWeight: 700 }}>كاميرا</span>
+              <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                onChange={async e => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  const b64 = await compressImage(file)
+                  setF('photo', b64)
+                  e.target.value = ''
+                }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '16px 0', borderRadius: 10, border: `2px dashed ${C.secondary}66`, background: `${C.secondary}08`, cursor: 'pointer' }}>
+              <span style={{ fontSize: 26 }}>🖼️</span>
+              <span style={{ fontSize: 11, color: C.secondary, fontWeight: 700 }}>المعرض</span>
+              <input type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={async e => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  const b64 = await compressImage(file)
+                  setF('photo', b64)
+                  e.target.value = ''
+                }} />
+            </label>
+          </div>
         )}
       </div>
 
