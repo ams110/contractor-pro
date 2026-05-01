@@ -400,8 +400,29 @@ function TrackingTab({ projectId }) {
   )
 }
 
+// ─── image compression ────────────────────────────────────────────────────────
+async function compressImage(file, maxPx = 1200) {
+  return new Promise(resolve => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let { width: w, height: h } = img
+      if (w > maxPx || h > maxPx) {
+        if (w > h) { h = Math.round(h * maxPx / w); w = maxPx }
+        else       { w = Math.round(w * maxPx / h); h = maxPx }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      resolve(canvas.toDataURL('image/jpeg', 0.78))
+    }
+    img.src = url
+  })
+}
+
 // ─── Extras Tab ───────────────────────────────────────────────────────────────
-const EMPTY_EXTRA = { title: '', qty: '', unit: 'م', unitPrice: '', status: 'pending', notes: '' }
+const EMPTY_EXTRA = { title: '', qty: '', unit: 'م', unitPrice: '', status: 'pending', notes: '', photo: '' }
 
 function ExtrasTab({ projectId }) {
   const [extras,       setExtras]       = useState(() => loadExtras(projectId))
@@ -414,7 +435,7 @@ function ExtrasTab({ projectId }) {
   function persist(items) { setExtras(items); saveExtras(projectId, items) }
   function setF(field, val) { setForm(p => ({ ...p, [field]: val })) }
 
-  const isValid = form.title.trim() && parseFloat(form.qty) > 0 && parseFloat(form.unitPrice) >= 0
+  const isValid = form.title.trim() && parseFloat(form.qty) > 0 && parseFloat(form.unitPrice) >= 0 && form.photo
 
   function handleSave() {
     if (!isValid) return
@@ -429,7 +450,7 @@ function ExtrasTab({ projectId }) {
   }
 
   function startEdit(extra) {
-    setForm({ title: extra.title, qty: extra.qty, unit: extra.unit, unitPrice: extra.unitPrice, status: extra.status, notes: extra.notes || '' })
+    setForm({ title: extra.title, qty: extra.qty, unit: extra.unit, unitPrice: extra.unitPrice, status: extra.status, notes: extra.notes || '', photo: extra.photo || '' })
     setEditingExtra(extra.id)
     setShowForm(false)
   }
@@ -487,6 +508,34 @@ function ExtrasTab({ projectId }) {
       <textarea value={form.notes} onChange={e => setF('notes', e.target.value)} placeholder="ملاحظات (اختياري)" rows={2}
         style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontFamily: 'inherit', marginBottom: 10 }} />
 
+      {/* صورة إثبات */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 10, color: !form.photo ? C.accent : C.textDim, marginBottom: 5, fontWeight: 700 }}>
+          📷 صورة إثبات {!form.photo && <span style={{ color: C.accent }}>*</span>}
+        </div>
+        {form.photo ? (
+          <div style={{ position: 'relative' }}>
+            <img src={form.photo} alt="" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 10, border: `1px solid ${C.border}`, display: 'block' }} />
+            <button onClick={() => setF('photo', '')}
+              style={{ position: 'absolute', top: 7, left: 7, width: 26, height: 26, borderRadius: 99, background: `${C.accent}dd`, border: 'none', color: '#fff', fontSize: 12, cursor: 'pointer', fontWeight: 800, lineHeight: 1 }}>✕</button>
+          </div>
+        ) : (
+          <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '18px 0', borderRadius: 10, border: `2px dashed ${C.accent}66`, background: `${C.accent}08`, cursor: 'pointer' }}>
+            <span style={{ fontSize: 28 }}>📷</span>
+            <span style={{ fontSize: 12, color: C.accent, fontWeight: 700 }}>اضغط لالتقاط أو اختيار صورة</span>
+            <span style={{ fontSize: 10, color: C.textDim }}>مطلوب لحفظ الزيادة</span>
+            <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+              onChange={async e => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                const b64 = await compressImage(file)
+                setF('photo', b64)
+                e.target.value = ''
+              }} />
+          </label>
+        )}
+      </div>
+
       <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={() => { setShowForm(false); setEditingExtra(null); setForm(EMPTY_EXTRA) }}
           style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
@@ -534,6 +583,10 @@ function ExtrasTab({ projectId }) {
           if (editingExtra === extra.id) return null
           return (
             <div key={extra.id} style={{ background: C.card, borderRadius: 13, border: `1px solid ${C.border}`, padding: '11px 13px', marginBottom: 7 }}>
+              {extra.photo && (
+                <img src={extra.photo} alt="" onClick={() => window.open(extra.photo, '_blank')}
+                  style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 9, marginBottom: 10, border: `1px solid ${C.border}`, display: 'block', cursor: 'zoom-in' }} />
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                 <div style={{ flex: 1, minWidth: 0, paddingLeft: 8 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>{extra.title}</div>
