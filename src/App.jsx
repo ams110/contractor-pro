@@ -37,31 +37,46 @@ import { useNotifications } from './hooks/useNotifications.js'
 import { useSalaryAlerts }  from './hooks/useSalaryAlerts.js'
 
 const globalCSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,400..900&display=swap');
 
-  @keyframes fadeIn   { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
-  @keyframes fadeUp   { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
-  @keyframes slideUp  { from { transform:translateY(100%) }             to { transform:translateY(0) } }
-  @keyframes spin     { to   { transform:rotate(360deg) } }
-  @keyframes shimmer  { 0%   { background-position:200% 0 }             to  { background-position:-200% 0 } }
-  @keyframes ping     { 75%,100% { transform:scale(2.2); opacity:0 } }
-  @keyframes toastIn  { from { opacity:0; transform:translateX(-50%) translateY(16px) } to { opacity:1; transform:translateX(-50%) translateY(0) } }
-  @keyframes float    { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-6px) } }
-  @keyframes gradMove { 0%,100% { background-position:0% 50% } 50% { background-position:100% 50% } }
+  @keyframes fadeIn    { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
+  @keyframes fadeUp    { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
+  @keyframes slideUp   { from { transform:translateY(100%) }             to { transform:translateY(0) } }
+  @keyframes spin      { to   { transform:rotate(360deg) } }
+  @keyframes shimmer   { 0%   { background-position:200% 0 }             to  { background-position:-200% 0 } }
+  @keyframes ping      { 75%,100% { transform:scale(2.2); opacity:0 } }
+  @keyframes toastIn   { from { opacity:0; transform:translateX(-50%) translateY(16px) } to { opacity:1; transform:translateX(-50%) translateY(0) } }
+  @keyframes float     { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-6px) } }
+  @keyframes gradMove  { 0%,100% { background-position:0% 50% } 50% { background-position:100% 50% } }
+  @keyframes navPop    { 0% { transform:scale(0.85) translateY(4px); opacity:0 } 60% { transform:scale(1.12) translateY(-1px) } 100% { transform:scale(1) translateY(0); opacity:1 } }
+  @keyframes glowPulse { 0%,100% { box-shadow:0 0 12px #00DDB355 } 50% { box-shadow:0 0 22px #00DDB388 } }
+  @keyframes badgePop  { 0% { transform:scale(0) } 70% { transform:scale(1.2) } 100% { transform:scale(1) } }
 
-  .fade-in  { animation: fadeIn  .3s ease both }
-  .fade-up  { animation: fadeUp  .35s ease both }
-  .slide-up { animation: slideUp .38s cubic-bezier(0.32,0.72,0,1) both }
-  .toast-in { animation: toastIn .3s ease both }
+  .fade-in   { animation: fadeIn   .28s cubic-bezier(0.22,1,0.36,1) both }
+  .fade-up   { animation: fadeUp   .35s cubic-bezier(0.22,1,0.36,1) both }
+  .slide-up  { animation: slideUp  .38s cubic-bezier(0.32,0.72,0,1) both }
+  .toast-in  { animation: toastIn  .3s  ease both }
+  .nav-pop   { animation: navPop   .4s  cubic-bezier(0.34,1.56,0.64,1) both }
+  .badge-pop { animation: badgePop .3s  cubic-bezier(0.34,1.56,0.64,1) both }
 
   * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-  ::-webkit-scrollbar { width:2px; height:2px; }
-  ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:2px; }
 
-  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif !important; }
+  ::-webkit-scrollbar { width:3px; height:3px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:rgba(0,221,179,0.2); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:rgba(0,221,179,0.4); }
+
+  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif !important; -webkit-font-smoothing:antialiased; }
   input, select, textarea, button { font-family: inherit; }
   button:focus-visible { outline: 2px solid #00DDB3; outline-offset: 2px; }
+
+  .btn-press { transition: transform .12s ease, box-shadow .12s ease !important; }
+  .btn-press:active { transform: scale(0.94) !important; }
+
+  .glass { background: rgba(13,17,23,0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+
+  .nav-btn { transition: transform .3s cubic-bezier(0.34,1.56,0.64,1) !important; }
+  .nav-btn:active { transform: scale(0.88) !important; }
 `
 
 function NoAccess() {
@@ -260,40 +275,40 @@ export default function App() {
       {(() => {
         const currentNav = NAV.find(n => n.id === screen)
         return (
-        <div style={{ position:'sticky', top:0, zIndex:50, background:'rgba(7,9,13,0.92)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <div style={{ position:'sticky', top:0, zIndex:50, background:'rgba(7,9,13,0.94)', backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)', padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:40, height:40, borderRadius:14, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, boxShadow:'0 4px 16px #00DDB344', flexShrink:0 }}>🏗️</div>
+            <div style={{ width:42, height:42, borderRadius:15, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:21, boxShadow:'0 4px 18px #00DDB355, 0 1px 0 rgba(255,255,255,0.2) inset', flexShrink:0 }}>🏗️</div>
             <div>
-              <div style={{ fontSize:15, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', lineHeight:1.2 }}>Contractor Pro</div>
-              <div style={{ fontSize:9, color: currentNav ? C.primary : C.textDim, letterSpacing:'0.06em', fontWeight:700, transition:'color .2s' }}>
+              <div style={{ fontSize:15, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', lineHeight:1.2, letterSpacing:'-0.01em' }}>Contractor Pro</div>
+              <div style={{ fontSize:9, color: currentNav ? C.primary : C.textDim, letterSpacing:'0.07em', fontWeight:700, transition:'color .25s', opacity:0.9 }}>
                 {currentNav ? `${currentNav.icon} ${currentNav.label}` : 'إدارة مشاريعك بذكاء'}
               </div>
             </div>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             {dataLoading && <div style={{ width:16, height:16, border:`2px solid ${C.border}`, borderTopColor:C.primary, borderRadius:'50%', animation:'spin .75s linear infinite' }} />}
             {(p?.isOwner || p?.viewActivity) && (
-              <button onClick={() => setScreen('activity')}
-                style={{ background: screen === 'activity' ? `${C.primary}22` : 'rgba(255,255,255,0.06)', border:`1px solid ${screen === 'activity' ? C.primary + '55' : C.border}`, borderRadius:12, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
+              <button onClick={() => setScreen('activity')} className="btn-press"
+                style={{ background: screen === 'activity' ? `${C.primary}20` : 'rgba(255,255,255,0.05)', border:`1px solid ${screen === 'activity' ? C.primary + '44' : 'rgba(255,255,255,0.08)'}`, borderRadius:13, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, boxShadow: screen === 'activity' ? `0 0 12px ${C.primary}33` : 'none', transition:'all .2s' }}>
               📋
               </button>
             )}
-            <button onClick={() => setShowNotifs(true)}
-              style={{ position:'relative', background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, borderRadius:12, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
+            <button onClick={() => setShowNotifs(true)} className="btn-press"
+              style={{ position:'relative', background:'rgba(255,255,255,0.05)', border:`1px solid rgba(255,255,255,0.08)`, borderRadius:13, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
               🔔
               {unreadCount > 0 && (
-                <div style={{ position:'absolute', top:-5, right:-5, minWidth:18, height:18, borderRadius:9, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 4px', boxShadow:`0 2px 10px ${C.accent}88` }}>
+                <div className="badge-pop" style={{ position:'absolute', top:-4, right:-4, minWidth:18, height:18, borderRadius:9, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 4px', boxShadow:`0 2px 12px ${C.accent}99` }}>
                   {unreadCount}
                 </div>
               )}
             </button>
-            <button onClick={() => setShowSearch(true)}
-              style={{ background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, borderRadius:12, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
+            <button onClick={() => setShowSearch(true)} className="btn-press"
+              style={{ background:'rgba(255,255,255,0.05)', border:`1px solid rgba(255,255,255,0.08)`, borderRadius:13, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
               🔍
-          </button>
-        </div>
+            </button>
+          </div>
             {/* bottom gradient line */}
-            <div style={{ position:'absolute', bottom:0, left:0, right:0, height:1, background:GRAD.brand, opacity:0.3 }} />
+            <div style={{ position:'absolute', bottom:0, left:0, right:0, height:1, background:`linear-gradient(90deg, transparent, ${GRAD.brand.includes('#') ? '#00DDB366' : '#00DDB366'}, transparent)` }} />
           </div>
         )
       })()}
@@ -309,25 +324,40 @@ export default function App() {
       {(() => {
         const pendingCount = workDays.filter(w => w.status === 'pending').length
         return (
-          <div style={{ position:'fixed', bottom:14, left:0, right:0, margin:'0 auto', width:'calc(100% - 32px)', maxWidth:398, background:'rgba(13,17,23,0.97)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', borderRadius:24, border:`1px solid ${C.borderMid}`, padding:'8px 6px 10px', display:'flex', justifyContent:'space-around', zIndex:50, boxShadow:'0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)' }}>
+          <div style={{ position:'fixed', bottom:16, left:0, right:0, margin:'0 auto', width:'calc(100% - 28px)', maxWidth:400, background:'rgba(10,13,19,0.96)', backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)', borderRadius:26, border:`1px solid rgba(255,255,255,0.09)`, padding:'6px 4px 8px', display:'flex', justifyContent:'space-around', zIndex:50, boxShadow:'0 12px 48px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.06) inset' }}>
             {NAV.map(n => {
               const active = screen === n.id
               return (
                 <button key={n.id} onClick={() => setScreen(n.id)}
-                  style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, padding:'4px 2px', background:'none', border:'none', cursor:'pointer', flex:1, position:'relative', minWidth:0 }}>
+                  className="nav-btn"
+                  style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, padding:'5px 0', background:'none', border:'none', cursor:'pointer', flex:1, position:'relative', minWidth:0 }}>
+
+                  {/* Active pill background */}
                   {active && (
-                    <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:42, height:36, borderRadius:14, background:GRAD.brand, opacity:0.18, pointerEvents:'none' }} />
+                    <div style={{ position:'absolute', top:2, left:'50%', transform:'translateX(-50%)', width:44, height:34, borderRadius:16, background:`linear-gradient(160deg,#00DDB322,#6366F118)`, border:`1px solid #00DDB333`, pointerEvents:'none', animation:'glowPulse 2.4s ease-in-out infinite' }} />
                   )}
-                  <span style={{ fontSize:20, transition:'all .3s cubic-bezier(0.34,1.56,0.64,1)', transform:active?'scale(1.2)':'scale(1)', filter:active?'none':'grayscale(0.8) opacity(0.4)', position:'relative', zIndex:1 }}>
+
+                  {/* Icon */}
+                  <span className={active ? 'nav-pop' : ''} style={{ fontSize:active?22:19, position:'relative', zIndex:1, lineHeight:1, filter:active?'drop-shadow(0 0 6px #00DDB388)':'grayscale(1) opacity(0.38)', display:'block', transition:'filter .25s' }}>
                     {n.icon}
                   </span>
+
+                  {/* Badge */}
                   {n.id === 'workdays' && pendingCount > 0 && (
-                    <div style={{ position:'absolute', top:-2, right:4, minWidth:16, height:16, borderRadius:8, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 3px', boxShadow:`0 2px 8px ${C.accent}88` }}>
+                    <div className="badge-pop" style={{ position:'absolute', top:0, right:'calc(50% - 18px)', minWidth:16, height:16, borderRadius:8, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 3px', boxShadow:`0 2px 10px ${C.accent}99` }}>
                       {pendingCount}
                     </div>
                   )}
-                  <span style={{ fontSize:8, fontWeight:700, color:active?C.primary:C.textDim, transition:'color .2s', position:'relative', zIndex:1, letterSpacing:'0.02em' }}>{n.label}</span>
-                  {active && <div style={{ width:20, height:2, borderRadius:1, background:GRAD.brand, marginTop:1 }} />}
+
+                  {/* Label */}
+                  <span style={{ fontSize:9, fontWeight:active?800:600, color:active?C.primary:'rgba(255,255,255,0.28)', position:'relative', zIndex:1, letterSpacing:'0.01em', transition:'all .2s', lineHeight:1 }}>
+                    {n.label}
+                  </span>
+
+                  {/* Active dot indicator */}
+                  {active && (
+                    <div style={{ width:16, height:2.5, borderRadius:2, background:GRAD.brand, marginTop:1, boxShadow:`0 0 8px #00DDB388` }} />
+                  )}
                 </button>
               )
             })}

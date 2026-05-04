@@ -28,23 +28,28 @@ export function AnimatedNumber({ value, prefix = '', suffix = '', duration = 900
 /* ─── GlassCard ─── */
 export function GlassCard({ children, style: st = {}, onClick, glow }) {
   const [hov, setHov] = useState(false)
+  const [prs, setPrs] = useState(false)
   return (
     <div
       onClick={onClick}
       onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+      onMouseLeave={() => { setHov(false); setPrs(false) }}
+      onMouseDown={() => onClick && setPrs(true)}
+      onMouseUp={() => setPrs(false)}
+      onTouchStart={() => onClick && setPrs(true)}
+      onTouchEnd={() => setPrs(false)}
       style={{
-        background: 'rgba(255,255,255,0.04)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: `1px solid ${hov && onClick ? C.borderMid : C.border}`,
+        background: hov && onClick ? 'rgba(255,255,255,0.055)' : 'rgba(255,255,255,0.035)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: `1px solid ${hov && onClick ? 'rgba(255,255,255,0.13)' : C.border}`,
         borderRadius: 20,
         cursor: onClick ? 'pointer' : 'default',
-        transform: hov && onClick ? 'translateY(-2px)' : 'none',
+        transform: prs && onClick ? 'scale(0.975)' : hov && onClick ? 'translateY(-2px)' : 'none',
         boxShadow: hov && onClick
-          ? '0 12px 40px rgba(0,0,0,0.35)'
-          : glow ? `0 0 24px ${glow}33` : '0 2px 12px rgba(0,0,0,0.2)',
-        transition: 'all .25s',
+          ? '0 16px 48px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.08) inset'
+          : glow ? `0 0 28px ${glow}33` : '0 2px 14px rgba(0,0,0,0.22)',
+        transition: 'all .22s cubic-bezier(0.22,1,0.36,1)',
         marginBottom: 10,
         ...st,
       }}
@@ -173,17 +178,21 @@ export function Btn({ children, onClick, color = C.primary, variant = 'solid', f
       onMouseDown={() => setPressed(true)} onMouseUp={() => setPressed(false)}
       onTouchStart={() => setPressed(true)} onTouchEnd={() => setPressed(false)}
       style={{
-        padding: '13px 24px', borderRadius: 14,
+        padding: '13px 24px', borderRadius: 15,
         border: solid ? 'none' : `1.5px solid ${color}55`,
-        background: solid ? (isPrimary ? GRAD.brand : color) : `${color}0f`,
+        background: solid ? (isPrimary ? GRAD.brand : color) : `${color}12`,
         color: solid ? (isPrimary ? '#000' : '#fff') : color,
-        fontSize: 14, fontWeight: 700,
+        fontSize: 14, fontWeight: 800,
         cursor: disabled ? 'default' : 'pointer',
-        opacity: disabled ? 0.45 : 1,
+        opacity: disabled ? 0.4 : 1,
         width: full ? '100%' : 'auto',
-        transform: pressed && !disabled ? 'scale(0.96)' : 'scale(1)',
-        transition: 'transform .12s, box-shadow .2s, opacity .2s',
-        boxShadow: solid && !disabled ? `0 4px 20px ${isPrimary ? '#00DDB344' : color + '44'}` : 'none',
+        transform: pressed && !disabled ? 'scale(0.95)' : 'scale(1)',
+        transition: 'transform .1s cubic-bezier(0.22,1,0.36,1), box-shadow .18s, opacity .2s',
+        boxShadow: pressed && solid && !disabled
+          ? `0 2px 8px ${isPrimary ? '#00DDB322' : color + '22'}`
+          : solid && !disabled
+            ? `0 6px 24px ${isPrimary ? '#00DDB355' : color + '55'}, 0 1px 0 rgba(255,255,255,0.18) inset`
+            : 'none',
         letterSpacing: '0.02em',
       }}
     >
@@ -198,11 +207,14 @@ export function FilterChip({ label, active, onClick, color = C.primary }) {
     <button
       onClick={onClick}
       style={{
-        padding: '7px 16px', borderRadius: 22, border: 'none',
-        background: active ? (color === C.primary ? GRAD.brand : color) : 'rgba(255,255,255,0.06)',
+        padding: '7px 16px', borderRadius: 22,
+        border: active ? 'none' : `1px solid rgba(255,255,255,0.07)`,
+        background: active ? (color === C.primary ? GRAD.brand : color) : 'rgba(255,255,255,0.05)',
         color: active ? (color === C.primary ? '#000' : '#fff') : C.textDim,
         fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-        transition: 'all .2s',
+        boxShadow: active ? `0 4px 16px ${color}44` : 'none',
+        transform: active ? 'scale(1.02)' : 'scale(1)',
+        transition: 'all .2s cubic-bezier(0.22,1,0.36,1)',
         boxShadow: active ? `0 3px 14px ${color}44` : 'none',
         flexShrink: 0,
       }}
