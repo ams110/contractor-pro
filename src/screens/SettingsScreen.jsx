@@ -6,18 +6,19 @@ import { exportFullReportToExcel, exportTaxSummary } from '../lib/export.js'
 import { usePushNotifications, getNotifPrefs, setNotifPref } from '../hooks/usePushNotifications.js'
 
 const PERM_LABELS = [
-  ['can_view_projects',  'مشاهدة المشاريع'],
-  ['can_edit_projects',  'إضافة/تعديل المشاريع'],
-  ['can_view_workers',   'مشاهدة العمال'],
-  ['can_edit_workers',   'إضافة/تعديل العمال'],
-  ['can_view_expenses',  'مشاهدة المصاريف'],
-  ['can_add_expenses',   'إضافة المصاريف'],
-  ['can_view_payments',  'مشاهدة الرواتب'],
-  ['can_add_payments',   'إضافة الرواتب'],
-  ['can_delete',         'حذف السجلات'],
-  ['can_manage_team',    'إدارة الفريق'],
-  ['can_view_amounts',   'مشاهدة المبالغ'],
-  ['can_view_activity',  'مشاهدة سجل النشاط'],
+  ['can_view_projects',    'مشاهدة المشاريع'],
+  ['can_edit_projects',    'إضافة/تعديل المشاريع'],
+  ['can_view_workers',     'مشاهدة العمال'],
+  ['can_edit_workers',     'إضافة/تعديل العمال'],
+  ['can_view_expenses',    'مشاهدة المصاريف'],
+  ['can_add_expenses',     'إضافة المصاريف'],
+  ['can_view_payments',    'مشاهدة الرواتب'],
+  ['can_add_payments',     'إضافة الرواتب'],
+  ['can_delete',           'حذف السجلات'],
+  ['can_manage_team',      'إدارة الفريق'],
+  ['can_view_amounts',     'مشاهدة المبالغ'],
+  ['can_view_activity',    'مشاهدة سجل النشاط'],
+  ['can_view_blueprints',  'مشاهدة خرائط المشاريع'],
 ]
 
 const ROLES = ['مشرف', 'محاسب', 'مساعد', 'عضو']

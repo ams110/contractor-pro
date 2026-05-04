@@ -1020,6 +1020,64 @@ function SubmitMaterialForm({ worker, projects }) {
   )
 }
 
+// ─── Blueprint helpers (read-only for workers) ───────────────────────────────
+function loadBlueprints(projectId) {
+  try { return JSON.parse(localStorage.getItem(`blueprints_${projectId}`)) || [] } catch { return [] }
+}
+
+function BlueprintsTab({ projects }) {
+  const [selProj, setSelProj] = useState(projects[0]?.id || '')
+  const [viewer,  setViewer]  = useState(null)
+  const bps = selProj ? loadBlueprints(selProj) : []
+
+  return (
+    <div>
+      {projects.length > 1 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+          {projects.map(p => (
+            <button key={p.id} onClick={() => { setSelProj(p.id); setViewer(null) }}
+              style={{ padding: '7px 14px', borderRadius: 20, border: `1.5px solid ${selProj === p.id ? C.blue : C.border}`, background: selProj === p.id ? `${C.blue}22` : 'transparent', color: selProj === p.id ? C.blue : C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {bps.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: C.textDim }}>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>📐</div>
+          <div style={{ fontSize: 13 }}>لا توجد خرائط لهذا المشروع</div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
+          {bps.map((b, idx) => (
+            <div key={b.id} onClick={() => setViewer(idx)}
+              style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${C.border}`, aspectRatio: '1.4', cursor: 'pointer', position: 'relative' }}>
+              <img src={b.dataUrl} alt={b.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)' }} />
+              <div style={{ position: 'absolute', bottom: 6, right: 8, fontSize: 10, color: '#fff', fontWeight: 700 }}>{b.date}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {viewer !== null && bps[viewer] && (
+        <div onClick={() => setViewer(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 480 }}>
+            <img src={bps[viewer].dataUrl} alt="blueprint" style={{ width: '100%', borderRadius: 16, maxHeight: '80vh', objectFit: 'contain' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, padding: '0 4px' }}>
+              <button onClick={() => setViewer(v => Math.max(0, v - 1))} disabled={viewer === 0}
+                style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: viewer === 0 ? C.border : '#fff', cursor: viewer === 0 ? 'default' : 'pointer', fontSize: 18 }}>‹</button>
+              <div style={{ fontSize: 11, color: C.textDim }}>{viewer + 1} / {bps.length}</div>
+              <button onClick={() => setViewer(v => Math.min(bps.length - 1, v + 1))} disabled={viewer === bps.length - 1}
+                style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: viewer === bps.length - 1 ? C.border : '#fff', cursor: viewer === bps.length - 1 ? 'default' : 'pointer', fontSize: 18 }}>›</button>
+            </div>
+            <button onClick={() => setViewer(null)} style={{ position: 'absolute', top: -12, left: -12, width: 32, height: 32, borderRadius: '50%', background: C.accent, border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
   const {
@@ -1048,17 +1106,19 @@ export default function WorkerPortalScreen() {
 
   const pendingExpenses = workerExpenses.filter(e => e.status === 'pending')
 
-  const canExpense = worker.can_submit_expenses !== false
-  const canSalary  = worker.can_request_payment !== false
+  const canExpense    = worker.can_submit_expenses !== false
+  const canSalary     = worker.can_request_payment !== false
+  const canBlueprints = worker.can_view_blueprints === true
 
   const tabs = [
-    { id: 'submit',   label: '📤 يوم'    },
-    ...(canExpense ? [{ id: 'expense',  label: '💸 مصروف' }] : []),
-    { id: 'materials', label: '🪵 بضاعة' },
-    ...(canSalary  ? [{ id: 'salary',   label: '💰 راتب'  }] : []),
-    ...(canSalary  ? [{ id: 'advance',  label: '💵 سلفة'  }] : []),
-    { id: 'monthly',  label: '📅 شهري'  },
-    { id: 'account',  label: '⚙️ حساب'  },
+    { id: 'submit',     label: '📤 يوم'    },
+    ...(canExpense     ? [{ id: 'expense',    label: '💸 مصروف'  }] : []),
+    { id: 'materials',  label: '🪵 بضاعة'  },
+    ...(canSalary      ? [{ id: 'salary',     label: '💰 راتب'   }] : []),
+    ...(canSalary      ? [{ id: 'advance',    label: '💵 سلفة'   }] : []),
+    { id: 'monthly',    label: '📅 شهري'   },
+    ...(canBlueprints  ? [{ id: 'blueprints', label: '📐 خرائط'  }] : []),
+    { id: 'account',    label: '⚙️ حساب'   },
   ]
 
   return (
@@ -1206,6 +1266,11 @@ export default function WorkerPortalScreen() {
         {/* تبويب البضاعة */}
         {tab === 'materials' && (
           <SubmitMaterialForm worker={worker} projects={projects} />
+        )}
+
+        {/* تبويب خرائط المشاريع */}
+        {tab === 'blueprints' && (
+          <BlueprintsTab projects={projects} />
         )}
 
         {/* تبويب الحساب وتغيير كلمة المرور */}

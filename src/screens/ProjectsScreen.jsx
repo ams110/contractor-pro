@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { C, GRAD, SPECS, PROJECT_TYPES, PROJECT_STATUS, PAY_METHODS as DEFAULT_PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, validateProject, todayStr } from '../lib/helpers.js'
 import {
@@ -74,7 +74,30 @@ function MarginPill({ margin }) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────── */
-export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, employees, addProject, updateProject, deleteProject, addReceipt, updateReceipt, deleteReceipt, userId, permissions, payMethods: dynamicPayMethods }) {
+/* ─── blueprint helpers ─── */
+async function compressImage(file, maxPx = 1400) {
+  return new Promise(resolve => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale)
+      const c = document.createElement('canvas'); c.width = w; c.height = h
+      c.getContext('2d').drawImage(img, 0, 0, w, h)
+      resolve(c.toDataURL('image/jpeg', 0.80))
+    }
+    img.src = url
+  })
+}
+function loadBlueprints(projectId) {
+  try { return JSON.parse(localStorage.getItem(`blueprints_${projectId}`)) || [] } catch { return [] }
+}
+function saveBlueprints(projectId, list) {
+  localStorage.setItem(`blueprints_${projectId}`, JSON.stringify(list))
+}
+
+export default function ProjectsScreen({ projects, workDays, expenses, clientReceipts, employees, payments = [], addProject, updateProject, deleteProject, addReceipt, updateReceipt, deleteReceipt, userId, permissions, payMethods: dynamicPayMethods }) {
   const PAY_METHODS = (dynamicPayMethods && dynamicPayMethods.length > 0) ? dynamicPayMethods : DEFAULT_PAY_METHODS
 
   const [showForm,        setShowForm]        = useState(false)
@@ -105,12 +128,22 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
   const [multiReceiptPreview, setMultiReceiptPreview] = useState('')
   const receiptFileRef    = useRef()
   const multiReceiptRef   = useRef()
+  const blueprintFileRef  = useRef()
+
+  const [blueprints,      setBlueprints]      = useState([])
+  const [blueprintViewer, setBlueprintViewer] = useState(null) // index of fullscreen image
+  const [blueprintLoading,setBlueprintLoading]= useState(false)
 
   const emptyForm    = { name:'', client_name:'', client_phone:'', type:'', price:'', status:'نشط', specialization:'', notes:'', start_date:'', end_date:'', locations:[] }
   const emptyReceipt = { amount:'', date: todayStr(), notes:'', payment_method:'كاش', payer_name:'' }
   const [form,        setForm]        = useState(emptyForm)
   const [receiptForm, setReceiptForm] = useState(emptyReceipt)
   const [newLocation, setNewLocation] = useState('')
+
+  useEffect(() => {
+    if (detail) setBlueprints(loadBlueprints(detail))
+    else { setBlueprints([]); setBlueprintViewer(null) }
+  }, [detail])
 
   function f(key)  { return v => setForm(prev => ({ ...prev, [key]: v })) }
   function fr(key) { return v => setReceiptForm(prev => ({ ...prev, [key]: v })) }
@@ -305,15 +338,33 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
      DETAIL VIEW
   ════════════════════════════════════ */
   if (proj) {
-    const labor     = workDays.filter(w => w.project_id === proj.id).reduce((s, w) => s + (w.amount || 0), 0)
+    const projBlueprints = blueprints.length > 0 ? blueprints : loadBlueprints(proj.id)
+
+    async function addBlueprint(file) {
+      setBlueprintLoading(true)
+      const dataUrl = await compressImage(file)
+      const entry = { id: Date.now().toString(), name: file.name, dataUrl, date: todayStr() }
+      const next = [...projBlueprints, entry]
+      saveBlueprints(proj.id, next)
+      setBlueprints(next)
+      setBlueprintLoading(false)
+    }
+    function deleteBlueprint(id) {
+      const next = projBlueprints.filter(b => b.id !== id)
+      saveBlueprints(proj.id, next)
+      setBlueprints(next)
+    }
+
+    const labor          = workDays.filter(w => w.project_id === proj.id).reduce((s, w) => s + (w.amount || 0), 0)
     const projExps  = expenses.filter(e => e.project_id === proj.id)
-    const exps      = projExps.reduce((s, e) => s + (e.amount || 0), 0)
-    const materials = projExps.filter(e => e.category === 'بضاعة').reduce((s, e) => s + (e.amount || 0), 0)
-    const otherExps = exps - materials
-    const receipts  = (clientReceipts || []).filter(r => r.project_id === proj.id)
-    const received  = receipts.reduce((s, r) => s + (r.amount || 0), 0)
-    const total     = labor + exps
-    const profit    = received - total
+    const exps           = projExps.reduce((s, e) => s + (e.amount || 0), 0)
+    const materials      = projExps.filter(e => e.category === 'بضاعة').reduce((s, e) => s + (e.amount || 0), 0)
+    const otherExps      = exps - materials
+    const receipts       = (clientReceipts || []).filter(r => r.project_id === proj.id)
+    const received       = receipts.reduce((s, r) => s + (r.amount || 0), 0)
+    const workerPayments = payments.filter(p => p.project_id === proj.id).reduce((s, p) => s + (p.amount || 0), 0)
+    const total          = labor + exps
+    const profit         = received - total
     const pending  = (proj.price || 0) - received
     const margin   = received > 0 ? ((profit / received) * 100).toFixed(1) : 0
     const receivedPct = proj.price > 0 ? Math.round((received / proj.price) * 100) : 0
@@ -433,14 +484,15 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
 
             {/* Cost breakdown rows */}
             {[
-              { label: '👷 تكلفة العمال',   value: `${fmt(labor)}₪`,     color: C.accent },
-              { label: '🧱 البضاعة',         value: `${fmt(materials)}₪`, color: C.orange, hide: materials === 0 },
-              { label: '📦 مصاريف أخرى',    value: `${fmt(otherExps)}₪`, color: C.accent, hide: materials === 0 && exps === 0 },
-              { label: '💸 إجمالي التكاليف', value: `${fmt(total)}₪`,    color: C.accent, bold: true },
+              { label: '👷 تكلفة العمال',        value: `${fmt(labor)}₪`,          color: C.accent },
+              { label: '💵 مدفوع للعمال',         value: `${fmt(workerPayments)}₪`,  color: C.success, hide: workerPayments === 0, sub: true },
+              { label: '🧱 البضاعة',              value: `${fmt(materials)}₪`,       color: C.orange,  hide: materials === 0 },
+              { label: '📦 مصاريف أخرى',         value: `${fmt(otherExps)}₪`,       color: C.accent,  hide: materials === 0 && exps === 0 },
+              { label: '💸 إجمالي التكاليف',      value: `${fmt(total)}₪`,           color: C.accent,  bold: true },
             ].filter(r => !r.hide).map((row, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 12px', background: i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent', borderRadius: 10, marginBottom: 2 }}>
-                <span style={{ fontSize: 12, color: row.bold ? C.text : C.textDim, fontWeight: row.bold ? 700 : 400 }}>{row.label}</span>
-                <span style={{ fontSize: 13, fontWeight: row.bold ? 800 : 600, color: row.color, fontFamily: 'monospace' }}>{row.value}</span>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: row.sub ? '5px 12px 5px 20px' : '7px 12px', background: i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent', borderRadius: 10, marginBottom: 2 }}>
+                <span style={{ fontSize: row.sub ? 11 : 12, color: row.bold ? C.text : C.textDim, fontWeight: row.bold ? 700 : 400 }}>{row.label}</span>
+                <span style={{ fontSize: row.sub ? 12 : 13, fontWeight: row.bold ? 800 : 600, color: row.color, fontFamily: 'monospace' }}>{row.value}</span>
               </div>
             ))}
 
@@ -518,6 +570,51 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── Blueprints section ── */}
+        <SectionLabel color={C.blue} action={permissions?.editProjects !== false ? (blueprintLoading ? '...' : '+ خريطة') : undefined} onAction={() => blueprintFileRef.current?.click()}>
+          📐 خرائط المشروع
+        </SectionLabel>
+        <input ref={blueprintFileRef} type="file" accept="image/*" capture="environment" multiple style={{ display: 'none' }}
+          onChange={async e => { for (const f of Array.from(e.target.files || [])) await addBlueprint(f); e.target.value = '' }} />
+
+        {projBlueprints.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: C.textDim, fontSize: 12, background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: `1px dashed ${C.border}`, marginBottom: 16 }}>
+            لا توجد خرائط — اضغط "+ خريطة" لرفع مخطط المشروع
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 16 }}>
+            {projBlueprints.map((b, idx) => (
+              <div key={b.id} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}`, aspectRatio: '1', cursor: 'pointer' }}
+                onClick={() => setBlueprintViewer(idx)}>
+                <img src={b.dataUrl} alt={b.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)' }} />
+                <div style={{ position: 'absolute', bottom: 4, right: 6, left: 6, fontSize: 8, color: '#fff', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.date}</div>
+                {permissions?.editProjects !== false && (
+                  <button onClick={e => { e.stopPropagation(); deleteBlueprint(b.id) }}
+                    style={{ position: 'absolute', top: 4, left: 4, width: 22, height: 22, borderRadius: '50%', background: `${C.accent}cc`, border: 'none', color: '#fff', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Blueprint fullscreen viewer */}
+        {blueprintViewer !== null && projBlueprints[blueprintViewer] && (
+          <div onClick={() => setBlueprintViewer(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 480 }}>
+              <img src={projBlueprints[blueprintViewer].dataUrl} alt="blueprint" style={{ width: '100%', borderRadius: 16, maxHeight: '80vh', objectFit: 'contain' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, padding: '0 4px' }}>
+                <button onClick={() => setBlueprintViewer(v => Math.max(0, v - 1))} disabled={blueprintViewer === 0}
+                  style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: blueprintViewer === 0 ? C.border : '#fff', cursor: blueprintViewer === 0 ? 'default' : 'pointer', fontSize: 18 }}>‹</button>
+                <div style={{ fontSize: 11, color: C.textDim }}>{blueprintViewer + 1} / {projBlueprints.length}</div>
+                <button onClick={() => setBlueprintViewer(v => Math.min(projBlueprints.length - 1, v + 1))} disabled={blueprintViewer === projBlueprints.length - 1}
+                  style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: blueprintViewer === projBlueprints.length - 1 ? C.border : '#fff', cursor: blueprintViewer === projBlueprints.length - 1 ? 'default' : 'pointer', fontSize: 18 }}>›</button>
+              </div>
+              <button onClick={() => setBlueprintViewer(null)} style={{ position: 'absolute', top: -12, left: -12, width: 32, height: 32, borderRadius: '50%', background: C.accent, border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
           </div>
         )}
 
