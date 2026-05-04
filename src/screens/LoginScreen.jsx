@@ -4,6 +4,11 @@ import { Btn, Input } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { supabase } from '../lib/supabase.js'
 
+const WORKER_SESSION_KEY = 'worker_session'
+function saveWorkerSession(data) {
+  sessionStorage.setItem(WORKER_SESSION_KEY, JSON.stringify(data))
+}
+
 /* ── PIN Numpad ── */
 function PinPad({ onDone, onCancel, error }) {
   const [digits, setDigits] = useState('')
@@ -95,6 +100,9 @@ export default function LoginScreen({ teamMemberSignIn }) {
   const [tmUsername, setTmUsername] = useState('')
   const [tmPassword, setTmPassword] = useState('')
 
+  const [wkUsername, setWkUsername] = useState('')
+  const [wkPassword, setWkPassword] = useState('')
+
   const passkeyOk  = isPasskeySupported()
   const passkeyReg = hasPasskeyRegistered()
   const pinOk      = hasPinSet()
@@ -181,6 +189,25 @@ export default function LoginScreen({ teamMemberSignIn }) {
     } finally { setLoading(false) }
   }
 
+  async function handleWorkerLogin(e) {
+    e.preventDefault()
+    if (!wkUsername.trim()) return setError('أدخل اسم المستخدم')
+    if (!wkPassword)        return setError('أدخل كلمة المرور')
+    setLoading(true); setError('')
+    try {
+      const { data, error } = await supabase.rpc('worker_login', {
+        p_username: wkUsername.trim(),
+        p_password: wkPassword,
+      })
+      if (error) throw new Error(error.message)
+      if (data?.error) throw new Error(data.error)
+      saveWorkerSession(data)
+      window.location.href = window.location.pathname + '?portal'
+    } catch (err) {
+      setError(err.message || 'اسم المستخدم أو كلمة المرور غير صحيحة')
+    } finally { setLoading(false) }
+  }
+
   const TABS = [['login','دخول'],['register','حساب جديد'],['forgot','نسيت كلمة المرور']]
 
   return (
@@ -212,21 +239,23 @@ export default function LoginScreen({ teamMemberSignIn }) {
           </>
         ) : (
           <>
-            {/* Login type toggle */}
-            {teamMemberSignIn && (
-              <div style={{ display:'flex', gap:4, marginBottom:20, background:'rgba(255,255,255,0.04)', borderRadius:14, padding:4 }}>
-                {[['owner','صاحب الحساب'],['member','عضو فريق']].map(([t, label]) => (
-                  <button key={t} onClick={() => { setLoginType(t); clearMsg() }}
-                    style={{ flex:1, padding:'9px 4px', borderRadius:10, border:'none', cursor:'pointer', fontWeight:700, fontSize:12, transition:'all .2s',
-                      background: loginType === t ? GRAD.brand : 'transparent',
-                      color: loginType === t ? '#000' : C.textDim,
-                      boxShadow: loginType === t ? '0 4px 14px #00DDB344' : 'none',
-                    }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Login type toggle — always shown */}
+            <div style={{ display:'flex', gap:4, marginBottom:20, background:'rgba(255,255,255,0.04)', borderRadius:14, padding:4 }}>
+              {[
+                ['owner',  '🏢 صاحب العمل'],
+                ...(teamMemberSignIn ? [['member', '👥 عضو فريق']] : []),
+                ['worker', '👷 عامل'],
+              ].map(([t, label]) => (
+                <button key={t} onClick={() => { setLoginType(t); clearMsg() }}
+                  style={{ flex:1, padding:'9px 4px', borderRadius:10, border:'none', cursor:'pointer', fontWeight:700, fontSize:11, transition:'all .2s',
+                    background: loginType === t ? GRAD.brand : 'transparent',
+                    color: loginType === t ? '#000' : C.textDim,
+                    boxShadow: loginType === t ? '0 4px 14px #00DDB344' : 'none',
+                  }}>
+                  {label}
+                </button>
+              ))}
+            </div>
 
             {/* Team member login form */}
             {loginType === 'member' && (
@@ -246,6 +275,33 @@ export default function LoginScreen({ teamMemberSignIn }) {
                 {error && <Alert type="error">{error}</Alert>}
                 <Btn full disabled={loading}>
                   {loading ? '⏳ جاري التحقق...' : '→ دخول'}
+                </Btn>
+              </form>
+            )}
+
+            {/* Worker login form */}
+            {loginType === 'worker' && (
+              <form onSubmit={handleWorkerLogin}>
+                <div style={{ textAlign:'center', marginBottom:20 }}>
+                  <div style={{ fontSize:36, marginBottom:8 }}>👷</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:C.text }}>بوابة العمال</div>
+                  <div style={{ fontSize:11, color:C.textDim, marginTop:4 }}>أدخل بيانات الدخول التي أعطاك إياها صاحب العمل</div>
+                </div>
+                <div style={{ marginBottom:14 }}>
+                  <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>اسم المستخدم</label>
+                  <input value={wkUsername} onChange={e => { setWkUsername(e.target.value); clearMsg() }}
+                    placeholder="username" autoComplete="username"
+                    style={{ width:'100%', padding:'12px 14px', borderRadius:14, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:14, boxSizing:'border-box', outline:'none', direction:'ltr', textAlign:'left' }} />
+                </div>
+                <div style={{ marginBottom:20 }}>
+                  <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>كلمة المرور</label>
+                  <input value={wkPassword} onChange={e => { setWkPassword(e.target.value); clearMsg() }}
+                    type="password" placeholder="••••••••" autoComplete="current-password"
+                    style={{ width:'100%', padding:'12px 14px', borderRadius:14, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:14, boxSizing:'border-box', outline:'none' }} />
+                </div>
+                {error && <Alert type="error">{error}</Alert>}
+                <Btn full disabled={loading}>
+                  {loading ? '⏳ جاري التحقق...' : '→ دخول للبوابة'}
                 </Btn>
               </form>
             )}
