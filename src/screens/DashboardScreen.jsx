@@ -354,9 +354,9 @@ export default function DashboardScreen({ projects, employees, workDays, expense
               { l:'صافي الربح',     v: fmtA(netProfit),                  c:netProfit >= 0 ? C.primary : C.accent },
               { l:'للتحصيل',        v: fmtA(Math.max(0,totalPending)),   c:C.warning },
             ].map(s => (
-              <div key={s.l} style={{ textAlign:'center', padding:'10px 4px', background:'rgba(255,255,255,0.04)', borderRadius:12, border:'1px solid rgba(255,255,255,0.07)' }}>
-                <div style={{ fontSize:9, color:C.textDim, marginBottom:4, fontWeight:600 }}>{s.l}</div>
-                <div style={{ fontSize:13, fontWeight:900, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
+              <div key={s.l} style={{ textAlign:'center', padding:'10px 4px', background:`${s.c}0d`, borderRadius:12, border:`1px solid ${s.c}2a` }}>
+                <div style={{ fontSize:9, color:C.textDim, marginBottom:4, fontWeight:700, letterSpacing:'0.02em' }}>{s.l}</div>
+                <div style={{ fontSize:13, fontWeight:900, color:s.c, fontFamily:'monospace', textShadow:`0 0 12px ${s.c}55` }}>{s.v}</div>
               </div>
             ))}
           </div>
@@ -364,6 +364,11 @@ export default function DashboardScreen({ projects, employees, workDays, expense
       </div>
 
       {/* ─── إحصائيات ─── */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+        <div style={{ height:1, flex:1, background:`linear-gradient(90deg, ${C.primary}44, transparent)` }} />
+        <div style={{ fontSize:10, fontWeight:800, color:C.textDim, letterSpacing:'0.12em', textTransform:'uppercase' }}>الملخص المالي</div>
+        <div style={{ height:1, flex:1, background:`linear-gradient(270deg, ${C.primary}44, transparent)` }} />
+      </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:20 }}>
         <StatCard icon="💰" label="المقبوض من العملاء" value={fmtA(totalReceived)}              color={C.success} />
         <StatCard icon="💸" label="إجمالي التكاليف"    value={fmtA(totalExp + totalLabor)}       color={C.accent} />

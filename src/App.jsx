@@ -257,42 +257,49 @@ export default function App() {
       )}
 
       {/* ─── Header ─── */}
-      <div style={{ position:'sticky', top:0, zIndex:50, background:'rgba(7,9,13,0.92)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:40, height:40, borderRadius:14, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, boxShadow:'0 4px 16px #00DDB344', flexShrink:0 }}>🏗️</div>
-          <div>
-            <div style={{ fontSize:15, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', lineHeight:1.2 }}>Contractor Pro</div>
-            <div style={{ fontSize:9, color:C.textDim, letterSpacing:'0.08em', fontWeight:600 }}>إدارة مشاريعك بذكاء</div>
-          </div>
-        </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          {dataLoading && <div style={{ width:16, height:16, border:`2px solid ${C.border}`, borderTopColor:C.primary, borderRadius:'50%', animation:'spin .75s linear infinite' }} />}
-          {(p?.isOwner || p?.viewActivity) && (
-            <button onClick={() => setScreen('activity')}
-              style={{ background: screen === 'activity' ? `${C.primary}22` : 'rgba(255,255,255,0.06)', border:`1px solid ${screen === 'activity' ? C.primary + '55' : C.border}`, borderRadius:12, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
-              📋
-            </button>
-          )}
-          <button onClick={() => setShowNotifs(true)}
-            style={{ position:'relative', background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, borderRadius:12, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
-            🔔
-            {unreadCount > 0 && (
-              <div style={{ position:'absolute', top:-5, right:-5, minWidth:18, height:18, borderRadius:9, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 4px', boxShadow:`0 2px 10px ${C.accent}88` }}>
-                {unreadCount}
+      {(() => {
+        const currentNav = NAV.find(n => n.id === screen)
+        return (
+        <div style={{ position:'sticky', top:0, zIndex:50, background:'rgba(7,9,13,0.92)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:40, height:40, borderRadius:14, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, boxShadow:'0 4px 16px #00DDB344', flexShrink:0 }}>🏗️</div>
+            <div>
+              <div style={{ fontSize:15, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', lineHeight:1.2 }}>Contractor Pro</div>
+              <div style={{ fontSize:9, color: currentNav ? C.primary : C.textDim, letterSpacing:'0.06em', fontWeight:700, transition:'color .2s' }}>
+                {currentNav ? `${currentNav.icon} ${currentNav.label}` : 'إدارة مشاريعك بذكاء'}
               </div>
+            </div>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            {dataLoading && <div style={{ width:16, height:16, border:`2px solid ${C.border}`, borderTopColor:C.primary, borderRadius:'50%', animation:'spin .75s linear infinite' }} />}
+            {(p?.isOwner || p?.viewActivity) && (
+              <button onClick={() => setScreen('activity')}
+                style={{ background: screen === 'activity' ? `${C.primary}22` : 'rgba(255,255,255,0.06)', border:`1px solid ${screen === 'activity' ? C.primary + '55' : C.border}`, borderRadius:12, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
+              📋
+              </button>
             )}
-          </button>
-          <button onClick={() => setShowSearch(true)}
-            style={{ background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, borderRadius:12, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
-            🔍
+            <button onClick={() => setShowNotifs(true)}
+              style={{ position:'relative', background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, borderRadius:12, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
+              🔔
+              {unreadCount > 0 && (
+                <div style={{ position:'absolute', top:-5, right:-5, minWidth:18, height:18, borderRadius:9, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 4px', boxShadow:`0 2px 10px ${C.accent}88` }}>
+                  {unreadCount}
+                </div>
+              )}
+            </button>
+            <button onClick={() => setShowSearch(true)}
+              style={{ background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, borderRadius:12, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
+              🔍
           </button>
         </div>
-        {/* bottom gradient line */}
-        <div style={{ position:'absolute', bottom:0, left:0, right:0, height:1, background:GRAD.brand, opacity:0.3 }} />
-      </div>
+            {/* bottom gradient line */}
+            <div style={{ position:'absolute', bottom:0, left:0, right:0, height:1, background:GRAD.brand, opacity:0.3 }} />
+          </div>
+        )
+      })()}
 
       {/* المحتوى */}
-      <div style={{ paddingBottom:96 }}>
+      <div key={screen} className="fade-in" style={{ paddingBottom:96 }}>
         <Suspense fallback={<div style={{ display:'flex', justifyContent:'center', padding:48 }}><LoadingSpinner /></div>}>
           {renderScreen()}
         </Suspense>

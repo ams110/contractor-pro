@@ -176,11 +176,32 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
     })
   }
 
-  const total   = allTasks(data)
+  const total    = allTasks(data)
   const totalPct = pct(total)
+  const totalHouses = (data.plots || []).flatMap(p => p.houses || []).length
+  const totalFloors = (data.plots || []).flatMap(p => (p.houses || []).flatMap(h => h.floors || [])).length
+  const doneTasks   = total.filter(t => t.status === 'done').length
+  const inProgTasks = total.filter(t => t.status === 'in_progress').length
 
   return (
     <div>
+      {/* إحصائيات سريعة */}
+      {data.plots.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 7, marginBottom: 14 }}>
+          {[
+            { val: data.plots.length, label: 'قطعة',   color: C.primary   },
+            { val: totalHouses,       label: 'بيت',     color: C.secondary },
+            { val: totalFloors,       label: 'طابق',    color: C.orange    },
+            { val: `${totalPct}%`,    label: 'إنجاز',   color: totalPct === 100 ? C.success : C.warning },
+          ].map(({ val, label, color }) => (
+            <div key={label} style={{ background: C.card, borderRadius: 12, border: `1px solid ${color}22`, padding: '10px 6px', textAlign: 'center' }}>
+              <div style={{ fontSize: 17, fontWeight: 900, color, fontFamily: 'monospace', lineHeight: 1 }}>{val}</div>
+              <div style={{ fontSize: 9, color: C.textDim, marginTop: 3, fontWeight: 600 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* التقدم الكلي */}
       {total.length > 0 && (
         <div style={{ background: `${C.primary}12`, borderRadius: 14, border: `1px solid ${C.primary}33`, padding: '12px 16px', marginBottom: 14 }}>
@@ -189,8 +210,10 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
             <span style={{ fontSize: 18, fontWeight: 900, color: totalPct === 100 ? C.success : C.primary, fontFamily: 'monospace' }}>{totalPct}%</span>
           </div>
           <ProgressBar p={totalPct} height={8} />
-          <div style={{ fontSize: 10, color: C.textDim, marginTop: 6 }}>
-            {total.filter(t => t.status === 'done').length} منجز من {total.length} مهمة
+          <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+            <span style={{ fontSize: 10, color: C.success }}>✅ {doneTasks} منجز</span>
+            <span style={{ fontSize: 10, color: C.warning }}>🔄 {inProgTasks} جاري</span>
+            <span style={{ fontSize: 10, color: C.textDim }}>⬜ {total.length - doneTasks - inProgTasks} لم يبدأ</span>
           </div>
         </div>
       )}
@@ -209,6 +232,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
               background: C.card, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10,
               borderRadius: pOpen ? '14px 14px 0 0' : 14,
               border: `1px solid ${C.borderMid}`,
+              borderRight: `3px solid ${C.primary}`,
             }}>
               <button onClick={() => setOpenPlots(s => ({ ...s, [plot.id]: !pOpen }))}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.textDim, padding: 0, flexShrink: 0 }}>
@@ -248,6 +272,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                         background: C.surface, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8,
                         borderRadius: hOpen ? '11px 11px 0 0' : 11,
                         border: `1px solid ${C.border}`,
+                        borderRight: `3px solid ${C.secondary}`,
                       }}>
                         <button onClick={() => setOpenHouses(s => ({ ...s, [house.id]: !hOpen }))}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: C.textDim, padding: 0, flexShrink: 0 }}>
@@ -286,6 +311,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                                   background: C.bg, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 7,
                                   borderRadius: fOpen ? '9px 9px 0 0' : 9,
                                   border: `1px solid ${C.border}`,
+                                  borderRight: `3px solid ${C.orange}`,
                                 }}>
                                   <button onClick={() => setOpenFloors(s => ({ ...s, [floor.id]: !fOpen }))}
                                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 9, color: C.textDim, padding: 0, flexShrink: 0 }}>
@@ -318,11 +344,11 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                                         return (
                                           <div key={task.id}
                                             onClick={() => cycleTask(plot.id, house.id, floor.id, task.id)}
-                                            style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '4px 9px 4px 6px', borderRadius: 8, background: `${st.color}15`, border: `1.5px solid ${st.color}44`, cursor: 'pointer', userSelect: 'none' }}>
-                                            <span style={{ fontSize: 13 }}>{st.icon}</span>
-                                            <span style={{ fontSize: 11, fontWeight: 600, color: st.color }}>{task.name}</span>
+                                            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px 8px 8px', borderRadius: 10, background: `${st.color}18`, border: `1.5px solid ${st.color}55`, cursor: 'pointer', userSelect: 'none', minHeight: 38 }}>
+                                            <span style={{ fontSize: 15 }}>{st.icon}</span>
+                                            <span style={{ fontSize: 12, fontWeight: 700, color: st.color }}>{task.name}</span>
                                             <button onClick={e => { e.stopPropagation(); delTask(plot.id, house.id, floor.id, task.id) }}
-                                              style={{ background: 'none', border: 'none', color: `${C.textDim}99`, fontSize: 9, cursor: 'pointer', padding: '0 0 0 3px', lineHeight: 1 }}>✕</button>
+                                              style={{ background: 'none', border: 'none', color: `${C.textDim}99`, fontSize: 10, cursor: 'pointer', padding: '0 0 0 4px', lineHeight: 1 }}>✕</button>
                                           </div>
                                         )
                                       })}
@@ -534,9 +560,35 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
     .reduce((s, e) => s + (parseFloat(e.qty) || 0) * (parseFloat(e.unitPrice) || 0), 0)
   const grandTotal = extras.reduce((s, e) => s + (parseFloat(e.qty) || 0) * (parseFloat(e.unitPrice) || 0), 0)
 
+  const formStep = (!form.plotId || !form.houseId || !form.floorId) ? 1
+    : (!form.title.trim() || !form.qty || !form.unitPrice) ? 2 : 3
+
   const ExtraFormEl = (
     <div style={{ background: C.surface, borderRadius: 16, border: `1px solid ${C.borderMid}`, padding: 16, marginBottom: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 12 }}>{editingExtra ? '✏️ تعديل الزيادة' : '➕ زيادة جديدة'}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10 }}>{editingExtra ? '✏️ تعديل الزيادة' : '➕ زيادة جديدة'}</div>
+
+      {/* مؤشر الخطوات */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 14 }}>
+        {[
+          { n: 1, label: 'الموقع',   color: C.primary   },
+          { n: 2, label: 'التفاصيل', color: C.secondary },
+          { n: 3, label: 'الصورة',   color: C.warning   },
+        ].map(({ n, label, color }, i) => {
+          const done = formStep > n
+          const active = formStep === n
+          return (
+            <React.Fragment key={n}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                <div style={{ width: 24, height: 24, borderRadius: 99, border: `2px solid ${done || active ? color : C.border}`, background: done ? color : active ? `${color}22` : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: done ? '#000' : active ? color : C.textDim, marginBottom: 3 }}>
+                  {done ? '✓' : n}
+                </div>
+                <span style={{ fontSize: 9, color: active ? color : C.textDim, fontWeight: active ? 700 : 500 }}>{label}</span>
+              </div>
+              {i < 2 && <div style={{ flex: 1, height: 2, background: formStep > n ? C.primary : C.border, borderRadius: 1, marginBottom: 14, flexShrink: 0, maxWidth: 40 }} />}
+            </React.Fragment>
+          )
+        })}
+      </div>
 
       <input value={form.title} onChange={e => setF('title', e.target.value)} placeholder="الوصف *"
         style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', marginBottom: 8 }} />

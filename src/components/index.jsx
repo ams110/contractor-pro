@@ -73,26 +73,30 @@ export function StatCard({ icon, label, value, color = C.primary, sub, onClick }
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: `1px solid ${hov && onClick ? color + '55' : C.border}`,
+        background: `linear-gradient(145deg, ${color}0d 0%, rgba(255,255,255,0.03) 60%)`,
+        border: `1px solid ${hov ? color + '44' : color + '1a'}`,
         borderRadius: 18,
-        padding: '16px 14px 14px',
+        padding: '0 0 14px',
         position: 'relative',
         overflow: 'hidden',
         cursor: onClick ? 'pointer' : 'default',
-        transform: hov && onClick ? 'translateY(-2px)' : 'none',
+        transform: hov && onClick ? 'translateY(-3px)' : 'none',
         transition: 'all .25s',
-        boxShadow: hov && onClick ? `0 8px 28px rgba(0,0,0,0.3)` : 'none',
+        boxShadow: hov
+          ? `0 10px 32px rgba(0,0,0,0.35), 0 0 0 1px ${color}33`
+          : `0 2px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.06)`,
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-        <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600, lineHeight: 1.4, maxWidth: '70%' }}>{label}</div>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: `${color}1a`, border: `1px solid ${color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{icon}</div>
+      {/* top accent strip */}
+      <div style={{ height: 4, background: `linear-gradient(90deg, ${color} 0%, ${color}66 60%, transparent 100%)`, borderRadius: '18px 18px 0 0', marginBottom: 14 }} />
+      <div style={{ padding: '0 14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: C.textDim, fontWeight: 700, lineHeight: 1.4, maxWidth: '68%', letterSpacing: '0.02em' }}>{label}</div>
+          <div style={{ width: 38, height: 38, borderRadius: 12, background: `linear-gradient(135deg, ${color}2a 0%, ${color}12 100%)`, border: `1px solid ${color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, boxShadow: `0 4px 12px ${color}22` }}>{icon}</div>
+        </div>
+        <div style={{ fontSize: 23, fontWeight: 900, color, fontFamily: 'monospace', letterSpacing: '-0.5px', textShadow: `0 0 20px ${color}55` }}>{value}</div>
+        {sub && <div style={{ fontSize: 10, color: C.textDim, marginTop: 5, fontWeight: 600 }}>{sub}</div>}
       </div>
-      <div style={{ fontSize: 22, fontWeight: 900, color, fontFamily: 'monospace', letterSpacing: '-0.5px' }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>{sub}</div>}
-      {/* bottom gradient bar */}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${color}, ${color}44)` }} />
     </div>
   )
 }
