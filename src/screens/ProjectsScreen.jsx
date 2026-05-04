@@ -90,6 +90,13 @@ async function compressImage(file, maxPx = 1400) {
     img.src = url
   })
 }
+function fileToBase64(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader()
+    reader.onload = e => resolve(e.target.result)
+    reader.readAsDataURL(file)
+  })
+}
 function loadBlueprints(projectId) {
   try { return JSON.parse(localStorage.getItem(`blueprints_${projectId}`)) || [] } catch { return [] }
 }
@@ -341,9 +348,14 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     const projBlueprints = blueprints.length > 0 ? blueprints : loadBlueprints(proj.id)
 
     async function addBlueprint(file) {
+      const isPdf = file.type === 'application/pdf'
+      if (file.size > 8 * 1024 * 1024) {
+        alert(`الملف "${file.name}" أكبر من 8MB — يرجى ضغطه قبل الرفع`)
+        return
+      }
       setBlueprintLoading(true)
-      const dataUrl = await compressImage(file)
-      const entry = { id: Date.now().toString(), name: file.name, dataUrl, date: todayStr() }
+      const dataUrl = isPdf ? await fileToBase64(file) : await compressImage(file)
+      const entry = { id: Date.now().toString(), name: file.name, dataUrl, type: isPdf ? 'pdf' : 'image', date: todayStr() }
       const next = [...projBlueprints, entry]
       saveBlueprints(proj.id, next)
       setBlueprints(next)
@@ -577,21 +589,31 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
         <SectionLabel color={C.blue} action={permissions?.editProjects !== false ? (blueprintLoading ? '...' : '+ خريطة') : undefined} onAction={() => blueprintFileRef.current?.click()}>
           📐 خرائط المشروع
         </SectionLabel>
-        <input ref={blueprintFileRef} type="file" accept="image/*" capture="environment" multiple style={{ display: 'none' }}
+        <input ref={blueprintFileRef} type="file" accept="image/*,application/pdf" multiple style={{ display: 'none' }}
           onChange={async e => { for (const f of Array.from(e.target.files || [])) await addBlueprint(f); e.target.value = '' }} />
 
         {projBlueprints.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '20px', color: C.textDim, fontSize: 12, background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: `1px dashed ${C.border}`, marginBottom: 16 }}>
-            لا توجد خرائط — اضغط "+ خريطة" لرفع مخطط المشروع
+            لا توجد خرائط — اضغط "+ خريطة" لرفع صورة أو PDF
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 16 }}>
             {projBlueprints.map((b, idx) => (
-              <div key={b.id} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}`, aspectRatio: '1', cursor: 'pointer' }}
+              <div key={b.id} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: `1px solid ${b.type === 'pdf' ? C.blue + '55' : C.border}`, aspectRatio: '1', cursor: 'pointer', background: b.type === 'pdf' ? `${C.blue}0d` : 'transparent' }}
                 onClick={() => setBlueprintViewer(idx)}>
-                <img src={b.dataUrl} alt={b.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)' }} />
-                <div style={{ position: 'absolute', bottom: 4, right: 6, left: 6, fontSize: 8, color: '#fff', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.date}</div>
+                {b.type === 'pdf' ? (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 6 }}>
+                    <div style={{ fontSize: 28 }}>📄</div>
+                    <div style={{ fontSize: 8, color: C.textDim, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{b.name}</div>
+                    <div style={{ fontSize: 7, color: C.blue, fontWeight: 700 }}>PDF</div>
+                  </div>
+                ) : (
+                  <>
+                    <img src={b.dataUrl} alt={b.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)' }} />
+                  </>
+                )}
+                <div style={{ position: 'absolute', bottom: 4, right: 6, left: 6, fontSize: 7, color: b.type === 'pdf' ? C.textDim : '#fff', fontWeight: 700 }}>{b.date}</div>
                 {permissions?.editProjects !== false && (
                   <button onClick={e => { e.stopPropagation(); deleteBlueprint(b.id) }}
                     style={{ position: 'absolute', top: 4, left: 4, width: 22, height: 22, borderRadius: '50%', background: `${C.accent}cc`, border: 'none', color: '#fff', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
@@ -602,21 +624,37 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
         )}
 
         {/* Blueprint fullscreen viewer */}
-        {blueprintViewer !== null && projBlueprints[blueprintViewer] && (
-          <div onClick={() => setBlueprintViewer(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-            <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 480 }}>
-              <img src={projBlueprints[blueprintViewer].dataUrl} alt="blueprint" style={{ width: '100%', borderRadius: 16, maxHeight: '80vh', objectFit: 'contain' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, padding: '0 4px' }}>
-                <button onClick={() => setBlueprintViewer(v => Math.max(0, v - 1))} disabled={blueprintViewer === 0}
-                  style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: blueprintViewer === 0 ? C.border : '#fff', cursor: blueprintViewer === 0 ? 'default' : 'pointer', fontSize: 18 }}>‹</button>
-                <div style={{ fontSize: 11, color: C.textDim }}>{blueprintViewer + 1} / {projBlueprints.length}</div>
-                <button onClick={() => setBlueprintViewer(v => Math.min(projBlueprints.length - 1, v + 1))} disabled={blueprintViewer === projBlueprints.length - 1}
-                  style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: blueprintViewer === projBlueprints.length - 1 ? C.border : '#fff', cursor: blueprintViewer === projBlueprints.length - 1 ? 'default' : 'pointer', fontSize: 18 }}>›</button>
+        {blueprintViewer !== null && projBlueprints[blueprintViewer] && (() => {
+          const bp = projBlueprints[blueprintViewer]
+          return (
+            <div onClick={() => setBlueprintViewer(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+              <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {bp.type === 'pdf' ? (
+                  <div style={{ width: '100%', borderRadius: 14, overflow: 'hidden', background: '#fff' }}>
+                    <embed src={bp.dataUrl} type="application/pdf" style={{ width: '100%', height: '75vh', display: 'block' }} />
+                    <div style={{ padding: '8px 14px', background: '#111', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, color: C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{bp.name}</span>
+                      <a href={bp.dataUrl} download={bp.name}
+                        style={{ padding: '5px 12px', borderRadius: 8, background: `${C.blue}22`, border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
+                        ⬇ تحميل
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <img src={bp.dataUrl} alt={bp.name} style={{ width: '100%', borderRadius: 16, maxHeight: '80vh', objectFit: 'contain' }} />
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, padding: '0 4px', width: '100%' }}>
+                  <button onClick={() => setBlueprintViewer(v => Math.max(0, v - 1))} disabled={blueprintViewer === 0}
+                    style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: blueprintViewer === 0 ? C.border : '#fff', cursor: blueprintViewer === 0 ? 'default' : 'pointer', fontSize: 18 }}>‹</button>
+                  <div style={{ fontSize: 11, color: C.textDim }}>{blueprintViewer + 1} / {projBlueprints.length}</div>
+                  <button onClick={() => setBlueprintViewer(v => Math.min(projBlueprints.length - 1, v + 1))} disabled={blueprintViewer === projBlueprints.length - 1}
+                    style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: blueprintViewer === projBlueprints.length - 1 ? C.border : '#fff', cursor: blueprintViewer === projBlueprints.length - 1 ? 'default' : 'pointer', fontSize: 18 }}>›</button>
+                </div>
+                <button onClick={() => setBlueprintViewer(null)} style={{ position: 'absolute', top: -12, left: -12, width: 32, height: 32, borderRadius: '50%', background: C.accent, border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
               </div>
-              <button onClick={() => setBlueprintViewer(null)} style={{ position: 'absolute', top: -12, left: -12, width: 32, height: 32, borderRadius: '50%', background: C.accent, border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* ── Work locations breakdown — يومي projects only ── */}
         {proj.type === 'يومي' && (() => {

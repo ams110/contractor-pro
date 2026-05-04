@@ -1051,29 +1051,55 @@ function BlueprintsTab({ projects }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
           {bps.map((b, idx) => (
             <div key={b.id} onClick={() => setViewer(idx)}
-              style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${C.border}`, aspectRatio: '1.4', cursor: 'pointer', position: 'relative' }}>
-              <img src={b.dataUrl} alt={b.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)' }} />
-              <div style={{ position: 'absolute', bottom: 6, right: 8, fontSize: 10, color: '#fff', fontWeight: 700 }}>{b.date}</div>
+              style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${b.type === 'pdf' ? C.blue + '55' : C.border}`, aspectRatio: '1.4', cursor: 'pointer', position: 'relative', background: b.type === 'pdf' ? `${C.blue}0d` : 'transparent' }}>
+              {b.type === 'pdf' ? (
+                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 8 }}>
+                  <div style={{ fontSize: 34 }}>📄</div>
+                  <div style={{ fontSize: 10, color: C.textDim, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{b.name}</div>
+                  <div style={{ fontSize: 9, color: C.blue, fontWeight: 700, background: `${C.blue}22`, padding: '2px 8px', borderRadius: 6 }}>PDF</div>
+                </div>
+              ) : (
+                <>
+                  <img src={b.dataUrl} alt={b.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%)' }} />
+                  <div style={{ position: 'absolute', bottom: 6, right: 8, fontSize: 10, color: '#fff', fontWeight: 700 }}>{b.date}</div>
+                </>
+              )}
             </div>
           ))}
         </div>
       )}
-      {viewer !== null && bps[viewer] && (
-        <div onClick={() => setViewer(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 480 }}>
-            <img src={bps[viewer].dataUrl} alt="blueprint" style={{ width: '100%', borderRadius: 16, maxHeight: '80vh', objectFit: 'contain' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, padding: '0 4px' }}>
-              <button onClick={() => setViewer(v => Math.max(0, v - 1))} disabled={viewer === 0}
-                style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: viewer === 0 ? C.border : '#fff', cursor: viewer === 0 ? 'default' : 'pointer', fontSize: 18 }}>‹</button>
-              <div style={{ fontSize: 11, color: C.textDim }}>{viewer + 1} / {bps.length}</div>
-              <button onClick={() => setViewer(v => Math.min(bps.length - 1, v + 1))} disabled={viewer === bps.length - 1}
-                style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: viewer === bps.length - 1 ? C.border : '#fff', cursor: viewer === bps.length - 1 ? 'default' : 'pointer', fontSize: 18 }}>›</button>
+      {viewer !== null && bps[viewer] && (() => {
+        const bp = bps[viewer]
+        return (
+          <div onClick={() => setViewer(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {bp.type === 'pdf' ? (
+                <div style={{ width: '100%', borderRadius: 14, overflow: 'hidden', background: '#fff' }}>
+                  <embed src={bp.dataUrl} type="application/pdf" style={{ width: '100%', height: '72vh', display: 'block' }} />
+                  <div style={{ padding: '8px 14px', background: '#111', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{bp.name}</span>
+                    <a href={bp.dataUrl} download={bp.name}
+                      style={{ padding: '5px 12px', borderRadius: 8, background: `${C.blue}22`, border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
+                      ⬇ تحميل
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <img src={bp.dataUrl} alt={bp.name} style={{ width: '100%', borderRadius: 16, maxHeight: '80vh', objectFit: 'contain' }} />
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, padding: '0 4px', width: '100%' }}>
+                <button onClick={() => setViewer(v => Math.max(0, v - 1))} disabled={viewer === 0}
+                  style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: viewer === 0 ? C.border : '#fff', cursor: viewer === 0 ? 'default' : 'pointer', fontSize: 18 }}>‹</button>
+                <div style={{ fontSize: 11, color: C.textDim }}>{viewer + 1} / {bps.length}</div>
+                <button onClick={() => setViewer(v => Math.min(bps.length - 1, v + 1))} disabled={viewer === bps.length - 1}
+                  style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: viewer === bps.length - 1 ? C.border : '#fff', cursor: viewer === bps.length - 1 ? 'default' : 'pointer', fontSize: 18 }}>›</button>
+              </div>
+              <button onClick={() => setViewer(null)} style={{ position: 'absolute', top: -12, left: -12, width: 32, height: 32, borderRadius: '50%', background: C.accent, border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
-            <button onClick={() => setViewer(null)} style={{ position: 'absolute', top: -12, left: -12, width: 32, height: 32, borderRadius: '50%', background: C.accent, border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
