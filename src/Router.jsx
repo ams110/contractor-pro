@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import App         from './App.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import PricingPage from './pages/PricingPage.jsx'
+import AuthPage    from './pages/AuthPage.jsx'
 
 // ─── Client-side navigation (no full page reload) ─────────────────────────────
 export function navigate(path) {
@@ -22,7 +23,9 @@ export default function Router() {
   const params = new URLSearchParams(window.location.search)
   if (params.has('portal') || params.has('worker')) return <App />
 
-  if (path === '/')        return <LandingPage />
-  if (path === '/pricing') return <PricingPage />
+  if (path === '/')          return <LandingPage />
+  if (path === '/pricing')   return <PricingPage />
+  if (path === '/login')     return <AuthPage mode="login" />
+  if (path === '/register')  return <AuthPage mode="register" />
   return <App />
 }

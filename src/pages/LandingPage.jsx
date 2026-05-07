@@ -67,11 +67,11 @@ function Navbar({ loggedIn }) {
             </button>
           ) : (
             <>
-              <button onClick={() => navigate('/app')} className="lp-btn"
+              <button onClick={() => navigate('/login')} className="lp-btn"
                 style={{ background:'rgba(255,255,255,0.06)', border:`1px solid ${C.borderMid}`, color:C.text, fontSize:13, fontWeight:700, cursor:'pointer', padding:'8px 18px', borderRadius:12 }}>
                 تسجيل الدخول
               </button>
-              <button onClick={() => navigate('/pricing')} className="lp-btn"
+              <button onClick={() => navigate('/register')} className="lp-btn"
                 style={{ background:GRAD.brand, border:'none', color:'#000', fontSize:13, fontWeight:800, cursor:'pointer', padding:'9px 20px', borderRadius:12, boxShadow:'0 4px 18px #00DDB344' }}>
                 ابدأ مجاناً
               </button>
@@ -111,7 +111,7 @@ function Hero() {
 
         {/* CTAs */}
         <div className="fade-up" style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap', animationDelay:'.2s' }}>
-          <button onClick={() => navigate('/pricing')} className="lp-btn"
+          <button onClick={() => navigate('/register')} className="lp-btn"
             style={{ background:GRAD.brand, border:'none', color:'#000', fontSize:16, fontWeight:800, cursor:'pointer', padding:'16px 36px', borderRadius:16, boxShadow:'0 8px 32px #00DDB355', letterSpacing:'0.01em' }}>
             جرّب مجاناً 14 يوم ←
           </button>
@@ -362,7 +362,7 @@ function FinalCTA() {
           بدون بطاقة ائتمان. بدون التزام. فقط تطبيق يخفف عنك.
         </p>
         <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-          <button onClick={() => navigate('/pricing')} className="lp-btn"
+          <button onClick={() => navigate('/register')} className="lp-btn"
             style={{ background:GRAD.brand, border:'none', color:'#000', fontSize:16, fontWeight:800, cursor:'pointer', padding:'16px 40px', borderRadius:16, boxShadow:'0 8px 32px #00DDB355' }}>
             ابدأ التجربة المجانية ←
           </button>

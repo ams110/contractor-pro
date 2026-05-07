@@ -49,7 +49,7 @@ function Navbar() {
             style={{ background:'transparent', border:'none', color:C.textDim, fontSize:13, fontWeight:600, cursor:'pointer', padding:'8px 14px', borderRadius:10 }}>
             الرئيسية
           </button>
-          <button onClick={() => navigate('/app')} className="lp-btn"
+          <button onClick={() => navigate('/login')} className="lp-btn"
             style={{ background:'rgba(255,255,255,0.06)', border:`1px solid ${C.borderMid}`, color:C.text, fontSize:13, fontWeight:700, cursor:'pointer', padding:'8px 18px', borderRadius:12 }}>
             تسجيل الدخول
           </button>
@@ -260,9 +260,9 @@ export default function PricingPage() {
     setCheckoutError('')
 
     if (!user) {
-      // Not logged in → go to app (shows login/register)
+      // Not logged in → go to register (starts free trial, then plan selection after login)
       sessionStorage.setItem('pending_plan', plan)
-      navigate('/app')
+      navigate('/register')
       return
     }
 
