@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude/modernize-app-ui-qzPmi]
 
 permissions:
   contents: read
@@ -12,6 +12,7 @@ permissions:
 jobs:
   deploy-functions:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
