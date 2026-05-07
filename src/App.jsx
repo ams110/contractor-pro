@@ -1,7 +1,9 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabase.js'
 import { C, NAV } from './constants/index.js'
+import { navigate }          from './Router.jsx'
 import { useAuth }           from './hooks/useAuth.js'
+import { useOrganization }   from './hooks/useOrganization.js'
 import { useProjects }       from './hooks/useData.js'
 import { useEmployees }      from './hooks/useData.js'
 import { useWorkDays }       from './hooks/useData.js'
@@ -143,6 +145,9 @@ export default function App() {
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
   useSalaryAlerts(uid, employees, workDays, payments)
 
+  // ─── Subscription / plan state (Phase 2+3) ──────────────────────────────
+  const { org, loading: orgLoading, isPlanActive, isTrialActive, trialDaysLeft } = useOrganization(uid)
+
   React.useEffect(() => {
     if (uid && !localStorage.getItem('cp_onboarded')) setShowOnboarding(true)
   }, [uid])
@@ -237,6 +242,33 @@ export default function App() {
     )
   }
 
+  // ─── Subscription gate (Phase 3) ─────────────────────────────────────────
+  // Only enforce once the org record is loaded and the user is the owner
+  // (team members are not gated — they inherit the owner's plan).
+  // Fails open if migration hasn't been applied yet (org === null && !orgLoading).
+  if (!orgLoading && org && !isPlanActive() && !effectiveOwnerId) {
+    return (
+      <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', direction:'rtl', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", padding:32, textAlign:'center' }}>
+        <style>{globalCSS}</style>
+        <div style={{ fontSize:72, marginBottom:16 }}>⏰</div>
+        <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:10 }}>
+          انتهت فترة التجربة المجانية
+        </div>
+        <div style={{ fontSize:14, color:C.textDim, lineHeight:1.7, maxWidth:320, marginBottom:32 }}>
+          جميع بياناتك محفوظة. اشترك الآن للاستمرار في استخدام Contractor Pro.
+        </div>
+        <button
+          onClick={() => navigate('/pricing')}
+          style={{ padding:'14px 36px', borderRadius:16, background:'linear-gradient(135deg,#00DDB3,#6366F1)', border:'none', color:'#000', fontSize:16, fontWeight:800, cursor:'pointer', boxShadow:'0 8px 28px #00DDB344', marginBottom:14 }}>
+          اختر خطة اشتراك ←
+        </button>
+        <button onClick={() => supabase.auth.signOut()} style={{ padding:'10px 24px', borderRadius:12, background:'transparent', border:`1px solid rgba(255,255,255,0.1)`, color:C.textDim, fontSize:13, fontWeight:600, cursor:'pointer' }}>
+          تسجيل الخروج
+        </button>
+      </div>
+    )
+  }
+
   // ─── الشاشة الحالية ──────────────────────────────────────────────────────
   const p = permissions
   function renderScreen() {
@@ -268,6 +300,23 @@ export default function App() {
         <div style={{ position:'sticky', top:0, zIndex:200, background:'rgba(0,0,0,0.9)', backdropFilter:'blur(12px)', padding:'9px 16px', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8, borderBottom:`1px solid ${C.border}` }}>
           <span style={{ fontSize:13 }}>📵</span>
           <span style={{ fontSize:11, color:C.textDim, fontWeight:600, letterSpacing:'0.02em' }}>لا يوجد اتصال — البيانات محفوظة محلياً</span>
+        </div>
+      )}
+
+      {/* بانر التجربة المجانية (فقط للمالك، فقط أثناء التجربة) */}
+      {org && isTrialActive() && !effectiveOwnerId && (
+        <div style={{ position:'sticky', top:0, zIndex:199, background:'linear-gradient(135deg,rgba(99,102,241,0.18),rgba(0,221,179,0.12))', backdropFilter:'blur(12px)', padding:'8px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, borderBottom:`1px solid rgba(99,102,241,0.25)`, direction:'rtl' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ fontSize:14 }}>🎁</span>
+            <span style={{ fontSize:11, color:'#A5B4FC', fontWeight:700 }}>
+              التجربة المجانية — متبقي <strong style={{ color:'#fff' }}>{trialDaysLeft()} يوم</strong>
+            </span>
+          </div>
+          <button
+            onClick={() => navigate('/pricing')}
+            style={{ padding:'5px 14px', borderRadius:9, background:'linear-gradient(135deg,#00DDB3,#6366F1)', border:'none', color:'#000', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+            اشترك الآن
+          </button>
         </div>
       )}
 

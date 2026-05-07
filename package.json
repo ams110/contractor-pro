@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@paddle/paddle-js": "^1.6.4",
     "@simplewebauthn/browser": "^9.0.1",
     "@supabase/supabase-js": "^2.39.0",
     "jspdf": "^4.2.1",

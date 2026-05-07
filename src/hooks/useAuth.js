@@ -268,9 +268,28 @@ export function useAuth() {
     localStorage.removeItem(PIN_CREDS_KEY)
   }
 
+  // ─── Magic Link ───────────────────────────────────────────────────────────
+
+  /**
+   * Sends a one-time magic link to the given email.
+   * The user clicks the link → lands on the app → session is established.
+   * shouldCreateUser: true  → also works as registration (creates new user if none).
+   */
+  async function signInWithMagicLink(email) {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: window.location.origin,
+      },
+    })
+    if (error) throw error
+  }
+
   return {
     user, loading,
     signUp, signIn, signOut,
+    signInWithMagicLink,
     registerPasskey, signInWithPasskey,
     isPasskeySupported, hasPasskeyRegistered, removePasskey,
     setPin, signInWithPin, hasPinSet, removePin,
