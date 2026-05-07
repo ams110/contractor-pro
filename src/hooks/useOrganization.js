@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase.js'
 
 /**
  * Fetches the current user's organization and exposes plan/trial helpers.
- * Works with the organizations + user_organizations tables from Phase 1 migration.
+ * Subscribes to Supabase Realtime so plan changes pushed by the Paddle
+ * webhook (Phase 2) are reflected in the UI without a page reload.
  */
 export function useOrganization(userId) {
   const [org,     setOrg]     = useState(null)
@@ -29,7 +30,23 @@ export function useOrganization(userId) {
     setLoading(false)
   }, [userId])
 
-  useEffect(() => { fetchOrg() }, [fetchOrg])
+  useEffect(() => {
+    fetchOrg()
+    if (!userId) return
+
+    // Realtime: when the webhook updates organizations.plan, re-fetch immediately.
+    // Filter by owner_id so we only react to our own org's changes.
+    const channel = supabase
+      .channel(`org:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'organizations', filter: `owner_id=eq.${userId}` },
+        () => fetchOrg()
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [userId, fetchOrg])
 
   // ── Plan helpers ─────────────────────────────────────────────────────────
 
