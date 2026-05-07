@@ -39,7 +39,7 @@ import { useNotifications } from './hooks/useNotifications.js'
 import { useSalaryAlerts }  from './hooks/useSalaryAlerts.js'
 
 const globalCSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,400..900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
   @keyframes fadeIn    { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
   @keyframes fadeUp    { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
@@ -51,8 +51,9 @@ const globalCSS = `
   @keyframes float     { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-6px) } }
   @keyframes gradMove  { 0%,100% { background-position:0% 50% } 50% { background-position:100% 50% } }
   @keyframes navPop    { 0% { transform:scale(0.85) translateY(4px); opacity:0 } 60% { transform:scale(1.12) translateY(-1px) } 100% { transform:scale(1) translateY(0); opacity:1 } }
-  @keyframes glowPulse { 0%,100% { box-shadow:0 0 12px #00DDB355 } 50% { box-shadow:0 0 22px #00DDB388 } }
+  @keyframes glowPulse { 0%,100% { box-shadow:0 0 12px #00E5FF33 } 50% { box-shadow:0 0 24px #00E5FF66 } }
   @keyframes badgePop  { 0% { transform:scale(0) } 70% { transform:scale(1.2) } 100% { transform:scale(1) } }
+  @keyframes pulse     { 0%,100% { opacity:1 } 50% { opacity:.4 } }
 
   .fade-in   { animation: fadeIn   .28s cubic-bezier(0.22,1,0.36,1) both }
   .fade-up   { animation: fadeUp   .35s cubic-bezier(0.22,1,0.36,1) both }
@@ -65,17 +66,17 @@ const globalCSS = `
 
   ::-webkit-scrollbar { width:3px; height:3px; }
   ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:rgba(0,221,179,0.2); border-radius:3px; }
-  ::-webkit-scrollbar-thumb:hover { background:rgba(0,221,179,0.4); }
+  ::-webkit-scrollbar-thumb { background:rgba(0,229,255,0.18); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:rgba(0,229,255,0.38); }
 
-  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif !important; -webkit-font-smoothing:antialiased; }
+  body { font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif !important; -webkit-font-smoothing:antialiased; }
   input, select, textarea, button { font-family: inherit; }
-  button:focus-visible { outline: 2px solid #00DDB3; outline-offset: 2px; }
+  button:focus-visible { outline: 2px solid #00E5FF; outline-offset: 2px; }
 
   .btn-press { transition: transform .12s ease, box-shadow .12s ease !important; }
   .btn-press:active { transform: scale(0.94) !important; }
 
-  .glass { background: rgba(13,17,23,0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  .glass { background: rgba(9,13,26,0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
 
   .nav-btn { transition: transform .3s cubic-bezier(0.34,1.56,0.64,1) !important; }
   .nav-btn:active { transform: scale(0.88) !important; }
@@ -324,9 +325,9 @@ export default function App() {
       {(() => {
         const currentNav = NAV.find(n => n.id === screen)
         return (
-        <div style={{ position:'sticky', top:0, zIndex:50, background:'rgba(7,9,13,0.94)', backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)', padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ position:'sticky', top:0, zIndex:50, background:'rgba(5,8,16,0.92)', backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)', padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:42, height:42, borderRadius:15, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:21, boxShadow:'0 4px 18px #00DDB355, 0 1px 0 rgba(255,255,255,0.2) inset', flexShrink:0 }}>🏗️</div>
+            <div style={{ width:42, height:42, borderRadius:15, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:21, boxShadow:'0 0 20px rgba(0,229,255,0.4), 0 1px 0 rgba(255,255,255,0.15) inset', flexShrink:0 }}>🏗️</div>
             <div>
               <div style={{ fontSize:15, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', lineHeight:1.2, letterSpacing:'-0.01em' }}>Contractor Pro</div>
               <div style={{ fontSize:9, color: currentNav ? C.primary : C.textDim, letterSpacing:'0.07em', fontWeight:700, transition:'color .25s', opacity:0.9 }}>
@@ -373,7 +374,7 @@ export default function App() {
       {(() => {
         const pendingCount = workDays.filter(w => w.status === 'pending').length
         return (
-          <div style={{ position:'fixed', bottom:16, left:0, right:0, margin:'0 auto', width:'calc(100% - 28px)', maxWidth:400, background:'rgba(10,13,19,0.96)', backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)', borderRadius:26, border:`1px solid rgba(255,255,255,0.09)`, padding:'6px 4px 8px', display:'flex', justifyContent:'space-around', zIndex:50, boxShadow:'0 12px 48px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.06) inset' }}>
+          <div style={{ position:'fixed', bottom:16, left:0, right:0, margin:'0 auto', width:'calc(100% - 28px)', maxWidth:400, background:'rgba(5,8,16,0.94)', backdropFilter:'blur(32px)', WebkitBackdropFilter:'blur(32px)', borderRadius:28, border:`1px solid rgba(255,255,255,0.08)`, padding:'6px 4px 8px', display:'flex', justifyContent:'space-around', zIndex:50, boxShadow:'0 16px 60px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset, 0 0 0 1px rgba(0,229,255,0.04)' }}>
             {NAV.map(n => {
               const active = screen === n.id
               return (
@@ -383,11 +384,11 @@ export default function App() {
 
                   {/* Active pill background */}
                   {active && (
-                    <div style={{ position:'absolute', top:2, left:'50%', transform:'translateX(-50%)', width:44, height:34, borderRadius:16, background:`linear-gradient(160deg,#00DDB322,#6366F118)`, border:`1px solid #00DDB333`, pointerEvents:'none', animation:'glowPulse 2.4s ease-in-out infinite' }} />
+                    <div style={{ position:'absolute', top:2, left:'50%', transform:'translateX(-50%)', width:44, height:34, borderRadius:16, background:`linear-gradient(160deg,rgba(0,229,255,0.14),rgba(124,58,237,0.10))`, border:`1px solid rgba(0,229,255,0.22)`, pointerEvents:'none', animation:'glowPulse 2.4s ease-in-out infinite' }} />
                   )}
 
                   {/* Icon */}
-                  <span className={active ? 'nav-pop' : ''} style={{ fontSize:active?22:19, position:'relative', zIndex:1, lineHeight:1, filter:active?'drop-shadow(0 0 6px #00DDB388)':'grayscale(1) opacity(0.38)', display:'block', transition:'filter .25s' }}>
+                  <span className={active ? 'nav-pop' : ''} style={{ fontSize:active?22:19, position:'relative', zIndex:1, lineHeight:1, filter:active?'drop-shadow(0 0 7px #00E5FFaa)':'grayscale(1) opacity(0.35)', display:'block', transition:'filter .25s' }}>
                     {n.icon}
                   </span>
 

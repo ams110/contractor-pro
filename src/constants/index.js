@@ -1,43 +1,48 @@
 export const C = {
   // Backgrounds
-  bg:        '#07090D',
-  surface:   '#0D1117',
-  card:      '#131920',
+  bg:        '#050810',
+  surface:   '#090D1A',
+  card:      '#0D1424',
 
   // Brand
-  primary:   '#00DDB3',
-  secondary: '#6366F1',
+  primary:   '#00E5FF',
+  secondary: '#7C3AED',
 
   // Status
-  success:   '#22C55E',
-  warning:   '#EAB308',
-  accent:    '#F43F5E',
+  success:   '#00D68F',
+  warning:   '#FFB700',
+  accent:    '#FF2D6B',
 
   // Text
-  text:      '#F8FAFC',
-  textDim:   '#64748B',
-  textMuted: '#1E293B',
+  text:      '#EEF2FF',
+  textDim:   '#4A5580',
+  textMuted: '#141B30',
 
   // Borders
-  border:    'rgba(255,255,255,0.07)',
-  borderMid: 'rgba(255,255,255,0.12)',
+  border:    'rgba(255,255,255,0.06)',
+  borderMid: 'rgba(255,255,255,0.11)',
 
   // Extra
   blue:      '#3B82F6',
-  purple:    '#8B5CF6',
-  orange:    '#F97316',
-  pink:      '#EC4899',
-  cyan:      '#06B6D4',
+  purple:    '#7C3AED',
+  orange:    '#FF6B35',
+  pink:      '#FF2D6B',
+  cyan:      '#00E5FF',
+
+  // 2026 glass
+  glass:     'rgba(255,255,255,0.03)',
+  glassHover:'rgba(255,255,255,0.06)',
 }
 
 export const GRAD = {
-  brand:   'linear-gradient(135deg, #00DDB3 0%, #6366F1 100%)',
-  success: 'linear-gradient(135deg, #22C55E 0%, #06B6D4 100%)',
-  danger:  'linear-gradient(135deg, #F43F5E 0%, #F97316 100%)',
-  warm:    'linear-gradient(135deg, #EAB308 0%, #F97316 100%)',
-  purple:  'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
-  blue:    'linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%)',
-  dark:    'linear-gradient(180deg, #0D1117 0%, #07090D 100%)',
+  brand:   'linear-gradient(135deg, #00E5FF 0%, #7C3AED 100%)',
+  success: 'linear-gradient(135deg, #00D68F 0%, #00E5FF 100%)',
+  danger:  'linear-gradient(135deg, #FF2D6B 0%, #FF6B35 100%)',
+  warm:    'linear-gradient(135deg, #FFB700 0%, #FF6B35 100%)',
+  purple:  'linear-gradient(135deg, #7C3AED 0%, #A855F7 100%)',
+  blue:    'linear-gradient(135deg, #3B82F6 0%, #00E5FF 100%)',
+  dark:    'linear-gradient(180deg, #090D1A 0%, #050810 100%)',
+  aurora:  'linear-gradient(135deg, #00E5FF22 0%, #7C3AED22 50%, #FF2D6B11 100%)',
 }
 
 export const SPECS = [
