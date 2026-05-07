@@ -65,10 +65,12 @@ export function useOrganization(userId) {
 
   /**
    * True when the user should be allowed to use the app:
+   *   - Paddle not configured (payments not enabled yet), OR
    *   - Active paid plan, OR
    *   - Still within trial
    */
   function isPlanActive() {
+    if (!import.meta.env.VITE_PADDLE_CLIENT_TOKEN) return true
     if (!org) return false
     if (org.plan !== 'free') return true
     return isTrialActive()
