@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { C, GRAD } from '../constants/index.js'
 import { Btn, GlassCard, SectionLabel, ConfirmDialog } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { exportFullReportToExcel, exportTaxSummary } from '../lib/export.js'
 import { usePushNotifications, getNotifPrefs, setNotifPref } from '../hooks/usePushNotifications.js'
+import { supabase } from '../lib/supabase.js'
 
 const PERM_LABELS = [
   ['can_view_projects',    'مشاهدة المشاريع'],
@@ -95,6 +96,11 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
   const [showHolForm,      setShowHolForm]      = useState(false)
   const [holForm,          setHolForm]          = useState({ name: '', date: '' })
   const [holSaving,        setHolSaving]        = useState(false)
+  const [importing,        setImporting]        = useState(false)
+  const [importResult,     setImportResult]     = useState(null)
+  const [importError,      setImportError]      = useState('')
+  const [confirmImport,    setConfirmImport]    = useState(null) // parsed backup
+  const importFileRef = useRef(null)
 
   async function openActivity(m) {
     setActivityMember(m)
@@ -138,6 +144,107 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
     a.download = `contractor-pro-backup-${new Date().toLocaleDateString('en-CA')}.json`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  async function handleImportFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setImportError('')
+    setImportResult(null)
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      if (!data.projects && !data.employees) throw new Error('الملف لا يحتوي على بيانات صالحة')
+      setConfirmImport(data)
+    } catch (err) {
+      setImportError(err.message || 'ملف غير صالح')
+    }
+  }
+
+  async function doImport() {
+    if (!confirmImport) return
+    const data = confirmImport
+    setConfirmImport(null)
+    setImporting(true)
+    setImportError('')
+    setImportResult(null)
+
+    const counts = { projects: 0, employees: 0, workDays: 0, expenses: 0, payments: 0 }
+    const projectIdMap  = {}
+    const employeeIdMap = {}
+
+    try {
+      // 1. Projects
+      for (const p of (data.projects || [])) {
+        const newId = crypto.randomUUID()
+        projectIdMap[p.id] = newId
+        const { error } = await supabase.from('projects').insert({
+          id: newId, user_id: userId,
+          name: p.name || '', client_name: p.client_name || '', client_phone: p.client_phone || '',
+          type: p.type || '', status: p.status || 'نشط', price: p.price || 0,
+          specialization: p.specialization || '', notes: p.notes || '',
+        })
+        if (!error) counts.projects++
+      }
+
+      // 2. Employees
+      for (const e of (data.employees || [])) {
+        const newId = crypto.randomUUID()
+        employeeIdMap[e.id] = newId
+        const { error } = await supabase.from('employees').insert({
+          id: newId, user_id: userId,
+          name: e.name || '', phone: e.phone || '', specialization: e.specialization || '',
+          daily_rate: e.daily_rate || 0, status: e.status || 'نشط',
+        })
+        if (!error) counts.employees++
+      }
+
+      // 3. Work days
+      for (const w of (data.workDays || [])) {
+        const { error } = await supabase.from('work_days').insert({
+          id: crypto.randomUUID(), user_id: userId,
+          employee_id: employeeIdMap[w.employee_id] || null,
+          project_id:  projectIdMap[w.project_id]  || null,
+          date: w.date, day_type: w.day_type || 'كامل',
+          hours: w.hours || 8, amount: w.amount || 0,
+          status: w.status || 'approved',
+        })
+        if (!error) counts.workDays++
+      }
+
+      // 4. Expenses
+      for (const e of (data.expenses || [])) {
+        const { error } = await supabase.from('expenses').insert({
+          id: crypto.randomUUID(), user_id: userId,
+          project_id:     projectIdMap[e.project_id] || null,
+          category:       e.category || 'أخرى',
+          amount:         e.amount || 0,
+          vendor:         e.vendor || '',
+          payment_method: e.payment_method || '',
+          date:           e.date,
+          receipt_url:    e.receipt_url || '',
+        })
+        if (!error) counts.expenses++
+      }
+
+      // 5. Payments
+      for (const p of (data.payments || [])) {
+        const { error } = await supabase.from('payments').insert({
+          id: crypto.randomUUID(), user_id: userId,
+          employee_id: employeeIdMap[p.employee_id] || null,
+          amount: p.amount || 0, method: p.method || 'كاش',
+          date: p.date, notes: p.notes || '',
+        })
+        if (!error) counts.payments++
+      }
+
+      setImportResult(counts)
+    } catch (err) {
+      setImportError(err.message || 'حدث خطأ أثناء الاستيراد')
+    } finally {
+      setImporting(false)
+    }
   }
 
   const stats = [
@@ -759,7 +866,93 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
               📥 نسخة احتياطية (JSON)
             </button>
           </div>
+
+          {/* ── استيراد نسخة احتياطية ── */}
+          <SectionLabel color={C.secondary}>📂 استيراد نسخة احتياطية</SectionLabel>
+          <div style={{ background:`${C.secondary}10`, border:`1px solid ${C.secondary}30`, borderRadius:14, padding:'14px 16px', marginBottom:24 }}>
+            <div style={{ fontSize:11, color:C.textDim, marginBottom:12, lineHeight:1.5 }}>
+              استيراد بيانات من ملف JSON محفوظ مسبقاً. ستُضاف البيانات كسجلات جديدة دون حذف الموجودة.
+            </div>
+            <input
+              type="file"
+              accept=".json,application/json"
+              ref={importFileRef}
+              style={{ display:'none' }}
+              onChange={handleImportFile}
+            />
+            <button
+              onClick={() => { setImportResult(null); setImportError(''); importFileRef.current?.click() }}
+              disabled={importing}
+              style={{ width:'100%', padding:'12px 16px', borderRadius:12, border:`1.5px solid ${C.secondary}55`, background:`${C.secondary}18`, color:C.secondary, fontSize:13, fontWeight:800, cursor: importing ? 'not-allowed' : 'pointer', opacity: importing ? 0.6 : 1 }}>
+              {importing ? '⏳ جاري الاستيراد...' : '📂 اختيار ملف واستيراده'}
+            </button>
+
+            {importError && (
+              <div style={{ marginTop:10, padding:'10px 12px', borderRadius:10, background:`${C.accent}15`, border:`1px solid ${C.accent}33`, fontSize:12, color:C.accent }}>
+                ⚠ {importError}
+              </div>
+            )}
+
+            {importResult && (
+              <div style={{ marginTop:10, padding:'12px 14px', borderRadius:10, background:`${C.success}15`, border:`1px solid ${C.success}33` }}>
+                <div style={{ fontSize:12, fontWeight:800, color:C.success, marginBottom:8 }}>✓ تم الاستيراد بنجاح</div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
+                  {[
+                    ['مشاريع', importResult.projects],
+                    ['عمال',   importResult.employees],
+                    ['أيام عمل', importResult.workDays],
+                    ['مصاريف', importResult.expenses],
+                    ['دفعات',  importResult.payments],
+                  ].map(([l, v]) => (
+                    <div key={l} style={{ textAlign:'center', padding:'6px 4px', borderRadius:8, background:`${C.success}10` }}>
+                      <div style={{ fontSize:16, fontWeight:900, color:C.success }}>{v}</div>
+                      <div style={{ fontSize:9, color:C.textDim }}>{l}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop:8, fontSize:10, color:C.textDim }}>أعد تحميل الصفحة لرؤية البيانات المستوردة</div>
+              </div>
+            )}
+          </div>
         </>
+      )}
+
+      {/* ── تأكيد الاستيراد ── */}
+      {confirmImport && (
+        <div
+          style={{ position:'fixed', inset:0, zIndex:300, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.8)', backdropFilter:'blur(6px)', padding:20 }}
+          onClick={e => { if (e.target === e.currentTarget) setConfirmImport(null) }}
+        >
+          <div style={{ width:'100%', maxWidth:360, background:C.surface, borderRadius:20, padding:24, border:`1px solid ${C.secondary}44` }}>
+            <div style={{ fontSize:16, fontWeight:900, color:C.text, marginBottom:6 }}>📂 تأكيد الاستيراد</div>
+            <div style={{ fontSize:12, color:C.textDim, marginBottom:16, lineHeight:1.6 }}>
+              سيتم استيراد البيانات التالية كسجلات <strong style={{ color:C.text }}>جديدة</strong> دون حذف بياناتك الحالية:
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6, marginBottom:18 }}>
+              {[
+                ['مشاريع',   (confirmImport.projects  || []).length],
+                ['عمال',     (confirmImport.employees || []).length],
+                ['أيام عمل', (confirmImport.workDays  || []).length],
+                ['مصاريف',   (confirmImport.expenses  || []).length],
+                ['دفعات',    (confirmImport.payments  || []).length],
+              ].map(([l, v]) => (
+                <div key={l} style={{ textAlign:'center', padding:'8px 4px', borderRadius:10, background:`${C.secondary}12`, border:`1px solid ${C.secondary}22` }}>
+                  <div style={{ fontSize:18, fontWeight:900, color:C.secondary }}>{v}</div>
+                  <div style={{ fontSize:9, color:C.textDim }}>{l}</div>
+                </div>
+              ))}
+            </div>
+            {confirmImport.exportedAt && (
+              <div style={{ fontSize:10, color:C.textDim, marginBottom:14, textAlign:'center' }}>
+                تاريخ النسخة: {new Date(confirmImport.exportedAt).toLocaleDateString('ar-EG')}
+              </div>
+            )}
+            <div style={{ display:'flex', gap:8 }}>
+              <Btn onClick={doImport} full>✓ استيراد</Btn>
+              <Btn onClick={() => setConfirmImport(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
+            </div>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog open={confirmSignOut} onClose={() => setConfirmSignOut(false)} onConfirm={signOut} message="متأكد بدك تسجّل خروج؟" />
