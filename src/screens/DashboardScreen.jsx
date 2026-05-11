@@ -334,7 +334,7 @@ export default function DashboardScreen({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: 10, color: C.textDim, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 3 }}>{fmtDate(todayStr())}</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.01em' }}>مرحباً 👋</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.01em' }}>مرحباً</div>
             </div>
             {urgentCount > 0 && (
               <motion.div
@@ -575,7 +575,7 @@ export default function DashboardScreen({
 
       {/* ─── Tax dashboard ─── */}
       {taxEnabled && (
-        <CollapseSection icon={BarChart3} title="المحاسب الضريبي 🇮🇱" color={C.purple}>
+        <CollapseSection icon={BarChart3} title="المحاسب الضريبي" color={C.purple}>
           <TaxDashboard
             employees={employees} payments={payments} clientReceipts={clientReceipts}
             expenses={expenses} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance}

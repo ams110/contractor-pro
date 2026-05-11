@@ -83,6 +83,16 @@ const globalCSS = `
   .badge-pop { animation: badgePop .3s cubic-bezier(0.34,1.56,0.64,1) both; }
 `
 
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = React.useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
+  React.useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 768)
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+  return isDesktop
+}
+
 function NoAccess() {
   return (
     <div style={{ padding: 60, textAlign: 'center' }}>
@@ -162,6 +172,82 @@ function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
   )
 }
 
+// ─── Desktop Sidebar ─────────────────────────────────────────────────────────
+function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
+  const p = permissions || {}
+  const moreScreenIds = MORE_SCREENS.map(s => s.id)
+  const activeScreen = moreScreenIds.includes(screen) ? screen
+    : NAV.find(n => n.id === screen) ? screen
+    : 'dashboard'
+
+  const filteredMore = MORE_SCREENS.filter(s => {
+    if (s.id === 'activity') return p.viewActivity || p.isOwner
+    return true
+  })
+
+  return (
+    <div style={{
+      position: 'fixed', right: 0, top: 0, width: 240, height: '100vh',
+      background: 'rgba(13,15,24,0.98)', borderLeft: '1px solid rgba(245,158,11,0.1)',
+      display: 'flex', flexDirection: 'column', zIndex: 40, overflowY: 'auto',
+      backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+    }}>
+      <div style={{ padding: '18px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 11, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(245,158,11,0.35)', flexShrink: 0 }}>
+            <HardHat size={18} color="#000" strokeWidth={2} />
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>Contractor Pro</div>
+        </div>
+      </div>
+
+      <div style={{ padding: '12px 10px', flex: 1 }}>
+        {NAV.filter(n => n.id !== 'more').map(n => {
+          const active = activeScreen === n.id
+          const Icon = NAV_ICONS[n.id]
+          return (
+            <button key={n.id} onClick={() => setScreen(n.id)} style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', borderRadius: 12, marginBottom: 3,
+              background: active ? 'rgba(245,158,11,0.12)' : 'transparent',
+              border: `1px solid ${active ? 'rgba(245,158,11,0.25)' : 'transparent'}`,
+              color: active ? C.primary : '#94A3B8', cursor: 'pointer',
+              textAlign: 'right', fontFamily: 'inherit', transition: 'all .15s',
+            }}>
+              {Icon && <Icon size={17} color={active ? C.primary : '#94A3B8'} strokeWidth={active ? 2.2 : 1.8} />}
+              <span style={{ fontSize: 13, fontWeight: active ? 700 : 500 }}>{n.label}</span>
+            </button>
+          )
+        })}
+
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '10px 4px' }} />
+        <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 12px 8px' }}>المزيد</div>
+
+        {filteredMore.map(item => {
+          const active = activeScreen === item.id
+          const Icon = NAV_ICONS[item.id] || Grid3x3
+          return (
+            <button key={item.id} onClick={() => setScreen(item.id)} style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '9px 12px', borderRadius: 12, marginBottom: 3,
+              background: active ? 'rgba(245,158,11,0.12)' : 'transparent',
+              border: `1px solid ${active ? 'rgba(245,158,11,0.25)' : 'transparent'}`,
+              color: active ? C.primary : '#94A3B8', cursor: 'pointer',
+              textAlign: 'right', fontFamily: 'inherit', transition: 'all .15s',
+            }}>
+              {Icon && <Icon size={16} color={active ? C.primary : '#94A3B8'} strokeWidth={active ? 2.2 : 1.8} />}
+              <span style={{ fontSize: 12, fontWeight: active ? 700 : 500 }}>{item.label}</span>
+              {item.id === 'workdays' && pendingCount > 0 && (
+                <span style={{ marginRight: 'auto', background: C.accent, color: '#fff', fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 8, minWidth: 18, textAlign: 'center' }}>{pendingCount}</span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   // Worker portal
   const params = new URLSearchParams(window.location.search)
@@ -175,6 +261,7 @@ export default function App() {
   }
 
   const { user, loading: authLoading } = useAuth()
+  const isDesktop = useIsDesktop()
 
   // ─── Zustand store ────────────────────────────────────────────────────────
   const {
@@ -310,7 +397,7 @@ export default function App() {
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", padding: 32, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
       <style>{globalCSS}</style>
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 50% at 50% 30%, rgba(245,158,11,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ fontSize: 72, marginBottom: 16, position: 'relative', zIndex: 1 }}>⏰</div>
+      <div style={{ width: 72, height: 72, borderRadius: 24, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', position: 'relative', zIndex: 1 }}><Clock size={36} color={C.primary} strokeWidth={1.5} /></div>
       <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 10, position: 'relative', zIndex: 1 }}>انتهت فترة التجربة المجانية</div>
       <div style={{ fontSize: 14, color: C.textDim, lineHeight: 1.7, maxWidth: 300, marginBottom: 32, position: 'relative', zIndex: 1 }}>
         جميع بياناتك محفوظة. اشترك الآن للاستمرار في استخدام Contractor Pro.
@@ -356,11 +443,12 @@ export default function App() {
     : 'dashboard'
 
   return (
-    <div style={{ maxWidth: 430, margin: '0 auto', background: C.bg, minHeight: '100vh', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", direction: 'rtl', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", direction: 'rtl', position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingRight: isDesktop ? 240 : 0 }}>
       <style>{globalCSS}</style>
+      {isDesktop && <DesktopSidebar screen={screen} setScreen={setScreen} permissions={p} pendingCount={pendingCount} />}
 
       {/* ─── Aurora background ─── */}
-      <div style={{ position: 'fixed', inset: 0, maxWidth: 430, margin: '0 auto', pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 40% at 15% 0%, rgba(245,158,11,0.06) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 85% 100%, rgba(239,68,68,0.04) 0%, transparent 60%)' }} />
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 40% at 15% 0%, rgba(245,158,11,0.06) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 85% 100%, rgba(239,68,68,0.04) 0%, transparent 60%)' }} />
 
       {/* ─── Offline banner ─── */}
       {!isOnline && (
@@ -439,14 +527,14 @@ export default function App() {
       </div>
 
       {/* ─── Screen content ─── */}
-      <div key={screen} style={{ paddingBottom: 100, position: 'relative', zIndex: 1 }}>
+      <div key={screen} style={{ paddingBottom: isDesktop ? 24 : 100, position: 'relative', zIndex: 1 }}>
         <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 56 }}><LoadingSpinner /></div>}>
           {renderScreen()}
         </Suspense>
       </div>
 
-      {/* ─── Bottom Nav (5 tabs) ─── */}
-      <div style={{ position: 'fixed', bottom: 14, left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: '1px solid rgba(245,158,11,0.1)', padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
+      {/* ─── Bottom Nav (mobile only) ─── */}
+      {!isDesktop && <div style={{ position: 'fixed', bottom: 14, left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: '1px solid rgba(245,158,11,0.1)', padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
         {NAV.map(n => {
           const active = activeNav === n.id
           const Icon = NAV_ICONS[n.id]
@@ -492,10 +580,10 @@ export default function App() {
             </motion.button>
           )
         })}
-      </div>
+      </div>}
 
-      {/* ─── "المزيد" Drawer ─── */}
-      <MoreDrawer open={showMore} onClose={() => setShowMore(false)} screen={screen} setScreen={setScreen} permissions={p} />
+      {/* ─── "المزيد" Drawer (mobile only) ─── */}
+      {!isDesktop && <MoreDrawer open={showMore} onClose={() => setShowMore(false)} screen={screen} setScreen={setScreen} permissions={p} />}
 
       {/* ─── Notifications ─── */}
       <NotificationsPanel open={showNotifs} onClose={() => setShowNotifs(false)} notifications={notifications} unreadCount={unreadCount} markAllRead={markAllRead} markRead={markRead} deleteAll={deleteAll} onNav={nav => { setScreen(nav); setShowNotifs(false) }} />
@@ -512,7 +600,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0,  x: '-50%' }}
             exit={{  opacity: 0, y: 8,   x: '-50%' }}
             style={{
-              position: 'fixed', bottom: 100, left: '50%',
+              position: 'fixed', bottom: isDesktop ? 32 : 100, left: '50%',
               background: toast.type === 'success' ? C.success : toast.type === 'warning' ? C.warning : C.accent,
               color: '#fff', padding: '11px 22px', borderRadius: 14, fontSize: 13, fontWeight: 700,
               zIndex: 400, whiteSpace: 'nowrap', boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
