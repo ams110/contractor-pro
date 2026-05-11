@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Plus, Pencil, Trash2, Eye, Bell, Wrench, Tag, CreditCard, CalendarDays, Users, FileDown, Download, KeyRound, Fingerprint, Camera, User, Clock, FileSpreadsheet } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { Btn, GlassCard, SectionLabel, ConfirmDialog } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
@@ -45,7 +46,7 @@ const TBL_AR    = {
   workers: 'العمال', workdays: 'أيام العمل',
   settings: 'الإعدادات', payments_screen: 'الرواتب', expenses_screen: 'المصاريف',
 }
-const ACTION_ICON = { insert: '➕', update: '✏️', delete: '🗑️', view: '👁️' }
+const ACTION_ICON = { insert: Plus, update: Pencil, delete: Trash2, view: Eye }
 const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, view: C.textDim }
 
 export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, taxModules = {}, setTaxModule, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, saveContractorNumber, permissions, teamMembers, addMember, resetMemberPassword, updateMember, removeMember, blockMember, getActivity, reloadTeam }) {
@@ -172,12 +173,12 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                   ? <img src={profile.avatar_url} alt="avatar"
                       style={{ width:64, height:64, borderRadius:'50%', objectFit:'cover', display:'block', border:`2px solid ${C.bg}` }} />
                   : <div style={{ width:64, height:64, borderRadius:'50%', background:C.surface, display:'flex', alignItems:'center', justifyContent:'center', fontSize:28, border:`2px solid ${C.bg}` }}>
-                      {profile?.full_name ? profile.full_name.charAt(0) : '👤'}
+                      {profile?.full_name ? <span style={{ fontSize:26, fontWeight:900, color:C.primary }}>{profile.full_name.charAt(0)}</span> : <User size={28} strokeWidth={1.5} style={{ color: C.textDim }} />}
                     </div>
                 }
               </div>
-              <div style={{ position:'absolute', bottom:2, right:2, width:20, height:20, borderRadius:'50%', background:C.primary, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, border:`2px solid ${C.bg}` }}>
-                {uploading ? '⏳' : '📷'}
+              <div style={{ position:'absolute', bottom:2, right:2, width:20, height:20, borderRadius:'50%', background:C.primary, display:'flex', alignItems:'center', justifyContent:'center', border:`2px solid ${C.bg}` }}>
+                <Camera size={10} strokeWidth={2} color="#000" />
               </div>
             </label>
 
@@ -266,12 +267,12 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                 ✓ البصمة مفعّلة على هذا الجهاز
               </div>
               <Btn onClick={() => { removePasskey(); setPasskeyStatus('تم حذف البصمة') }} variant="outline" full>
-                🗑️ إلغاء تفعيل البصمة
+                إلغاء تفعيل البصمة
               </Btn>
             </div>
           ) : pkStep === 'password' ? (
             <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:16, padding:16, border:`1px solid ${C.border}` }}>
-              <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:4, textAlign:'center' }}>🔐 أدخل كلمة مرورك الحالية</div>
+              <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:4, textAlign:'center' }}>أدخل كلمة مرورك الحالية</div>
               <div style={{ fontSize:10, color:C.textDim, textAlign:'center', marginBottom:10 }}>مطلوب مرة واحدة فقط — لحفظ الدخول بشكل دائم</div>
               <input
                 type="password"
@@ -287,13 +288,13 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                   style={{ flex:1, padding:'10px', borderRadius:12, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>إلغاء</button>
                 <button onClick={handleRegisterPasskey} disabled={passkeyLoading || !pkPassword}
                   style={{ flex:2, padding:'10px', borderRadius:12, border:'none', background: passkeyLoading || !pkPassword ? C.surface : C.primary, color:'white', fontSize:12, fontWeight:700, cursor: passkeyLoading || !pkPassword ? 'not-allowed' : 'pointer' }}>
-                  {passkeyLoading ? '...' : 'تفعيل البصمة 👆'}
+                  {passkeyLoading ? '...' : 'تفعيل البصمة'}
                 </button>
               </div>
             </div>
           ) : (
             <Btn onClick={() => { setPkStep('password'); setPkPassword(''); setPkError('') }} disabled={passkeyLoading} variant="outline" full>
-              {passkeyLoading ? '...' : '👆 تفعيل الدخول بالبصمة / Face ID'}
+              {passkeyLoading ? '...' : 'تفعيل الدخول بالبصمة / Face ID'}
             </Btn>
           )}
           {passkeyStatus && (
@@ -313,17 +314,17 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                 ✓ الدخول بـ PIN مفعّل على هذا الجهاز
               </div>
               <Btn onClick={() => { removePin(); setPinStatus('تم حذف الـ PIN'); setPinStep(null) }} variant="outline" full>
-                🗑️ حذف الـ PIN
+                حذف الـ PIN
               </Btn>
             </div>
           ) : pinStep === null ? (
             <Btn onClick={() => { setPinStep('password'); setPinPassword(''); setPinInput(''); setPinConfirm(''); setPinError('') }} variant="outline" full>
-              🔢 إعداد الدخول بـ PIN (4–6 أرقام)
+              إعداد الدخول بـ PIN (4–6 أرقام)
             </Btn>
           ) : (
             <div style={{ background:'rgba(255,255,255,0.04)', borderRadius:16, padding:16, border:`1px solid ${C.border}` }}>
               <div style={{ fontSize:12, fontWeight:700, color:C.text, marginBottom:4, textAlign:'center' }}>
-                {pinStep === 'password' ? '🔐 أدخل كلمة مرورك الحالية' : pinStep === 'enter' ? '🔢 أدخل PIN جديد (4–6 أرقام)' : '🔁 أعد الإدخال للتأكيد'}
+                {pinStep === 'password' ? 'أدخل كلمة مرورك الحالية' : pinStep === 'enter' ? 'أدخل PIN جديد (4–6 أرقام)' : 'أعد الإدخال للتأكيد'}
               </div>
               {pinStep === 'password' && (
                 <div style={{ fontSize:10, color:C.textDim, textAlign:'center', marginBottom:10 }}>مطلوب مرة واحدة فقط — لحفظ الدخول بشكل دائم</div>
@@ -389,7 +390,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
         <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
           <div style={{ height:3, background:'linear-gradient(90deg,#F59E0B,#EF4444)' }} />
           <div style={{ padding:'14px 16px' }}>
-            <SectionLabel color={C.warning}>🔔 إشعارات التطبيق</SectionLabel>
+            <SectionLabel color={C.warning}>إشعارات التطبيق</SectionLabel>
 
             {pushPerm !== 'granted' ? (
               <div style={{ textAlign:'center' }}>
@@ -398,7 +399,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                 </div>
                 <button onClick={async () => { await requestPermission(); setNotifPrefsState(getNotifPrefs()) }}
                   style={{ padding:'10px 24px', borderRadius:12, border:'none', background:'linear-gradient(90deg,#F59E0B,#EF4444)', color:'#fff', fontSize:12, fontWeight:800, cursor:'pointer' }}>
-                  🔔 تفعيل الإشعارات
+                  تفعيل الإشعارات
                 </button>
                 {pushPerm === 'denied' && (
                   <div style={{ fontSize:10, color:C.accent, marginTop:8 }}>
@@ -409,16 +410,16 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 {[
-                  { key:'advance',  label:'طلبات السلفة',    icon:'💰' },
-                  { key:'workday',  label:'أيام العمل',       icon:'📅' },
-                  { key:'salary',   label:'تذكيرات الراتب',   icon:'💳' },
-                  { key:'team',     label:'نشاط الفريق',      icon:'👥' },
-                  { key:'general',  label:'إشعارات أخرى',     icon:'📢' },
-                ].map(({ key, label, icon }) => {
+                  { key:'advance',  label:'طلبات السلفة' },
+                  { key:'workday',  label:'أيام العمل' },
+                  { key:'salary',   label:'تذكيرات الراتب' },
+                  { key:'team',     label:'نشاط الفريق' },
+                  { key:'general',  label:'إشعارات أخرى' },
+                ].map(({ key, label }) => {
                   const on = notifPrefs[key] !== false
                   return (
                     <div key={key} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'rgba(255,255,255,0.04)', borderRadius:10, border:`1px solid ${C.border}` }}>
-                      <span style={{ fontSize:12, color:C.text, fontWeight:600 }}>{icon} {label}</span>
+                      <span style={{ fontSize:12, color:C.text, fontWeight:600 }}>{label}</span>
                       <button onClick={() => toggleNotifPref(key)}
                         style={{ width:40, height:22, borderRadius:11, border:'none', cursor:'pointer', position:'relative', background: on ? C.warning : C.surface, transition:'background .2s', flexShrink:0 }}>
                         <div style={{ position:'absolute', top:2, left: on ? 20 : 2, width:18, height:18, borderRadius:'50%', background:'#fff', transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }} />
@@ -437,7 +438,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
       <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
         <div style={{ height:3, background:GRAD.blue }} />
         <div style={{ padding:'14px 16px' }}>
-          <SectionLabel color={C.blue}>🔧 التخصصات</SectionLabel>
+          <SectionLabel color={C.blue}>التخصصات</SectionLabel>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
             {(specs || []).map(s => (
               <div key={s} style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 12px', borderRadius:20, background:`${C.blue}18`, border:`1px solid ${C.blue}33` }}>
@@ -462,7 +463,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
       <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
         <div style={{ height:3, background:GRAD.warm }} />
         <div style={{ padding:'14px 16px' }}>
-          <SectionLabel color={C.orange}>📂 تصنيفات المصاريف</SectionLabel>
+          <SectionLabel color={C.warning}>تصنيفات المصاريف</SectionLabel>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
             {(expCats || []).map(c => (
               <div key={c} style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 12px', borderRadius:20, background:`${C.orange}18`, border:`1px solid ${C.orange}33` }}>
@@ -487,7 +488,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
       <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
         <div style={{ height:3, background:GRAD.success }} />
         <div style={{ padding:'14px 16px' }}>
-          <SectionLabel color={C.success}>💳 طرق الدفع</SectionLabel>
+          <SectionLabel color={C.success}>طرق الدفع</SectionLabel>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
             {(payMethods || []).map(m => (
               <div key={m} style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 12px', borderRadius:20, background:`${C.success}18`, border:`1px solid ${C.success}33` }}>
@@ -513,7 +514,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
         <div style={{ height:3, background:GRAD.warm }} />
         <div style={{ padding:'14px 16px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-            <SectionLabel color={C.warning}>🎉 الأعياد والعطل</SectionLabel>
+            <SectionLabel color={C.warning}>الأعياد والعطل</SectionLabel>
             <button onClick={() => setShowHolForm(v => !v)}
               style={{ padding:'5px 12px', borderRadius:9, background:`${C.warning}20`, color:C.warning, border:`1px solid ${C.warning}44`, fontSize:11, fontWeight:700, cursor:'pointer' }}>
               + إضافة
@@ -553,7 +554,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                   <div style={{ fontSize:10, color:C.warning }}>{h.date}</div>
                 </div>
                 <button onClick={() => deleteHoliday(h.id)}
-                  style={{ background:'none', border:'none', cursor:'pointer', fontSize:16, color:C.accent, padding:'2px 6px' }}>🗑️</button>
+                  style={{ background:'none', border:'none', cursor:'pointer', color:C.accent, padding:'2px 6px', display:'flex', fontFamily:'inherit' }}><Trash2 size={14} strokeWidth={2} /></button>
               </div>
             ))
           }
@@ -566,7 +567,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
           <div style={{ height:3, background:GRAD.success }} />
           <div style={{ padding:'14px 16px' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <SectionLabel color={C.success}>👥 الفريق</SectionLabel>
+              <SectionLabel color={C.success}>الفريق</SectionLabel>
               <button onClick={() => { setShowAddMember(!showAddMember); setAddMemberErr(''); setMemberForm(emptyMemberForm) }}
                 style={{ padding:'6px 14px', borderRadius:10, background:`${C.success}20`, color:C.success, border:`1px solid ${C.success}44`, fontSize:12, fontWeight:700, cursor:'pointer' }}>
                 + إضافة عضو
@@ -652,22 +653,22 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                           {blocked    && <span style={{ fontSize:9, color:C.accent, fontWeight:700, background:`${C.accent}22`, padding:'2px 6px', borderRadius:4 }}>🚫 محجوب</span>}
                           {expired    && <span style={{ fontSize:9, color:C.warning, fontWeight:700, background:`${C.warning}22`, padding:'2px 6px', borderRadius:4 }}>⏰ منتهي</span>}
                           {!blocked && !expired && <span style={{ fontSize:9, color:C.success, fontWeight:700 }}>● نشط</span>}
-                          {lastSeen && <span style={{ fontSize:9, color:C.textDim }}>🕐 {lastSeen}</span>}
+                          {lastSeen && <span style={{ fontSize:9, color:C.textDim, display:'flex', alignItems:'center', gap:3 }}><Clock size={9} strokeWidth={2} /> {lastSeen}</span>}
                         </div>
                       </div>
                       <div style={{ display:'flex', gap:4, flexShrink:0 }}>
                         <button onClick={() => { setShowResetPass(m); setNewPass(''); setResetPassErr('') }}
                           title="تغيير الباسورد"
-                          style={{ background:'none', border:`1px solid ${C.warning}44`, borderRadius:8, cursor:'pointer', fontSize:12, padding:'4px 7px', color:C.warning }}>🔑</button>
+                          style={{ background:'none', border:`1px solid ${C.warning}44`, borderRadius:8, cursor:'pointer', padding:'4px 7px', color:C.warning, display:'flex', fontFamily:'inherit' }}><KeyRound size={13} strokeWidth={2} /></button>
                         <button onClick={() => handleBlock(m, !blocked)}
                           title={blocked ? 'رفع الحجب' : 'حجب الوصول'}
-                          style={{ background:'none', border:`1px solid ${blocked ? C.success + '44' : C.accent + '44'}`, borderRadius:8, cursor:'pointer', fontSize:12, padding:'4px 7px', color: blocked ? C.success : C.accent }}>
-                          {blocked ? '✅' : '🚫'}
+                          style={{ background:'none', border:`1px solid ${blocked ? C.success + '44' : C.accent + '44'}`, borderRadius:8, cursor:'pointer', padding:'4px 8px', color: blocked ? C.success : C.accent, fontSize:10, fontWeight:700, fontFamily:'inherit' }}>
+                          {blocked ? 'رفع' : 'حجب'}
                         </button>
                         <button onClick={() => { setEditingMember(m.id); setEditPerms(Object.fromEntries(PERM_LABELS.map(([k]) => [k, m[k]]))) }}
-                          style={{ background:'none', border:'none', cursor:'pointer', fontSize:14, padding:'4px' }}>✏️</button>
+                          style={{ background:'none', border:'none', cursor:'pointer', padding:'4px', display:'flex', color:C.primary, fontFamily:'inherit' }}><Pencil size={13} strokeWidth={2} /></button>
                         <button onClick={() => removeMember(m.id)}
-                          style={{ background:'none', border:'none', cursor:'pointer', fontSize:14, padding:'4px' }}>🗑️</button>
+                          style={{ background:'none', border:'none', cursor:'pointer', padding:'4px', display:'flex', color:C.accent, fontFamily:'inherit' }}><Trash2 size={13} strokeWidth={2} /></button>
                       </div>
                     </div>
                     {editingMember === m.id && (
@@ -696,7 +697,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
               <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.7)', backdropFilter:'blur(6px)', padding:16 }}
                 onClick={e => { if (e.target === e.currentTarget) setShowResetPass(null) }}>
                 <div style={{ width:'100%', maxWidth:360, background:C.surface, borderRadius:20, padding:20, border:`1px solid ${C.borderMid}` }}>
-                  <div style={{ fontSize:15, fontWeight:800, color:C.text, marginBottom:4 }}>🔑 تغيير الباسورد</div>
+                  <div style={{ fontSize:15, fontWeight:800, color:C.text, marginBottom:4, display:'flex', alignItems:'center', gap:7 }}><KeyRound size={15} strokeWidth={2} style={{ color: C.warning }} /> تغيير الباسورد</div>
                   <div style={{ fontSize:11, color:C.textDim, marginBottom:14 }}>{showResetPass.display_name || showResetPass.username}</div>
                   <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)}
                     placeholder="الباسورد الجديد (6 أحرف+)"
@@ -744,19 +745,19 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
       {/* ── التصدير (المالك فقط) ── */}
       {permissions?.isOwner && (
         <>
-          <SectionLabel color={C.primary}>📤 تصدير البيانات</SectionLabel>
+          <SectionLabel color={C.primary}>تصدير البيانات</SectionLabel>
           <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:24 }}>
             <button onClick={() => exportFullReportToExcel({ projects, employees, workDays, expenses, payments, clientReceipts: clientReceipts || [] })}
               style={{ padding:'13px 16px', borderRadius:14, border:'none', background:GRAD.success, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 4px 16px ${C.success}44` }}>
-              📊 تصدير تقرير Excel كامل
+              تصدير تقرير Excel كامل
             </button>
             <button onClick={() => exportTaxSummary({ year: new Date().getFullYear(), clientReceipts: clientReceipts || [], expenses, projects })}
               style={{ padding:'13px 16px', borderRadius:14, border:'none', background:GRAD.purple, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 4px 16px ${C.purple}44` }}>
-              🇮🇱 تصدير ملخص ضريبي للمحاسب
+              تصدير ملخص ضريبي للمحاسب
             </button>
             <button onClick={exportData}
               style={{ padding:'13px 16px', borderRadius:14, border:`1.5px solid ${C.blue}44`, background:`${C.blue}15`, color:C.blue, fontSize:13, fontWeight:800, cursor:'pointer' }}>
-              📥 نسخة احتياطية (JSON)
+              نسخة احتياطية (JSON)
             </button>
           </div>
         </>
