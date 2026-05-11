@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react'
+import { motion } from 'framer-motion'
+import { LayoutGrid, FileText, Wallet, HardHat, AlertTriangle, TrendingUp, TrendingDown, Check } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { fmt, todayStr } from '../lib/helpers.js'
 import {
@@ -18,10 +20,10 @@ const WORKER_LABELS = {
 }
 
 const TABS = [
-  { id: 'overview', icon: '🏠', label: 'ملخص' },
-  { id: 'vat',      icon: '🧾', label: 'מע"מ' },
-  { id: 'taxes',    icon: '💰', label: 'ضرائب' },
-  { id: 'workers',  icon: '👷', label: 'عمال' },
+  { id: 'overview', Icon: LayoutGrid, label: 'ملخص' },
+  { id: 'vat',      Icon: FileText,   label: 'מע"מ' },
+  { id: 'taxes',    Icon: Wallet,     label: 'ضرائب' },
+  { id: 'workers',  Icon: HardHat,    label: 'عمال' },
 ]
 
 function Card({ children, style }) {
@@ -132,7 +134,7 @@ function OverviewTab({ summary, businessType, monthRevenue, monthNet, dueDates, 
       {/* Personal Accountant Card */}
       <Card style={{ background: 'linear-gradient(135deg, rgba(0,221,179,0.08), rgba(99,102,241,0.08))', border: `1px solid ${C.primary}22` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 12, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🤖</div>
+          <div style={{ width: 38, height: 38, borderRadius: 12, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><TrendingUp size={20} strokeWidth={2} color="#000" /></div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 800, color: C.primary }}>محاسبك الشخصي</div>
             <div style={{ fontSize: 10, color: C.textDim }}>تحليل ذكي بناءً على بياناتك</div>
@@ -148,7 +150,7 @@ function OverviewTab({ summary, businessType, monthRevenue, monthNet, dueDates, 
                 background: t.type === 'danger' ? `${C.accent}15` : t.type === 'warning' ? `${C.warning}12` : t.type === 'ok' ? `${C.success}12` : `${C.primary}0A`,
                 border: `1px solid ${t.type === 'danger' ? C.accent : t.type === 'warning' ? C.warning : t.type === 'ok' ? C.success : C.primary}22`,
               }}>
-                <span style={{ fontSize: 14, flexShrink: 0 }}>{t.icon}</span>
+                {t.type === 'danger' ? <AlertTriangle size={14} strokeWidth={2} style={{ color: C.accent, flexShrink: 0 }} /> : t.type === 'ok' ? <Check size={14} strokeWidth={2} style={{ color: C.success, flexShrink: 0 }} /> : t.type === 'warning' ? <AlertTriangle size={14} strokeWidth={2} style={{ color: C.warning, flexShrink: 0 }} /> : <TrendingUp size={14} strokeWidth={2} style={{ color: C.primary, flexShrink: 0 }} />}
                 <span style={{ fontSize: 11, color: C.text, lineHeight: 1.5 }}>{t.msg}</span>
               </div>
             ))}
@@ -179,12 +181,12 @@ function OverviewTab({ summary, businessType, monthRevenue, monthNet, dueDates, 
       {/* Tax Calendar */}
       {dueDates.length > 0 && (
         <div>
-          <SectionHeader title="📅 مواعيد استحقاق قريبة" color={C.orange} />
+          <SectionHeader title="مواعيد استحقاق قريبة" color={C.warning} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {dueDates.map((d, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.card, borderRadius: 10, border: `1px solid ${d.urgent ? C.accent + '55' : C.border}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16 }}>{d.icon}</span>
+                  <FileText size={15} strokeWidth={1.8} style={{ color: d.urgent ? C.accent : C.primary, flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{d.label}</div>
                     <div style={{ fontSize: 9, color: C.textDim }}>{d.date}</div>
@@ -520,7 +522,7 @@ export default function AccountingScreen({
         <button onClick={() => setShowBizPicker(p => !p)}
           style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px', borderRadius: 14, border: `1px solid ${biz.color}44`, background: `${biz.color}0E`, cursor: 'pointer' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 20 }}>{biz.icon}</span>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: biz.color, flexShrink: 0 }} />
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: biz.color }}>{biz.label} — {biz.ar}</div>
               <div style={{ fontSize: 10, color: C.textDim }}>{biz.desc}</div>
@@ -534,7 +536,7 @@ export default function AccountingScreen({
             {Object.entries(BIZ).map(([key, b]) => (
               <button key={key} onClick={() => { setBusinessType?.(key); setShowBizPicker(false) }}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: businessType === key ? `${b.color}12` : 'transparent', border: 'none', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', direction: 'rtl' }}>
-                <span style={{ fontSize: 18 }}>{b.icon}</span>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: b.color, flexShrink: 0 }} />
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: businessType === key ? b.color : C.text }}>{b.label} — {b.ar}</div>
                   <div style={{ fontSize: 10, color: C.textDim }}>{b.desc}</div>
@@ -549,11 +551,11 @@ export default function AccountingScreen({
       {/* ── Tabs ── */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 14, background: C.card, borderRadius: 12, padding: 4, border: `1px solid ${C.border}` }}>
         {TABS.map((t, i) => (
-          <button key={t.id} onClick={() => setTab(i)}
-            style={{ flex: 1, padding: '7px 4px', borderRadius: 9, border: 'none', background: tab === i ? GRAD.brand : 'transparent', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <span style={{ fontSize: 15 }}>{t.icon}</span>
-            <span style={{ fontSize: 9, fontWeight: 700, color: tab === i ? '#fff' : C.textDim }}>{t.label}</span>
-          </button>
+          <motion.button whileTap={{ scale: 0.95 }} key={t.id} onClick={() => setTab(i)}
+            style={{ flex: 1, padding: '7px 4px', borderRadius: 9, border: 'none', background: tab === i ? GRAD.brand : 'transparent', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, fontFamily: 'inherit' }}>
+            <t.Icon size={14} strokeWidth={2} style={{ color: tab === i ? '#000' : C.textDim }} />
+            <span style={{ fontSize: 9, fontWeight: 700, color: tab === i ? '#000' : C.textDim }}>{t.label}</span>
+          </motion.button>
         ))}
       </div>
 

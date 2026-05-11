@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react'
+import { motion } from 'framer-motion'
+import { ShoppingCart, Layers, Wrench, Fuel, Building2, ClipboardList, Car, HardHat, Shield, Package, Plus, BarChart2, Search, X, Paperclip, Camera, Trash2, Check } from 'lucide-react'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense } from '../lib/helpers.js'
 import { GlassCard, Modal, Input, Btn, FilterChip, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
@@ -6,7 +8,7 @@ import { uploadReceipt } from '../lib/storage.js'
 import { exportExpensesToExcel } from '../lib/export.js'
 import { supabase } from '../lib/supabase.js'
 
-const CAT_ICONS  = { 'بضاعة':'🛒', 'مواد بناء / خامات':'🧱', 'عدد وأدوات':'🔧', 'وقود وتنقلات':'⛽', 'إيجار معدات':'🏗️', 'خدمات مهنية':'📋', 'صيانة مركبات':'🚗', 'رواتب عمال':'👷', 'تأمين':'🛡️', 'أخرى':'📦' }
+const CAT_ICONS  = { 'بضاعة': ShoppingCart, 'مواد بناء / خامات': Layers, 'عدد وأدوات': Wrench, 'وقود وتنقلات': Fuel, 'إيجار معدات': Building2, 'خدمات مهنية': ClipboardList, 'صيانة مركبات': Car, 'رواتب عمال': HardHat, 'تأمين': Shield, 'أخرى': Package }
 const CAT_COLORS = { 'بضاعة':C.pink, 'مواد بناء / خامات':C.orange, 'عدد وأدوات':C.blue, 'وقود وتنقلات':C.cyan, 'إيجار معدات':C.purple, 'خدمات مهنية':C.secondary, 'صيانة مركبات':C.warning, 'رواتب عمال':C.primary, 'تأمين':C.success, 'أخرى':C.textDim }
 const FILTER_CATS = ['الكل', 'مواد', 'بضاعة', 'عدد', 'وقود', 'إيجار', 'خدمات', 'رواتب', 'تأمين', 'أخرى']
 
@@ -108,23 +110,23 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
       {/* ── Header ── */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
         <div>
-          <div style={{ fontSize:22, fontWeight:900, background:GRAD.danger, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
-            💸 المصاريف
+          <div style={{ fontSize:22, fontWeight:900, color:C.accent }}>
+            المصاريف
           </div>
           <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{approvedExpenses.length} سجل</div>
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
           {permissions?.isOwner && approvedExpenses.length > 0 && (
-            <button onClick={() => exportExpensesToExcel(approvedExpenses, projects)}
-              style={{ padding:'8px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, fontSize:12, cursor:'pointer', fontWeight:600 }}>
-              📊
-            </button>
+            <motion.button whileTap={{ scale: 0.93 }} onClick={() => exportExpensesToExcel(approvedExpenses, projects)}
+              style={{ padding:'8px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, cursor:'pointer', display:'flex', alignItems:'center', fontFamily:'inherit' }}>
+              <BarChart2 size={15} strokeWidth={2} />
+            </motion.button>
           )}
           {permissions?.addExpenses !== false && (
-            <button onClick={() => { setFormError(''); setShowForm(true) }}
-              style={{ padding:'10px 18px', borderRadius:14, background:GRAD.danger, color:'#fff', border:'none', cursor:'pointer', fontWeight:800, fontSize:13, boxShadow:'0 4px 16px rgba(244,63,94,0.4)' }}>
-              + مصروف
-            </button>
+            <motion.button whileTap={{ scale: 0.93 }} onClick={() => { setFormError(''); setShowForm(true) }}
+              style={{ padding:'10px 18px', borderRadius:14, background:GRAD.brand, color:'#000', border:'none', cursor:'pointer', fontWeight:800, fontSize:13, boxShadow:'0 4px 16px rgba(245,158,11,0.3)', display:'flex', alignItems:'center', gap:5, fontFamily:'inherit' }}>
+              <Plus size={14} strokeWidth={2.5} /> مصروف
+            </motion.button>
           )}
         </div>
       </div>
@@ -175,7 +177,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
                     <div>
                       <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
-                      {worker && <div style={{ fontSize:11, color:C.primary, fontWeight:600, marginTop:2 }}>👷 {worker.name}</div>}
+                      {worker && <div style={{ fontSize:11, color:C.primary, fontWeight:600, marginTop:2, display:'flex', alignItems:'center', gap:4 }}><HardHat size={11} strokeWidth={2} /> {worker.name}</div>}
                       <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{ex.vendor || ''}{proj ? ` • ${proj.name}` : ''} • {fmtDate(ex.date)}</div>
                     </div>
                     <div style={{ fontSize:18, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(ex.amount)}₪</div>
@@ -189,7 +191,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                       ) : (
                         <a href={ex.receipt_url} target="_blank" rel="noreferrer"
                           style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:`${C.border}33`, borderRadius:10, textDecoration:'none' }}>
-                          <span style={{ fontSize:20 }}>📄</span>
+                          <Paperclip size={16} strokeWidth={1.8} style={{ color: C.primary }} />
                           <span style={{ fontSize:12, color:C.primary, fontWeight:600 }}>عرض الفاتورة (PDF)</span>
                         </a>
                       )}
@@ -197,8 +199,8 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                   )}
                   <div style={{ display:'flex', gap:8 }}>
                     <button onClick={() => approveExpense(ex.id)}
-                      style={{ flex:1, padding:'9px 0', borderRadius:10, background:GRAD.success, border:'none', color:'#000', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 2px 10px ${C.success}44` }}>
-                      ✓ موافقة
+                      style={{ flex:1, padding:'9px 0', borderRadius:10, background:GRAD.success, border:'none', color:'#000', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:`0 2px 10px ${C.success}44`, display:'flex', alignItems:'center', justifyContent:'center', gap:5, fontFamily:'inherit' }}>
+                      <Check size={14} strokeWidth={2.5} /> موافقة
                     </button>
                     <button onClick={() => rejectExpense(ex.id)}
                       style={{ flex:1, padding:'9px 0', borderRadius:10, background:`${C.accent}20`, border:`1px solid ${C.accent}55`, color:C.accent, fontSize:13, fontWeight:700, cursor:'pointer' }}>
@@ -238,13 +240,13 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
             const proj   = projects.find(p => p.id === ex.project_id)
             const worker = employees?.find(e => e.id === ex.employee_id)
             const col    = catColor(ex.category)
-            const ico    = catIcon(ex.category)
+            const CatIcon = catIcon(ex.category)
             return (
               <GlassCard key={ex.id} style={{ overflow:'hidden', marginBottom:8, position:'relative' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px' }}>
                   {/* أيقونة ملونة */}
-                  <div style={{ width:44, height:44, borderRadius:14, background:`${col}20`, border:`1px solid ${col}44`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>
-                    {ico}
+                  <div style={{ width:44, height:44, borderRadius:14, background:`${col}20`, border:`1px solid ${col}44`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <CatIcon size={20} strokeWidth={1.8} style={{ color: col }} />
                   </div>
 
                   {/* المعلومات */}
@@ -269,13 +271,13 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                     {(worker || ex.approved_by) && (
                       <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:4 }}>
                         {worker && (
-                          <div style={{ fontSize:9, fontWeight:700, color:C.primary, background:`${C.primary}15`, padding:'2px 7px', borderRadius:6, border:`1px solid ${C.primary}33` }}>
-                            👷 {worker.name}
+                          <div style={{ fontSize:9, fontWeight:700, color:C.primary, background:`${C.primary}15`, padding:'2px 7px', borderRadius:6, border:`1px solid ${C.primary}33`, display:'flex', alignItems:'center', gap:3 }}>
+                            <HardHat size={9} strokeWidth={2} /> {worker.name}
                           </div>
                         )}
                         {ex.approved_by && (
-                          <div style={{ fontSize:9, fontWeight:700, color:C.success, background:`${C.success}15`, padding:'2px 7px', borderRadius:6, border:`1px solid ${C.success}33` }}>
-                            ✓ {ex.approved_by}
+                          <div style={{ fontSize:9, fontWeight:700, color:C.success, background:`${C.success}15`, padding:'2px 7px', borderRadius:6, border:`1px solid ${C.success}33`, display:'flex', alignItems:'center', gap:3 }}>
+                            <Check size={9} strokeWidth={2.5} /> {ex.approved_by}
                           </div>
                         )}
                       </div>
@@ -287,10 +289,10 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                     <div style={{ fontSize:16, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(ex.amount)}₪</div>
                     <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                       {ex.receipt_url && (
-                        <a href={ex.receipt_url} target="_blank" rel="noreferrer" style={{ textDecoration:'none', fontSize:16 }} title="عرض الفاتورة">📎</a>
+                        <a href={ex.receipt_url} target="_blank" rel="noreferrer" style={{ textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:8, background:`${C.secondary}18`, border:`1px solid ${C.secondary}33`, color:C.secondary }} title="عرض الفاتورة"><Paperclip size={12} strokeWidth={2} /></a>
                       )}
                       <button onClick={() => setConfirmDel(ex.id)}
-                        style={{ background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', fontSize:12 }}>🗑️</button>
+                        style={{ background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', display:'flex', alignItems:'center', color:C.accent, fontFamily:'inherit' }}><Trash2 size={12} strokeWidth={2} /></button>
                     </div>
                   </div>
                 </div>
@@ -343,7 +345,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         {/* رفع الفاتورة + AI scan */}
         <div style={{ marginBottom:14 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-            <label style={{ fontSize:12, color:C.textDim, fontWeight:600 }}>📎 فاتورة / إثبات (اختياري)</label>
+            <label style={{ fontSize:12, color:C.textDim, fontWeight:600, display:'flex', alignItems:'center', gap:5 }}><Paperclip size={12} strokeWidth={2} /> فاتورة / إثبات (اختياري)</label>
             {receiptFile && receiptFile.type.startsWith('image/') && (
               <button onClick={scanReceipt} disabled={scanning}
                 style={{ padding:'4px 10px', borderRadius:8, border:`1px solid ${C.primary}55`, background:`${C.primary}15`, color:C.primary, fontSize:11, fontWeight:700, cursor:'pointer' }}>
@@ -359,10 +361,10 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                   style={{ position:'absolute', top:6, left:6, background:`${C.accent}dd`, border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
               </div>
             : receiptFile
-            ? <div style={{ padding:'10px 14px', background:`${C.border}33`, borderRadius:12, fontSize:12, color:C.text }}>📄 {receiptFile.name}</div>
+            ? <div style={{ padding:'10px 14px', background:`${C.border}33`, borderRadius:12, fontSize:12, color:C.text, display:'flex', alignItems:'center', gap:6 }}><Paperclip size={13} strokeWidth={2} style={{ color: C.secondary }} /> {receiptFile.name}</div>
             : <button onClick={() => fileRef.current.click()}
-                style={{ width:'100%', padding:'14px', borderRadius:12, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer' }}>
-                📷 اضغط لرفع صورة الفاتورة
+                style={{ width:'100%', padding:'14px', borderRadius:12, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontFamily:'inherit' }}>
+                <Camera size={16} strokeWidth={1.8} /> اضغط لرفع صورة الفاتورة
               </button>
           }
           {scanMsg && <div style={{ marginTop:6, fontSize:11, color: scanMsg.startsWith('✓') ? C.success : C.accent, fontWeight:600 }}>{scanMsg}</div>}

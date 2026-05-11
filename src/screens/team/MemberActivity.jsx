@@ -1,4 +1,5 @@
 import React from 'react'
+import { ClipboardList } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { GlassCard } from '../../components/index.jsx'
 import { ACTION_MAP, TABLE_MAP, ACTION_COLOR, fmtRelative } from './teamConstants.js'
@@ -21,7 +22,7 @@ export function MemberActivity({ memberId, authEmail, manager }) {
           fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all .18s',
         }}
       >
-        <span>📋 سجل النشاط</span>
+        <span style={{ display:'flex', alignItems:'center', gap:5 }}><ClipboardList size={13} strokeWidth={2} /> سجل النشاط</span>
         <span style={{ fontSize: 10 }}>{isOpen ? '▲' : '▼'}</span>
       </button>
 

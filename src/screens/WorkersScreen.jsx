@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Users, HardHat, Search, Link as LinkIcon, Check, Banknote, ClipboardList, FileText, FileSignature, BarChart2, KeyRound, Pencil, Trash2, Plus, StickyNote, Star } from 'lucide-react'
 import { C, GRAD, SPECS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validateWorker } from '../lib/helpers.js'
 import { GlassCard, Card, StatCard, Modal, Input, Btn, Badge, EmptyState, ConfirmDialog, AnimatedNumber } from '../components/index.jsx'
@@ -8,27 +10,23 @@ import { exportWorkerSalaryPDF, exportWorkerContractPDF } from '../lib/export.js
 import TeamScreen from './team/TeamScreen.jsx'
 
 /* ── tiny icon button helper ── */
-function IconBtn({ icon, label, onClick, color = C.textDim, active, activeColor }) {
-  const [hov, setHov] = useState(false)
-  const col = (hov || active) ? (activeColor || color) : C.textDim
+function IconBtn({ Icon, label, onClick, color = C.textDim, activeColor }) {
+  const col = activeColor || color
   return (
-    <button
+    <motion.button whileTap={{ scale: 0.88 }}
       onClick={onClick}
       title={label}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
         padding: '6px 8px', borderRadius: 10,
-        border: `1px solid ${(hov || active) ? (activeColor || color) + '44' : C.border}`,
-        background: (hov || active) ? `${activeColor || color}18` : 'transparent',
-        color: col, fontSize: 14, cursor: 'pointer',
-        transition: 'all .18s',
+        border: `1px solid ${col}33`,
+        background: `${col}10`,
+        color: col, cursor: 'pointer', fontFamily: 'inherit',
       }}
     >
-      <span>{icon}</span>
+      <Icon size={14} strokeWidth={2} />
       <span style={{ fontSize: 9, fontWeight: 700, color: col, lineHeight: 1 }}>{label}</span>
-    </button>
+    </motion.button>
   )
 }
 
@@ -190,13 +188,13 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
   const fmtA = (v) => showAmounts ? `${fmt(v)}₪` : '---'
 
   return (
-    <div className="fade-in" style={{ padding: 16, maxWidth: 520, margin: '0 auto' }}>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} style={{ padding: 16, maxWidth: 520, margin: '0 auto', paddingBottom: 100 }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 14, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, boxShadow: `0 4px 16px #00DDB344` }}>
-            {tab === 'team' ? '👥' : '👷'}
+          <div style={{ width: 40, height: 40, borderRadius: 14, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 16px rgba(245,158,11,0.3)` }}>
+            {tab === 'team' ? <Users size={20} strokeWidth={2} color="#000" /> : <HardHat size={20} strokeWidth={2} color="#000" />}
           </div>
           <div>
             <div style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>{tab === 'team' ? 'الفريق' : 'العمال'}</div>
@@ -208,12 +206,17 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {tab === 'workers' && (
             <>
-              <button onClick={copyPortalLink} title="نسخ رابط بوابة العمال"
-                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 12, border: `1px solid ${copied ? C.success + '66' : C.border}`, background: copied ? `${C.success}18` : 'rgba(255,255,255,0.04)', color: copied ? C.success : C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all .2s' }}>
-                <span>{copied ? '✓' : '🔗'}</span>
+              <motion.button whileTap={{ scale: 0.93 }} onClick={copyPortalLink} title="نسخ رابط بوابة العمال"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 12, border: `1px solid ${copied ? C.success + '66' : C.border}`, background: copied ? `${C.success}18` : 'rgba(255,255,255,0.04)', color: copied ? C.success : C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {copied ? <Check size={13} strokeWidth={2.5} /> : <LinkIcon size={13} strokeWidth={2} />}
                 <span>{copied ? 'تم النسخ' : 'رابط البوابة'}</span>
-              </button>
-              {permissions?.editWorkers !== false && <Btn onClick={openNew}>+ جديد</Btn>}
+              </motion.button>
+              {permissions?.editWorkers !== false && (
+                <motion.button whileTap={{ scale: 0.93 }} onClick={openNew}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '9px 16px', borderRadius: 12, background: GRAD.brand, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(245,158,11,0.3)' }}>
+                  <Plus size={14} strokeWidth={2.5} /> جديد
+                </motion.button>
+              )}
             </>
           )}
         </div>
@@ -221,23 +224,26 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
 
       {/* ── Tab Toggle ── */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 4, border: `1px solid ${C.border}` }}>
-        {[{ id: 'workers', icon: '👷', label: 'عمال المشاريع' }, { id: 'team', icon: '👥', label: 'فريق العمل' }].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            style={{ flex: 1, padding: '9px 8px', borderRadius: 10, border: 'none', background: tab === t.id ? GRAD.brand : 'transparent', color: tab === t.id ? '#000' : C.textDim, fontSize: 12, fontWeight: 800, cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-            <span>{t.icon}</span><span>{t.label}</span>
-          </button>
+        {[{ id: 'workers', Icon: HardHat, label: 'عمال المشاريع' }, { id: 'team', Icon: Users, label: 'فريق العمل' }].map(t => (
+          <motion.button whileTap={{ scale: 0.97 }} key={t.id} onClick={() => setTab(t.id)}
+            style={{ flex: 1, padding: '9px 8px', borderRadius: 10, border: 'none', background: tab === t.id ? GRAD.brand : 'transparent', color: tab === t.id ? '#000' : C.textDim, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: 'inherit' }}>
+            <t.Icon size={14} strokeWidth={2} /><span>{t.label}</span>
+          </motion.button>
         ))}
       </div>
 
       {/* ── بحث وترتيب (تاب العمال فقط) ── */}
       {tab === 'workers' && employees.length > 0 && (
         <div style={{ display:'flex', gap:8, marginBottom:14 }}>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 ابحث عن عامل..."
-            style={{ flex:1, padding:'9px 14px', borderRadius:12, border:`1.5px solid ${C.border}`, background:C.surface, color:C.text, fontSize:13, outline:'none', direction:'rtl' }}
-          />
+          <div style={{ flex: 1, position: 'relative' }}>
+            <Search size={14} strokeWidth={2} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: C.textDim, pointerEvents: 'none' }} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="ابحث عن عامل..."
+              style={{ width: '100%', padding:'9px 36px 9px 12px', borderRadius:12, border:`1.5px solid ${search ? C.primary + '55' : C.border}`, background:C.surface, color:C.text, fontSize:13, outline:'none', direction:'rtl', boxSizing: 'border-box', fontFamily: 'inherit' }}
+            />
+          </div>
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
@@ -308,14 +314,17 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
           a.name.localeCompare(b.name, 'ar'))
         if (employees.length === 0) return <EmptyState icon="👷" text="ما في عمال بعد — أضف أول عامل الآن" action="+ أضف عامل" onAction={openNew} />
         if (sorted.length === 0) return <div style={{ textAlign:'center', color:C.textDim, padding:32, fontSize:13 }}>لا نتائج لـ "{search}"</div>
-        return sorted.map(w => {
+        return sorted.map((w, idx) => {
             const owed   = w._owed
             const specs_ = w.specialization ? w.specialization.split(',').map(s => s.trim()).filter(Boolean) : []
 
             return (
-              <GlassCard key={w.id} style={{ marginBottom: 12, borderRadius: 20, overflow: 'hidden' }}>
+              <motion.div key={w.id}
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.22, delay: idx * 0.04 }}
+                style={{ marginBottom: 12, borderRadius: 20, overflow: 'hidden', background: '#13151E', border: `1px solid rgba(245,158,11,0.1)` }}>
                 {/* top gradient accent bar */}
-                <div style={{ height: 3, background: owed > 0 ? GRAD.purple : GRAD.brand }} />
+                <div style={{ height: 3, background: owed > 0 ? GRAD.warm : GRAD.brand }} />
 
                 <div style={{ padding: '14px 16px 12px' }}>
 
@@ -363,8 +372,8 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
 
                     {/* Worker notes snippet */}
                     {w.notes && (
-                      <div style={{ marginTop: 5, fontSize: 11, color: C.textDim, lineHeight: 1.4, fontStyle: 'italic', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        📝 {w.notes}
+                      <div style={{ marginTop: 5, fontSize: 11, color: C.textDim, lineHeight: 1.4, fontStyle: 'italic', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', alignItems: 'flex-start', gap: 4 }}>
+                        <StickyNote size={10} strokeWidth={1.8} style={{ color: C.primary, display: 'inline', marginLeft: 3 }} /> {w.notes}
                       </div>
                     )}
 
@@ -412,26 +421,24 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                     borderTop: `1px solid ${C.border}`,
                   }}>
                     {permissions?.editWorkers !== false && (
-                      <IconBtn
-                        icon="💵" label="سلفة"
-                        color={C.warning} activeColor={C.warning}
+                      <IconBtn Icon={Banknote} label="سلفة" color={C.warning} activeColor={C.warning}
                         onClick={() => { setAdvWorker(w); setAdvForm({ amount: '', date: todayStr(), notes: '' }); setAdvError('') }}
                       />
                     )}
-                    <IconBtn icon="📋" label="سجل" onClick={() => setAdvHistory(w)} />
-                    {permissions?.isOwner && <IconBtn icon="📄" label="راتب" onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })} />}
-                    {permissions?.isOwner && <IconBtn icon="📝" label="عقد" onClick={() => exportWorkerContractPDF({ worker: w, ownerName: profile?.full_name || '', contractorNumber: profile?.contractor_number || '' })} color={C.blue} activeColor={C.blue} />}
-                    <IconBtn icon="📊" label="إحصاء" onClick={() => setStatsWorker(w)} color={C.blue} activeColor={C.blue} />
-                    <IconBtn icon="🔑" label="بيانات" onClick={() => openCreds(w)} color={C.purple} activeColor={C.purple} />
+                    <IconBtn Icon={ClipboardList} label="سجل" onClick={() => setAdvHistory(w)} />
+                    {permissions?.isOwner && <IconBtn Icon={FileText} label="راتب" onClick={() => exportWorkerSalaryPDF({ worker: w, workDays, payments })} />}
+                    {permissions?.isOwner && <IconBtn Icon={FileSignature} label="عقد" onClick={() => exportWorkerContractPDF({ worker: w, ownerName: profile?.full_name || '', contractorNumber: profile?.contractor_number || '' })} color={C.blue} activeColor={C.blue} />}
+                    <IconBtn Icon={BarChart2} label="إحصاء" onClick={() => setStatsWorker(w)} color={C.blue} activeColor={C.blue} />
+                    <IconBtn Icon={KeyRound} label="بيانات" onClick={() => openCreds(w)} color={C.warning} activeColor={C.warning} />
                     {permissions?.editWorkers !== false && (
-                      <IconBtn icon="✏️" label="تعديل" onClick={() => openEdit(w)} color={C.secondary} activeColor={C.secondary} />
+                      <IconBtn Icon={Pencil} label="تعديل" onClick={() => openEdit(w)} color={C.secondary} activeColor={C.secondary} />
                     )}
                     {permissions?.canDelete !== false && (
-                      <IconBtn icon="🗑️" label="حذف" onClick={() => setConfirmDel(w.id)} color={C.accent} activeColor={C.accent} />
+                      <IconBtn Icon={Trash2} label="حذف" onClick={() => setConfirmDel(w.id)} color={C.accent} activeColor={C.accent} />
                     )}
                   </div>
                 </div>
-              </GlassCard>
+              </motion.div>
             )
           })
         })()}
@@ -439,7 +446,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       {/* ════════════════════════════════════
           Modal: إضافة / تعديل عامل
       ════════════════════════════════════ */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? '✏️ تعديل عامل' : '👷 عامل جديد'}>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'تعديل عامل' : 'عامل جديد'}>
         <Input label="الاسم"             value={form.name}       onChange={f('name')}       required />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Input label="التلفون"           value={form.phone}      onChange={f('phone')}      type="tel" />
@@ -541,16 +548,16 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       {/* ════════════════════════════════════
           Modal: بيانات الدخول
       ════════════════════════════════════ */}
-      <Modal open={!!credWorker} onClose={() => setCredWorker(null)} title={`🔑 بيانات دخول ${credWorker?.name || ''}`}>
+      <Modal open={!!credWorker} onClose={() => setCredWorker(null)} title={`بيانات دخول ${credWorker?.name || ''}`}>
         {credDone ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <div style={{
               width: 64, height: 64, borderRadius: '50%',
               background: GRAD.success,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 28, margin: '0 auto 16px',
+              margin: '0 auto 16px',
               boxShadow: `0 8px 28px ${C.success}44`,
-            }}>✓</div>
+            }}><Check size={28} strokeWidth={2.5} color="#000" /></div>
             <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم الحفظ بنجاح!</div>
             <div style={{ fontSize: 12, color: C.textDim, marginBottom: 18 }}>
               اسم المستخدم: <b style={{ color: C.primary }}>{credForm.username}</b>
@@ -575,14 +582,14 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
               <GlassCard style={{ marginBottom: 16, borderRadius: 14, overflow: 'hidden' }}>
                 <div style={{ height: 3, background: GRAD.warm }} />
                 <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
-                  🔑 اسم المستخدم الحالي: <b style={{ color: C.primary }}>{credWorker?.worker_username}</b>
+                  اسم المستخدم الحالي: <b style={{ color: C.primary }}>{credWorker?.worker_username}</b>
                   <br />سيتم تغيير كلمة المرور فقط — اسم المستخدم يبقى كما هو
                 </div>
               </GlassCard>
             ) : (
               <GlassCard style={{ marginBottom: 16, borderRadius: 14 }}>
                 <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
-                  🔒 العامل سيستخدم هذه البيانات لتسجيل الدخول في بوابة العمال ومشاهدة راتبه
+                  العامل سيستخدم هذه البيانات لتسجيل الدخول في بوابة العمال ومشاهدة راتبه
                 </div>
               </GlassCard>
             )}
@@ -591,8 +598,8 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
             {credWorker?.worker_username && (
               <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
                 {[
-                  { id: true,  label: '🔄 تغيير كلمة المرور' },
-                  { id: false, label: '✏️ تعديل كل البيانات' },
+                  { id: true,  label: 'تغيير كلمة المرور' },
+                  { id: false, label: 'تعديل كل البيانات' },
                 ].map(opt => (
                   <button key={String(opt.id)} onClick={() => { setCredResetMode(opt.id); setCredError('') }}
                     style={{ flex: 1, padding: '8px 6px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${credResetMode === opt.id ? C.primary : C.border}`, background: credResetMode === opt.id ? `${C.primary}22` : 'transparent', color: credResetMode === opt.id ? C.primary : C.textDim, transition: 'all .2s' }}>
@@ -621,7 +628,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
               </div>
             )}
             <Btn onClick={saveCreds} full disabled={credSaving}>
-              {credSaving ? 'جاري الحفظ...' : credResetMode ? '🔐 تعيين كلمة المرور الجديدة' : '✓ حفظ بيانات الدخول'}
+              {credSaving ? 'جاري الحفظ...' : credResetMode ? 'تعيين كلمة المرور الجديدة' : 'حفظ بيانات الدخول'}
             </Btn>
           </>
         )}
@@ -641,7 +648,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
           const paid   = payments.filter(p => p.employee_id === w.id).reduce((s, p) => s + p.amount, 0)
           const owed   = earned - paid
           const hasDays = workDays.some(d => d.employee_id === w.id)
-          if (owed > 0) return `⚠️ ${w.name} عنده ${owed.toLocaleString()}₪ مستحقة غير مدفوعة. حذفه سيمسح كل سجلاته. متأكد؟`
+          if (owed > 0) return `${w.name} عنده ${owed.toLocaleString()}₪ مستحقة غير مدفوعة. حذفه سيمسح كل سجلاته. متأكد؟`
           if (hasDays)  return `حذف ${w.name}؟ سيتم مسح كل أيام عمله وسجلاته. لا يمكن التراجع.`
           return `حذف ${w.name}؟ لا يمكن التراجع عن هذا الإجراء.`
         })()}
@@ -650,10 +657,10 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       {/* ════════════════════════════════════
           Modal: منح سلفة
       ════════════════════════════════════ */}
-      <Modal open={!!advWorker} onClose={() => setAdvWorker(null)} title={`💵 سلفة لـ ${advWorker?.name || ''}`}>
+      <Modal open={!!advWorker} onClose={() => setAdvWorker(null)} title={`سلفة لـ ${advWorker?.name || ''}`}>
         <GlassCard style={{ marginBottom: 16, borderRadius: 14 }}>
           <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
-            💡 السلف تُخصم تلقائياً من الراتب المستحق للعامل
+            السلف تُخصم تلقائياً من الراتب المستحق للعامل
           </div>
         </GlassCard>
         <Input label="المبلغ (₪)" value={advForm.amount}
@@ -673,17 +680,17 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
           </div>
         )}
         <Btn onClick={saveAdvance} full disabled={advSaving} color={C.warning}>
-          {advSaving ? 'جاري الحفظ...' : '✓ تسجيل السلفة'}
+          {advSaving ? 'جاري الحفظ...' : 'تسجيل السلفة'}
         </Btn>
       </Modal>
 
       {/* ════════════════════════════════════
           Modal: سجل السلف
       ════════════════════════════════════ */}
-      <Modal open={!!advHistory} onClose={() => setAdvHistory(null)} title={`📋 سجل سلف ${advHistory?.name || ''}`}>
+      <Modal open={!!advHistory} onClose={() => setAdvHistory(null)} title={`سجل سلف ${advHistory?.name || ''}`}>
         {advances.filter(a => a.employee_id === advHistory?.id).length === 0 ? (
           <div style={{ textAlign: 'center', padding: '36px 0' }}>
-            <div style={{ fontSize: 40, marginBottom: 10, opacity: 0.4 }}>📋</div>
+            <ClipboardList size={40} strokeWidth={1.2} style={{ color: C.textDim, opacity: 0.4, margin: '0 auto 10px', display: 'block' }} />
             <div style={{ fontSize: 13, color: C.textDim }}>لا يوجد سلف مسجلة لهذا العامل</div>
           </div>
         ) : (
@@ -723,7 +730,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                           transition: 'all .2s',
                         }}
                       >
-                        🗑️
+                        <Trash2 size={14} strokeWidth={2} />
                       </button>
                     )}
                   </div>
@@ -748,7 +755,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         addHoliday={addHoliday}
         deleteHoliday={deleteHoliday}
       />
-    </div>
+    </motion.div>
   )
 }
 

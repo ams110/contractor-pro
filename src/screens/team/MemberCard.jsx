@@ -1,4 +1,5 @@
 import React from 'react'
+import { Ban } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { GlassCard } from '../../components/index.jsx'
 import { fmtRelative } from './teamConstants.js'
@@ -76,7 +77,7 @@ export function MemberCard({ member, manager, onBlock, onRemove, onEditPerms, on
                   {member.role}
                 </span>
               )}
-              {blocked && <span style={{ fontSize: 10, color: C.accent, fontWeight: 700, background: `${C.accent}18`, padding: '2px 6px', borderRadius: 6 }}>🚫 محجوب</span>}
+              {blocked && <span style={{ fontSize: 10, color: C.accent, fontWeight: 700, background: `${C.accent}18`, padding: '2px 6px', borderRadius: 6, display:'inline-flex', alignItems:'center', gap:3 }}><Ban size={9} strokeWidth={2} /> محجوب</span>}
               {!blocked && expired && <span style={{ fontSize: 10, color: C.warning, fontWeight: 700, background: `${C.warning}18`, padding: '2px 6px', borderRadius: 6 }}>⏰ منتهي</span>}
               {!blocked && !expired && <span style={{ fontSize: 10, color: C.success, fontWeight: 700 }}>● نشط</span>}
             </div>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { KeyRound } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { Btn, GlassCard, EmptyState, ConfirmDialog } from '../../components/index.jsx'
 import { useTeamManager } from './useTeamManager.js'
@@ -168,7 +169,7 @@ export default function TeamScreen({
           onClick={e => { if (e.target === e.currentTarget) manager.setResetPassTarget(null) }}
         >
           <div style={{ width: '100%', maxWidth: 360, background: C.surface, borderRadius: 20, padding: 22, border: `1px solid ${C.borderMid}` }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 2 }}>🔑 تغيير كلمة المرور</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 2, display:'flex', alignItems:'center', gap:6 }}><KeyRound size={14} strokeWidth={2} /> تغيير كلمة المرور</div>
             <div style={{ fontSize: 11, color: C.textDim, marginBottom: 14 }}>
               {manager.resetPassTarget.display_name || manager.resetPassTarget.username}
             </div>

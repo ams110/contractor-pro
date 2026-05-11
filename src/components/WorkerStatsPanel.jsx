@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { BarChart2, X, TrendingUp, CalendarDays, Plus, Check, Trash2 } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmtDate, todayStr } from '../lib/helpers.js'
 
@@ -45,10 +46,10 @@ function MonthCalendar({ year, month, workDays, holidays }) {
   return (
     <>
       <div style={{ display: 'flex', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, color: C.success, fontWeight: 700 }}>🟢 {worked} يوم عمل</span>
-        {pending  > 0 && <span style={{ fontSize: 11, color: C.primary, fontWeight: 700 }}>🔵 {pending} معلق</span>}
-        {holCount > 0 && <span style={{ fontSize: 11, color: C.warning, fontWeight: 700 }}>🟡 {holCount} إجازة</span>}
-        <span style={{ fontSize: 11, color: C.textDim }}>⚫ جمعة-سبت</span>
+        <span style={{ fontSize: 11, color: C.success, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.success, display: 'inline-block' }} />{worked} يوم عمل</span>
+        {pending  > 0 && <span style={{ fontSize: 11, color: C.primary, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.primary, display: 'inline-block' }} />{pending} معلق</span>}
+        {holCount > 0 && <span style={{ fontSize: 11, color: C.warning, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.warning, display: 'inline-block' }} />{holCount} إجازة</span>}
+        <span style={{ fontSize: 11, color: C.textDim, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.textDim, display: 'inline-block', opacity: 0.5 }} />جمعة-سبت</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, marginBottom: 4 }}>
         {DAYS_AR.map(d => (
@@ -122,17 +123,17 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
         {/* Header */}
         <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>📊 {worker.name}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, display: 'flex', alignItems: 'center', gap: 7 }}><BarChart2 size={16} strokeWidth={2} style={{ color: C.primary }} /> {worker.name}</div>
             <div style={{ fontSize: 11, color: C.textDim }}>{yearTotal} يوم عمل في {year}</div>
           </div>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', background: C.border, border: 'none', cursor: 'pointer', fontSize: 14, color: C.text }}>✕</button>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', background: C.border, border: 'none', cursor: 'pointer', color: C.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}><X size={14} strokeWidth={2.5} /></button>
         </div>
 
         <div style={{ overflowY: 'auto', flex: 1, padding: 16 }}>
 
           {/* Cumulative Stats */}
           <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '12px 14px', border: `1px solid ${C.border}`, marginBottom: 14 }}>
-            <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 10, letterSpacing: '0.04em' }}>📈 الإحصائيات الإجمالية (منذ البداية)</div>
+            <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 10, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 5 }}><TrendingUp size={12} strokeWidth={2} style={{ color: C.primary }} /> الإحصائيات الإجمالية (منذ البداية)</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 6 }}>
               {[
                 { l: 'أيام العمل', v: totalDaysEver, suffix: 'يوم', c: C.primary },
@@ -202,10 +203,10 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
           {/* Holidays Section */}
           <div style={{ marginBottom: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>🗓️ الإجازات ({year})</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarDays size={14} strokeWidth={2} style={{ color: C.warning }} /> الإجازات ({year})</div>
               <button onClick={() => setShowAddHol(v => !v)}
-                style={{ padding: '6px 12px', borderRadius: 8, background: showAddHol ? `${C.accent}22` : `${C.primary}22`, border: `1px solid ${showAddHol ? C.accent : C.primary}55`, color: showAddHol ? C.accent : C.primary, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                {showAddHol ? '✕ إلغاء' : '+ أضف إجازة'}
+                style={{ padding: '6px 12px', borderRadius: 8, background: showAddHol ? `${C.accent}22` : `${C.primary}22`, border: `1px solid ${showAddHol ? C.accent : C.primary}55`, color: showAddHol ? C.accent : C.primary, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit' }}>
+                {showAddHol ? <><X size={11} strokeWidth={2.5} /> إلغاء</> : <><Plus size={11} strokeWidth={2.5} /> أضف إجازة</>}
               </button>
             </div>
 
@@ -227,8 +228,8 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
                 <input type="date" value={holForm.date} onChange={e => setHolForm(p => ({ ...p, date: e.target.value }))}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13, marginBottom: 10, boxSizing: 'border-box', outline: 'none' }} />
                 <button onClick={handleAddHoliday} disabled={saving || !holForm.name}
-                  style={{ width: '100%', padding: '11px 0', borderRadius: 10, background: saving || !holForm.name ? C.border : C.warning, border: 'none', color: '#000', fontSize: 13, fontWeight: 800, cursor: saving || !holForm.name ? 'default' : 'pointer' }}>
-                  {saving ? '...' : '✓ أضف الإجازة'}
+                  style={{ width: '100%', padding: '11px 0', borderRadius: 10, background: saving || !holForm.name ? C.border : C.warning, border: 'none', color: '#000', fontSize: 13, fontWeight: 800, cursor: saving || !holForm.name ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit' }}>
+                  <Check size={14} strokeWidth={2.5} /> {saving ? '...' : 'أضف الإجازة'}
                 </button>
               </div>
             )}
@@ -242,7 +243,7 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{h.name}</div>
                     <div style={{ fontSize: 11, color: C.textDim }}>{fmtDate(h.date)}</div>
                   </div>
-                  <button onClick={() => deleteHoliday(h.id)} style={{ background: 'none', border: 'none', fontSize: 14, cursor: 'pointer', color: C.textDim }}>🗑️</button>
+                  <button onClick={() => deleteHoliday(h.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex', fontFamily: 'inherit' }}><Trash2 size={14} strokeWidth={2} /></button>
                 </div>
               ))
             }

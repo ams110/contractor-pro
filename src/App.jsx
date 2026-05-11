@@ -1,97 +1,169 @@
-import React, { useState, useMemo, lazy, Suspense } from 'react'
-import { supabase } from './lib/supabase.js'
-import { C, NAV } from './constants/index.js'
-import { navigate }          from './Router.jsx'
-import { useAuth }           from './hooks/useAuth.js'
-import { useOrganization }   from './hooks/useOrganization.js'
-import { useProjects }       from './hooks/useData.js'
-import { useEmployees }      from './hooks/useData.js'
-import { useWorkDays }       from './hooks/useData.js'
-import { useExpenses }       from './hooks/useData.js'
-import { usePayments }       from './hooks/useData.js'
-import { useClientReceipts } from './hooks/useData.js'
-import { useHolidays }       from './hooks/useData.js'
-import { useAdvances }       from './hooks/useData.js'
-import { useTaxAdvances }    from './hooks/useData.js'
-import { useSettings }       from './hooks/useSettings.js'
-import { useProfile }        from './hooks/useProfile.js'
-import { useTeam, teamMemberSignIn }      from './hooks/useTeam.js'
+import React, { useState, useMemo, lazy, Suspense, useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+  LayoutDashboard, Building2, Users, Wallet, Grid3x3,
+  Bell, Search, ClipboardCheck, HardHat, WifiOff, Gift,
+  Clock, ShieldOff, Lock, CalendarDays, CreditCard, Banknote,
+  ClipboardList, Package, Calculator, Activity, Settings, X,
+  ChevronLeft,
+} from 'lucide-react'
+
+import { supabase }            from './lib/supabase.js'
+import { C, GRAD, NAV, MORE_SCREENS } from './constants/index.js'
+import { navigate }            from './Router.jsx'
+import { useAppStore }         from './store/useAppStore.js'
+import { useAuth }             from './hooks/useAuth.js'
+import { useOrganization }     from './hooks/useOrganization.js'
+import { useProjects, useEmployees, useWorkDays, useExpenses, usePayments, useClientReceipts, useHolidays, useAdvances, useTaxAdvances } from './hooks/useData.js'
+import { useSettings }         from './hooks/useSettings.js'
+import { useProfile }          from './hooks/useProfile.js'
+import { useTeam, teamMemberSignIn } from './hooks/useTeam.js'
+import { useNotifications }    from './hooks/useNotifications.js'
+import { useSalaryAlerts }     from './hooks/useSalaryAlerts.js'
 
 import LoginScreen        from './screens/LoginScreen.jsx'
 import WorkerPortalScreen from './screens/WorkerPortalScreen.jsx'
 import DashboardScreen    from './screens/DashboardScreen.jsx'
+import SearchOverlay      from './components/SearchOverlay.jsx'
+import NotificationsPanel from './components/NotificationsPanel.jsx'
+import ErrorBoundary      from './components/ErrorBoundary.jsx'
+import { LoadingSpinner } from './components/index.jsx'
+
 const ProjectsScreen  = lazy(() => import('./screens/ProjectsScreen.jsx'))
 const WorkersScreen   = lazy(() => import('./screens/WorkersScreen.jsx'))
 const WorkDaysScreen  = lazy(() => import('./screens/WorkDaysScreen.jsx'))
 const ExpensesScreen  = lazy(() => import('./screens/ExpensesScreen.jsx'))
 const PaymentsScreen  = lazy(() => import('./screens/PaymentsScreen.jsx'))
-const SettingsScreen    = lazy(() => import('./screens/SettingsScreen.jsx'))
+const SettingsScreen  = lazy(() => import('./screens/SettingsScreen.jsx'))
 const AccountingScreen  = lazy(() => import('./screens/AccountingScreen.jsx'))
 const UnitTrackerScreen = lazy(() => import('./screens/UnitTrackerScreen.jsx'))
 const MaterialsScreen   = lazy(() => import('./screens/MaterialsScreen.jsx'))
-const ActivityScreen  = lazy(() => import('./screens/ActivityScreen.jsx'))
-import SearchOverlay        from './components/SearchOverlay.jsx'
-import NotificationsPanel   from './components/NotificationsPanel.jsx'
-import ErrorBoundary        from './components/ErrorBoundary.jsx'
-import { LoadingSpinner }   from './components/index.jsx'
-import { GRAD }             from './constants/index.js'
-import { useNotifications } from './hooks/useNotifications.js'
-import { useSalaryAlerts }  from './hooks/useSalaryAlerts.js'
+const ActivityScreen    = lazy(() => import('./screens/ActivityScreen.jsx'))
+
+// ─── Icon map ────────────────────────────────────────────────────────────────
+const NAV_ICONS = {
+  dashboard:  LayoutDashboard,
+  projects:   Building2,
+  workers:    Users,
+  finance:    Wallet,
+  more:       Grid3x3,
+  workdays:   CalendarDays,
+  expenses:   CreditCard,
+  payments:   Banknote,
+  tracker:    ClipboardList,
+  materials:  Package,
+  accounting: Calculator,
+  activity:   Activity,
+  settings:   Settings,
+}
 
 const globalCSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,400..900&display=swap');
 
-  @keyframes fadeIn    { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
-  @keyframes fadeUp    { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
-  @keyframes slideUp   { from { transform:translateY(100%) }             to { transform:translateY(0) } }
-  @keyframes spin      { to   { transform:rotate(360deg) } }
-  @keyframes shimmer   { 0%   { background-position:200% 0 }             to  { background-position:-200% 0 } }
+  @keyframes spin      { to { transform:rotate(360deg) } }
+  @keyframes float     { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-7px) } }
+  @keyframes shimmer   { 0% { background-position:200% 0 } to { background-position:-200% 0 } }
   @keyframes ping      { 75%,100% { transform:scale(2.2); opacity:0 } }
-  @keyframes toastIn   { from { opacity:0; transform:translateX(-50%) translateY(16px) } to { opacity:1; transform:translateX(-50%) translateY(0) } }
-  @keyframes float     { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-6px) } }
-  @keyframes gradMove  { 0%,100% { background-position:0% 50% } 50% { background-position:100% 50% } }
-  @keyframes navPop    { 0% { transform:scale(0.85) translateY(4px); opacity:0 } 60% { transform:scale(1.12) translateY(-1px) } 100% { transform:scale(1) translateY(0); opacity:1 } }
-  @keyframes glowPulse { 0%,100% { box-shadow:0 0 12px #00DDB355 } 50% { box-shadow:0 0 22px #00DDB388 } }
+  @keyframes glowPulse { 0%,100% { box-shadow:0 0 14px rgba(245,158,11,0.3) } 50% { box-shadow:0 0 28px rgba(245,158,11,0.55) } }
   @keyframes badgePop  { 0% { transform:scale(0) } 70% { transform:scale(1.2) } 100% { transform:scale(1) } }
-
-  .fade-in   { animation: fadeIn   .28s cubic-bezier(0.22,1,0.36,1) both }
-  .fade-up   { animation: fadeUp   .35s cubic-bezier(0.22,1,0.36,1) both }
-  .slide-up  { animation: slideUp  .38s cubic-bezier(0.32,0.72,0,1) both }
-  .toast-in  { animation: toastIn  .3s  ease both }
-  .nav-pop   { animation: navPop   .4s  cubic-bezier(0.34,1.56,0.64,1) both }
-  .badge-pop { animation: badgePop .3s  cubic-bezier(0.34,1.56,0.64,1) both }
+  @keyframes auroraMove { 0%,100% { opacity:0.6 } 50% { opacity:1 } }
 
   * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 
-  ::-webkit-scrollbar { width:3px; height:3px; }
-  ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:rgba(0,221,179,0.2); border-radius:3px; }
-  ::-webkit-scrollbar-thumb:hover { background:rgba(0,221,179,0.4); }
-
   body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif !important; -webkit-font-smoothing:antialiased; }
   input, select, textarea, button { font-family: inherit; }
-  button:focus-visible { outline: 2px solid #00DDB3; outline-offset: 2px; }
+  button:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
 
-  .btn-press { transition: transform .12s ease, box-shadow .12s ease !important; }
-  .btn-press:active { transform: scale(0.94) !important; }
+  ::-webkit-scrollbar { width:3px; height:3px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:rgba(245,158,11,0.2); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:rgba(245,158,11,0.4); }
 
-  .glass { background: rgba(13,17,23,0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
-
-  .nav-btn { transition: transform .3s cubic-bezier(0.34,1.56,0.64,1) !important; }
-  .nav-btn:active { transform: scale(0.88) !important; }
+  .glass { background:rgba(7,8,12,0.88); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid rgba(245,158,11,0.07); }
+  .badge-pop { animation: badgePop .3s cubic-bezier(0.34,1.56,0.64,1) both; }
 `
 
 function NoAccess() {
   return (
-    <div style={{ padding:60, textAlign:'center' }}>
-      <div style={{ fontSize:48, marginBottom:12 }}>🔒</div>
-      <div style={{ fontSize:14, color:'#555', fontWeight:600 }}>ليس لديك صلاحية لعرض هذه الصفحة</div>
+    <div style={{ padding: 60, textAlign: 'center' }}>
+      <div style={{ width: 56, height: 56, borderRadius: 18, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+        <Lock size={24} color="#EF4444" strokeWidth={2} />
+      </div>
+      <div style={{ fontSize: 14, color: '#64748B', fontWeight: 600 }}>ليس لديك صلاحية لعرض هذه الصفحة</div>
     </div>
   )
 }
 
+// ─── "المزيد" Drawer ─────────────────────────────────────────────────────────
+function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
+  const p = permissions || {}
+  const filtered = MORE_SCREENS.filter(s => {
+    if (s.id === 'activity') return p.viewActivity || p.isOwner
+    return true
+  })
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="more-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}
+        >
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              background: '#0D0F18',
+              border: '1px solid rgba(245,158,11,0.12)',
+              borderRadius: '24px 24px 0 0',
+              padding: '8px 0 40px',
+              maxWidth: 430, margin: '0 auto',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
+            </div>
+            <div style={{ padding: '0 8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {filtered.map(item => {
+                const Icon = NAV_ICONS[item.id] || Grid3x3
+                const active = screen === item.id
+                return (
+                  <motion.button
+                    key={item.id}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => { setScreen(item.id); onClose() }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 14px', borderRadius: 16,
+                      background: active ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${active ? 'rgba(245,158,11,0.25)' : 'rgba(255,255,255,0.06)'}`,
+                      cursor: 'pointer', color: active ? C.primary : '#94A3B8',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>{item.label}</span>
+                  </motion.button>
+                )
+              })}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 export default function App() {
-  // Worker portal: detect ?portal in URL
+  // Worker portal
   const params = new URLSearchParams(window.location.search)
   if (params.has('portal') || params.has('worker')) {
     return (
@@ -103,58 +175,54 @@ export default function App() {
   }
 
   const { user, loading: authLoading } = useAuth()
-  const [screen,         setScreen]        = useState('dashboard')
-  const [showSearch,     setShowSearch]    = useState(false)
-  const [showNotifs,     setShowNotifs]    = useState(false)
-  const [isOnline,       setIsOnline]      = useState(navigator.onLine)
-  const [toast,          setToast]         = useState(null)
-  const [showOnboarding, setShowOnboarding] = useState(false)
-  const toastTimerRef = React.useRef(null)
 
-  React.useEffect(() => {
-    const on  = () => setIsOnline(true)
-    const off = () => setIsOnline(false)
+  // ─── Zustand store ────────────────────────────────────────────────────────
+  const {
+    screen, setScreen,
+    showSearch, setShowSearch,
+    showNotifs, setShowNotifs,
+    showMore, setShowMore,
+    toast, showToast,
+    isOnline, setOnline,
+  } = useAppStore()
+
+  useEffect(() => {
+    const on  = () => setOnline(true)
+    const off = () => setOnline(false)
     window.addEventListener('online',  on)
     window.addEventListener('offline', off)
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
   }, [])
 
-  function showToast(msg, type = 'success') {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-    setToast({ msg, type })
-    toastTimerRef.current = setTimeout(() => setToast(null), 3000)
-  }
-
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const uid = user?.id
 
   const { teamMembers, permissions, effectiveOwnerId, allowedProjectIds, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
-
   const eid = effectiveOwnerId || uid
 
   const { projects,       loading: pLoad,  addProject,    updateProject,    deleteProject   } = useProjects(eid)
   const { employees,      loading: eLoad,  addEmployee,   updateEmployee,   deleteEmployee  } = useEmployees(eid)
-  const { workDays,       loading: wLoad,  addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays,  deleteWorkDay, approveWorkDay, rejectWorkDay } = useWorkDays(eid)
+  const { workDays,       loading: wLoad,  addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays, deleteWorkDay, approveWorkDay, rejectWorkDay } = useWorkDays(eid)
   const { expenses,       loading: xLoad,  addExpense, deleteExpense, approveExpense, rejectExpense } = useExpenses(eid)
   const { payments,       loading: pyLoad, addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest } = usePayments(eid)
-  const { advances,                        addAdvance,                      deleteAdvance   } = useAdvances(eid)
-  const { taxAdvances,                     addTaxAdvance,                   deleteTaxAdvance } = useTaxAdvances(eid)
-  const { clientReceipts, loading: crLoad, addReceipt, updateReceipt,        deleteReceipt   } = useClientReceipts(eid)
+  const { advances,                        addAdvance,  deleteAdvance   } = useAdvances(eid)
+  const { taxAdvances,                     addTaxAdvance, deleteTaxAdvance } = useTaxAdvances(eid)
+  const { clientReceipts, loading: crLoad, addReceipt, updateReceipt, deleteReceipt } = useClientReceipts(eid)
   const { specs, expCats, payMethods, pensionMonthly, taxEnabled, businessType, taxModules, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly, setTaxEnabled, setBusinessType, setTaxModule } = useSettings(eid)
-  const { holidays, addHoliday, deleteHoliday }                                               = useHolidays(eid)
+  const { holidays, addHoliday, deleteHoliday } = useHolidays(eid)
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar, saveContractorNumber } = useProfile(uid)
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
   useSalaryAlerts(uid, employees, workDays, payments)
 
-  // ─── Subscription / plan state (Phase 2+3) ──────────────────────────────
   const { org, loading: orgLoading, isPlanActive, isTrialActive, trialDaysLeft } = useOrganization(uid)
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (uid && !localStorage.getItem('cp_onboarded')) setShowOnboarding(true)
   }, [uid])
 
-  // تسجيل الخروج التلقائي بعد 30 دقيقة من عدم النشاط (للمالك فقط — أعضاء الفريق لهم جلسة مستقلة)
-  React.useEffect(() => {
-    if (!uid || effectiveOwnerId) return  // تجاهل أعضاء الفريق
+  // Auto logout after 30 min idle (owner only)
+  useEffect(() => {
+    if (!uid || effectiveOwnerId) return
     let timer
     const reset = () => {
       clearTimeout(timer)
@@ -163,324 +231,350 @@ export default function App() {
     const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'pointermove']
     events.forEach(e => window.addEventListener(e, reset, { passive: true }))
     reset()
-    return () => {
-      clearTimeout(timer)
-      events.forEach(e => window.removeEventListener(e, reset))
-    }
+    return () => { clearTimeout(timer); events.forEach(e => window.removeEventListener(e, reset)) }
   }, [uid, effectiveOwnerId])
 
-  // ─── تصفية البيانات حسب المشاريع المسموح بها (memoized لتجنب إعادة الحساب) ─
-  const visibleProjects       = useMemo(() => allowedProjectIds ? projects.filter(p => allowedProjectIds.includes(p.id)) : projects, [projects, allowedProjectIds])
-  const visibleWorkDays       = useMemo(() => allowedProjectIds ? workDays.filter(w => allowedProjectIds.includes(w.project_id)) : workDays, [workDays, allowedProjectIds])
-  const visibleClientReceipts = useMemo(() => allowedProjectIds ? clientReceipts.filter(r => allowedProjectIds.includes(r.project_id)) : clientReceipts, [clientReceipts, allowedProjectIds])
-  const visibleEmployeeIds    = useMemo(() => allowedProjectIds ? new Set(visibleWorkDays.map(w => w.employee_id)) : null, [visibleWorkDays, allowedProjectIds])
-  const visibleExpenses       = useMemo(() => allowedProjectIds
-    ? expenses.filter(e => e.employee_id
-        ? visibleEmployeeIds.has(e.employee_id)
-        : allowedProjectIds.includes(e.project_id))
-    : expenses, [expenses, allowedProjectIds, visibleEmployeeIds])
-  const visibleEmployees      = useMemo(() => visibleEmployeeIds ? employees.filter(e => visibleEmployeeIds.has(e.id)) : employees, [employees, visibleEmployeeIds])
-  const visiblePayments       = useMemo(() => allowedProjectIds
-    ? payments.filter(p => p.project_id && allowedProjectIds.includes(p.project_id))
-    : payments, [payments, allowedProjectIds])
-  const visibleAdvances       = useMemo(() => visibleEmployeeIds ? advances.filter(a => visibleEmployeeIds.has(a.employee_id)) : advances, [advances, visibleEmployeeIds])
-
-  // ─── دوال الموافقة/الرفض مع إشعار توست ────────────────────────────────────
-  const _approveWorkDay = id      => approveWorkDay(id).then(() => showToast('✓ تمت الموافقة على يوم العمل'))
-  const _rejectWorkDay  = (id, r) => rejectWorkDay(id, r).then(() => showToast('رُفض يوم العمل', 'warning'))
-  const _approveExpense = id      => approveExpense(id).then(() => showToast('✓ تمت الموافقة على المصروف'))
-  const _rejectExpense  = (id, r) => rejectExpense(id, r).then(() => showToast('رُفض المصروف', 'warning'))
-  const _approvePayment = id      => approvePaymentRequest(id).then(() => showToast('✓ تمت الموافقة على الدفعة'))
-  const _rejectPayment  = (id, r) => rejectPaymentRequest(id, r).then(() => showToast('رُفضت الدفعة', 'warning'))
-
-  const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
-
-  // ─── تسجيل الصفحات التي يشاهدها أعضاء الفريق ───────────────────────────
-  // يجب أن يكون قبل أي early return لتجنب React Hooks violation
-  React.useEffect(() => {
+  // Log screen views for team members
+  useEffect(() => {
     if (!permissions?.isOwner && uid && effectiveOwnerId && uid !== effectiveOwnerId) {
       supabase.rpc('log_screen_view', { p_owner_id: effectiveOwnerId, p_screen: screen })
     }
   }, [screen])
 
+  // ─── Filtered data ────────────────────────────────────────────────────────
+  const visibleProjects       = useMemo(() => allowedProjectIds ? projects.filter(p => allowedProjectIds.includes(p.id)) : projects, [projects, allowedProjectIds])
+  const visibleWorkDays       = useMemo(() => allowedProjectIds ? workDays.filter(w => allowedProjectIds.includes(w.project_id)) : workDays, [workDays, allowedProjectIds])
+  const visibleClientReceipts = useMemo(() => allowedProjectIds ? clientReceipts.filter(r => allowedProjectIds.includes(r.project_id)) : clientReceipts, [clientReceipts, allowedProjectIds])
+  const visibleEmployeeIds    = useMemo(() => allowedProjectIds ? new Set(visibleWorkDays.map(w => w.employee_id)) : null, [visibleWorkDays, allowedProjectIds])
+  const visibleExpenses       = useMemo(() => allowedProjectIds ? expenses.filter(e => e.employee_id ? visibleEmployeeIds.has(e.employee_id) : allowedProjectIds.includes(e.project_id)) : expenses, [expenses, allowedProjectIds, visibleEmployeeIds])
+  const visibleEmployees      = useMemo(() => visibleEmployeeIds ? employees.filter(e => visibleEmployeeIds.has(e.id)) : employees, [employees, visibleEmployeeIds])
+  const visiblePayments       = useMemo(() => allowedProjectIds ? payments.filter(p => p.project_id && allowedProjectIds.includes(p.project_id)) : payments, [payments, allowedProjectIds])
+  const visibleAdvances       = useMemo(() => visibleEmployeeIds ? advances.filter(a => visibleEmployeeIds.has(a.employee_id)) : advances, [advances, visibleEmployeeIds])
+
+  const _approveWorkDay = id      => approveWorkDay(id).then(() => showToast('تمت الموافقة على يوم العمل'))
+  const _rejectWorkDay  = (id, r) => rejectWorkDay(id, r).then(() => showToast('رُفض يوم العمل', 'warning'))
+  const _approveExpense = id      => approveExpense(id).then(() => showToast('تمت الموافقة على المصروف'))
+  const _rejectExpense  = (id, r) => rejectExpense(id, r).then(() => showToast('رُفض المصروف', 'warning'))
+  const _approvePayment = id      => approvePaymentRequest(id).then(() => showToast('تمت الموافقة على الدفعة'))
+  const _rejectPayment  = (id, r) => rejectPaymentRequest(id, r).then(() => showToast('رُفضت الدفعة', 'warning'))
+
+  const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
+
+  // ─── Early returns ────────────────────────────────────────────────────────
   if (authLoading) {
     return (
-      <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:0 }}>
+      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, overflow: 'hidden', position: 'relative' }}>
         <style>{globalCSS}</style>
-        <div style={{ width:88, height:88, borderRadius:28, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:44, marginBottom:24, boxShadow:`0 16px 50px #00DDB344`, animation:'float 2.5s ease-in-out infinite' }}>🏗️</div>
-        <div style={{ fontSize:26, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', marginBottom:6 }}>Contractor Pro</div>
-        <div style={{ fontSize:11, color:C.textDim, letterSpacing:'0.1em', marginBottom:36 }}>إدارة مشاريعك بذكاء</div>
-        <LoadingSpinner />
+        {/* Aurora */}
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(245,158,11,0.1) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(239,68,68,0.06) 0%, transparent 60%)', animation: 'auroraMove 4s ease-in-out infinite', pointerEvents: 'none' }} />
+        <motion.div
+          animate={{ y: [0, -8, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ width: 96, height: 96, borderRadius: 30, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 26, boxShadow: '0 20px 60px rgba(245,158,11,0.4), 0 0 0 1px rgba(255,255,255,0.12) inset', position: 'relative', zIndex: 1 }}
+        >
+          <HardHat size={48} color="#000" strokeWidth={1.5} />
+        </motion.div>
+        <div style={{ fontSize: 28, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6, letterSpacing: '-0.02em', position: 'relative', zIndex: 1 }}>Contractor Pro</div>
+        <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.15em', marginBottom: 44, textTransform: 'uppercase', fontWeight: 600, position: 'relative', zIndex: 1 }}>إدارة مشاريعك بذكاء</div>
+        <div style={{ position: 'relative', zIndex: 1 }}><LoadingSpinner /></div>
       </div>
     )
   }
 
-  if (!user) {
-    return (
-      <>
-        <style>{globalCSS}</style>
-        <LoginScreen teamMemberSignIn={teamMemberSignIn} />
-      </>
-    )
-  }
+  if (!user) return (
+    <>
+      <style>{globalCSS}</style>
+      <LoginScreen teamMemberSignIn={teamMemberSignIn} />
+    </>
+  )
 
-  if (isBlocked || isExpired) {
-    return (
-      <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:0, direction:'rtl', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", padding:32 }}>
-        <style>{globalCSS}</style>
-        <div style={{ fontSize:64, marginBottom:16 }}>{isExpired ? '⏰' : '🚫'}</div>
-        <div style={{ fontSize:20, fontWeight:900, color:C.accent, marginBottom:8 }}>
-          {isExpired ? 'انتهت صلاحية وصولك' : 'تم إيقاف وصولك'}
-        </div>
-        <div style={{ fontSize:13, color:C.textDim, textAlign:'center', lineHeight:1.7 }}>
-          تواصل مع صاحب الحساب لإعادة تفعيل صلاحياتك
-        </div>
-        <button onClick={() => supabase.auth.signOut()} style={{ marginTop:24, padding:'10px 24px', borderRadius:12, background:`${C.accent}22`, border:`1px solid ${C.accent}44`, color:C.accent, fontSize:13, fontWeight:700, cursor:'pointer' }}>
-          خروج
-        </button>
+  if (isBlocked || isExpired) return (
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", padding: 32, textAlign: 'center' }}>
+      <style>{globalCSS}</style>
+      <div style={{ width: 72, height: 72, borderRadius: 24, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+        {isExpired ? <Clock size={36} color="#EF4444" strokeWidth={1.5} /> : <ShieldOff size={36} color="#EF4444" strokeWidth={1.5} />}
       </div>
-    )
-  }
-
-  // ─── Subscription gate (Phase 3) ─────────────────────────────────────────
-  // Only enforce once the org record is loaded and the user is the owner
-  // (team members are not gated — they inherit the owner's plan).
-  // Fails open if migration hasn't been applied yet (org === null && !orgLoading).
-  if (!orgLoading && org && !isPlanActive() && !effectiveOwnerId) {
-    return (
-      <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', direction:'rtl', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", padding:32, textAlign:'center' }}>
-        <style>{globalCSS}</style>
-        <div style={{ fontSize:72, marginBottom:16 }}>⏰</div>
-        <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:10 }}>
-          انتهت فترة التجربة المجانية
-        </div>
-        <div style={{ fontSize:14, color:C.textDim, lineHeight:1.7, maxWidth:320, marginBottom:32 }}>
-          جميع بياناتك محفوظة. اشترك الآن للاستمرار في استخدام Contractor Pro.
-        </div>
-        <button
-          onClick={() => navigate('/pricing')}
-          style={{ padding:'14px 36px', borderRadius:16, background:'linear-gradient(135deg,#00DDB3,#6366F1)', border:'none', color:'#000', fontSize:16, fontWeight:800, cursor:'pointer', boxShadow:'0 8px 28px #00DDB344', marginBottom:14 }}>
-          اختر خطة اشتراك ←
-        </button>
-        <button onClick={() => supabase.auth.signOut()} style={{ padding:'10px 24px', borderRadius:12, background:'transparent', border:`1px solid rgba(255,255,255,0.1)`, color:C.textDim, fontSize:13, fontWeight:600, cursor:'pointer' }}>
-          تسجيل الخروج
-        </button>
+      <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 8 }}>
+        {isExpired ? 'انتهت صلاحية وصولك' : 'تم إيقاف وصولك'}
       </div>
-    )
-  }
+      <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7, maxWidth: 280 }}>
+        تواصل مع صاحب الحساب لإعادة تفعيل صلاحياتك
+      </div>
+      <button onClick={() => supabase.auth.signOut()} style={{ marginTop: 28, padding: '10px 28px', borderRadius: 14, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+        خروج
+      </button>
+    </div>
+  )
 
-  // ─── الشاشة الحالية ──────────────────────────────────────────────────────
+  if (!orgLoading && org && !isPlanActive() && !effectiveOwnerId) return (
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", padding: 32, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <style>{globalCSS}</style>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 50% at 50% 30%, rgba(245,158,11,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ fontSize: 72, marginBottom: 16, position: 'relative', zIndex: 1 }}>⏰</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 10, position: 'relative', zIndex: 1 }}>انتهت فترة التجربة المجانية</div>
+      <div style={{ fontSize: 14, color: C.textDim, lineHeight: 1.7, maxWidth: 300, marginBottom: 32, position: 'relative', zIndex: 1 }}>
+        جميع بياناتك محفوظة. اشترك الآن للاستمرار في استخدام Contractor Pro.
+      </div>
+      <button onClick={() => navigate('/pricing')} style={{ padding: '14px 36px', borderRadius: 16, background: GRAD.brand, border: 'none', color: '#000', fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 28px rgba(245,158,11,0.4)', marginBottom: 14, position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
+        اختر خطة اشتراك ←
+      </button>
+      <button onClick={() => supabase.auth.signOut()} style={{ padding: '10px 24px', borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
+        تسجيل الخروج
+      </button>
+    </div>
+  )
+
+  // ─── Screen renderer ──────────────────────────────────────────────────────
   const p = permissions
   function renderScreen() {
     const commonData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts }
     let content
     switch (screen) {
-      case 'dashboard': content = <DashboardScreen {...commonData} onNav={setScreen} permissions={p} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} taxModules={taxModules} />; break
-      case 'projects':  content = p.viewProjects  ? <ProjectsScreen  projects={visibleProjects} workDays={visibleWorkDays} expenses={visibleExpenses} clientReceipts={visibleClientReceipts} employees={visibleEmployees} payments={visiblePayments} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
-      case 'workers':   content = p.viewWorkers   ? <WorkersScreen   employees={visibleEmployees} workDays={visibleWorkDays} payments={visiblePayments} advances={visibleAdvances} expenses={visibleExpenses} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} projects={projects} profile={profile} /> : <NoAccess />; break
-      case 'workdays':  content = p.editWorkers   ? <WorkDaysScreen  workDays={visibleWorkDays} employees={visibleEmployees} projects={visibleProjects} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} permissions={p} holidays={holidays} /> : <NoAccess />; break
-      case 'expenses':  content = p.viewExpenses  ? <ExpensesScreen  expenses={visibleExpenses} projects={visibleProjects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={visibleEmployees} userId={uid} permissions={p} businessType={businessType} /> : <NoAccess />; break
-      case 'payments':  content = p.viewPayments  ? <PaymentsScreen  payments={visiblePayments} employees={visibleEmployees} workDays={visibleWorkDays} expenses={visibleExpenses} projects={visibleProjects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
-      case 'tracker':    content = p.viewProjects ? <UnitTrackerScreen projects={visibleProjects} /> : <NoAccess />; break
-      case 'materials':  content = p.viewProjects ? <MaterialsScreen userId={eid} employees={visibleEmployees} projects={visibleProjects} /> : <NoAccess />; break
+      case 'dashboard':  content = <DashboardScreen {...commonData} onNav={setScreen} permissions={p} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} taxModules={taxModules} />; break
+      case 'finance':    content = <AccountingScreen employees={visibleEmployees} payments={visiblePayments} clientReceipts={visibleClientReceipts} expenses={visibleExpenses} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} businessType={businessType} setBusinessType={setBusinessType} />; break
+      case 'projects':   content = p?.viewProjects  ? <ProjectsScreen  projects={visibleProjects} workDays={visibleWorkDays} expenses={visibleExpenses} clientReceipts={visibleClientReceipts} employees={visibleEmployees} payments={visiblePayments} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
+      case 'workers':    content = p?.viewWorkers   ? <WorkersScreen   employees={visibleEmployees} workDays={visibleWorkDays} payments={visiblePayments} advances={visibleAdvances} expenses={visibleExpenses} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} projects={projects} profile={profile} /> : <NoAccess />; break
+      case 'workdays':   content = p?.editWorkers   ? <WorkDaysScreen  workDays={visibleWorkDays} employees={visibleEmployees} projects={visibleProjects} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} permissions={p} holidays={holidays} /> : <NoAccess />; break
+      case 'expenses':   content = p?.viewExpenses  ? <ExpensesScreen  expenses={visibleExpenses} projects={visibleProjects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={visibleEmployees} userId={uid} permissions={p} businessType={businessType} /> : <NoAccess />; break
+      case 'payments':   content = p?.viewPayments  ? <PaymentsScreen  payments={visiblePayments} employees={visibleEmployees} workDays={visibleWorkDays} expenses={visibleExpenses} projects={visibleProjects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
+      case 'tracker':    content = p?.viewProjects  ? <UnitTrackerScreen projects={visibleProjects} /> : <NoAccess />; break
+      case 'materials':  content = p?.viewProjects  ? <MaterialsScreen userId={eid} employees={visibleEmployees} projects={visibleProjects} /> : <NoAccess />; break
       case 'accounting': content = <AccountingScreen employees={visibleEmployees} payments={visiblePayments} clientReceipts={visibleClientReceipts} expenses={visibleExpenses} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} businessType={businessType} setBusinessType={setBusinessType} />; break
-      case 'activity':  content = (p.viewActivity || p.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />; break
-      case 'settings':  content = <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} setTaxEnabled={setTaxEnabled} setBusinessType={setBusinessType} taxModules={taxModules} setTaxModule={setTaxModule} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} saveContractorNumber={saveContractorNumber} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} />; break
-      default:          content = <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
+      case 'activity':   content = (p?.viewActivity || p?.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />; break
+      case 'settings':   content = <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} setTaxEnabled={setTaxEnabled} setBusinessType={setBusinessType} taxModules={taxModules} setTaxModule={setTaxModule} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} saveContractorNumber={saveContractorNumber} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} />; break
+      default:           content = <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
     }
     return <ErrorBoundary key={screen}>{content}</ErrorBoundary>
   }
 
+  const pendingCount = workDays.filter(w => w.status === 'pending').length
+
+  // Determine active NAV tab
+  const moreScreenIds = MORE_SCREENS.map(s => s.id)
+  const activeNav = moreScreenIds.includes(screen) ? 'more'
+    : NAV.find(n => n.id === screen) ? screen
+    : 'dashboard'
+
   return (
-    <div style={{ maxWidth:430, margin:'0 auto', background:C.bg, minHeight:'100vh', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", direction:'rtl', position:'relative' }}>
+    <div style={{ maxWidth: 430, margin: '0 auto', background: C.bg, minHeight: '100vh', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", direction: 'rtl', position: 'relative', overflow: 'hidden' }}>
       <style>{globalCSS}</style>
 
-      {/* بانر عدم الاتصال */}
+      {/* ─── Aurora background ─── */}
+      <div style={{ position: 'fixed', inset: 0, maxWidth: 430, margin: '0 auto', pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 40% at 15% 0%, rgba(245,158,11,0.06) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 85% 100%, rgba(239,68,68,0.04) 0%, transparent 60%)' }} />
+
+      {/* ─── Offline banner ─── */}
       {!isOnline && (
-        <div style={{ position:'sticky', top:0, zIndex:200, background:'rgba(0,0,0,0.9)', backdropFilter:'blur(12px)', padding:'9px 16px', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8, borderBottom:`1px solid ${C.border}` }}>
-          <span style={{ fontSize:13 }}>📵</span>
-          <span style={{ fontSize:11, color:C.textDim, fontWeight:600, letterSpacing:'0.02em' }}>لا يوجد اتصال — البيانات محفوظة محلياً</span>
+        <div style={{ position: 'sticky', top: 0, zIndex: 200, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(12px)', padding: '9px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderBottom: '1px solid rgba(239,68,68,0.2)' }}>
+          <WifiOff size={13} color="#EF4444" strokeWidth={2} />
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>لا يوجد اتصال — البيانات محفوظة محلياً</span>
         </div>
       )}
 
-      {/* بانر التجربة المجانية (فقط للمالك، فقط أثناء التجربة) */}
+      {/* ─── Trial banner ─── */}
       {org && isTrialActive() && !effectiveOwnerId && (
-        <div style={{ position:'sticky', top:0, zIndex:199, background:'linear-gradient(135deg,rgba(99,102,241,0.18),rgba(0,221,179,0.12))', backdropFilter:'blur(12px)', padding:'8px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, borderBottom:`1px solid rgba(99,102,241,0.25)`, direction:'rtl' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ fontSize:14 }}>🎁</span>
-            <span style={{ fontSize:11, color:'#A5B4FC', fontWeight:700 }}>
-              التجربة المجانية — متبقي <strong style={{ color:'#fff' }}>{trialDaysLeft()} يوم</strong>
+        <div style={{ position: 'sticky', top: 0, zIndex: 199, background: 'linear-gradient(135deg, rgba(245,158,11,0.14), rgba(239,68,68,0.09))', backdropFilter: 'blur(12px)', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid rgba(245,158,11,0.2)', direction: 'rtl' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Gift size={15} color="#FBBF24" strokeWidth={2} />
+            <span style={{ fontSize: 11, color: '#FBBF24', fontWeight: 700 }}>
+              التجربة المجانية — متبقي <strong style={{ color: '#fff' }}>{trialDaysLeft()} يوم</strong>
             </span>
           </div>
-          <button
-            onClick={() => navigate('/pricing')}
-            style={{ padding:'5px 14px', borderRadius:9, background:'linear-gradient(135deg,#00DDB3,#6366F1)', border:'none', color:'#000', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+          <button onClick={() => navigate('/pricing')} style={{ padding: '5px 14px', borderRadius: 9, background: GRAD.brand, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
             اشترك الآن
           </button>
         </div>
       )}
 
       {/* ─── Header ─── */}
-      {(() => {
-        const currentNav = NAV.find(n => n.id === screen)
-        return (
-        <div style={{ position:'sticky', top:0, zIndex:50, background:'rgba(7,9,13,0.94)', backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)', padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:42, height:42, borderRadius:15, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:21, boxShadow:'0 4px 18px #00DDB355, 0 1px 0 rgba(255,255,255,0.2) inset', flexShrink:0 }}>🏗️</div>
-            <div>
-              <div style={{ fontSize:15, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', lineHeight:1.2, letterSpacing:'-0.01em' }}>Contractor Pro</div>
-              <div style={{ fontSize:9, color: currentNav ? C.primary : C.textDim, letterSpacing:'0.07em', fontWeight:700, transition:'color .25s', opacity:0.9 }}>
-                {currentNav ? `${currentNav.icon} ${currentNav.label}` : 'إدارة مشاريعك بذكاء'}
-              </div>
+      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(7,8,12,0.92)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(245,158,11,0.07)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 14, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(245,158,11,0.4), 0 1px 0 rgba(255,255,255,0.15) inset', flexShrink: 0 }}>
+            <HardHat size={22} color="#000" strokeWidth={2} />
+          </div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.2, letterSpacing: '-0.02em' }}>Contractor Pro</div>
+            <div style={{ fontSize: 9, color: C.primary, letterSpacing: '0.08em', fontWeight: 700, opacity: 0.75, textTransform: 'uppercase' }}>
+              {NAV.find(n => n.id === activeNav)?.label || MORE_SCREENS.find(s => s.id === screen)?.label || 'إدارة مشاريعك بذكاء'}
             </div>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-            {dataLoading && <div style={{ width:16, height:16, border:`2px solid ${C.border}`, borderTopColor:C.primary, borderRadius:'50%', animation:'spin .75s linear infinite' }} />}
-            {(p?.isOwner || p?.viewActivity) && (
-              <button onClick={() => setScreen('activity')} className="btn-press"
-                style={{ background: screen === 'activity' ? `${C.primary}20` : 'rgba(255,255,255,0.05)', border:`1px solid ${screen === 'activity' ? C.primary + '44' : 'rgba(255,255,255,0.08)'}`, borderRadius:13, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, boxShadow: screen === 'activity' ? `0 0 12px ${C.primary}33` : 'none', transition:'all .2s' }}>
-              📋
-              </button>
-            )}
-            <button onClick={() => setShowNotifs(true)} className="btn-press"
-              style={{ position:'relative', background:'rgba(255,255,255,0.05)', border:`1px solid rgba(255,255,255,0.08)`, borderRadius:13, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
-              🔔
-              {unreadCount > 0 && (
-                <div className="badge-pop" style={{ position:'absolute', top:-4, right:-4, minWidth:18, height:18, borderRadius:9, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 4px', boxShadow:`0 2px 12px ${C.accent}99` }}>
-                  {unreadCount}
-                </div>
-              )}
-            </button>
-            <button onClick={() => setShowSearch(true)} className="btn-press"
-              style={{ background:'rgba(255,255,255,0.05)', border:`1px solid rgba(255,255,255,0.08)`, borderRadius:13, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
-              🔍
-            </button>
-          </div>
-            {/* bottom gradient line */}
-            <div style={{ position:'absolute', bottom:0, left:0, right:0, height:1, background:`linear-gradient(90deg, transparent, ${GRAD.brand.includes('#') ? '#00DDB366' : '#00DDB366'}, transparent)` }} />
-          </div>
-        )
-      })()}
+        </div>
 
-      {/* المحتوى */}
-      <div key={screen} className="fade-in" style={{ paddingBottom:96 }}>
-        <Suspense fallback={<div style={{ display:'flex', justifyContent:'center', padding:48 }}><LoadingSpinner /></div>}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {dataLoading && <div style={{ width: 16, height: 16, border: `2px solid ${C.border}`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin .75s linear infinite' }} />}
+
+          {(p?.isOwner || p?.viewActivity) && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setScreen('activity')}
+              style={{ background: screen === 'activity' ? `${C.primary}18` : 'rgba(255,255,255,0.04)', border: `1px solid ${screen === 'activity' ? C.primary + '40' : 'rgba(255,255,255,0.07)'}`, borderRadius: 12, width: 38, height: 38, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: screen === 'activity' ? `0 0 14px ${C.primary}30` : 'none' }}
+            >
+              <ClipboardCheck size={17} color={screen === 'activity' ? C.primary : '#64748B'} strokeWidth={2} />
+            </motion.button>
+          )}
+
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowNotifs(true)}
+            style={{ position: 'relative', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 38, height: 38, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Bell size={17} color="#64748B" strokeWidth={2} />
+            {unreadCount > 0 && (
+              <div className="badge-pop" style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', padding: '0 4px', boxShadow: `0 2px 12px ${C.accent}99` }}>
+                {unreadCount}
+              </div>
+            )}
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowSearch(true)}
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 38, height: 38, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Search size={17} color="#64748B" strokeWidth={2} />
+          </motion.button>
+        </div>
+
+        {/* Amber accent line */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(245,158,11,0.5), rgba(239,68,68,0.3), transparent)' }} />
+      </div>
+
+      {/* ─── Screen content ─── */}
+      <div key={screen} style={{ paddingBottom: 100, position: 'relative', zIndex: 1 }}>
+        <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 56 }}><LoadingSpinner /></div>}>
           {renderScreen()}
         </Suspense>
       </div>
 
-      {/* ─── Floating Bottom Nav ─── */}
-      {(() => {
-        const pendingCount = workDays.filter(w => w.status === 'pending').length
-        return (
-          <div style={{ position:'fixed', bottom:16, left:0, right:0, margin:'0 auto', width:'calc(100% - 28px)', maxWidth:400, background:'rgba(10,13,19,0.96)', backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)', borderRadius:26, border:`1px solid rgba(255,255,255,0.09)`, padding:'6px 4px 8px', display:'flex', justifyContent:'space-around', zIndex:50, boxShadow:'0 12px 48px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.06) inset' }}>
-            {NAV.map(n => {
-              const active = screen === n.id
-              return (
-                <button key={n.id} onClick={() => setScreen(n.id)}
-                  className="nav-btn"
-                  style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, padding:'5px 0', background:'none', border:'none', cursor:'pointer', flex:1, position:'relative', minWidth:0 }}>
+      {/* ─── Bottom Nav (5 tabs) ─── */}
+      <div style={{ position: 'fixed', bottom: 14, left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: '1px solid rgba(245,158,11,0.1)', padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
+        {NAV.map(n => {
+          const active = activeNav === n.id
+          const Icon = NAV_ICONS[n.id]
+          const hasBadge = n.id === 'more' && pendingCount > 0
 
-                  {/* Active pill background */}
-                  {active && (
-                    <div style={{ position:'absolute', top:2, left:'50%', transform:'translateX(-50%)', width:44, height:34, borderRadius:16, background:`linear-gradient(160deg,#00DDB322,#6366F118)`, border:`1px solid #00DDB333`, pointerEvents:'none', animation:'glowPulse 2.4s ease-in-out infinite' }} />
-                  )}
+          return (
+            <motion.button
+              key={n.id}
+              onClick={() => n.id === 'more' ? setShowMore(true) : setScreen(n.id)}
+              whileTap={{ scale: 0.88 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '4px 0', background: 'none', border: 'none', cursor: 'pointer', flex: 1, position: 'relative', minWidth: 0, fontFamily: 'inherit' }}
+            >
+              {/* Active pill */}
+              {active && (
+                <motion.div
+                  layoutId="nav-active"
+                  style={{ position: 'absolute', top: 1, left: '50%', transform: 'translateX(-50%)', width: 46, height: 35, borderRadius: 16, background: 'linear-gradient(160deg, rgba(245,158,11,0.2), rgba(239,68,68,0.12))', border: '1px solid rgba(245,158,11,0.28)', pointerEvents: 'none', animation: 'glowPulse 2.5s ease-in-out infinite' }}
+                />
+              )}
 
-                  {/* Icon */}
-                  <span className={active ? 'nav-pop' : ''} style={{ fontSize:active?22:19, position:'relative', zIndex:1, lineHeight:1, filter:active?'drop-shadow(0 0 6px #00DDB388)':'grayscale(1) opacity(0.38)', display:'block', transition:'filter .25s' }}>
-                    {n.icon}
-                  </span>
+              {/* Icon */}
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                {Icon && <Icon size={active ? 21 : 18} color={active ? C.primary : 'rgba(255,255,255,0.28)'} strokeWidth={active ? 2.3 : 1.8} style={{ filter: active ? `drop-shadow(0 0 6px ${C.primary}88)` : 'none', display: 'block' }} />}
+              </div>
 
-                  {/* Badge */}
-                  {n.id === 'workdays' && pendingCount > 0 && (
-                    <div className="badge-pop" style={{ position:'absolute', top:0, right:'calc(50% - 18px)', minWidth:16, height:16, borderRadius:8, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 3px', boxShadow:`0 2px 10px ${C.accent}99` }}>
-                      {pendingCount}
-                    </div>
-                  )}
+              {/* Badge on "more" */}
+              {hasBadge && (
+                <div className="badge-pop" style={{ position: 'absolute', top: -1, right: 'calc(50% - 20px)', minWidth: 16, height: 16, borderRadius: 8, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', padding: '0 3px', boxShadow: `0 2px 10px ${C.accent}99` }}>
+                  {pendingCount}
+                </div>
+              )}
 
-                  {/* Label */}
-                  <span style={{ fontSize:9, fontWeight:active?800:600, color:active?C.primary:'rgba(255,255,255,0.28)', position:'relative', zIndex:1, letterSpacing:'0.01em', transition:'all .2s', lineHeight:1 }}>
-                    {n.label}
-                  </span>
+              {/* Label */}
+              <span style={{ fontSize: 8.5, fontWeight: active ? 800 : 500, color: active ? C.primary : 'rgba(255,255,255,0.25)', position: 'relative', zIndex: 1, letterSpacing: '0.01em', lineHeight: 1 }}>
+                {n.label}
+              </span>
 
-                  {/* Active dot indicator */}
-                  {active && (
-                    <div style={{ width:16, height:2.5, borderRadius:2, background:GRAD.brand, marginTop:1, boxShadow:`0 0 8px #00DDB388` }} />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        )
-      })()}
+              {/* Active dot */}
+              {active && (
+                <div style={{ width: 18, height: 2, borderRadius: 2, background: GRAD.warm, marginTop: 1, boxShadow: '0 0 8px rgba(245,158,11,0.7)' }} />
+              )}
+            </motion.button>
+          )
+        })}
+      </div>
 
+      {/* ─── "المزيد" Drawer ─── */}
+      <MoreDrawer open={showMore} onClose={() => setShowMore(false)} screen={screen} setScreen={setScreen} permissions={p} />
 
-      {/* إشعارات */}
-      <NotificationsPanel
-        open={showNotifs}
-        onClose={() => setShowNotifs(false)}
-        notifications={notifications}
-        unreadCount={unreadCount}
-        markAllRead={markAllRead}
-        markRead={markRead}
-        deleteAll={deleteAll}
-        onNav={nav => { setScreen(nav); setShowNotifs(false) }}
-      />
+      {/* ─── Notifications ─── */}
+      <NotificationsPanel open={showNotifs} onClose={() => setShowNotifs(false)} notifications={notifications} unreadCount={unreadCount} markAllRead={markAllRead} markRead={markRead} deleteAll={deleteAll} onNav={nav => { setScreen(nav); setShowNotifs(false) }} />
 
-      {/* بحث */}
-      <SearchOverlay
-        open={showSearch}
-        onClose={() => setShowSearch(false)}
-        projects={projects} employees={employees}
-        expenses={expenses} payments={payments}
-        workDays={workDays}
-        onNav={nav => { setScreen(nav); setShowSearch(false) }}
-      />
+      {/* ─── Search ─── */}
+      <SearchOverlay open={showSearch} onClose={() => setShowSearch(false)} projects={projects} employees={employees} expenses={expenses} payments={payments} workDays={workDays} onNav={nav => { setScreen(nav); setShowSearch(false) }} />
 
       {/* ─── Toast ─── */}
-      {toast && (
-        <div className="toast-in" style={{
-          position:'fixed', bottom:100, left:'50%', transform:'translateX(-50%)',
-          background: toast.type === 'success' ? C.success : toast.type === 'warning' ? C.warning : C.accent,
-          color:'#fff', padding:'11px 22px', borderRadius:14, fontSize:13, fontWeight:700,
-          zIndex:300, whiteSpace:'nowrap', boxShadow:'0 4px 24px rgba(0,0,0,0.45)',
-          display:'flex', alignItems:'center', gap:8,
-        }}>
-          {toast.msg}
-        </div>
-      )}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key="toast"
+            initial={{ opacity: 0, y: 16, x: '-50%' }}
+            animate={{ opacity: 1, y: 0,  x: '-50%' }}
+            exit={{  opacity: 0, y: 8,   x: '-50%' }}
+            style={{
+              position: 'fixed', bottom: 100, left: '50%',
+              background: toast.type === 'success' ? C.success : toast.type === 'warning' ? C.warning : C.accent,
+              color: '#fff', padding: '11px 22px', borderRadius: 14, fontSize: 13, fontWeight: 700,
+              zIndex: 400, whiteSpace: 'nowrap', boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}
+          >
+            {toast.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Onboarding ─── */}
-      {showOnboarding && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', zIndex:400, display:'flex', alignItems:'center', justifyContent:'center', padding:20, direction:'rtl' }}>
-          <div className="fade-up" style={{ background:C.surface, borderRadius:24, padding:'28px 22px', width:'100%', maxWidth:380, border:`1px solid ${C.borderMid}` }}>
-            <div style={{ textAlign:'center', marginBottom:20 }}>
-              <div style={{ fontSize:44, marginBottom:8 }}>🏗️</div>
-              <div style={{ fontSize:19, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>أهلاً بك في Contractor Pro</div>
-              <div style={{ fontSize:11, color:C.textDim, marginTop:4 }}>إليك أهم الميزات للبداية السريعة</div>
-            </div>
-            {[
-              { icon:'🏗️', title:'المشاريع', desc:'أضف مشاريعك وتابع الأرباح والمصاريف لكل مشروع' },
-              { icon:'👷', title:'العمال',   desc:'أدر فريق عملك، الرواتب، والسلف بسهولة' },
-              { icon:'📅', title:'أيام العمل', desc:'سجّل أيام العمل اليومية مع نظام الموافقات' },
-              { icon:'💸', title:'المصاريف', desc:'تتبع مصاريف المشاريع واسترداد ضريبة القيمة المضافة' },
-            ].map((f, i) => (
-              <div key={f.title} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 0', borderBottom: i < 3 ? `1px solid ${C.border}` : 'none' }}>
-                <div style={{ width:38, height:38, borderRadius:12, background:C.card, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>{f.icon}</div>
-                <div>
-                  <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{f.title}</div>
-                  <div style={{ fontSize:10, color:C.textDim, marginTop:2, lineHeight:1.5 }}>{f.desc}</div>
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, direction: 'rtl' }}
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              style={{ background: C.surface, borderRadius: 24, padding: '28px 22px', width: '100%', maxWidth: 380, border: `1px solid ${C.borderMid}` }}
+            >
+              <div style={{ textAlign: 'center', marginBottom: 22 }}>
+                <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 8px 28px rgba(245,158,11,0.35)' }}>
+                  <HardHat size={32} color="#000" strokeWidth={1.8} />
                 </div>
+                <div style={{ fontSize: 19, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>أهلاً بك في Contractor Pro</div>
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>إليك أهم الميزات للبداية السريعة</div>
               </div>
-            ))}
-            <button
-              onClick={() => { localStorage.setItem('cp_onboarded', '1'); setShowOnboarding(false) }}
-              style={{ marginTop:20, width:'100%', padding:'13px', borderRadius:14, background:GRAD.brand, border:'none', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', boxShadow:`0 8px 24px #00DDB344`, letterSpacing:'0.02em' }}>
-              ابدأ الآن ←
-            </button>
-          </div>
-        </div>
-      )}
+
+              {[
+                { Icon: Building2,    title: 'المشاريع',    desc: 'أضف مشاريعك وتابع الأرباح والمصاريف لكل مشروع' },
+                { Icon: Users,        title: 'العمال',      desc: 'أدر فريق عملك، الرواتب، والسلف بسهولة' },
+                { Icon: CalendarDays, title: 'أيام العمل',  desc: 'سجّل أيام العمل اليومية مع نظام الموافقات' },
+                { Icon: CreditCard,   title: 'المصاريف',   desc: 'تتبع مصاريف المشاريع واسترداد ضريبة القيمة المضافة' },
+              ].map(({ Icon, title, desc }, i) => (
+                <div key={title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < 3 ? `1px solid ${C.border}` : 'none' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={18} color={C.primary} strokeWidth={2} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{title}</div>
+                    <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, lineHeight: 1.5 }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={() => { localStorage.setItem('cp_onboarded', '1'); setShowOnboarding(false) }}
+                style={{ marginTop: 22, width: '100%', padding: '13px', borderRadius: 14, background: GRAD.brand, border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 24px rgba(245,158,11,0.35)', letterSpacing: '0.02em', fontFamily: 'inherit' }}
+              >
+                ابدأ الآن ←
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

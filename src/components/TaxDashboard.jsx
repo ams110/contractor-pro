@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Check, X, Pencil } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
 import {
@@ -134,7 +135,7 @@ export default function TaxDashboard({
                   style={{ width:'100%', padding:'8px 10px', borderRadius:9, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:C.text, fontSize:12, outline:'none', boxSizing:'border-box', marginBottom:6 }} />
                 <div style={{ display:'flex', gap:6 }}>
                   <button onClick={() => setAddingTax(null)} style={{ flex:1, padding:'8px', borderRadius:9, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, cursor:'pointer' }}>إلغاء</button>
-                  <button onClick={saveAdvance} disabled={saving} style={{ flex:2, padding:'8px', borderRadius:9, border:'none', background:C.purple, color:'#fff', fontSize:11, fontWeight:800, cursor:'pointer' }}>{saving ? '...' : '✓ حفظ الدفعة'}</button>
+                  <button onClick={saveAdvance} disabled={saving} style={{ flex:2, padding:'8px', borderRadius:9, border:'none', background:C.purple, color:'#fff', fontSize:11, fontWeight:800, cursor:'pointer' }}>{saving ? '...' : 'حفظ الدفعة'}</button>
                 </div>
               </div>
             ) : (
@@ -166,7 +167,7 @@ export default function TaxDashboard({
                 </div>
                 <div style={{ display:'flex', gap:6 }}>
                   <button onClick={() => setAddingTax(null)} style={{ flex:1, padding:'8px', borderRadius:9, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, cursor:'pointer' }}>إلغاء</button>
-                  <button onClick={saveAdvance} disabled={saving} style={{ flex:2, padding:'8px', borderRadius:9, border:'none', background:C.blue, color:'#fff', fontSize:11, fontWeight:800, cursor:'pointer' }}>{saving ? '...' : '✓ حفظ الدفعة'}</button>
+                  <button onClick={saveAdvance} disabled={saving} style={{ flex:2, padding:'8px', borderRadius:9, border:'none', background:C.blue, color:'#fff', fontSize:11, fontWeight:800, cursor:'pointer' }}>{saving ? '...' : 'حفظ الدفعة'}</button>
                 </div>
               </div>
             ) : (
@@ -224,14 +225,14 @@ export default function TaxDashboard({
                 <input type="number" value={pensVal} onChange={e => setPensVal(e.target.value)}
                   style={{ width:80, padding:'6px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:C.text, fontSize:12, outline:'none', textAlign:'center' }} />
                 <button onClick={() => { setPensionMonthly?.(pensVal); setPensEdit(false) }}
-                  style={{ padding:'6px 10px', borderRadius:8, border:'none', background:C.blue, color:'#fff', fontSize:11, fontWeight:800, cursor:'pointer' }}>✓</button>
-                <button onClick={() => setPensEdit(false)} style={{ padding:'6px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, cursor:'pointer' }}>✕</button>
+                  style={{ padding:'6px 10px', borderRadius:8, border:'none', background:C.blue, color:'#fff', cursor:'pointer', display:'flex', alignItems:'center' }}><Check size={12} strokeWidth={2.5} /></button>
+                <button onClick={() => setPensEdit(false)} style={{ padding:'6px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, cursor:'pointer', display:'flex', alignItems:'center' }}><X size={12} strokeWidth={2.5} /></button>
               </div>
             ) : (
               <button onClick={() => { setPensVal(String(pensionMonthly || '')); setPensEdit(true) }}
                 style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:8, border:`1px solid ${C.blue}44`, background:`${C.blue}10`, color:C.blue, fontSize:11, fontWeight:700, cursor:'pointer' }}>
                 <span style={{ fontFamily:'monospace', fontWeight:900 }}>{fmt(pensionMonthly || 0)}₪/شهر</span>
-                <span>✏️</span>
+                <Pencil size={11} strokeWidth={2} />
               </button>
             )}
           </div>

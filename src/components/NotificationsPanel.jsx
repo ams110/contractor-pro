@@ -1,12 +1,13 @@
 import React from 'react'
+import { Bell, X, CalendarDays, Banknote, AlertCircle, Lightbulb, AlertTriangle } from 'lucide-react'
 import { C } from '../constants/index.js'
 
 const TYPE_ICON = {
-  pending_day:     '📅',
-  pending_expense: '💸',
-  salary_overdue:  '🔴',
-  info:            '💡',
-  warning:         '⚠️',
+  pending_day:     CalendarDays,
+  pending_expense: Banknote,
+  salary_overdue:  AlertCircle,
+  info:            Lightbulb,
+  warning:         AlertTriangle,
 }
 
 const TYPE_NAV = {
@@ -74,7 +75,7 @@ export default function NotificationsPanel({ open, onClose, notifications, unrea
           }}>
             {/* Title — RIGHT in RTL (first DOM child) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 18 }}>🔔</span>
+              <Bell size={18} style={{ color: C.primary }} />
               <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>الإشعارات</span>
               {unreadCount > 0 && (
                 <span style={{
@@ -107,10 +108,10 @@ export default function NotificationsPanel({ open, onClose, notifications, unrea
               <button onClick={onClose} style={{
                 width: 28, height: 28, borderRadius: '50%',
                 background: 'rgba(255,255,255,0.08)', border: 'none',
-                cursor: 'pointer', fontSize: 13, color: C.text,
+                cursor: 'pointer', color: C.text,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                ✕
+                <X size={13} strokeWidth={2.5} />
               </button>
             </div>
           </div>
@@ -119,7 +120,7 @@ export default function NotificationsPanel({ open, onClose, notifications, unrea
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {notifications.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '52px 0', color: C.textDim }}>
-                <div style={{ fontSize: 42, marginBottom: 10 }}>🔔</div>
+                <Bell size={42} style={{ margin: '0 auto 10px', display: 'block', color: C.textDim }} />
                 <div style={{ fontSize: 13 }}>ما في إشعارات</div>
               </div>
             ) : notifications.map(n => (
@@ -150,9 +151,8 @@ export default function NotificationsPanel({ open, onClose, notifications, unrea
                     width: 40, height: 40, borderRadius: 12, flexShrink: 0,
                     background: n.read ? 'rgba(255,255,255,0.05)' : `${C.primary}22`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 20,
                   }}>
-                    {TYPE_ICON[n.type] || '💡'}
+                    {(() => { const NIcon = TYPE_ICON[n.type] || Lightbulb; return <NIcon size={18} strokeWidth={2} style={{ color: n.read ? C.textDim : C.primary }} /> })()}
                   </div>
 
                   {/* Content — middle */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Package } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { fmt, fmtDate } from '../lib/helpers.js'
 import { supabase } from '../lib/supabase.js'
@@ -118,7 +119,7 @@ export default function MaterialsScreen({ userId, employees = [], projects = [] 
 
       {!loading && !error && filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim }}>
-          <div style={{ fontSize: 38, marginBottom: 8 }}>📦</div>
+          <Package size={38} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
           <div style={{ fontSize: 13, fontWeight: 600 }}>{logs.length === 0 ? 'لا توجد سجلات بعد' : 'لا نتائج للفلتر الحالي'}</div>
           <div style={{ fontSize: 11, marginTop: 4 }}>العمال يسجّلون البضاعة من بوابتهم</div>
         </div>

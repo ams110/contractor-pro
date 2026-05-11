@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import * as XLSX from 'xlsx'
+import { ClipboardList, RefreshCw, Download } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { fmtDate } from '../lib/helpers.js'
 import { GlassCard, Btn, EmptyState } from '../components/index.jsx'
@@ -119,8 +120,8 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
             width: 40, height: 40, borderRadius: 14,
             background: GRAD.purple,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, boxShadow: `0 4px 16px #6366F144`,
-          }}>📋</div>
+            boxShadow: `0 4px 16px #6366F144`,
+          }}><ClipboardList size={18} strokeWidth={2} color="#000" /></div>
           <div>
             <div style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>سجل النشاط</div>
             <div style={{ fontSize: 11, color: C.textDim }}>{filtered.length} إجراء</div>
@@ -128,11 +129,11 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button onClick={load}
-            style={{ padding: '7px 12px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.04)', color: C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            🔄
+            style={{ padding: '7px 12px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.04)', color: C.textDim, cursor: 'pointer', display:'flex', alignItems:'center', fontFamily:'inherit' }}>
+            <RefreshCw size={13} strokeWidth={2} />
           </button>
           {filtered.length > 0 && (
-            <Btn onClick={exportToExcel} variant="outline">⬇ Excel</Btn>
+            <Btn onClick={exportToExcel} variant="outline"><Download size={13} strokeWidth={2} style={{ display:'inline', marginLeft:4 }} /> Excel</Btn>
           )}
         </div>
       </div>

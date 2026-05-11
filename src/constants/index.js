@@ -1,26 +1,27 @@
+// ─── Amber Gold Dark Theme ────────────────────────────────────────────────────
 export const C = {
   // Backgrounds
-  bg:        '#07090D',
-  surface:   '#0D1117',
-  card:      '#131920',
+  bg:        '#07080C',
+  surface:   '#0D0F18',
+  card:      '#13151E',
 
-  // Brand
-  primary:   '#00DDB3',
-  secondary: '#6366F1',
+  // Brand — Amber Gold
+  primary:   '#F59E0B',
+  secondary: '#F97316',
 
   // Status
   success:   '#22C55E',
   warning:   '#EAB308',
-  accent:    '#F43F5E',
+  accent:    '#EF4444',
 
   // Text
   text:      '#F8FAFC',
   textDim:   '#64748B',
-  textMuted: '#1E293B',
+  textMuted: '#1C2030',
 
-  // Borders
-  border:    'rgba(255,255,255,0.07)',
-  borderMid: 'rgba(255,255,255,0.12)',
+  // Borders (amber-tinted)
+  border:    'rgba(245,158,11,0.08)',
+  borderMid: 'rgba(245,158,11,0.16)',
 
   // Extra
   blue:      '#3B82F6',
@@ -31,13 +32,13 @@ export const C = {
 }
 
 export const GRAD = {
-  brand:   'linear-gradient(135deg, #00DDB3 0%, #6366F1 100%)',
+  brand:   'linear-gradient(135deg, #FBBF24 0%, #F59E0B 50%, #EF4444 100%)',
+  warm:    'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)',
   success: 'linear-gradient(135deg, #22C55E 0%, #06B6D4 100%)',
-  danger:  'linear-gradient(135deg, #F43F5E 0%, #F97316 100%)',
-  warm:    'linear-gradient(135deg, #EAB308 0%, #F97316 100%)',
+  danger:  'linear-gradient(135deg, #EF4444 0%, #F97316 100%)',
   purple:  'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
   blue:    'linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%)',
-  dark:    'linear-gradient(180deg, #0D1117 0%, #07090D 100%)',
+  dark:    'linear-gradient(180deg, #0D0F18 0%, #07080C 100%)',
 }
 
 export const SPECS = [
@@ -65,8 +66,6 @@ export const EXP_CATS = [
   'أخرى',
 ]
 
-// نسبة استرداد מס תשומות حسب الفئة (2025)
-// 1.00 = استرداد كامل | 0.667 = ثلثان (ركوب خاص) | 0 = معفى
 export const EXP_CAT_VAT = {
   'مواد بناء / خامات': 1.00,
   'بضاعة':             1.00,
@@ -81,28 +80,33 @@ export const EXP_CAT_VAT = {
 }
 
 export const PAY_METHODS = ['كاش', 'تحويل بنكي', 'شيك', 'بت']
-
-export const DAY_TYPES = ['كامل', 'نص يوم', 'ساعات', 'مبلغ مسكر', 'عطلة']
-
-export const PROJECT_TYPES = ['مقاولة مغلقة', 'يومي']
-
+export const DAY_TYPES   = ['كامل', 'نص يوم', 'ساعات', 'مبلغ مسكر', 'عطلة']
+export const PROJECT_TYPES  = ['مقاولة مغلقة', 'يومي']
 export const PROJECT_STATUS = ['عرض سعر', 'موافق عليه', 'نشط', 'مكتمل', 'ملغي', 'مؤرشف']
 
-export const VAT     = 0.18   // رُفع من 17% إلى 18% في 1 يناير 2025
-export const VAT_OLD = 0.17   // للمعاملات قبل 2025
+export const VAT     = 0.18
+export const VAT_OLD = 0.17
 
 export const OSEK_PATUR_THRESHOLD = 120000
 export const BITUACH_LEUMI_RATE   = 0.105
 
+// ─── Navigation — 5 tabs ─────────────────────────────────────────────────────
 export const NAV = [
-  { id: 'dashboard',  icon: '📊', label: 'الرئيسية' },
-  { id: 'projects',   icon: '🏗️', label: 'مشاريع'  },
-  { id: 'workers',    icon: '👷', label: 'عمال'     },
-  { id: 'workdays',   icon: '📅', label: 'أيام'     },
-  { id: 'expenses',   icon: '💸', label: 'مصاريف'  },
-  { id: 'payments',   icon: '💰', label: 'رواتب'   },
-  { id: 'tracker',    icon: '📋', label: 'تتبع'     },
-  { id: 'materials',  icon: '🪵', label: 'بضاعة'   },
-  { id: 'accounting', icon: '🧮', label: 'محاسبة'  },
-  { id: 'settings',   icon: '⚙️', label: 'إعدادات' },
+  { id: 'dashboard',  icon: 'LayoutDashboard', label: 'الرئيسية' },
+  { id: 'projects',   icon: 'Building2',        label: 'مشاريع'  },
+  { id: 'workers',    icon: 'Users',             label: 'عمال'    },
+  { id: 'finance',    icon: 'Wallet',            label: 'المالية' },
+  { id: 'more',       icon: 'Grid3x3',           label: 'المزيد'  },
+]
+
+// Screens accessible from the "المزيد" tab
+export const MORE_SCREENS = [
+  { id: 'workdays',   icon: 'CalendarDays',  label: 'أيام العمل'  },
+  { id: 'expenses',   icon: 'CreditCard',    label: 'المصاريف'    },
+  { id: 'payments',   icon: 'Banknote',      label: 'الرواتب'     },
+  { id: 'tracker',    icon: 'ClipboardList', label: 'تتبع الوحدات'},
+  { id: 'materials',  icon: 'Package',       label: 'البضاعة'     },
+  { id: 'accounting', icon: 'Calculator',    label: 'المحاسبة'    },
+  { id: 'activity',   icon: 'Activity',      label: 'النشاط'      },
+  { id: 'settings',   icon: 'Settings',      label: 'الإعدادات'   },
 ]

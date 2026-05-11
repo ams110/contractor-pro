@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
-
 export default defineConfig({
   plugins: [
     react(),
@@ -12,7 +11,7 @@ export default defineConfig({
         name: 'Contractor Pro',
         short_name: 'ContractorPro',
         description: 'إدارة مشاريع المقاولات',
-        theme_color: '#00D4AA',
+        theme_color: '#F59E0B',
         background_color: '#0B1117',
         display: 'standalone',
         orientation: 'portrait',
