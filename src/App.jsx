@@ -81,6 +81,7 @@ const globalCSS = `
 
   .glass { background:rgba(7,8,12,0.88); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid rgba(245,158,11,0.07); }
   .badge-pop { animation: badgePop .3s cubic-bezier(0.34,1.56,0.64,1) both; }
+  .app-root { min-height: var(--actual-vh, 100dvh); }
 `
 
 function useIsDesktop() {
@@ -282,6 +283,15 @@ export default function App() {
   }, [])
 
   const [showOnboarding, setShowOnboarding] = useState(false)
+
+  // Fix Android Chrome 100vh bug — set --actual-vh CSS variable
+  useEffect(() => {
+    const setVH = () => document.documentElement.style.setProperty('--actual-vh', `${window.innerHeight}px`)
+    setVH()
+    window.addEventListener('resize', setVH)
+    return () => window.removeEventListener('resize', setVH)
+  }, [])
+
   const uid = user?.id
 
   const { teamMembers, permissions, effectiveOwnerId, allowedProjectIds, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
@@ -443,7 +453,7 @@ export default function App() {
     : 'dashboard'
 
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", direction: 'rtl', position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingRight: isDesktop ? 240 : 0 }}>
+    <div className="app-root" style={{ background: C.bg, fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", direction: 'rtl', position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingRight: isDesktop ? 240 : 0 }}>
       <style>{globalCSS}</style>
       {isDesktop && <DesktopSidebar screen={screen} setScreen={setScreen} permissions={p} pendingCount={pendingCount} />}
 
