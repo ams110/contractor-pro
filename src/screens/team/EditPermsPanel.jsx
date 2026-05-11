@@ -1,4 +1,5 @@
 import React from 'react'
+import { Pencil, X, Lock } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { Btn } from '../../components/index.jsx'
 import { PERM_LABELS, PRESET_ROLES } from './teamConstants.js'
@@ -25,12 +26,12 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>✏️ تعديل الصلاحيات</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, display:'flex', alignItems:'center', gap:6 }}><Pencil size={14} strokeWidth={2} /> تعديل الصلاحيات</div>
             <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
               {member.display_name || member.username}
             </div>
           </div>
-          <button onClick={closeEditPerms} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, fontSize: 16, cursor: 'pointer', padding: '4px 10px' }}>✕</button>
+          <button onClick={closeEditPerms} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, cursor: 'pointer', padding: '4px 10px', display:'flex', alignItems:'center' }}><X size={14} strokeWidth={2.5} /></button>
         </div>
 
         {/* Role preset chips */}
@@ -54,7 +55,7 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
         </div>
 
         {/* Permission toggles */}
-        <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8, letterSpacing: '0.04em' }}>🔐 الصلاحيات التفصيلية</div>
+        <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8, letterSpacing: '0.04em', display:'flex', alignItems:'center', gap:4 }}><Lock size={10} strokeWidth={2} /> الصلاحيات التفصيلية</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, marginBottom: 14 }}>
           {PERM_LABELS.map(([key, label]) => {
             const on = !!editPerms[key]

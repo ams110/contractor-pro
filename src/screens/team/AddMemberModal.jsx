@@ -1,4 +1,5 @@
 import React from 'react'
+import { X, Lock } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { Btn, GlassCard } from '../../components/index.jsx'
 import { PERM_LABELS, PRESET_ROLES } from './teamConstants.js'
@@ -36,7 +37,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>➕ عضو جديد</div>
-          <button onClick={closeAddMember} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, fontSize: 16, cursor: 'pointer', padding: '4px 10px' }}>✕</button>
+          <button onClick={closeAddMember} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, cursor: 'pointer', padding: '4px 10px', display:'flex', alignItems:'center' }}><X size={14} strokeWidth={2.5} /></button>
         </div>
 
         {/* Step indicator */}
@@ -137,7 +138,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
             </div>
 
             {/* Permission checkboxes */}
-            <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8 }}>🔐 الصلاحيات التفصيلية</div>
+            <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8, display:'flex', alignItems:'center', gap:4 }}><Lock size={10} strokeWidth={2} /> الصلاحيات التفصيلية</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, marginBottom: 14 }}>
               {PERM_LABELS.map(([key, label]) => {
                 const on = !!memberForm.perms[key]
