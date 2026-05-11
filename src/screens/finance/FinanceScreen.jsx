@@ -52,7 +52,7 @@ function Sheet({ open, onClose, title, children, action }) {
       {open && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           onClick={onClose}
-          style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
           <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
             onClick={e => e.stopPropagation()}
@@ -74,9 +74,9 @@ function Sheet({ open, onClose, title, children, action }) {
             </div>
             {/* Scrollable body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>{children}</div>
-            {/* Sticky action footer */}
+            {/* Sticky action footer — padding accounts for app nav bar + device safe area */}
             {action && (
-              <div style={{ padding: '12px 18px 36px', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
+              <div style={{ padding: '12px 18px', paddingBottom: 'max(24px, env(safe-area-inset-bottom, 16px))', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
                 {action}
               </div>
             )}
