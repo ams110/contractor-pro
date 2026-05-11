@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Plus, Archive, Scale, ReceiptText, TrendingUp, TrendingDown, SortDesc, ChevronLeft, X } from 'lucide-react'
+import { Search, Plus, Archive, ArchiveRestore, Scale, ReceiptText, TrendingUp, TrendingDown, SortDesc, ChevronLeft, ChevronRight, X, Copy, FileText, Download, Calendar, Clock, StickyNote, MapPin, Paperclip, HardHat, Banknote, Package, ShoppingBag, DollarSign, Check } from 'lucide-react'
 import { C, GRAD, SPECS, PROJECT_TYPES, PROJECT_STATUS, PAY_METHODS as DEFAULT_PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, validateProject, todayStr } from '../lib/helpers.js'
 import {
@@ -384,49 +384,49 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     const receivedPct = proj.price > 0 ? Math.round((received / proj.price) * 100) : 0
 
     return (
-      <div className="fade-in" style={{ padding: '16px 16px 100px' }}>
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} style={{ padding: '16px 16px 100px' }}>
 
         {/* ── Top nav bar ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <button
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 8 }}>
+          <motion.button whileTap={{ scale: 0.93 }}
             onClick={() => setDetail(null)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 6,
+              display: 'flex', alignItems: 'center', gap: 5,
               background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`,
               borderRadius: 12, padding: '8px 14px', color: C.primary,
-              fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
-            ← رجوع
-          </button>
+            <ChevronRight size={15} strokeWidth={2.5} /> رجوع
+          </motion.button>
           {permissions?.editProjects !== false && (
-            <button onClick={() => duplicateProject(proj)}
-              style={{ display:'flex', alignItems:'center', gap:6, background:`${C.blue}18`, border:`1px solid ${C.blue}44`, borderRadius:12, padding:'8px 14px', color:C.blue, fontSize:12, fontWeight:700, cursor:'pointer' }}>
-              📋 نسخ
-            </button>
+            <motion.button whileTap={{ scale: 0.93 }} onClick={() => duplicateProject(proj)}
+              style={{ display:'flex', alignItems:'center', gap:5, background:`${C.blue}18`, border:`1px solid ${C.blue}44`, borderRadius:12, padding:'8px 12px', color:C.blue, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+              <Copy size={13} strokeWidth={2} /> نسخ
+            </motion.button>
           )}
           {permissions?.editProjects !== false && (
-            <button
+            <motion.button whileTap={{ scale: 0.93 }}
               onClick={async () => {
                 const newStatus = proj.status === 'مؤرشف' ? 'مكتمل' : 'مؤرشف'
                 await updateProject(proj.id, { status: newStatus })
                 setDetail(null)
               }}
-              style={{ display:'flex', alignItems:'center', gap:6, background:`${C.textDim}18`, border:`1px solid ${C.textDim}44`, borderRadius:12, padding:'8px 14px', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
-              {proj.status === 'مؤرشف' ? '🔄 إلغاء أرشفة' : '🗄 أرشفة'}
-            </button>
+              style={{ display:'flex', alignItems:'center', gap:5, background:`${C.textDim}18`, border:`1px solid ${C.textDim}44`, borderRadius:12, padding:'8px 12px', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+              {proj.status === 'مؤرشف' ? <><ArchiveRestore size={13} strokeWidth={2} /> إلغاء أرشفة</> : <><Archive size={13} strokeWidth={2} /> أرشفة</>}
+            </motion.button>
           )}
-          <button
+          <motion.button whileTap={{ scale: 0.93 }}
             onClick={() => exportProjectToPDF({ project: proj, workDays, expenses, clientReceipts, employees: employees || [] })}
             style={{
-              display: 'flex', alignItems: 'center', gap: 6,
+              display: 'flex', alignItems: 'center', gap: 5,
               background: `${C.secondary}18`, border: `1px solid ${C.secondary}44`,
-              borderRadius: 12, padding: '8px 14px', color: C.secondary,
-              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              borderRadius: 12, padding: '8px 12px', color: C.secondary,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
-            PDF تقرير
-          </button>
+            <FileText size={13} strokeWidth={2} /> PDF
+          </motion.button>
         </div>
 
         {/* ── Project hero ── */}
@@ -447,13 +447,13 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
             )}
             {(proj.start_date || proj.end_date) && (
               <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
-                {proj.start_date && <div style={{ fontSize: 11, color: C.primary, background: `${C.primary}15`, padding: '3px 10px', borderRadius: 20, border: `1px solid ${C.primary}33` }}>🗓 بدأ: {proj.start_date}</div>}
-                {proj.end_date   && <div style={{ fontSize: 11, color: proj.end_date < todayStr() && proj.status === 'نشط' ? C.accent : C.warning, background: `${proj.end_date < todayStr() && proj.status === 'نشط' ? C.accent : C.warning}15`, padding: '3px 10px', borderRadius: 20, border: `1px solid ${proj.end_date < todayStr() && proj.status === 'نشط' ? C.accent : C.warning}33` }}>⏰ ينتهي: {proj.end_date}</div>}
+                {proj.start_date && <div style={{ fontSize: 11, color: C.primary, background: `${C.primary}15`, padding: '3px 10px', borderRadius: 20, border: `1px solid ${C.primary}33`, display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={10} strokeWidth={2} /> بدأ: {proj.start_date}</div>}
+                {proj.end_date   && (() => { const late = proj.end_date < todayStr() && proj.status === 'نشط'; const col = late ? C.accent : C.warning; return <div style={{ fontSize: 11, color: col, background: `${col}15`, padding: '3px 10px', borderRadius: 20, border: `1px solid ${col}33`, display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={10} strokeWidth={2} /> ينتهي: {proj.end_date}</div> })()}
               </div>
             )}
             {proj.notes && (
-              <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 12, color: C.textDim, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                📝 {proj.notes}
+              <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 12, color: C.textDim, lineHeight: 1.6, whiteSpace: 'pre-wrap', display: 'flex', gap: 8 }}>
+                <StickyNote size={13} strokeWidth={1.8} style={{ flexShrink: 0, marginTop: 2, color: C.primary }} /> {proj.notes}
               </div>
             )}
             {proj.price > 0 && received >= 0 && (
@@ -498,14 +498,16 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
 
             {/* Cost breakdown rows */}
             {[
-              { label: '👷 تكلفة العمال',        value: `${fmt(labor)}₪`,          color: C.accent },
-              { label: '💵 مدفوع للعمال',         value: `${fmt(workerPayments)}₪`,  color: C.success, hide: workerPayments === 0, sub: true },
-              { label: '🧱 البضاعة',              value: `${fmt(materials)}₪`,       color: C.orange,  hide: materials === 0 },
-              { label: '📦 مصاريف أخرى',         value: `${fmt(otherExps)}₪`,       color: C.accent,  hide: materials === 0 && exps === 0 },
-              { label: '💸 إجمالي التكاليف',      value: `${fmt(total)}₪`,           color: C.accent,  bold: true },
+              { label: 'تكلفة العمال',     Icon: HardHat,    value: `${fmt(labor)}₪`,          color: C.accent },
+              { label: 'مدفوع للعمال',     Icon: Banknote,   value: `${fmt(workerPayments)}₪`,  color: C.success, hide: workerPayments === 0, sub: true },
+              { label: 'البضاعة',          Icon: Package,    value: `${fmt(materials)}₪`,       color: C.warning, hide: materials === 0 },
+              { label: 'مصاريف أخرى',     Icon: ShoppingBag,value: `${fmt(otherExps)}₪`,       color: C.accent,  hide: materials === 0 && exps === 0 },
+              { label: 'إجمالي التكاليف', Icon: DollarSign, value: `${fmt(total)}₪`,           color: C.accent,  bold: true },
             ].filter(r => !r.hide).map((row, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: row.sub ? '5px 12px 5px 20px' : '7px 12px', background: i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent', borderRadius: 10, marginBottom: 2 }}>
-                <span style={{ fontSize: row.sub ? 11 : 12, color: row.bold ? C.text : C.textDim, fontWeight: row.bold ? 700 : 400 }}>{row.label}</span>
+                <span style={{ fontSize: row.sub ? 11 : 12, color: row.bold ? C.text : C.textDim, fontWeight: row.bold ? 700 : 400, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <row.Icon size={row.sub ? 11 : 12} strokeWidth={1.8} style={{ color: row.color, opacity: 0.8 }} /> {row.label}
+                </span>
                 <span style={{ fontSize: row.sub ? 12 : 13, fontWeight: row.bold ? 800 : 600, color: row.color, fontFamily: 'monospace' }}>{row.value}</span>
               </div>
             ))}
@@ -546,50 +548,55 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
             لم يُقبض شيء بعد
           </div>
         ) : (
-          <div style={{ marginBottom: 16 }}>
-            {receipts.map((r, idx) => (
-              <div key={r.id} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '12px 16px',
-                background: 'rgba(255,255,255,0.03)',
-                border: `1px solid ${C.border}`,
-                borderRight: `3px solid ${C.success}`,
-                borderRadius: 14, marginBottom: 8,
-              }}>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: C.success, fontFamily: 'monospace', letterSpacing: '-0.5px' }}>
-                    {fmt(r.amount)}₪
-                  </div>
-                  <div style={{ fontSize: 11, color: C.textDim, marginTop: 3 }}>
-                    {fmtDate(r.date)} • {r.payment_method}{r.payer_name ? ` • من: ${r.payer_name}` : ''}{r.notes ? ` • ${r.notes}` : ''}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {r.receipt_url && (
-                    <a href={r.receipt_url} target="_blank" rel="noreferrer"
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 10, background: `${C.secondary}18`, border: `1px solid ${C.secondary}33`, textDecoration: 'none', fontSize: 14 }}
-                      title="عرض الإثبات"
-                    >
-                      📎
-                    </a>
-                  )}
-                  <button onClick={() => setConfirmDelR(r.id)} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 32, height: 32, borderRadius: 10,
-                    background: `${C.accent}15`, border: `1px solid ${C.accent}33`,
-                    color: C.accent, cursor: 'pointer', fontSize: 14,
+          <AnimatePresence>
+            <div style={{ marginBottom: 16 }}>
+              {receipts.map((r, idx) => (
+                <motion.div key={r.id}
+                  initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2, delay: idx * 0.04 }}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '12px 16px',
+                    background: `${C.success}06`,
+                    border: `1px solid ${C.success}20`,
+                    borderRight: `3px solid ${C.success}`,
+                    borderRadius: 14, marginBottom: 8,
                   }}>
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: C.success, fontFamily: 'monospace', letterSpacing: '-0.5px' }}>
+                      {fmt(r.amount)}₪
+                    </div>
+                    <div style={{ fontSize: 11, color: C.textDim, marginTop: 3 }}>
+                      {fmtDate(r.date)} • {r.payment_method}{r.payer_name ? ` • من: ${r.payer_name}` : ''}{r.notes ? ` • ${r.notes}` : ''}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {r.receipt_url && (
+                      <a href={r.receipt_url} target="_blank" rel="noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 10, background: `${C.secondary}18`, border: `1px solid ${C.secondary}33`, textDecoration: 'none', color: C.secondary }}
+                        title="عرض الإثبات"
+                      >
+                        <Paperclip size={14} strokeWidth={2} />
+                      </a>
+                    )}
+                    <motion.button whileTap={{ scale: 0.85 }} onClick={() => setConfirmDelR(r.id)} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 32, height: 32, borderRadius: 10,
+                      background: `${C.accent}15`, border: `1px solid ${C.accent}33`,
+                      color: C.accent, cursor: 'pointer', fontFamily: 'inherit',
+                    }}>
+                      <X size={13} strokeWidth={2.5} />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </AnimatePresence>
         )}
 
         {/* ── Blueprints section ── */}
         <SectionLabel color={C.blue} action={permissions?.editProjects !== false ? (blueprintLoading ? '...' : '+ خريطة') : undefined} onAction={() => blueprintFileRef.current?.click()}>
-          📐 خرائط المشروع
+          خرائط المشروع
         </SectionLabel>
         <input ref={blueprintFileRef} type="file" accept="image/*,application/pdf" multiple style={{ display: 'none' }}
           onChange={async e => { for (const f of Array.from(e.target.files || [])) await addBlueprint(f); e.target.value = '' }} />
@@ -605,7 +612,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                 onClick={() => setBlueprintViewer(idx)}>
                 {b.type === 'pdf' ? (
                   <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 6 }}>
-                    <div style={{ fontSize: 28 }}>📄</div>
+                    <FileText size={28} strokeWidth={1.5} style={{ color: C.blue, opacity: 0.8 }} />
                     <div style={{ fontSize: 8, color: C.textDim, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{b.name}</div>
                     <div style={{ fontSize: 7, color: C.blue, fontWeight: 700 }}>PDF</div>
                   </div>
@@ -637,8 +644,8 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                     <div style={{ padding: '8px 14px', background: '#111', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 11, color: C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{bp.name}</span>
                       <a href={bp.dataUrl} download={bp.name}
-                        style={{ padding: '5px 12px', borderRadius: 8, background: `${C.blue}22`, border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
-                        ⬇ تحميل
+                        style={{ padding: '5px 12px', borderRadius: 8, background: `${C.blue}22`, border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 11, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <Download size={12} strokeWidth={2} /> تحميل
                       </a>
                     </div>
                   </div>
@@ -672,7 +679,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           if (entries.length === 1 && entries[0][0] === '__none__') return null
           return (
             <>
-              <SectionLabel color={C.primary}>📍 توزيع العمال حسب المكان</SectionLabel>
+              <SectionLabel color={C.primary}>توزيع العمال حسب المكان</SectionLabel>
               <GlassCard style={{ marginBottom: 16 }}>
                 <div style={{ padding: '14px 16px' }}>
                   {entries.map(([loc, days], i) => {
@@ -683,8 +690,8 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                     return (
                       <div key={loc} style={{ marginBottom: i < entries.length - 1 ? 12 : 0, paddingBottom: i < entries.length - 1 ? 12 : 0, borderBottom: i < entries.length - 1 ? `1px solid ${C.border}` : 'none' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: isNone ? C.textDim : C.primary }}>
-                            {isNone ? '⬜ غير محدد' : `📍 ${loc}`}
+                          <span style={{ fontSize: 13, fontWeight: 800, color: isNone ? C.textDim : C.primary, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {!isNone && <MapPin size={12} strokeWidth={2} />} {isNone ? 'غير محدد' : loc}
                           </span>
                           <span style={{ fontSize: 13, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>{fmt(total)}₪</span>
                         </div>
@@ -750,7 +757,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
                 onClick={() => receiptFileRef.current.click()}
                 style={{ width: '100%', padding: '16px', borderRadius: 14, border: `2px dashed ${C.borderMid}`, background: 'rgba(255,255,255,0.02)', color: C.textDim, fontSize: 13, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
               >
-                <span style={{ fontSize: 22 }}>📷</span>
+                <Paperclip size={20} strokeWidth={1.5} style={{ color: C.textDim }} />
                 <span>اضغط لرفع صورة الإيصال</span>
               </button>
             )}
@@ -768,7 +775,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
 
         <ConfirmDialog open={!!confirmDel}  onClose={() => setConfirmDel(null)}  onConfirm={confirmDelete}        message="متأكد بدك تحذف هالمشروع؟" />
         <ConfirmDialog open={!!confirmDelR} onClose={() => setConfirmDelR(null)} onConfirm={confirmDeleteReceipt} message="متأكد بدك تحذف هالدفعة؟" />
-      </div>
+      </motion.div>
     )
   }
 
