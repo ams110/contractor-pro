@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react'
+import { Gift, HardHat, KeyRound, Bell, HardHat as ConstructionIcon, CalendarDays, Wallet, ClipboardList, Ruler, X } from 'lucide-react'
 import { C, GRAD, EXP_CATS } from '../constants/index.js'
 import { fmt, fmtDate, fmtDateFull, todayStr } from '../lib/helpers.js'
 import { useWorkerPortal } from '../hooks/useWorkerPortal.js'
@@ -91,7 +92,7 @@ function MonthRow({ month, data, payments, holidays = [] }) {
           <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{fmtMonth(month)}</span>
           <span style={{ fontSize: 10, color: C.textDim, background: `${C.border}88`, padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>
           {(data.records || []).filter(r => r.day_type !== 'عطلة').length} يوم
-          {(data.records || []).filter(r => r.day_type === 'عطلة').length > 0 && ` · 🎉 ${(data.records || []).filter(r => r.day_type === 'عطلة').length} عطلة`}
+          {(data.records || []).filter(r => r.day_type === 'عطلة').length > 0 && ` · ${(data.records || []).filter(r => r.day_type === 'عطلة').length} عطلة`}
         </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -114,9 +115,9 @@ function MonthRow({ month, data, payments, holidays = [] }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
                       <div style={{ fontSize: 12, color: C.textDim, flexShrink: 0 }}>{fmtDateFull(r.date)}</div>
                       {r.project_name && <div style={{ fontSize: 11, color: C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.project_name}</div>}
-                      {r.location && <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.primary}30`, flexShrink: 0 }}>📍 {r.location}</span>}
+                      {r.location && <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.primary}30`, flexShrink: 0 }}>{r.location}</span>}
                       <span style={{ fontSize: 10, fontWeight: 700, color: tc, background: `${tc}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${tc}30`, flexShrink: 0 }}>{r.day_type}</span>
-                      {hol && <span style={{ fontSize: 10, fontWeight: 700, color: C.warning, background: `${C.warning}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.warning}30`, flexShrink: 0 }}>🎉 {hol.name}</span>}
+                      {hol && <span style={{ fontSize: 10, fontWeight: 700, color: C.warning, background: `${C.warning}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.warning}30`, flexShrink: 0, display:'inline-flex', alignItems:'center', gap:3 }}><Gift size={8} strokeWidth={2} /> {hol.name}</span>}
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 800, color: tc, fontFamily: 'monospace', flexShrink: 0, marginRight: 4 }}>{fmt(r.amount)}₪</span>
                   </div>
@@ -130,7 +131,7 @@ function MonthRow({ month, data, payments, holidays = [] }) {
             <div style={{ marginTop: 8, marginBottom: 4 }}>
               {offHolidays.map(h => (
                 <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: `${C.warning}12`, border: `1px solid ${C.warning}33`, marginBottom: 6 }}>
-                  <span style={{ fontSize: 18 }}>🎉</span>
+                  <Gift size={18} style={{ color: C.warning, flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.warning }}>{h.name}</div>
                     <div style={{ fontSize: 11, color: C.textDim }}>{fmtDateFull(h.date)} · عطلة رسمية</div>
@@ -175,7 +176,7 @@ function LoginScreen({ onLogin, error, loading }) {
       <div style={{ position: 'absolute', bottom: '-15%', left: '-15%', width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, #6366F122 0%, transparent 70%)', pointerEvents: 'none' }} />
 
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38, margin: '0 auto 14px', boxShadow: '0 12px 36px #00DDB355', animation: 'float 3s ease-in-out infinite' }}>👷</div>
+        <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 12px 36px rgba(245,158,11,0.35)', animation: 'float 3s ease-in-out infinite' }}><HardHat size={38} strokeWidth={1.8} color="#000" /></div>
         <div style={{ fontSize: 24, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>بوابة العمال</div>
         <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, letterSpacing: '0.06em' }}>Contractor Pro</div>
       </div>
@@ -221,7 +222,7 @@ function LoginScreen({ onLogin, error, loading }) {
 
         {showForgot && (
           <div style={{ marginTop: 10, padding: '14px 16px', background: `${C.primary}12`, borderRadius: 14, border: `1px solid ${C.primary}33` }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 6 }}>🔑 كيف تعيد كلمة مرورك؟</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 6, display:'flex', alignItems:'center', gap:6 }}><KeyRound size={13} strokeWidth={2} /> كيف تعيد كلمة مرورك؟</div>
             <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
               تواصل مع المشرف أو صاحب العمل وأطلب منه إعادة تعيين كلمة مرورك.<br />
               بإمكانه تغييرها من تطبيق <span style={{ color: C.primary, fontWeight: 700 }}>Contractor Pro</span> مباشرةً.
@@ -276,7 +277,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
         <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>{projName} • {submittedDate}</div>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.primary, marginBottom: 16, fontFamily: 'monospace' }}>{fmt(amount)}₪</div>
         <div style={{ padding: '12px 16px', background: `${C.primary}12`, borderRadius: 12, marginBottom: 20, border: `1px solid ${C.primary}33` }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4 }}>🔔 وصل إشعار للمشرف</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4, display:'flex', alignItems:'center', gap:6 }}><Bell size={13} strokeWidth={2} /> وصل إشعار للمشرف</div>
           <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب في التطبيق ويوافق عليه</div>
         </div>
         <button onClick={() => { setDone(false); setForm({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8', location: '' }) }}
@@ -291,7 +292,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
     <div style={{ paddingBottom: 16 }}>
       {projects.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>🏗️</div>
+          <ConstructionIcon size={36} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
           <div>لا توجد مشاريع نشطة</div>
         </div>
       ) : (
@@ -480,7 +481,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
         <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>{form.category}</div>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.accent, marginBottom: 16, fontFamily: 'monospace' }}>{fmt(submittedAmt)}₪</div>
         <div style={{ padding: '12px 16px', background: `${C.primary}12`, borderRadius: 12, marginBottom: 20, border: `1px solid ${C.primary}33` }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4 }}>🔔 وصل إشعار للمشرف</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4, display:'flex', alignItems:'center', gap:6 }}><Bell size={13} strokeWidth={2} /> وصل إشعار للمشرف</div>
           <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب والفاتورة ويوافق عليه</div>
         </div>
         <button onClick={() => { setDone(false); setForm(emptyForm); clearFile() }}
@@ -661,7 +662,7 @@ function ChangePasswordForm({ worker, onChangePassword }) {
       {/* فورم تغيير كلمة المرور */}
       <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.borderMid}`, padding: '18px 16px', overflow: 'hidden' }}>
         <div style={{ height: 3, background: GRAD.purple, margin: '-18px -16px 16px' }} />
-        <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 16 }}>🔑 تغيير كلمة المرور</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 16, display:'flex', alignItems:'center', gap:6 }}><KeyRound size={14} strokeWidth={2} /> تغيير كلمة المرور</div>
 
         {success && (
           <div style={{ padding: '12px 14px', background: `${C.success}18`, borderRadius: 12, marginBottom: 16, fontSize: 13, color: C.success, textAlign: 'center', border: `1px solid ${C.success}33`, fontWeight: 700 }}>
@@ -745,7 +746,7 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
       <div style={{ fontSize:16, fontWeight:800, color:C.success, marginBottom:6 }}>تم إرسال الطلب!</div>
       <div style={{ fontSize:15, fontWeight:800, color:C.primary, marginBottom:16, fontFamily:'monospace' }}>{fmt(sentAmt)}₪</div>
       <div style={{ padding:'12px 16px', background:`${C.primary}12`, borderRadius:12, marginBottom:20, border:`1px solid ${C.primary}33` }}>
-        <div style={{ fontSize:13, fontWeight:700, color:C.primary, marginBottom:4 }}>🔔 وصل إشعار للمشرف</div>
+        <div style={{ fontSize:13, fontWeight:700, color:C.primary, marginBottom:4, display:'flex', alignItems:'center', gap:6 }}><Bell size={13} strokeWidth={2} /> وصل إشعار للمشرف</div>
         <div style={{ fontSize:12, color:C.textDim }}>المشرف رح يراجع الطلب ويحدد من أي مشروع</div>
       </div>
       <button onClick={() => { setDone(false); setForm({ amount:'', method:'كاش', notes:'' }) }}
@@ -762,7 +763,7 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
       {unpaidDays && unpaidDays.length > 0 && (
         <div style={{ marginBottom:16, background:`${C.primary}0a`, borderRadius:16, border:`1px solid ${C.primary}22`, overflow:'hidden' }}>
           <div style={{ padding:'12px 16px', borderBottom:`1px solid ${C.primary}18`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <span style={{ fontSize:13, fontWeight:800, color:C.primary }}>📋 أيامك غير المدفوعة</span>
+            <span style={{ fontSize:13, fontWeight:800, color:C.primary, display:'flex', alignItems:'center', gap:6 }}><ClipboardList size={13} strokeWidth={2} /> أيامك غير المدفوعة</span>
             <span style={{ fontSize:15, fontWeight:900, color:C.primary, fontFamily:'monospace' }}>{fmt(totalOwed)}₪</span>
           </div>
           <div style={{ padding:'8px 16px 12px', maxHeight:220, overflowY:'auto' }}>
@@ -1044,7 +1045,7 @@ function BlueprintsTab({ projects }) {
       )}
       {bps.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: C.textDim }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>📐</div>
+          <Ruler size={40} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
           <div style={{ fontSize: 13 }}>لا توجد خرائط لهذا المشروع</div>
         </div>
       ) : (
@@ -1095,7 +1096,7 @@ function BlueprintsTab({ projects }) {
                 <button onClick={() => setViewer(v => Math.min(bps.length - 1, v + 1))} disabled={viewer === bps.length - 1}
                   style={{ padding: '8px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', border: 'none', color: viewer === bps.length - 1 ? C.border : '#fff', cursor: viewer === bps.length - 1 ? 'default' : 'pointer', fontSize: 18 }}>›</button>
               </div>
-              <button onClick={() => setViewer(null)} style={{ position: 'absolute', top: -12, left: -12, width: 32, height: 32, borderRadius: '50%', background: C.accent, border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button onClick={() => setViewer(null)} style={{ position: 'absolute', top: -12, left: -12, width: 32, height: 32, borderRadius: '50%', background: C.accent, border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} strokeWidth={2.5} /></button>
             </div>
           </div>
         )
@@ -1263,7 +1264,7 @@ export default function WorkerPortalScreen() {
 
             {monthlyBreakdown.length === 0 && pendingDays.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim }}>
-                <div style={{ fontSize: 40, marginBottom: 8 }}>📅</div>
+                <CalendarDays size={40} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
                 <div>ما في أيام عمل مسجّلة بعد</div>
               </div>
             ) : (
@@ -1309,7 +1310,7 @@ export default function WorkerPortalScreen() {
           <>
             {payments.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim }}>
-                <div style={{ fontSize: 40, marginBottom: 8 }}>💰</div>
+                <Wallet size={40} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
                 <div>ما في مدفوعات بعد</div>
               </div>
             ) : (
