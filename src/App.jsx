@@ -527,14 +527,14 @@ export default function App() {
       </div>
 
       {/* ─── Screen content ─── */}
-      <div key={screen} style={{ paddingBottom: isDesktop ? 24 : 100, position: 'relative', zIndex: 1 }}>
+      <div key={screen} style={{ paddingBottom: isDesktop ? 24 : 'max(110px, calc(90px + env(safe-area-inset-bottom, 0px)))', position: 'relative', zIndex: 1 }}>
         <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 56 }}><LoadingSpinner /></div>}>
           {renderScreen()}
         </Suspense>
       </div>
 
       {/* ─── Bottom Nav (mobile only) ─── */}
-      {!isDesktop && <div style={{ position: 'fixed', bottom: 14, left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: '1px solid rgba(245,158,11,0.1)', padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
+      {!isDesktop && <div style={{ position: 'fixed', bottom: 'max(14px, calc(8px + env(safe-area-inset-bottom, 0px)))', left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: '1px solid rgba(245,158,11,0.1)', padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
         {NAV.map(n => {
           const active = activeNav === n.id
           const Icon = NAV_ICONS[n.id]
@@ -600,7 +600,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0,  x: '-50%' }}
             exit={{  opacity: 0, y: 8,   x: '-50%' }}
             style={{
-              position: 'fixed', bottom: isDesktop ? 32 : 100, left: '50%',
+              position: 'fixed', bottom: isDesktop ? 32 : 'max(100px, calc(80px + env(safe-area-inset-bottom, 0px)))', left: '50%',
               background: toast.type === 'success' ? C.success : toast.type === 'warning' ? C.warning : C.accent,
               color: '#fff', padding: '11px 22px', borderRadius: 14, fontSize: 13, fontWeight: 700,
               zIndex: 400, whiteSpace: 'nowrap', boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
