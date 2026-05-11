@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Search, Plus, Archive, Scale, ReceiptText, TrendingUp, TrendingDown, SortDesc, ChevronLeft, X } from 'lucide-react'
 import { C, GRAD, SPECS, PROJECT_TYPES, PROJECT_STATUS, PAY_METHODS as DEFAULT_PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, validateProject, todayStr } from '../lib/helpers.js'
 import {
@@ -798,33 +800,26 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
             {sortBy === 'profit' ? 'الأكثر ربحاً' : 'الأحدث'}
           </button>
           {projects.length >= 2 && (
-            <button
+            <motion.button whileTap={{ scale: 0.93 }}
               onClick={() => { setShowCompare(true); setCompareIds(new Set()); setCompareReady(false) }}
-              style={{
-                padding: '9px 13px', borderRadius: 12,
-                border: `1px solid ${C.blue}55`,
-                background: `${C.blue}12`,
-                color: C.blue, fontSize: 11, fontWeight: 700,
-                cursor: 'pointer', whiteSpace: 'nowrap',
-              }}
+              style={{ padding: '9px 13px', borderRadius: 12, border: `1px solid ${C.blue}44`, background: `${C.blue}10`, color: C.blue, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit' }}
             >
-              ⚖️ مقارنة
-            </button>
+              <Scale size={13} strokeWidth={2} /> مقارنة
+            </motion.button>
           )}
           {permissions?.editProjects !== false && (<>
-            <button
+            <motion.button whileTap={{ scale: 0.93 }}
               onClick={openMultiReceipt}
-              style={{
-                padding: '9px 13px', borderRadius: 12,
-                border: `1px solid ${C.success}55`,
-                background: `${C.success}12`,
-                color: C.success, fontSize: 11, fontWeight: 700,
-                cursor: 'pointer', whiteSpace: 'nowrap',
-              }}
+              style={{ padding: '9px 13px', borderRadius: 12, border: `1px solid ${C.success}44`, background: `${C.success}10`, color: C.success, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit' }}
             >
-              💵 قبض متعدد
-            </button>
-            <Btn onClick={openNew}>+ جديد</Btn>
+              <ReceiptText size={13} strokeWidth={2} /> قبض متعدد
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.93 }}
+              onClick={openNew}
+              style={{ padding: '9px 16px', borderRadius: 12, background: GRAD.brand, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(245,158,11,0.3)' }}
+            >
+              <Plus size={14} strokeWidth={2.5} /> جديد
+            </motion.button>
           </>)}
         </div>
       </div>
@@ -852,13 +847,17 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
 
       {/* ── Search ── */}
       <div style={{ position: 'relative', marginBottom: 16 }}>
-        <span style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', fontSize:14, pointerEvents:'none', opacity:0.5 }}>🔍</span>
+        <Search size={15} strokeWidth={2} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: C.textDim, pointerEvents: 'none' }} />
         <input
           value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث باسم المشروع أو العميل..."
-          style={{ width:'100%', padding:'10px 38px 10px 36px', borderRadius:12, border:`1px solid ${search ? C.primary+'66' : C.border}`, background:'rgba(255,255,255,0.04)', color:C.text, fontSize:12, outline:'none', boxSizing:'border-box', direction:'rtl' }}
+          style={{ width: '100%', padding: '10px 38px 10px 36px', borderRadius: 12, border: `1px solid ${search ? C.primary + '55' : 'rgba(245,158,11,0.1)'}`, background: 'rgba(255,255,255,0.04)', color: C.text, fontSize: 12, outline: 'none', boxSizing: 'border-box', direction: 'rtl', transition: 'border-color .2s', fontFamily: 'inherit' }}
+          onFocus={e => { e.target.style.borderColor = 'rgba(245,158,11,0.4)'; e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.07)' }}
+          onBlur={e  => { e.target.style.borderColor = search ? C.primary + '55' : 'rgba(245,158,11,0.1)'; e.target.style.boxShadow = 'none' }}
         />
         {search && (
-          <button onClick={() => setSearch('')} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:C.textDim, fontSize:14, cursor:'pointer', padding:0 }}>✕</button>
+          <button onClick={() => setSearch('')} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', fontFamily: 'inherit' }}>
+            <X size={14} color={C.textDim} />
+          </button>
         )}
       </div>
 
@@ -866,92 +865,95 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
       {filtered.length === 0 ? (
         <EmptyState icon="🏗️" text="ما في مشاريع بعد" action="+ أضف مشروع" onAction={openNew} />
       ) : (
-        filtered.map(pr => {
-          const borderColor = statusBorderColor(pr.status)
-          const receivedPct = pr.price > 0 ? Math.round((pr._received / pr.price) * 100) : 0
+        <AnimatePresence>
+          {filtered.map((pr, idx) => {
+            const accentColor = statusBorderColor(pr.status)
+            const receivedPct = pr.price > 0 ? Math.round((pr._received / pr.price) * 100) : 0
 
-          return (
-            <div
-              key={pr.id}
-              onClick={() => setDetail(pr.id)}
-              style={{
-                display: 'flex', cursor: 'pointer',
-                background: 'rgba(255,255,255,0.03)',
-                border: `1px solid ${C.border}`,
-                borderRight: `4px solid ${borderColor}`,
-                borderRadius: 16,
-                marginBottom: 10,
-                overflow: 'hidden',
-                transition: 'all .22s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = C.borderMid; e.currentTarget.style.transform = 'translateY(-1px)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = 'none' }}
-            >
-              {/* Left glow accent */}
-              <div style={{ width: 0, position: 'relative' }}>
-                <div style={{
-                  position: 'absolute', top: 0, right: 0, bottom: 0, width: 1,
-                  background: `${borderColor}44`,
-                  filter: `blur(4px)`,
-                }} />
-              </div>
+            return (
+              <motion.div
+                key={pr.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, delay: idx * 0.04 }}
+                whileTap={{ scale: 0.985 }}
+                onClick={() => setDetail(pr.id)}
+                style={{
+                  cursor: 'pointer',
+                  background: '#13151E',
+                  border: `1px solid ${accentColor}20`,
+                  borderRadius: 18,
+                  marginBottom: 10,
+                  overflow: 'hidden',
+                  position: 'relative',
+                }}
+              >
+                {/* Top accent line */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${accentColor}, ${accentColor}44, transparent)`, borderRadius: '18px 18px 0 0' }} />
 
-              <div style={{ flex: 1, padding: '14px 16px' }}>
-                {/* Top row: name + badge */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 5 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: C.text, flex: 1, paddingLeft: 10 }}>{pr.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                    <Badge text={pr.status} color={statusBadgeColor(pr.status)} />
-                    {permissions?.editProjects !== false && pr.status !== 'مؤرشف' && (
-                      <button
-                        onClick={e => { e.stopPropagation(); updateProject(pr.id, { status: 'مؤرشف' }) }}
-                        title="أرشفة المشروع"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, opacity: 0.4, padding: '2px 4px', color: C.textDim, transition: 'opacity .15s' }}
-                        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                        onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}
-                      >🗄</button>
-                    )}
-                  </div>
-                </div>
+                {/* Ambient glow blob */}
+                <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: `radial-gradient(circle, ${accentColor}14 0%, transparent 70%)`, pointerEvents: 'none' }} />
 
-                {/* Client name */}
-                <div style={{ fontSize: 12, color: C.textDim, marginBottom: pr.price > 0 ? 10 : 0 }}>
-                  {pr.client_name}{pr.type ? ` • ${pr.type}` : ''}
-                </div>
-
-                {/* Progress bar (if price set) */}
-                {pr.price > 0 && pr._received > 0 && (
-                  <ProgressBar pct={receivedPct} gradient={GRAD.success} />
-                )}
-
-                {/* Bottom row: price + margin */}
-                {pr.price > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'monospace' }}>
-                      {fmt(pr.price)}₪
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {pr._margin !== null && <MarginPill margin={pr._margin} />}
-                      {pr._received > 0 && (
-                        <span style={{ fontSize: 10, color: C.textDim }}>قُبض {receivedPct}%</span>
+                <div style={{ padding: '14px 16px', position: 'relative' }}>
+                  {/* Top row */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: C.text, flex: 1, paddingLeft: 10, lineHeight: 1.3 }}>{pr.name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      <Badge text={pr.status} color={statusBadgeColor(pr.status)} />
+                      {permissions?.editProjects !== false && pr.status !== 'مؤرشف' && (
+                        <motion.button
+                          whileTap={{ scale: 0.85 }}
+                          onClick={e => { e.stopPropagation(); updateProject(pr.id, { status: 'مؤرشف' }) }}
+                          title="أرشفة"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.textDim, display: 'flex', fontFamily: 'inherit' }}
+                        >
+                          <Archive size={13} strokeWidth={1.8} />
+                        </motion.button>
                       )}
                     </div>
                   </div>
-                )}
 
-                {/* قبضة اليوميات button — only for daily projects */}
-                {pr.type === 'يومي' && permissions?.editProjects !== false && (
-                  <button
-                    onClick={e => { e.stopPropagation(); openReceiptForm(pr.id) }}
-                    style={{ marginTop: 10, width: '100%', padding: '8px 0', borderRadius: 10, background: `${C.success}18`, border: `1px solid ${C.success}44`, color: C.success, fontSize: 11, fontWeight: 800, cursor: 'pointer', letterSpacing: '0.02em' }}
-                  >
-                    💵 قبضة اليوميات
-                  </button>
-                )}
-              </div>
-            </div>
-          )
-        })
+                  {/* Client + type */}
+                  <div style={{ fontSize: 11, color: C.textDim, marginBottom: pr.price > 0 ? 10 : 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {pr.client_name && <span>{pr.client_name}</span>}
+                    {pr.type && <><span style={{ opacity: 0.4 }}>·</span><span style={{ color: C.primary, fontWeight: 600 }}>{pr.type}</span></>}
+                  </div>
+
+                  {/* Progress bar */}
+                  {pr.price > 0 && pr._received > 0 && (
+                    <ProgressBar pct={receivedPct} gradient={GRAD.success} />
+                  )}
+
+                  {/* Bottom row */}
+                  {pr.price > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: C.text, fontFamily: 'monospace' }}>{fmt(pr.price)}₪</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        {pr._margin !== null && <MarginPill margin={pr._margin} />}
+                        {pr._received > 0 && (
+                          <span style={{ fontSize: 10, color: C.textDim }}>قُبض {receivedPct}%</span>
+                        )}
+                        <ChevronLeft size={14} color={C.textDim} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Daily receipt button */}
+                  {pr.type === 'يومي' && permissions?.editProjects !== false && (
+                    <motion.button
+                      whileTap={{ scale: 0.96 }}
+                      onClick={e => { e.stopPropagation(); openReceiptForm(pr.id) }}
+                      style={{ marginTop: 10, width: '100%', padding: '8px 0', borderRadius: 10, background: `${C.success}14`, border: `1px solid ${C.success}30`, color: C.success, fontSize: 11, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontFamily: 'inherit' }}
+                    >
+                      <ReceiptText size={12} strokeWidth={2} /> قبضة اليوميات
+                    </motion.button>
+                  )}
+                </div>
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
       )}
 
       {/* ── Add/Edit modal ── */}
