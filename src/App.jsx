@@ -1,4 +1,7 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Bell, Search, Activity, WifiOff, Gift, Loader2 } from 'lucide-react'
+import { Toaster, toast as sonnerToast } from 'sonner'
 import { supabase } from './lib/supabase.js'
 import { C, NAV } from './constants/index.js'
 import { navigate }          from './Router.jsx'
@@ -120,9 +123,9 @@ export default function App() {
   }, [])
 
   function showToast(msg, type = 'success') {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-    setToast({ msg, type })
-    toastTimerRef.current = setTimeout(() => setToast(null), 3000)
+    if (type === 'success') sonnerToast.success(msg)
+    else if (type === 'warning') sonnerToast.warning(msg)
+    else sonnerToast.error(msg)
   }
 
   const uid = user?.id
@@ -205,64 +208,60 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:0 }}>
-        <style>{globalCSS}</style>
-        <div style={{ width:88, height:88, borderRadius:28, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:44, marginBottom:24, boxShadow:`0 16px 50px #00DDB344`, animation:'float 2.5s ease-in-out infinite' }}>🏗️</div>
-        <div style={{ fontSize:26, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', marginBottom:6 }}>Contractor Pro</div>
-        <div style={{ fontSize:11, color:C.textDim, letterSpacing:'0.1em', marginBottom:36 }}>إدارة مشاريعك بذكاء</div>
-        <LoadingSpinner />
+      <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-0">
+        <motion.div
+          animate={{ y: [0, -8, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          className="w-20 h-20 rounded-[22px] flex items-center justify-center text-4xl mb-6"
+          style={{ background: 'linear-gradient(135deg, #00DDB3, #6366F1)', boxShadow: '0 16px 50px #00DDB344' }}
+        >
+          🏗️
+        </motion.div>
+        <div className="text-2xl font-black text-gradient mb-1.5">Contractor Pro</div>
+        <div className="text-xs text-[#64748B] tracking-widest mb-9">إدارة مشاريعك بذكاء</div>
+        <Loader2 className="w-6 h-6 text-primary animate-spin" />
       </div>
     )
   }
 
   if (!user) {
-    return (
-      <>
-        <style>{globalCSS}</style>
-        <LoginScreen teamMemberSignIn={teamMemberSignIn} />
-      </>
-    )
+    return <LoginScreen teamMemberSignIn={teamMemberSignIn} />
   }
 
   if (isBlocked || isExpired) {
     return (
-      <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:0, direction:'rtl', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", padding:32 }}>
-        <style>{globalCSS}</style>
-        <div style={{ fontSize:64, marginBottom:16 }}>{isExpired ? '⏰' : '🚫'}</div>
-        <div style={{ fontSize:20, fontWeight:900, color:C.accent, marginBottom:8 }}>
+      <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-0 p-8 text-center" dir="rtl">
+        <div className="text-6xl mb-4">{isExpired ? '⏰' : '🚫'}</div>
+        <div className="text-xl font-black text-danger mb-2">
           {isExpired ? 'انتهت صلاحية وصولك' : 'تم إيقاف وصولك'}
         </div>
-        <div style={{ fontSize:13, color:C.textDim, textAlign:'center', lineHeight:1.7 }}>
+        <div className="text-sm text-[#64748B] leading-relaxed">
           تواصل مع صاحب الحساب لإعادة تفعيل صلاحياتك
         </div>
-        <button onClick={() => supabase.auth.signOut()} style={{ marginTop:24, padding:'10px 24px', borderRadius:12, background:`${C.accent}22`, border:`1px solid ${C.accent}44`, color:C.accent, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+        <button onClick={() => supabase.auth.signOut()} className="mt-6 px-6 py-2.5 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm font-bold transition-colors hover:bg-danger/20">
           خروج
         </button>
       </div>
     )
   }
 
-  // ─── Subscription gate (Phase 3) ─────────────────────────────────────────
-  // Only enforce once the org record is loaded and the user is the owner
-  // (team members are not gated — they inherit the owner's plan).
-  // Fails open if migration hasn't been applied yet (org === null && !orgLoading).
   if (!orgLoading && org && !isPlanActive() && !effectiveOwnerId) {
     return (
-      <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', direction:'rtl', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", padding:32, textAlign:'center' }}>
-        <style>{globalCSS}</style>
-        <div style={{ fontSize:72, marginBottom:16 }}>⏰</div>
-        <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:10 }}>
-          انتهت فترة التجربة المجانية
-        </div>
-        <div style={{ fontSize:14, color:C.textDim, lineHeight:1.7, maxWidth:320, marginBottom:32 }}>
+      <div className="min-h-screen bg-bg flex flex-col items-center justify-center p-8 text-center" dir="rtl">
+        <div className="text-7xl mb-4">⏰</div>
+        <div className="text-2xl font-black text-[#F8FAFC] mb-2.5">انتهت فترة التجربة المجانية</div>
+        <div className="text-sm text-[#64748B] leading-relaxed max-w-xs mb-8">
           جميع بياناتك محفوظة. اشترك الآن للاستمرار في استخدام Contractor Pro.
         </div>
-        <button
+        <motion.button
+          whileTap={{ scale: 0.97 }}
           onClick={() => navigate('/pricing')}
-          style={{ padding:'14px 36px', borderRadius:16, background:'linear-gradient(135deg,#00DDB3,#6366F1)', border:'none', color:'#000', fontSize:16, fontWeight:800, cursor:'pointer', boxShadow:'0 8px 28px #00DDB344', marginBottom:14 }}>
+          className="px-9 py-3.5 rounded-2xl font-black text-base text-bg mb-3.5"
+          style={{ background: 'linear-gradient(135deg, #00DDB3, #6366F1)', boxShadow: '0 8px 28px #00DDB344' }}
+        >
           اختر خطة اشتراك ←
-        </button>
-        <button onClick={() => supabase.auth.signOut()} style={{ padding:'10px 24px', borderRadius:12, background:'transparent', border:`1px solid rgba(255,255,255,0.1)`, color:C.textDim, fontSize:13, fontWeight:600, cursor:'pointer' }}>
+        </motion.button>
+        <button onClick={() => supabase.auth.signOut()} className="px-6 py-2.5 rounded-xl border border-white/10 text-[#64748B] text-sm font-semibold transition-colors hover:text-[#F8FAFC] hover:border-white/20">
           تسجيل الخروج
         </button>
       </div>
@@ -291,129 +290,185 @@ export default function App() {
     return <ErrorBoundary key={screen}>{content}</ErrorBoundary>
   }
 
+  const pendingCount = workDays.filter(w => w.status === 'pending').length
+  const currentNav = NAV.find(n => n.id === screen)
+
   return (
-    <div style={{ maxWidth:430, margin:'0 auto', background:C.bg, minHeight:'100vh', fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", direction:'rtl', position:'relative' }}>
-      <style>{globalCSS}</style>
+    <div className="max-w-[430px] mx-auto bg-bg min-h-screen relative" dir="rtl">
+
+      <Toaster
+        position="bottom-center"
+        offset={110}
+        toastOptions={{
+          style: { background: '#131920', border: '1px solid rgba(255,255,255,0.08)', color: '#F8FAFC', borderRadius: '14px', fontSize: '13px', fontWeight: 600 },
+        }}
+      />
 
       {/* بانر عدم الاتصال */}
-      {!isOnline && (
-        <div style={{ position:'sticky', top:0, zIndex:200, background:'rgba(0,0,0,0.9)', backdropFilter:'blur(12px)', padding:'9px 16px', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8, borderBottom:`1px solid ${C.border}` }}>
-          <span style={{ fontSize:13 }}>📵</span>
-          <span style={{ fontSize:11, color:C.textDim, fontWeight:600, letterSpacing:'0.02em' }}>لا يوجد اتصال — البيانات محفوظة محلياً</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {!isOnline && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="sticky top-0 z-[200] bg-black/90 backdrop-blur-xl border-b border-white/[0.06]"
+          >
+            <div className="flex items-center justify-center gap-2 px-4 py-2.5">
+              <WifiOff size={13} className="text-[#64748B]" />
+              <span className="text-xs text-[#64748B] font-semibold tracking-wide">لا يوجد اتصال — البيانات محفوظة محلياً</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* بانر التجربة المجانية (فقط للمالك، فقط أثناء التجربة) */}
+      {/* بانر التجربة المجانية */}
       {org && isTrialActive() && !effectiveOwnerId && (
-        <div style={{ position:'sticky', top:0, zIndex:199, background:'linear-gradient(135deg,rgba(99,102,241,0.18),rgba(0,221,179,0.12))', backdropFilter:'blur(12px)', padding:'8px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, borderBottom:`1px solid rgba(99,102,241,0.25)`, direction:'rtl' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ fontSize:14 }}>🎁</span>
-            <span style={{ fontSize:11, color:'#A5B4FC', fontWeight:700 }}>
-              التجربة المجانية — متبقي <strong style={{ color:'#fff' }}>{trialDaysLeft()} يوم</strong>
+        <div className="sticky top-0 z-[199] backdrop-blur-xl border-b border-secondary/25 flex items-center justify-between gap-2 px-4 py-2" style={{ background: 'linear-gradient(135deg,rgba(99,102,241,0.18),rgba(0,221,179,0.12))' }}>
+          <div className="flex items-center gap-2">
+            <Gift size={14} className="text-[#A5B4FC]" />
+            <span className="text-xs text-[#A5B4FC] font-bold">
+              التجربة المجانية — متبقي <strong className="text-white">{trialDaysLeft()} يوم</strong>
             </span>
           </div>
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/pricing')}
-            style={{ padding:'5px 14px', borderRadius:9, background:'linear-gradient(135deg,#00DDB3,#6366F1)', border:'none', color:'#000', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+            className="px-3.5 py-1.5 rounded-lg text-bg text-xs font-black whitespace-nowrap shrink-0"
+            style={{ background: 'linear-gradient(135deg, #00DDB3, #6366F1)' }}
+          >
             اشترك الآن
-          </button>
+          </motion.button>
         </div>
       )}
 
       {/* ─── Header ─── */}
-      {(() => {
-        const currentNav = NAV.find(n => n.id === screen)
-        return (
-        <div style={{ position:'sticky', top:0, zIndex:50, background:'rgba(7,9,13,0.94)', backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)', padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:42, height:42, borderRadius:15, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:21, boxShadow:'0 4px 18px #00DDB355, 0 1px 0 rgba(255,255,255,0.2) inset', flexShrink:0 }}>🏗️</div>
-            <div>
-              <div style={{ fontSize:15, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', lineHeight:1.2, letterSpacing:'-0.01em' }}>Contractor Pro</div>
-              <div style={{ fontSize:9, color: currentNav ? C.primary : C.textDim, letterSpacing:'0.07em', fontWeight:700, transition:'color .25s', opacity:0.9 }}>
-                {currentNav ? `${currentNav.icon} ${currentNav.label}` : 'إدارة مشاريعك بذكاء'}
-              </div>
+      <div className="sticky top-0 z-50 px-4 py-2.5 flex justify-between items-center border-b border-white/[0.06] relative" style={{ background: 'rgba(7,9,13,0.95)', backdropFilter: 'blur(28px)' }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 rounded-[13px] flex items-center justify-center text-xl shrink-0 text-bg font-bold"
+            style={{ background: 'linear-gradient(135deg, #00DDB3, #6366F1)', boxShadow: '0 4px 18px #00DDB344' }}>
+            🏗️
+          </div>
+          <div>
+            <div className="text-[15px] font-black text-gradient leading-tight tracking-tight">Contractor Pro</div>
+            <div className="text-[9px] font-bold tracking-widest transition-colors duration-300" style={{ color: currentNav ? '#00DDB3' : '#64748B' }}>
+              {currentNav ? `${currentNav.icon} ${currentNav.label}` : 'إدارة مشاريعك بذكاء'}
             </div>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-            {dataLoading && <div style={{ width:16, height:16, border:`2px solid ${C.border}`, borderTopColor:C.primary, borderRadius:'50%', animation:'spin .75s linear infinite' }} />}
-            {(p?.isOwner || p?.viewActivity) && (
-              <button onClick={() => setScreen('activity')} className="btn-press"
-                style={{ background: screen === 'activity' ? `${C.primary}20` : 'rgba(255,255,255,0.05)', border:`1px solid ${screen === 'activity' ? C.primary + '44' : 'rgba(255,255,255,0.08)'}`, borderRadius:13, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, boxShadow: screen === 'activity' ? `0 0 12px ${C.primary}33` : 'none', transition:'all .2s' }}>
-              📋
-              </button>
-            )}
-            <button onClick={() => setShowNotifs(true)} className="btn-press"
-              style={{ position:'relative', background:'rgba(255,255,255,0.05)', border:`1px solid rgba(255,255,255,0.08)`, borderRadius:13, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
-              🔔
+        </div>
+        <div className="flex items-center gap-1.5">
+          {dataLoading && <Loader2 size={14} className="text-primary animate-spin" />}
+          {(p?.isOwner || p?.viewActivity) && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setScreen('activity')}
+              className={`w-9 h-9 rounded-[11px] flex items-center justify-center transition-all ${screen === 'activity' ? 'bg-primary/15 border border-primary/40 shadow-glow-sm' : 'bg-white/[0.05] border border-white/[0.08]'}`}
+            >
+              <Activity size={16} className={screen === 'activity' ? 'text-primary' : 'text-[#64748B]'} />
+            </motion.button>
+          )}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowNotifs(true)}
+            className="relative w-9 h-9 rounded-[11px] bg-white/[0.05] border border-white/[0.08] flex items-center justify-center transition-all hover:bg-white/[0.09]"
+          >
+            <Bell size={16} className="text-[#64748B]" />
+            <AnimatePresence>
               {unreadCount > 0 && (
-                <div className="badge-pop" style={{ position:'absolute', top:-4, right:-4, minWidth:18, height:18, borderRadius:9, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 4px', boxShadow:`0 2px 12px ${C.accent}99` }}>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-danger flex items-center justify-center text-[9px] font-black text-white px-1"
+                  style={{ boxShadow: '0 2px 10px #F43F5E88' }}
+                >
                   {unreadCount}
-                </div>
+                </motion.div>
               )}
-            </button>
-            <button onClick={() => setShowSearch(true)} className="btn-press"
-              style={{ background:'rgba(255,255,255,0.05)', border:`1px solid rgba(255,255,255,0.08)`, borderRadius:13, width:40, height:40, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:17, transition:'all .2s' }}>
-              🔍
-            </button>
-          </div>
-            {/* bottom gradient line */}
-            <div style={{ position:'absolute', bottom:0, left:0, right:0, height:1, background:`linear-gradient(90deg, transparent, ${GRAD.brand.includes('#') ? '#00DDB366' : '#00DDB366'}, transparent)` }} />
-          </div>
-        )
-      })()}
-
-      {/* المحتوى */}
-      <div key={screen} className="fade-in" style={{ paddingBottom:96 }}>
-        <Suspense fallback={<div style={{ display:'flex', justifyContent:'center', padding:48 }}><LoadingSpinner /></div>}>
-          {renderScreen()}
-        </Suspense>
+            </AnimatePresence>
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowSearch(true)}
+            className="w-9 h-9 rounded-[11px] bg-white/[0.05] border border-white/[0.08] flex items-center justify-center transition-all hover:bg-white/[0.09]"
+          >
+            <Search size={16} className="text-[#64748B]" />
+          </motion.button>
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, #00DDB355, transparent)' }} />
       </div>
 
+      {/* المحتوى */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={screen}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          className="pb-24"
+        >
+          <Suspense fallback={<div className="flex justify-center pt-12"><Loader2 className="w-6 h-6 text-primary animate-spin" /></div>}>
+            {renderScreen()}
+          </Suspense>
+        </motion.div>
+      </AnimatePresence>
+
       {/* ─── Floating Bottom Nav ─── */}
-      {(() => {
-        const pendingCount = workDays.filter(w => w.status === 'pending').length
-        return (
-          <div style={{ position:'fixed', bottom:16, left:0, right:0, margin:'0 auto', width:'calc(100% - 28px)', maxWidth:400, background:'rgba(10,13,19,0.96)', backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)', borderRadius:26, border:`1px solid rgba(255,255,255,0.09)`, padding:'6px 4px 8px', display:'flex', justifyContent:'space-around', zIndex:50, boxShadow:'0 12px 48px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.06) inset' }}>
-            {NAV.map(n => {
-              const active = screen === n.id
-              return (
-                <button key={n.id} onClick={() => setScreen(n.id)}
-                  className="nav-btn"
-                  style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, padding:'5px 0', background:'none', border:'none', cursor:'pointer', flex:1, position:'relative', minWidth:0 }}>
+      <div className="fixed bottom-4 left-0 right-0 mx-auto z-50 flex justify-around items-center px-1 py-1.5"
+        style={{
+          width: 'calc(100% - 28px)',
+          maxWidth: 400,
+          background: 'rgba(10,13,19,0.97)',
+          backdropFilter: 'blur(28px)',
+          borderRadius: 26,
+          border: '1px solid rgba(255,255,255,0.09)',
+          boxShadow: '0 12px 48px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06)',
+        }}
+      >
+        {NAV.map(n => {
+          const active = screen === n.id
+          return (
+            <motion.button
+              key={n.id}
+              onClick={() => setScreen(n.id)}
+              whileTap={{ scale: 0.85 }}
+              className="flex flex-col items-center gap-0.5 py-1.5 flex-1 relative cursor-pointer bg-transparent border-0 min-w-0"
+            >
+              {active && (
+                <motion.div
+                  layoutId="navPill"
+                  className="absolute top-0.5 left-1/2 -translate-x-1/2 w-11 h-9 rounded-2xl pointer-events-none animate-glow-pulse"
+                  style={{ background: 'linear-gradient(160deg,#00DDB322,#6366F118)', border: '1px solid #00DDB333' }}
+                />
+              )}
+              <span className="relative z-10 text-lg leading-none block transition-all duration-250"
+                style={{ filter: active ? 'drop-shadow(0 0 6px #00DDB388)' : 'grayscale(1) opacity(0.35)', fontSize: active ? 20 : 17 }}>
+                {n.icon}
+              </span>
+              {n.id === 'workdays' && pendingCount > 0 && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute top-0 right-[calc(50%-18px)] min-w-[15px] h-[15px] rounded-full bg-danger flex items-center justify-center text-[8px] font-black text-white px-0.5"
+                  style={{ boxShadow: '0 2px 8px #F43F5E88' }}
+                >
+                  {pendingCount}
+                </motion.div>
+              )}
+              <span className="relative z-10 text-[8.5px] leading-none tracking-wide transition-all duration-200"
+                style={{ fontWeight: active ? 800 : 600, color: active ? '#00DDB3' : 'rgba(255,255,255,0.25)' }}>
+                {n.label}
+              </span>
+              {active && (
+                <div className="w-4 h-0.5 rounded-full mt-0.5 relative z-10"
+                  style={{ background: 'linear-gradient(90deg, #00DDB3, #6366F1)', boxShadow: '0 0 8px #00DDB388' }} />
+              )}
+            </motion.button>
+          )
+        })}
 
-                  {/* Active pill background */}
-                  {active && (
-                    <div style={{ position:'absolute', top:2, left:'50%', transform:'translateX(-50%)', width:44, height:34, borderRadius:16, background:`linear-gradient(160deg,#00DDB322,#6366F118)`, border:`1px solid #00DDB333`, pointerEvents:'none', animation:'glowPulse 2.4s ease-in-out infinite' }} />
-                  )}
 
-                  {/* Icon */}
-                  <span className={active ? 'nav-pop' : ''} style={{ fontSize:active?22:19, position:'relative', zIndex:1, lineHeight:1, filter:active?'drop-shadow(0 0 6px #00DDB388)':'grayscale(1) opacity(0.38)', display:'block', transition:'filter .25s' }}>
-                    {n.icon}
-                  </span>
-
-                  {/* Badge */}
-                  {n.id === 'workdays' && pendingCount > 0 && (
-                    <div className="badge-pop" style={{ position:'absolute', top:0, right:'calc(50% - 18px)', minWidth:16, height:16, borderRadius:8, background:C.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:900, color:'#fff', padding:'0 3px', boxShadow:`0 2px 10px ${C.accent}99` }}>
-                      {pendingCount}
-                    </div>
-                  )}
-
-                  {/* Label */}
-                  <span style={{ fontSize:9, fontWeight:active?800:600, color:active?C.primary:'rgba(255,255,255,0.28)', position:'relative', zIndex:1, letterSpacing:'0.01em', transition:'all .2s', lineHeight:1 }}>
-                    {n.label}
-                  </span>
-
-                  {/* Active dot indicator */}
-                  {active && (
-                    <div style={{ width:16, height:2.5, borderRadius:2, background:GRAD.brand, marginTop:1, boxShadow:`0 0 8px #00DDB388` }} />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        )
-      })()}
-
+      </div>
 
       {/* إشعارات */}
       <NotificationsPanel
@@ -437,50 +492,56 @@ export default function App() {
         onNav={nav => { setScreen(nav); setShowSearch(false) }}
       />
 
-      {/* ─── Toast ─── */}
-      {toast && (
-        <div className="toast-in" style={{
-          position:'fixed', bottom:100, left:'50%', transform:'translateX(-50%)',
-          background: toast.type === 'success' ? C.success : toast.type === 'warning' ? C.warning : C.accent,
-          color:'#fff', padding:'11px 22px', borderRadius:14, fontSize:13, fontWeight:700,
-          zIndex:300, whiteSpace:'nowrap', boxShadow:'0 4px 24px rgba(0,0,0,0.45)',
-          display:'flex', alignItems:'center', gap:8,
-        }}>
-          {toast.msg}
-        </div>
-      )}
-
       {/* ─── Onboarding ─── */}
-      {showOnboarding && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', zIndex:400, display:'flex', alignItems:'center', justifyContent:'center', padding:20, direction:'rtl' }}>
-          <div className="fade-up" style={{ background:C.surface, borderRadius:24, padding:'28px 22px', width:'100%', maxWidth:380, border:`1px solid ${C.borderMid}` }}>
-            <div style={{ textAlign:'center', marginBottom:20 }}>
-              <div style={{ fontSize:44, marginBottom:8 }}>🏗️</div>
-              <div style={{ fontSize:19, fontWeight:900, background:GRAD.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>أهلاً بك في Contractor Pro</div>
-              <div style={{ fontSize:11, color:C.textDim, marginTop:4 }}>إليك أهم الميزات للبداية السريعة</div>
-            </div>
-            {[
-              { icon:'🏗️', title:'المشاريع', desc:'أضف مشاريعك وتابع الأرباح والمصاريف لكل مشروع' },
-              { icon:'👷', title:'العمال',   desc:'أدر فريق عملك، الرواتب، والسلف بسهولة' },
-              { icon:'📅', title:'أيام العمل', desc:'سجّل أيام العمل اليومية مع نظام الموافقات' },
-              { icon:'💸', title:'المصاريف', desc:'تتبع مصاريف المشاريع واسترداد ضريبة القيمة المضافة' },
-            ].map((f, i) => (
-              <div key={f.title} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 0', borderBottom: i < 3 ? `1px solid ${C.border}` : 'none' }}>
-                <div style={{ width:38, height:38, borderRadius:12, background:C.card, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>{f.icon}</div>
-                <div>
-                  <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{f.title}</div>
-                  <div style={{ fontSize:10, color:C.textDim, marginTop:2, lineHeight:1.5 }}>{f.desc}</div>
-                </div>
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/85 z-[400] flex items-center justify-center p-5"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.97 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-sm rounded-3xl border border-white/[0.10] p-6"
+              style={{ background: '#0D1117' }}
+            >
+              <div className="text-center mb-5">
+                <div className="text-4xl mb-3">🏗️</div>
+                <div className="text-lg font-black text-gradient">أهلاً بك في Contractor Pro</div>
+                <div className="text-xs text-[#64748B] mt-1">إليك أهم الميزات للبداية السريعة</div>
               </div>
-            ))}
-            <button
-              onClick={() => { localStorage.setItem('cp_onboarded', '1'); setShowOnboarding(false) }}
-              style={{ marginTop:20, width:'100%', padding:'13px', borderRadius:14, background:GRAD.brand, border:'none', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', boxShadow:`0 8px 24px #00DDB344`, letterSpacing:'0.02em' }}>
-              ابدأ الآن ←
-            </button>
-          </div>
-        </div>
-      )}
+              <div className="space-y-0">
+                {[
+                  { icon:'🏗️', title:'المشاريع', desc:'أضف مشاريعك وتابع الأرباح والمصاريف' },
+                  { icon:'👷', title:'العمال',   desc:'أدر فريق عملك، الرواتب، والسلف بسهولة' },
+                  { icon:'📅', title:'أيام العمل', desc:'سجّل أيام العمل مع نظام الموافقات' },
+                  { icon:'💸', title:'المصاريف', desc:'تتبع مصاريف المشاريع واسترداد الضريبة' },
+                ].map((f, i) => (
+                  <div key={f.title} className={`flex items-center gap-3 py-3 ${i < 3 ? 'border-b border-white/[0.06]' : ''}`}>
+                    <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center text-lg shrink-0">{f.icon}</div>
+                    <div>
+                      <div className="text-sm font-bold text-[#F8FAFC]">{f.title}</div>
+                      <div className="text-[10px] text-[#64748B] mt-0.5 leading-relaxed">{f.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => { localStorage.setItem('cp_onboarded', '1'); setShowOnboarding(false) }}
+                className="mt-5 w-full py-3.5 rounded-2xl font-black text-sm text-bg"
+                style={{ background: 'linear-gradient(135deg, #00DDB3, #6366F1)', boxShadow: '0 8px 24px #00DDB344' }}
+              >
+                ابدأ الآن ←
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
