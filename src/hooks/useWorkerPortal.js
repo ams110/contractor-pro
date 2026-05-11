@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../lib/calculations.js'
 
 const SESSION_KEY = 'worker_session'
 
@@ -27,6 +28,7 @@ export function useWorkerPortal() {
   const [submitting,       setSubmitting]       = useState(false)
   const [submitErr,        setSubmitErr]        = useState('')
   const [workerExpenses,   setWorkerExpenses]   = useState([])
+  const [workerAdvances,   setWorkerAdvances]   = useState([])
   const [submittingExp,    setSubmittingExp]    = useState(false)
   const [submitExpErr,     setSubmitExpErr]     = useState('')
   const [holidays,         setHolidays]         = useState([])
@@ -35,18 +37,20 @@ export function useWorkerPortal() {
     setLoading(true)
     try {
       const session = loadSession()
-      const [dRes, pyRes, prRes, exRes, holRes] = await Promise.all([
+      const [dRes, pyRes, prRes, exRes, holRes, advRes] = await Promise.all([
         supabase.rpc('get_worker_days',     { emp_id: empId }),
         supabase.rpc('get_worker_payments', { emp_id: empId }),
         supabase.rpc('get_worker_projects', { emp_id: empId }),
         supabase.rpc('get_worker_expenses', { emp_id: empId }),
         supabase.rpc('get_worker_holidays', { p_emp_id: empId, p_token: session?.token || '' }),
+        supabase.from('advances').select('*').eq('employee_id', empId),
       ])
       setWorkDays(dRes.data  || [])
       setPayments(pyRes.data || [])
       setProjects(prRes.data || [])
       setWorkerExpenses(exRes.data || [])
       setHolidays(holRes.data || [])
+      setWorkerAdvances(advRes.data || [])
     } finally {
       setLoading(false)
     }
@@ -182,10 +186,13 @@ export function useWorkerPortal() {
     return Object.entries(map).sort(([a], [b]) => b.localeCompare(a))
   })()
 
-  const totalEarned   = workDays.filter(d => d.status === 'approved').reduce((s, d) => s + (d.amount || 0), 0)
-  const totalExpenses = workerExpenses.filter(e => e.status === 'approved').reduce((s, e) => s + (e.amount || 0), 0)
-  const totalPaid     = payments.reduce((s, p) => s + (p.amount || 0), 0)
-  const totalOwed     = Math.max(0, totalEarned + totalExpenses - totalPaid)
+  const approvedDays  = workDays.filter(d => d.status === 'approved')
+  const approvedExp   = workerExpenses.filter(e => e.status === 'approved')
+  const totalEarned   = calcMustahaq(approvedDays, approvedExp)
+  const totalExpenses = calcPaid(approvedExp)
+  const totalPaid     = calcPaid(payments)
+  const totalAdvances = calcAdvances(workerAdvances)
+  const totalOwed     = Math.max(0, calcMutabqi(approvedDays, approvedExp, payments, workerAdvances))
   const pendingDays   = workDays.filter(d => d.status === 'pending')
 
   async function requestAdvance({ amount, notes }) {
@@ -226,7 +233,7 @@ export function useWorkerPortal() {
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
     login, logout, submitWorkDay, submitExpense, changePassword, requestPayment, requestAdvance,
     refetch: () => worker?.id && loadData(worker.id),
-    monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalOwed, pendingDays,
+    monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalAdvances, totalOwed, pendingDays,
   }
 }
 

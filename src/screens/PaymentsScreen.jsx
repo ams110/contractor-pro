@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Wallet, BarChart2, Plus, Building2, Paperclip, MessageCircle, Trash2, Camera } from 'lucide-react'
 import { C, GRAD, PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validatePayment } from '../lib/helpers.js'
+import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../lib/calculations.js'
 import { GlassCard, Modal, Input, Btn, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
 import { exportPaymentsToExcel } from '../lib/export.js'
@@ -18,7 +19,7 @@ function sendWhatsApp(phone, name, amount, date) {
   window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank')
 }
 
-export default function PaymentsScreen({ payments, employees, workDays, expenses = [], projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods }) {
+export default function PaymentsScreen({ payments, employees, workDays, expenses = [], advances = [], projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods }) {
   const methods = payMethods?.length ? payMethods : PAY_METHODS
 
   const currentMonth = todayStr().slice(0, 7)
@@ -54,10 +55,11 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
   }
 
   function calcOwed(empId) {
-    const earned = workDays.filter(w => w.employee_id === empId && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
-    const wExp   = expenses.filter(e => e.employee_id === empId && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
-    const paid   = payments.filter(p => p.employee_id === empId).reduce((s, p) => s + p.amount, 0)
-    return Math.max(0, earned + wExp - paid)
+    const wds    = workDays.filter(w => w.employee_id === empId && w.status === 'approved')
+    const wExp   = expenses.filter(e => e.employee_id === empId && e.status === 'approved')
+    const payed  = payments.filter(p => p.employee_id === empId)
+    const advs   = advances.filter(a => a.employee_id === empId)
+    return Math.max(0, calcMutabqi(wds, wExp, payed, advs))
   }
 
   function selectEmployee(emp) {
@@ -101,10 +103,12 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
   }
 
   const activeEmployees = employees.filter(emp => {
-    const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
-    const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
-    const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
-    return earned + wExp > 0 || paid > 0
+    const mustahaq = calcMustahaq(
+      workDays.filter(w => w.employee_id === emp.id && w.status === 'approved'),
+      expenses.filter(e => e.employee_id === emp.id && e.status === 'approved')
+    )
+    const paid = calcPaid(payments.filter(p => p.employee_id === emp.id))
+    return mustahaq > 0 || paid > 0
   })
 
   const totalOwed = activeEmployees.reduce((s, e) => s + calcOwed(e.id), 0)

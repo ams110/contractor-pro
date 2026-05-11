@@ -10,17 +10,7 @@ import {
 import { C, GRAD } from '../../constants/index.js'
 import { fmt } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function calcWorkDayCost(wd) {
-  const rate = wd.daily_rate || 0
-  const type = wd.day_type
-  if (type === 'כامל' || type === 'full') return rate
-  if (type === 'נص יוم' || type === 'half') return rate / 2
-  if (type === 'ساعات' && wd.hours) return (rate / 8) * wd.hours
-  if (type === 'مبلغ مسكر') return wd.fixed_amount || rate
-  return rate
-}
+import { calcEarned, calcMustahaq, calcPaid, calcAdvances } from '../../lib/calculations.js'
 
 // ─── Bento Card ───────────────────────────────────────────────────────────────
 function BentoCard({ children, style = {}, gradient, onClick }) {
@@ -125,7 +115,7 @@ function ProjectRow({ project, revenue, expenses, onClick }) {
 
 export default function DashboardScreen({
   projects = [], employees = [], workDays = [], expenses = [],
-  payments = [], clientReceipts = [], onNav, permissions,
+  payments = [], advances = [], clientReceipts = [], onNav, permissions,
 }) {
   const { t } = useTranslation()
   const { language } = useAppStore()
@@ -135,11 +125,13 @@ export default function DashboardScreen({
   const stats = useMemo(() => {
     const totalRevenue  = clientReceipts.reduce((s, r) => s + (r.amount || 0), 0)
     const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0)
-    const totalPayments = payments.reduce((s, p) => s + (p.amount || 0), 0)
-    const netProfit     = totalRevenue - totalExpenses - totalPayments
+    const totalPayments  = calcPaid(payments)
+    const totalAdvances  = calcAdvances(advances)
+    const totalWasel     = totalPayments + totalAdvances
+    const netProfit     = totalRevenue - totalExpenses - workerCosts
     const activeCount   = projects.filter(p => p.status === 'نشط').length
     const pendingWD     = workDays.filter(w => w.status === 'pending').length
-    const workerCosts   = workDays.reduce((s, w) => s + calcWorkDayCost(w), 0)
+    const workerCosts   = calcEarned(workDays)
 
     // Monthly chart (last 6 months)
     const now = new Date()
@@ -151,8 +143,8 @@ export default function DashboardScreen({
       return { month: key.slice(5), v: rev - exp, rev, exp }
     })
 
-    return { totalRevenue, totalExpenses, totalPayments, netProfit, activeCount, pendingWD, workerCosts, monthlyData }
-  }, [projects, employees, workDays, expenses, payments, clientReceipts])
+    return { totalRevenue, totalExpenses, totalPayments, totalAdvances, totalWasel, netProfit, activeCount, pendingWD, workerCosts, monthlyData }
+  }, [projects, employees, workDays, expenses, payments, advances, clientReceipts])
 
   // Top projects by profit
   const topProjects = useMemo(() => {
