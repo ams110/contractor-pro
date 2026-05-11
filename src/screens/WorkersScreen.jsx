@@ -206,10 +206,9 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {tab === 'workers' && (
             <>
-              <motion.button whileTap={{ scale: 0.93 }} onClick={copyPortalLink} title="نسخ رابط بوابة العمال"
-                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 13px', borderRadius: 12, border: `1px solid ${copied ? C.success + '66' : C.border}`, background: copied ? `${C.success}18` : 'rgba(255,255,255,0.04)', color: copied ? C.success : C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {copied ? <Check size={13} strokeWidth={2.5} /> : <LinkIcon size={13} strokeWidth={2} />}
-                <span>{copied ? 'تم النسخ' : 'رابط البوابة'}</span>
+              <motion.button whileTap={{ scale: 0.93 }} onClick={copyPortalLink} title={copied ? 'تم النسخ' : 'رابط بوابة العمال'}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, borderRadius: 12, border: `1px solid ${copied ? C.success + '66' : C.border}`, background: copied ? `${C.success}18` : 'rgba(255,255,255,0.04)', color: copied ? C.success : C.textDim, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                {copied ? <Check size={15} strokeWidth={2.5} /> : <LinkIcon size={15} strokeWidth={2} />}
               </motion.button>
               {permissions?.editWorkers !== false && (
                 <motion.button whileTap={{ scale: 0.93 }} onClick={openNew}

@@ -786,48 +786,43 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
     <div className="fade-in" style={{ padding: '16px 16px 100px' }}>
 
       {/* ── Header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: C.text, letterSpacing: '-0.5px' }}>المشاريع</div>
-          <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{filtered.length} مشروع</div>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: C.text, letterSpacing: '-0.5px' }}>المشاريع</div>
+            <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{filtered.length} مشروع</div>
+          </div>
+          {permissions?.editProjects !== false && (
+            <motion.button whileTap={{ scale: 0.93 }} onClick={openNew}
+              style={{ padding: '9px 16px', borderRadius: 12, background: GRAD.brand, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(245,158,11,0.3)', flexShrink: 0 }}
+            >
+              <Plus size={14} strokeWidth={2.5} /> جديد
+            </motion.button>
+          )}
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {/* Secondary actions — scrollable on mobile */}
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 2 }}>
           <button
             onClick={() => setSortBy(s => s === 'profit' ? 'date' : 'profit')}
-            style={{
-              padding: '9px 14px', borderRadius: 12,
-              border: `1px solid ${sortBy === 'profit' ? C.success + '55' : C.border}`,
-              background: sortBy === 'profit' ? `${C.success}12` : 'rgba(255,255,255,0.04)',
-              color: sortBy === 'profit' ? C.success : C.textDim,
-              fontSize: 11, fontWeight: 700, cursor: 'pointer',
-              transition: 'all .2s',
-              whiteSpace: 'nowrap',
-            }}
+            style={{ flexShrink: 0, padding: '7px 12px', borderRadius: 10, border: `1px solid ${sortBy === 'profit' ? C.success + '55' : C.border}`, background: sortBy === 'profit' ? `${C.success}12` : 'rgba(255,255,255,0.04)', color: sortBy === 'profit' ? C.success : C.textDim, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}
           >
             {sortBy === 'profit' ? 'الأكثر ربحاً' : 'الأحدث'}
           </button>
           {projects.length >= 2 && (
             <motion.button whileTap={{ scale: 0.93 }}
               onClick={() => { setShowCompare(true); setCompareIds(new Set()); setCompareReady(false) }}
-              style={{ padding: '9px 13px', borderRadius: 12, border: `1px solid ${C.blue}44`, background: `${C.blue}10`, color: C.blue, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit' }}
+              style={{ flexShrink: 0, padding: '7px 12px', borderRadius: 10, border: `1px solid ${C.blue}44`, background: `${C.blue}10`, color: C.blue, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit' }}
             >
               <Scale size={13} strokeWidth={2} /> مقارنة
             </motion.button>
           )}
-          {permissions?.editProjects !== false && (<>
-            <motion.button whileTap={{ scale: 0.93 }}
-              onClick={openMultiReceipt}
-              style={{ padding: '9px 13px', borderRadius: 12, border: `1px solid ${C.success}44`, background: `${C.success}10`, color: C.success, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit' }}
+          {permissions?.editProjects !== false && (
+            <motion.button whileTap={{ scale: 0.93 }} onClick={openMultiReceipt}
+              style={{ flexShrink: 0, padding: '7px 12px', borderRadius: 10, border: `1px solid ${C.success}44`, background: `${C.success}10`, color: C.success, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit' }}
             >
               <ReceiptText size={13} strokeWidth={2} /> قبض متعدد
             </motion.button>
-            <motion.button whileTap={{ scale: 0.93 }}
-              onClick={openNew}
-              style={{ padding: '9px 16px', borderRadius: 12, background: GRAD.brand, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(245,158,11,0.3)' }}
-            >
-              <Plus size={14} strokeWidth={2.5} /> جديد
-            </motion.button>
-          </>)}
+          )}
         </div>
       </div>
 
