@@ -548,16 +548,16 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       {/* ════════════════════════════════════
           Modal: بيانات الدخول
       ════════════════════════════════════ */}
-      <Modal open={!!credWorker} onClose={() => setCredWorker(null)} title={`🔑 بيانات دخول ${credWorker?.name || ''}`}>
+      <Modal open={!!credWorker} onClose={() => setCredWorker(null)} title={`بيانات دخول ${credWorker?.name || ''}`}>
         {credDone ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <div style={{
               width: 64, height: 64, borderRadius: '50%',
               background: GRAD.success,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 28, margin: '0 auto 16px',
+              margin: '0 auto 16px',
               boxShadow: `0 8px 28px ${C.success}44`,
-            }}>✓</div>
+            }}><Check size={28} strokeWidth={2.5} color="#000" /></div>
             <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم الحفظ بنجاح!</div>
             <div style={{ fontSize: 12, color: C.textDim, marginBottom: 18 }}>
               اسم المستخدم: <b style={{ color: C.primary }}>{credForm.username}</b>
@@ -582,14 +582,14 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
               <GlassCard style={{ marginBottom: 16, borderRadius: 14, overflow: 'hidden' }}>
                 <div style={{ height: 3, background: GRAD.warm }} />
                 <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
-                  🔑 اسم المستخدم الحالي: <b style={{ color: C.primary }}>{credWorker?.worker_username}</b>
+                  اسم المستخدم الحالي: <b style={{ color: C.primary }}>{credWorker?.worker_username}</b>
                   <br />سيتم تغيير كلمة المرور فقط — اسم المستخدم يبقى كما هو
                 </div>
               </GlassCard>
             ) : (
               <GlassCard style={{ marginBottom: 16, borderRadius: 14 }}>
                 <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
-                  🔒 العامل سيستخدم هذه البيانات لتسجيل الدخول في بوابة العمال ومشاهدة راتبه
+                  العامل سيستخدم هذه البيانات لتسجيل الدخول في بوابة العمال ومشاهدة راتبه
                 </div>
               </GlassCard>
             )}
@@ -598,8 +598,8 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
             {credWorker?.worker_username && (
               <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
                 {[
-                  { id: true,  label: '🔄 تغيير كلمة المرور' },
-                  { id: false, label: '✏️ تعديل كل البيانات' },
+                  { id: true,  label: 'تغيير كلمة المرور' },
+                  { id: false, label: 'تعديل كل البيانات' },
                 ].map(opt => (
                   <button key={String(opt.id)} onClick={() => { setCredResetMode(opt.id); setCredError('') }}
                     style={{ flex: 1, padding: '8px 6px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${credResetMode === opt.id ? C.primary : C.border}`, background: credResetMode === opt.id ? `${C.primary}22` : 'transparent', color: credResetMode === opt.id ? C.primary : C.textDim, transition: 'all .2s' }}>
@@ -628,7 +628,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
               </div>
             )}
             <Btn onClick={saveCreds} full disabled={credSaving}>
-              {credSaving ? 'جاري الحفظ...' : credResetMode ? '🔐 تعيين كلمة المرور الجديدة' : '✓ حفظ بيانات الدخول'}
+              {credSaving ? 'جاري الحفظ...' : credResetMode ? 'تعيين كلمة المرور الجديدة' : 'حفظ بيانات الدخول'}
             </Btn>
           </>
         )}
@@ -648,7 +648,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
           const paid   = payments.filter(p => p.employee_id === w.id).reduce((s, p) => s + p.amount, 0)
           const owed   = earned - paid
           const hasDays = workDays.some(d => d.employee_id === w.id)
-          if (owed > 0) return `⚠️ ${w.name} عنده ${owed.toLocaleString()}₪ مستحقة غير مدفوعة. حذفه سيمسح كل سجلاته. متأكد؟`
+          if (owed > 0) return `${w.name} عنده ${owed.toLocaleString()}₪ مستحقة غير مدفوعة. حذفه سيمسح كل سجلاته. متأكد؟`
           if (hasDays)  return `حذف ${w.name}؟ سيتم مسح كل أيام عمله وسجلاته. لا يمكن التراجع.`
           return `حذف ${w.name}؟ لا يمكن التراجع عن هذا الإجراء.`
         })()}
@@ -657,10 +657,10 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       {/* ════════════════════════════════════
           Modal: منح سلفة
       ════════════════════════════════════ */}
-      <Modal open={!!advWorker} onClose={() => setAdvWorker(null)} title={`💵 سلفة لـ ${advWorker?.name || ''}`}>
+      <Modal open={!!advWorker} onClose={() => setAdvWorker(null)} title={`سلفة لـ ${advWorker?.name || ''}`}>
         <GlassCard style={{ marginBottom: 16, borderRadius: 14 }}>
           <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
-            💡 السلف تُخصم تلقائياً من الراتب المستحق للعامل
+            السلف تُخصم تلقائياً من الراتب المستحق للعامل
           </div>
         </GlassCard>
         <Input label="المبلغ (₪)" value={advForm.amount}
@@ -680,17 +680,17 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
           </div>
         )}
         <Btn onClick={saveAdvance} full disabled={advSaving} color={C.warning}>
-          {advSaving ? 'جاري الحفظ...' : '✓ تسجيل السلفة'}
+          {advSaving ? 'جاري الحفظ...' : 'تسجيل السلفة'}
         </Btn>
       </Modal>
 
       {/* ════════════════════════════════════
           Modal: سجل السلف
       ════════════════════════════════════ */}
-      <Modal open={!!advHistory} onClose={() => setAdvHistory(null)} title={`📋 سجل سلف ${advHistory?.name || ''}`}>
+      <Modal open={!!advHistory} onClose={() => setAdvHistory(null)} title={`سجل سلف ${advHistory?.name || ''}`}>
         {advances.filter(a => a.employee_id === advHistory?.id).length === 0 ? (
           <div style={{ textAlign: 'center', padding: '36px 0' }}>
-            <div style={{ fontSize: 40, marginBottom: 10, opacity: 0.4 }}>📋</div>
+            <ClipboardList size={40} strokeWidth={1.2} style={{ color: C.textDim, opacity: 0.4, margin: '0 auto 10px', display: 'block' }} />
             <div style={{ fontSize: 13, color: C.textDim }}>لا يوجد سلف مسجلة لهذا العامل</div>
           </div>
         ) : (
@@ -730,7 +730,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                           transition: 'all .2s',
                         }}
                       >
-                        🗑️
+                        <Trash2 size={14} strokeWidth={2} />
                       </button>
                     )}
                   </div>
