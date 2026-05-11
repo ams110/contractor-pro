@@ -46,7 +46,7 @@ const inp = { width: '100%', padding: '9px 12px', background: C.card, border: `1
 const sel = { ...inp, cursor: 'pointer' }
 
 // ─── Shared: BottomSheet ───────────────────────────────────────────────────────
-function Sheet({ open, onClose, title, children }) {
+function Sheet({ open, onClose, title, children, action }) {
   return (
     <AnimatePresence>
       {open && (
@@ -59,18 +59,27 @@ function Sheet({ open, onClose, title, children }) {
             style={{
               position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto',
               background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: '24px 24px 0 0',
-              padding: '0 0 40px', maxHeight: '92dvh', overflowY: 'auto',
+              maxHeight: '92dvh', display: 'flex', flexDirection: 'column',
             }}>
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, marginBottom: 14 }}>
+            {/* Handle */}
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, flexShrink: 0 }}>
               <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 18px 14px', borderBottom: `1px solid ${C.border}` }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{title}</div>
               <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
                 <X size={18} />
               </button>
             </div>
-            <div style={{ padding: '16px 18px' }}>{children}</div>
+            {/* Scrollable body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>{children}</div>
+            {/* Sticky action footer */}
+            {action && (
+              <div style={{ padding: '12px 18px 36px', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
+                {action}
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}
@@ -266,7 +275,13 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
       })}
 
       {/* Add Expense Sheet */}
-      <Sheet open={showForm} onClose={() => setShowForm(false)} title={lbl('مصروف جديد', 'הוצאה חדשה', 'New Expense', language)}>
+      <Sheet open={showForm} onClose={() => setShowForm(false)} title={lbl('مصروف جديد', 'הוצאה חדשה', 'New Expense', language)}
+        action={
+          <motion.button whileTap={{ scale: 0.97 }} onClick={save} disabled={saving}
+            style={{ width: '100%', padding: '13px', borderRadius: 14, background: saving ? C.card : GRAD.danger, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+            {saving ? lbl('جاري الحفظ...', 'שומר...', 'Saving...', language) : lbl('حفظ المصروف', 'שמור הוצאה', 'Save Expense', language)}
+          </motion.button>
+        }>
         <Field label={lbl('التاريخ', 'תאריך', 'Date', language)}>
           <input type="date" value={form.date} onChange={e => f('date')(e.target.value)} style={inp} />
         </Field>
@@ -306,12 +321,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
           {preview && <img src={preview} style={{ width: '100%', borderRadius: 10, marginTop: 8, maxHeight: 120, objectFit: 'cover' }} />}
         </Field>
 
-        {formErr && <div style={{ fontSize: 12, color: C.accent, marginBottom: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 10 }}>{formErr}</div>}
-
-        <motion.button whileTap={{ scale: 0.97 }} onClick={save} disabled={saving}
-          style={{ width: '100%', padding: '13px', borderRadius: 14, background: saving ? C.card : GRAD.danger, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-          {saving ? lbl('جاري الحفظ...', 'שומר...', 'Saving...', language) : lbl('حفظ المصروف', 'שמור הוצאה', 'Save Expense', language)}
-        </motion.button>
+        {formErr && <div style={{ fontSize: 12, color: C.accent, marginBottom: 4, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 10 }}>{formErr}</div>}
       </Sheet>
 
       <Confirm open={!!confirmDel} lang={language}
@@ -455,59 +465,111 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
         </div>
       )}
 
-      {/* Add + search */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-        <div style={{ position: 'relative', flex: 1 }}>
-          <Search size={13} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder={lbl('ابحث عن عامل...', 'חפש עובד...', 'Search worker...', language)}
-            style={{ ...inp, paddingInlineStart: 32 }} />
-        </div>
-        {permissions?.addPayments !== false && (
-          <motion.button whileTap={{ scale: 0.94 }} onClick={openAdd}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '9px 14px', borderRadius: 12, background: `linear-gradient(135deg, ${C.secondary}, #2563EB)`, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-            <Plus size={14} strokeWidth={2.5} />
-            {lbl('إضافة', 'הוסף', 'Add', language)}
-          </motion.button>
-        )}
+      {/* Search */}
+      <div style={{ position: 'relative', marginBottom: 14 }}>
+        <Search size={13} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder={lbl('ابحث عن عامل...', 'חפש עובד...', 'Search worker...', language)}
+          style={{ ...inp, paddingInlineStart: 32 }} />
       </div>
 
-      {/* List */}
-      {sorted.length === 0 ? (
+      {/* Worker Cards */}
+      {employees.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '44px', color: C.textDim, fontSize: 13 }}>
-          {lbl('لا توجد رواتب', 'אין תשלומים', 'No payments', language)}
+          {lbl('لا يوجد عمال', 'אין עובדים', 'No workers', language)}
         </div>
-      ) : sorted.map(pay => {
-        const emp  = employees.find(e => e.id === pay.employee_id)
-        const proj = projects.find(p => p.id === pay.project_id)
+      ) : employees.filter(emp => !search || emp.name?.toLowerCase().includes(search.toLowerCase())).map(emp => {
+        const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + (w.amount || 0), 0)
+        const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved').reduce((s, e) => s + (e.amount || 0), 0)
+        const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + (p.amount || 0), 0)
+        const owed   = Math.max(0, earned + wExp - paid)
+        const pct    = (earned + wExp) > 0 ? Math.min(100, Math.round((paid / (earned + wExp)) * 100)) : 0
+        const recent = payments.filter(p => p.employee_id === emp.id).sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 2)
+        if (earned + wExp === 0 && paid === 0) return null
+
         return (
-          <div key={pay.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 8 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: `${C.secondary}15`, border: `1px solid ${C.secondary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: C.secondary, flexShrink: 0 }}>
-              {emp?.name?.charAt(0) || '?'}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{emp?.name || '—'}</div>
-              <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(pay.date)}{pay.method ? ` · ${pay.method}` : ''}{proj ? ` · ${proj.name}` : ''}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: C.secondary }}>{showAmounts ? `₪${fmt(pay.amount || 0)}` : '---'}</span>
-              {permissions?.isOwner && (
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button onClick={() => openEdit(pay)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 4, display: 'flex' }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                  <button onClick={() => setConfirmDel(pay.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 4, display: 'flex' }}>
-                    <Trash2 size={13} strokeWidth={2} />
-                  </button>
-                </div>
+          <div key={emp.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: '14px', marginBottom: 12 }}>
+            {/* Top row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 13, background: `${C.secondary}20`, border: `1px solid ${C.secondary}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: C.secondary, flexShrink: 0 }}>
+                {emp.name?.charAt(0) || '?'}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{emp.name}</div>
+                {emp.specialty && <div style={{ fontSize: 10, color: C.textDim }}>{emp.specialty}</div>}
+              </div>
+              {permissions?.addPayments !== false && (
+                <motion.button whileTap={{ scale: 0.93 }}
+                  onClick={() => {
+                    setEditingId(null)
+                    const o = calcOwed(emp.id)
+                    setForm({ date: todayStr(), employee_id: emp.id, amount: o > 0 ? String(o) : '', method: '', project_id: '' })
+                    setFormErr(''); setReceiptFile(null); setPreview(''); setShowForm(true)
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 10, background: `linear-gradient(135deg, ${C.secondary}, #2563EB)`, border: 'none', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                  <Plus size={12} strokeWidth={2.5} />
+                  {lbl('دفعة', 'תשלום', 'Pay', language)}
+                </motion.button>
               )}
             </div>
+
+            {/* Stats row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
+              {[
+                { label: lbl('مكتسب', 'הרוויח', 'Earned', language),  value: earned + wExp, color: C.success   },
+                { label: lbl('مدفوع', 'שולם',   'Paid',   language),  value: paid,          color: C.secondary },
+                { label: lbl('مستحق', 'חוב',    'Owed',   language),  value: owed,          color: owed > 0 ? C.warning : C.textDim },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ background: C.card, borderRadius: 12, padding: '8px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: showAmounts ? color : C.textDim }}>
+                    {showAmounts ? `₪${fmt(value)}` : '---'}
+                  </div>
+                  <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ height: 4, background: `${C.secondary}18`, borderRadius: 2, marginBottom: 10 }}>
+              <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: pct >= 100 ? `linear-gradient(90deg,${C.success},${C.cyan})` : `linear-gradient(90deg,${C.secondary},#2563EB)`, transition: 'width .4s ease' }} />
+            </div>
+
+            {/* Recent payments */}
+            {recent.length > 0 && (
+              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {recent.map(pay => {
+                  const proj = projects.find(p => p.id === pay.project_id)
+                  return (
+                    <div key={pay.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ flex: 1, fontSize: 10, color: C.textDim }}>{fmtDate(pay.date)}{pay.method ? ` · ${pay.method}` : ''}{proj ? ` · ${proj.name}` : ''}</div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.secondary, flexShrink: 0 }}>₪{fmt(pay.amount || 0)}</span>
+                      {permissions?.isOwner && (
+                        <div style={{ display: 'flex', gap: 3 }}>
+                          <button onClick={() => openEdit(pay)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          <button onClick={() => setConfirmDel(pay.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}>
+                            <Trash2 size={11} strokeWidth={2} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )
       })}
 
       {/* Add / Edit Sheet */}
-      <Sheet open={showForm} onClose={() => setShowForm(false)} title={editingId ? lbl('تعديل الدفعة', 'ערוך תשלום', 'Edit Payment', language) : lbl('دفعة جديدة', 'תשלום חדש', 'New Payment', language)}>
+      <Sheet open={showForm} onClose={() => setShowForm(false)} title={editingId ? lbl('تعديل الدفعة', 'ערוך תשלום', 'Edit Payment', language) : lbl('دفعة جديدة', 'תשלום חדש', 'New Payment', language)}
+        action={
+          <motion.button whileTap={{ scale: 0.97 }} onClick={save} disabled={saving}
+            style={{ width: '100%', padding: '13px', borderRadius: 14, background: saving ? C.card : `linear-gradient(135deg, ${C.secondary}, #2563EB)`, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+            {saving ? lbl('جاري الحفظ...', 'שומר...', 'Saving...', language) : editingId ? lbl('حفظ التعديل', 'שמור שינויים', 'Save Changes', language) : lbl('حفظ الدفعة', 'שמור תשלום', 'Save Payment', language)}
+          </motion.button>
+        }>
         <Field label={lbl('العامل', 'עובד', 'Worker', language)}>
           <select value={form.employee_id} onChange={e => {
             const id = e.target.value
@@ -550,12 +612,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
           {preview && <img src={preview} style={{ width: '100%', borderRadius: 10, marginTop: 8, maxHeight: 120, objectFit: 'cover' }} />}
         </Field>
 
-        {formErr && <div style={{ fontSize: 12, color: C.accent, marginBottom: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 10 }}>{formErr}</div>}
-
-        <motion.button whileTap={{ scale: 0.97 }} onClick={save} disabled={saving}
-          style={{ width: '100%', padding: '13px', borderRadius: 14, background: saving ? C.card : `linear-gradient(135deg, ${C.secondary}, #2563EB)`, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-          {saving ? lbl('جاري الحفظ...', 'שומר...', 'Saving...', language) : editingId ? lbl('حفظ التعديل', 'שמור שינויים', 'Save Changes', language) : lbl('حفظ الدفعة', 'שמור תשלום', 'Save Payment', language)}
-        </motion.button>
+        {formErr && <div style={{ fontSize: 12, color: C.accent, marginBottom: 4, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', borderRadius: 10 }}>{formErr}</div>}
       </Sheet>
 
       <Confirm open={!!confirmDel} lang={language}
