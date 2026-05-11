@@ -108,8 +108,6 @@ export const NAV = [
 // Screens accessible from the settings / more tab
 export const MORE_SCREENS = [
   { id: 'workdays',   icon: 'CalendarDays',  label: 'أيام العمل'  },
-  { id: 'expenses',   icon: 'CreditCard',    label: 'المصاريف'    },
-  { id: 'payments',   icon: 'Banknote',      label: 'الرواتب'     },
   { id: 'tracker',    icon: 'ClipboardList', label: 'تتبع الوحدات'},
   { id: 'materials',  icon: 'Package',       label: 'البضاعة'     },
   { id: 'accounting', icon: 'Calculator',    label: 'المحاسبة'    },
