@@ -365,19 +365,8 @@ export default function DashboardScreen({
         </div>
       </div>
 
-      {/* ─── Stat cards bento 2x2 ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
-        <StatCard label="مقبوض من العملاء" value={fmtA(totalReceived)}          icon={Wallet}      color={C.success} />
-        <StatCard label="إجمالي التكاليف"   value={fmtA(totalExp + totalLabor)}  icon={CreditCard}  color={C.accent}  />
-        <StatCard label="صافي الربح"         value={fmtA(netProfit)}              icon={TrendingUp}  color={netProfit >= 0 ? C.primary : C.accent} />
-        <StatCard label="متبقي للتحصيل"     value={fmtA(Math.max(0,totalPending))} icon={Clock}    color={totalPending > 0 ? C.warning : C.success} />
-        {totalMaterials > 0 && (
-          <StatCard label="إجمالي البضاعة"  value={fmtA(totalMaterials)}          icon={BarChart3}   color={C.orange}  style={{ gridColumn: '1/-1' }} />
-        )}
-      </div>
-
       {/* ─── Quick actions ─── */}
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 16 }}>
         <SectionHeader icon={ArrowUpRight} title="إجراءات سريعة" />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
           {quickActions.map(({ Icon, label, nav, color }) => (
@@ -394,6 +383,17 @@ export default function DashboardScreen({
             </motion.button>
           ))}
         </div>
+      </div>
+
+      {/* ─── Stat cards bento 2x2 ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+        <StatCard label="مقبوض من العملاء" value={fmtA(totalReceived)}          icon={Wallet}      color={C.success} />
+        <StatCard label="إجمالي التكاليف"   value={fmtA(totalExp + totalLabor)}  icon={CreditCard}  color={C.accent}  />
+        <StatCard label="صافي الربح"         value={fmtA(netProfit)}              icon={TrendingUp}  color={netProfit >= 0 ? C.primary : C.accent} />
+        <StatCard label="متبقي للتحصيل"     value={fmtA(Math.max(0,totalPending))} icon={Clock}    color={totalPending > 0 ? C.warning : C.success} />
+        {totalMaterials > 0 && (
+          <StatCard label="إجمالي البضاعة"  value={fmtA(totalMaterials)}          icon={BarChart3}   color={C.orange}  style={{ gridColumn: '1/-1' }} />
+        )}
       </div>
 
       {/* ─── Overdue clients ─── */}

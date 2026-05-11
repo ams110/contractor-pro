@@ -292,7 +292,7 @@ export function ConfirmDialog({ open, onClose, onConfirm, message }) {
 export function ErrorToast({ message, onClose }) {
   if (!message) return null
   return (
-    <div className="toast-in" style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 300, maxWidth: 380, width: '90%' }}>
+    <div className="toast-in" style={{ position: 'fixed', bottom: 'max(140px, calc(120px + env(safe-area-inset-bottom, 0px)))', left: '50%', transform: 'translateX(-50%)', zIndex: 300, maxWidth: 380, width: '90%' }}>
       <div style={{ background: GRAD.danger, color: '#fff', padding: '14px 18px', borderRadius: 16, fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: `0 8px 32px #F43F5E55` }}>
         <span>⚠ {message}</span>
         <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, cursor: 'pointer', padding: '3px 8px', marginRight: 8 }}>✕</button>
@@ -305,7 +305,7 @@ export function ErrorToast({ message, onClose }) {
 export function SuccessToast({ message, onClose }) {
   if (!message) return null
   return (
-    <div className="toast-in" style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 300, maxWidth: 380, width: '90%' }}>
+    <div className="toast-in" style={{ position: 'fixed', bottom: 'max(140px, calc(120px + env(safe-area-inset-bottom, 0px)))', left: '50%', transform: 'translateX(-50%)', zIndex: 300, maxWidth: 380, width: '90%' }}>
       <div style={{ background: GRAD.success, color: '#fff', padding: '14px 18px', borderRadius: 16, fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: `0 8px 32px #22C55E55` }}>
         <span>✓ {message}</span>
         <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, cursor: 'pointer', padding: '3px 8px', marginRight: 8 }}>✕</button>
