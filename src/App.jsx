@@ -1,12 +1,13 @@
 import React, { useState, useMemo, lazy, Suspense, useEffect } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import {
   LayoutDashboard, Building2, Users, Wallet, Settings,
-  Bell, Search, ClipboardCheck, HardHat, WifiOff, Gift,
+  Bell, ClipboardCheck, HardHat, WifiOff, Gift,
   Clock, ShieldOff, Lock, CalendarDays, CreditCard, Banknote,
   ClipboardList, Package, Calculator, Activity, Grid3x3,
-  ChevronLeft, RefreshCw,
+  RefreshCw, Languages,
 } from 'lucide-react'
 
 import { supabase }            from './lib/supabase.js'
@@ -22,20 +23,24 @@ import { useTeam, teamMemberSignIn } from './hooks/useTeam.js'
 import { useNotifications }    from './hooks/useNotifications.js'
 import { useSalaryAlerts }     from './hooks/useSalaryAlerts.js'
 
-import LoginScreen        from './screens/LoginScreen.jsx'
 import WorkerPortalScreen from './screens/WorkerPortalScreen.jsx'
-import DashboardScreen    from './screens/DashboardScreen.jsx'
-import SearchOverlay      from './components/SearchOverlay.jsx'
 import NotificationsPanel from './components/NotificationsPanel.jsx'
 import ErrorBoundary      from './components/ErrorBoundary.jsx'
+import SmartSearch        from './components/SmartSearch.jsx'
 import { LoadingSpinner } from './components/index.jsx'
 
-const ProjectsScreen  = lazy(() => import('./screens/ProjectsScreen.jsx'))
-const WorkersScreen   = lazy(() => import('./screens/WorkersScreen.jsx'))
-const WorkDaysScreen  = lazy(() => import('./screens/WorkDaysScreen.jsx'))
-const ExpensesScreen  = lazy(() => import('./screens/ExpensesScreen.jsx'))
-const PaymentsScreen  = lazy(() => import('./screens/PaymentsScreen.jsx'))
-const SettingsScreen  = lazy(() => import('./screens/SettingsScreen.jsx'))
+// ── New screens ───────────────────────────────────────────────────────────────
+const LoginScreen    = lazy(() => import('./screens/auth/LoginScreen.jsx'))
+const DashboardScreen = lazy(() => import('./screens/dashboard/DashboardScreen.jsx'))
+const ProjectsScreen  = lazy(() => import('./screens/projects/ProjectsScreen.jsx'))
+const WorkersScreen   = lazy(() => import('./screens/workers/WorkersScreen.jsx'))
+const FinanceScreen   = lazy(() => import('./screens/finance/FinanceScreen.jsx'))
+const SettingsScreen  = lazy(() => import('./screens/settings/SettingsScreen.jsx'))
+
+// ── Legacy screens (accessible via settings / more) ───────────────────────────
+const WorkDaysScreen    = lazy(() => import('./screens/WorkDaysScreen.jsx'))
+const ExpensesScreen    = lazy(() => import('./screens/ExpensesScreen.jsx'))
+const PaymentsScreen    = lazy(() => import('./screens/PaymentsScreen.jsx'))
 const AccountingScreen  = lazy(() => import('./screens/AccountingScreen.jsx'))
 const UnitTrackerScreen = lazy(() => import('./screens/UnitTrackerScreen.jsx'))
 const MaterialsScreen   = lazy(() => import('./screens/MaterialsScreen.jsx'))
@@ -253,6 +258,8 @@ export default function App() {
   const isDesktop = useIsDesktop()
 
   // ─── Zustand store ────────────────────────────────────────────────────────
+  const { t } = useTranslation()
+
   const {
     screen, setScreen,
     showSearch, setShowSearch,
@@ -260,7 +267,10 @@ export default function App() {
     showMore, setShowMore,
     toast, showToast,
     isOnline, setOnline,
+    language, setLanguage: setLang,
   } = useAppStore()
+
+  const dir = (language === 'ar' || language === 'he') ? 'rtl' : 'ltr'
 
   useEffect(() => {
     const on  = () => setOnline(true)
@@ -372,7 +382,9 @@ export default function App() {
   if (!user) return (
     <>
       <style>{globalCSS}</style>
-      <LoginScreen teamMemberSignIn={teamMemberSignIn} />
+      <Suspense fallback={<div style={{ minHeight: '100vh', background: C.bg }} />}>
+        <LoginScreen teamMemberSignIn={teamMemberSignIn} />
+      </Suspense>
     </>
   )
 
@@ -417,11 +429,13 @@ export default function App() {
   function renderScreen() {
     const commonData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts }
     let content
+    const allData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts, advances: visibleAdvances }
     switch (screen) {
-      case 'dashboard':  content = <DashboardScreen {...commonData} onNav={setScreen} permissions={p} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} taxModules={taxModules} />; break
-      case 'finance':    content = <AccountingScreen employees={visibleEmployees} payments={visiblePayments} clientReceipts={visibleClientReceipts} expenses={visibleExpenses} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} businessType={businessType} setBusinessType={setBusinessType} />; break
-      case 'projects':   content = p?.viewProjects  ? <ProjectsScreen  projects={visibleProjects} workDays={visibleWorkDays} expenses={visibleExpenses} clientReceipts={visibleClientReceipts} employees={visibleEmployees} payments={visiblePayments} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
-      case 'workers':    content = p?.viewWorkers   ? <WorkersScreen   employees={visibleEmployees} workDays={visibleWorkDays} payments={visiblePayments} advances={visibleAdvances} expenses={visibleExpenses} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} projects={projects} profile={profile} /> : <NoAccess />; break
+      case 'dashboard':  content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} />; break
+      case 'finance':    content = <FinanceScreen {...allData} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} businessType={businessType} setBusinessType={setBusinessType} userId={uid} permissions={p} payMethods={payMethods} />; break
+      case 'projects':   content = p?.viewProjects  ? <ProjectsScreen  {...allData} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addExpense={addExpense} deleteExpense={deleteExpense} expCats={expCats} userId={uid} permissions={p} payMethods={payMethods} holidays={holidays} /> : <NoAccess />; break
+      case 'workers':    content = p?.viewWorkers   ? <WorkersScreen   {...allData} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} payMethods={payMethods} profile={profile} /> : <NoAccess />; break
+      case 'settings':   content = <SettingsScreen  {...allData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} setTaxEnabled={setTaxEnabled} setBusinessType={setBusinessType} taxModules={taxModules} setTaxModule={setTaxModule} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} saveContractorNumber={saveContractorNumber} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} onNav={setScreen} />; break
       case 'workdays':   content = p?.editWorkers   ? <WorkDaysScreen  workDays={visibleWorkDays} employees={visibleEmployees} projects={visibleProjects} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} permissions={p} holidays={holidays} /> : <NoAccess />; break
       case 'expenses':   content = p?.viewExpenses  ? <ExpensesScreen  expenses={visibleExpenses} projects={visibleProjects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={visibleEmployees} userId={uid} permissions={p} businessType={businessType} /> : <NoAccess />; break
       case 'payments':   content = p?.viewPayments  ? <PaymentsScreen  payments={visiblePayments} employees={visibleEmployees} workDays={visibleWorkDays} expenses={visibleExpenses} projects={visibleProjects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
@@ -429,24 +443,22 @@ export default function App() {
       case 'materials':  content = p?.viewProjects  ? <MaterialsScreen userId={eid} employees={visibleEmployees} projects={visibleProjects} /> : <NoAccess />; break
       case 'accounting': content = <AccountingScreen employees={visibleEmployees} payments={visiblePayments} clientReceipts={visibleClientReceipts} expenses={visibleExpenses} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} businessType={businessType} setBusinessType={setBusinessType} />; break
       case 'activity':   content = (p?.viewActivity || p?.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />; break
-      case 'settings':   content = <SettingsScreen  {...commonData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} setTaxEnabled={setTaxEnabled} setBusinessType={setBusinessType} taxModules={taxModules} setTaxModule={setTaxModule} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} saveContractorNumber={saveContractorNumber} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} />; break
-      default:           content = <DashboardScreen {...commonData} onNav={setScreen} permissions={p} />
+      default:           content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} />
     }
     return <ErrorBoundary key={screen}>{content}</ErrorBoundary>
   }
 
   const pendingCount = workDays.filter(w => w.status === 'pending').length
 
-  // Determine active NAV tab
   const moreScreenIds = MORE_SCREENS.map(s => s.id)
   const activeNav = moreScreenIds.includes(screen) ? 'settings'
     : NAV.find(n => n.id === screen) ? screen
     : 'dashboard'
 
   return (
-    <div className="app-root" style={{ background: C.bg, fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", direction: 'rtl', position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingRight: isDesktop ? 240 : 0 }}>
+    <div className="app-root" dir={dir} style={{ background: C.bg, position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingInlineEnd: isDesktop ? 240 : 0 }}>
       <style>{globalCSS}</style>
-      {isDesktop && <DesktopSidebar screen={screen} setScreen={setScreen} permissions={p} pendingCount={pendingCount} />}
+      {isDesktop && <DesktopSidebar screen={screen} setScreen={setScreen} permissions={p} pendingCount={pendingCount} dir={dir} />}
 
       {/* ─── Aurora background ─── */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 40% at 15% 0%, rgba(249,115,22,0.07) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 85% 100%, rgba(124,58,237,0.04) 0%, transparent 60%)' }} />
@@ -488,38 +500,45 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {dataLoading && <div style={{ width: 16, height: 16, border: `2px solid ${C.border}`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin .75s linear infinite' }} />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          {dataLoading && <div style={{ width: 15, height: 15, border: `2px solid ${C.border}`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin .75s linear infinite' }} />}
+
+          {/* Language switcher */}
+          <div style={{ display: 'flex', gap: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 11, padding: '3px' }}>
+            {['ar','he','en'].map(l => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                style={{ padding: '3px 7px', borderRadius: 8, background: language === l ? GRAD.primary : 'transparent', border: 'none', color: language === l ? '#fff' : C.textDim, fontSize: 10, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em', transition: 'all .15s' }}
+              >
+                {l === 'ar' ? 'ع' : l === 'he' ? 'ע' : 'EN'}
+              </button>
+            ))}
+          </div>
 
           {(p?.isOwner || p?.viewActivity) && (
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setScreen('activity')}
-              style={{ background: screen === 'activity' ? `${C.primary}18` : 'rgba(255,255,255,0.04)', border: `1px solid ${screen === 'activity' ? C.primary + '40' : 'rgba(255,255,255,0.07)'}`, borderRadius: 12, width: 38, height: 38, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: screen === 'activity' ? `0 0 14px ${C.primary}30` : 'none' }}
+            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setScreen('activity')}
+              style={{ background: screen === 'activity' ? `${C.primary}18` : 'rgba(255,255,255,0.04)', border: `1px solid ${screen === 'activity' ? C.primary+'40' : 'rgba(255,255,255,0.07)'}`, borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <ClipboardCheck size={17} color={screen === 'activity' ? C.primary : '#64748B'} strokeWidth={2} />
+              <ClipboardCheck size={16} color={screen === 'activity' ? C.primary : '#64748B'} strokeWidth={2} />
             </motion.button>
           )}
 
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setShowNotifs(true)}
-            style={{ position: 'relative', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 38, height: 38, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowNotifs(true)}
+            style={{ position: 'relative', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            <Bell size={17} color="#64748B" strokeWidth={2} />
+            <Bell size={16} color="#64748B" strokeWidth={2} />
             {unreadCount > 0 && (
-              <div className="badge-pop" style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', padding: '0 4px', boxShadow: `0 2px 12px ${C.accent}99` }}>
+              <div className="badge-pop" style={{ position: 'absolute', top: -4, insetInlineEnd: -4, minWidth: 17, height: 17, borderRadius: 9, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', padding: '0 3px' }}>
                 {unreadCount}
               </div>
             )}
           </motion.button>
 
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setShowSearch(true)}
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 38, height: 38, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowSearch(true)}
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            <Search size={17} color="#64748B" strokeWidth={2} />
+            <Languages size={16} color="#64748B" strokeWidth={2} />
           </motion.button>
         </div>
 
@@ -590,8 +609,8 @@ export default function App() {
       {/* ─── Notifications ─── */}
       <NotificationsPanel open={showNotifs} onClose={() => setShowNotifs(false)} notifications={notifications} unreadCount={unreadCount} markAllRead={markAllRead} markRead={markRead} deleteAll={deleteAll} onNav={nav => { setScreen(nav); setShowNotifs(false) }} />
 
-      {/* ─── Search ─── */}
-      <SearchOverlay open={showSearch} onClose={() => setShowSearch(false)} projects={projects} employees={employees} expenses={expenses} payments={payments} workDays={workDays} onNav={nav => { setScreen(nav); setShowSearch(false) }} />
+      {/* ─── Smart Search (cmdk) ─── */}
+      <SmartSearch projects={projects} employees={employees} expenses={expenses} payments={payments} onNav={nav => { setScreen(nav); setShowSearch(false) }} />
 
       {/* ─── Toast ─── */}
       <AnimatePresence>
