@@ -567,6 +567,7 @@ export default function App() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
                   style={{ position: 'absolute', top: 1, left: 0, right: 0, marginInline: 'auto', width: 46, height: 35, borderRadius: 16, background: 'linear-gradient(160deg, rgba(245,158,11,0.2), rgba(239,68,68,0.12))', border: '1px solid rgba(245,158,11,0.28)', pointerEvents: 'none', animation: 'glowPulse 2.5s ease-in-out infinite' }}
                 />
               )}
