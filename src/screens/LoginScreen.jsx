@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Hash, HardHat, Fingerprint } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { Btn, Input } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
@@ -231,7 +232,7 @@ export default function LoginScreen({ teamMemberSignIn }) {
         {showPin && loginType === 'owner' ? (
           <>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🔢</div>
+              <Hash size={32} style={{ color: C.primary, margin: '0 auto 8px', display:'block' }} />
               <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>أدخل الـ PIN</div>
               <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>الرمز الذي أنشأته في الإعدادات</div>
             </div>
@@ -283,7 +284,7 @@ export default function LoginScreen({ teamMemberSignIn }) {
             {loginType === 'worker' && (
               <form onSubmit={handleWorkerLogin}>
                 <div style={{ textAlign:'center', marginBottom:20 }}>
-                  <div style={{ fontSize:36, marginBottom:8 }}>👷</div>
+                  <HardHat size={36} style={{ color: C.primary, margin: '0 auto 8px', display:'block' }} />
                   <div style={{ fontSize:14, fontWeight:700, color:C.text }}>بوابة العمال</div>
                   <div style={{ fontSize:11, color:C.textDim, marginTop:4 }}>أدخل بيانات الدخول التي أعطاك إياها صاحب العمل</div>
                 </div>
@@ -363,14 +364,14 @@ export default function LoginScreen({ teamMemberSignIn }) {
                       {pinOk && (
                         <button onClick={() => { setShowPin(true); setPinError('') }} disabled={loading}
                           style={{ flex:1, padding:'13px', borderRadius:14, border:`1px solid ${C.secondary}44`, background:`${C.secondary}12`, color:C.secondary, fontSize:14, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'all .2s', opacity: loading ? 0.5 : 1 }}>
-                          <span style={{ fontSize:20 }}>🔢</span>
+                          <Hash size={18} strokeWidth={2} />
                           PIN
                         </button>
                       )}
                       {passkeyOk && passkeyReg && (
                         <button onClick={handlePasskey} disabled={loading}
                           style={{ flex:1, padding:'13px', borderRadius:14, border:`1px solid ${C.primary}44`, background:`${C.primary}12`, color:C.primary, fontSize:14, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'all .2s', opacity: loading ? 0.5 : 1 }}>
-                          <span style={{ fontSize:20 }}>👆</span>
+                          <Fingerprint size={18} strokeWidth={2} />
                           بصمة
                         </button>
                       )}

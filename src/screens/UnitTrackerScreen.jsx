@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Home, Building2, ClipboardList, Pencil, Plus, X, Image, HardHat } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { fmt, uid } from '../lib/helpers.js'
 
@@ -66,7 +67,7 @@ function AddRow({ placeholder, onAdd, onCancel }) {
       <button onClick={submit}
         style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: C.primary, color: '#000', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>+</button>
       <button onClick={onCancel}
-        style={{ padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 12, cursor: 'pointer' }}>✕</button>
+        style={{ padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, cursor: 'pointer', display:'flex', alignItems:'center' }}><X size={12} strokeWidth={2.5} /></button>
     </div>
   )
 }
@@ -240,7 +241,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
               </button>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>🏘️ {plot.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: C.text, display:'inline-flex', alignItems:'center', gap:5 }}><Building2 size={13} strokeWidth={2} /> {plot.name}</span>
                   <span style={{ fontSize: 10, background: C.surface, color: C.textDim, padding: '1px 7px', borderRadius: 6 }}>{plot.houses.length} بيت</span>
                   <span style={{ fontSize: 11, fontWeight: 900, color: pp === 100 ? C.success : C.primary, fontFamily: 'monospace', marginRight: 'auto' }}>{pp}%</span>
                 </div>
@@ -280,7 +281,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                         </button>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>🏠 {house.name}</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: C.text, display:'inline-flex', alignItems:'center', gap:4 }}><Home size={12} strokeWidth={2} /> {house.name}</span>
                             <span style={{ fontSize: 10, background: C.bg, color: C.textDim, padding: '1px 6px', borderRadius: 5 }}>{house.floors.length} طابق</span>
                             <span style={{ fontSize: 10, fontWeight: 800, color: hp === 100 ? C.success : C.secondary, fontFamily: 'monospace', marginRight: 'auto' }}>{hp}%</span>
                           </div>
@@ -348,7 +349,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                                             <span style={{ fontSize: 15 }}>{st.icon}</span>
                                             <span style={{ fontSize: 12, fontWeight: 700, color: st.color }}>{task.name}</span>
                                             <button onClick={e => { e.stopPropagation(); delTask(plot.id, house.id, floor.id, task.id) }}
-                                              style={{ background: 'none', border: 'none', color: `${C.textDim}99`, fontSize: 10, cursor: 'pointer', padding: '0 0 0 4px', lineHeight: 1 }}>✕</button>
+                                              style={{ background: 'none', border: 'none', color: `${C.textDim}99`, cursor: 'pointer', padding: '0 0 0 4px', lineHeight: 1, display:'flex', alignItems:'center' }}><X size={9} strokeWidth={2.5} /></button>
                                           </div>
                                         )
                                       })}
@@ -409,13 +410,13 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
       ) : (
         <button onClick={() => setAddingPlot(true)}
           style={{ width: '100%', marginTop: 6, padding: '12px 0', borderRadius: 13, border: `2px dashed ${C.primary}44`, background: `${C.primary}08`, color: C.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-          ➕ إضافة قطعة (מגרש)
+          + إضافة قطعة (מגרש)
         </button>
       )}
 
       {data.plots.length === 0 && !addingPlot && (
         <div style={{ textAlign: 'center', padding: '36px 0', color: C.textDim }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>🏘️</div>
+          <Building2 size={40} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
           <div style={{ fontSize: 13, fontWeight: 700 }}>لا توجد قطع بعد</div>
           <div style={{ fontSize: 11, marginTop: 4 }}>أضف قطعة (מגרש) للبدء بالتتبع</div>
         </div>
@@ -565,7 +566,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
 
   const ExtraFormEl = (
     <div style={{ background: C.surface, borderRadius: 16, border: `1px solid ${C.borderMid}`, padding: 16, marginBottom: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10 }}>{editingExtra ? '✏️ تعديل الزيادة' : '➕ زيادة جديدة'}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10 }}>{editingExtra ? 'تعديل الزيادة' : 'زيادة جديدة'}</div>
 
       {/* مؤشر الخطوات */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 14 }}>
@@ -596,7 +597,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
       {/* ربط بالقطعة والبيت */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
         <div>
-          <div style={{ fontSize: 10, color: !form.plotId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700 }}>🏘️ القطعة *</div>
+          <div style={{ fontSize: 10, color: !form.plotId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700, display:'flex', alignItems:'center', gap:4 }}><Building2 size={10} strokeWidth={2} /> القطعة *</div>
           <select value={form.plotId}
             onChange={e => setForm(p => ({ ...p, plotId: e.target.value, houseId: '' }))}
             style={{ width: '100%', padding: '9px 8px', borderRadius: 9, border: `1px solid ${form.plotId ? C.border : C.accent + '88'}`, background: C.bg, color: form.plotId ? C.text : C.textDim, fontSize: 12, boxSizing: 'border-box', outline: 'none' }}>
@@ -605,7 +606,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
           </select>
         </div>
         <div>
-          <div style={{ fontSize: 10, color: !form.houseId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700 }}>🏠 البيت *</div>
+          <div style={{ fontSize: 10, color: !form.houseId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700, display:'flex', alignItems:'center', gap:4 }}><Home size={10} strokeWidth={2} /> البيت *</div>
           <select value={form.houseId}
             onChange={e => setForm(p => ({ ...p, houseId: e.target.value, floorId: '' }))}
             disabled={!form.plotId}
@@ -678,7 +679,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
           <div style={{ position: 'relative' }}>
             <img src={form.photo} alt="" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 10, border: `1px solid ${C.border}`, display: 'block' }} />
             <button onClick={() => setF('photo', '')}
-              style={{ position: 'absolute', top: 7, left: 7, width: 26, height: 26, borderRadius: 99, background: `${C.accent}dd`, border: 'none', color: '#fff', fontSize: 12, cursor: 'pointer', fontWeight: 800, lineHeight: 1 }}>✕</button>
+              style={{ position: 'absolute', top: 7, left: 7, width: 26, height: 26, borderRadius: 99, background: `${C.accent}dd`, border: 'none', color: '#fff', cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><X size={12} strokeWidth={2.5} /></button>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -695,7 +696,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
                 }} />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '16px 0', borderRadius: 10, border: `2px dashed ${C.secondary}66`, background: `${C.secondary}08`, cursor: 'pointer' }}>
-              <span style={{ fontSize: 26 }}>🖼️</span>
+              <Image size={26} style={{ color: C.textDim }} />
               <span style={{ fontSize: 11, color: C.secondary, fontWeight: 700 }}>المعرض</span>
               <input type="file" accept="image/*" style={{ display: 'none' }}
                 onChange={async e => {
@@ -746,7 +747,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
 
       {extras.length === 0 && !showForm ? (
         <div style={{ textAlign: 'center', padding: '36px 0', color: C.textDim }}>
-          <div style={{ fontSize: 38, marginBottom: 8 }}>📋</div>
+          <ClipboardList size={38} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
           <div style={{ fontSize: 13, fontWeight: 600 }}>لا توجد زيادات بعد</div>
           <div style={{ fontSize: 11, marginTop: 4 }}>أضف أي أعمال خارج نطاق العقد</div>
         </div>
@@ -766,8 +767,8 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
               )}
               {(xPlot || xHouse || xFloor) && (
                 <div style={{ display: 'flex', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
-                  {xPlot  && <span style={{ fontSize: 10, color: C.primary,   background: `${C.primary}15`,   padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.primary}22`   }}>🏘️ {xPlot.name}</span>}
-                  {xHouse && <span style={{ fontSize: 10, color: C.secondary, background: `${C.secondary}15`, padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.secondary}22` }}>🏠 {xHouse.name}</span>}
+                  {xPlot  && <span style={{ fontSize: 10, color: C.primary,   background: `${C.primary}15`,   padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.primary}22`, display:'inline-flex', alignItems:'center', gap:3   }}><Building2 size={9} strokeWidth={2} /> {xPlot.name}</span>}
+                  {xHouse && <span style={{ fontSize: 10, color: C.secondary, background: `${C.secondary}15`, padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.secondary}22`, display:'inline-flex', alignItems:'center', gap:3 }}><Home size={9} strokeWidth={2} /> {xHouse.name}</span>}
                   {xFloor && <span style={{ fontSize: 10, color: C.orange,    background: `${C.orange}15`,    padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.orange}22`    }}>🏢 {xFloor.name}</span>}
                 </div>
               )}
@@ -788,7 +789,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
                 <button onClick={() => cycleStatus(extra.id)}
                   style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>⟳ الحالة</button>
                 <button onClick={() => startEdit(extra)}
-                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.primary}44`, background: `${C.primary}11`, color: C.primary, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>✏️ تعديل</button>
+                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.primary}44`, background: `${C.primary}11`, color: C.primary, fontSize: 10, fontWeight: 600, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><Pencil size={10} strokeWidth={2} /> تعديل</button>
                 <button onClick={() => deleteExtra(extra)}
                   style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>🗑 حذف</button>
               </div>
@@ -800,7 +801,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
       {!showForm && !editingExtra && (
         <button onClick={() => { setShowForm(true); setForm(EMPTY_EXTRA) }}
           style={{ width: '100%', marginTop: 4, padding: '12px 0', borderRadius: 13, border: `2px dashed ${C.primary}44`, background: `${C.primary}08`, color: C.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-          ➕ زيادة جديدة
+          + زيادة جديدة
         </button>
       )}
     </div>
@@ -819,8 +820,8 @@ export default function UnitTrackerScreen({ projects = [] }) {
   function saveTrackerData(next) { setTrackerData(next); saveTracker(projectId, next) }
 
   const TABS = [
-    { id: 'track',  label: '📐 تتبع الأعمال' },
-    { id: 'extras', label: '➕ الزيادات'      },
+    { id: 'track',  label: 'تتبع الأعمال' },
+    { id: 'extras', label: 'الزيادات'      },
   ]
 
   return (
@@ -835,7 +836,7 @@ export default function UnitTrackerScreen({ projects = [] }) {
 
       {projects.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>🏗️</div>
+          <HardHat size={36} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
           <div>لا توجد مشاريع</div>
         </div>
       ) : (
