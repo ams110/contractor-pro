@@ -1,45 +1,146 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,400..900&family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&family=Noto+Sans+Hebrew:wght@400;500;600;700;800;900&display=swap');
 
 @theme {
-  --color-brand-50:  #fffbeb;
-  --color-brand-100: #fef3c7;
-  --color-brand-200: #fde68a;
-  --color-brand-300: #fcd34d;
-  --color-brand-400: #fbbf24;
-  --color-brand-500: #f59e0b;
-  --color-brand-600: #d97706;
-  --color-brand-700: #b45309;
-  --color-brand-800: #92400e;
-  --color-brand-900: #78350f;
+  /* ── Orange Primary ── */
+  --color-primary-50:  #fff7ed;
+  --color-primary-100: #ffedd5;
+  --color-primary-200: #fed7aa;
+  --color-primary-300: #fdba74;
+  --color-primary-400: #fb923c;
+  --color-primary-500: #f97316;
+  --color-primary-600: #ea6100;
+  --color-primary-700: #c2410c;
+  --color-primary-800: #9a3412;
+  --color-primary-900: #7c2d12;
 
-  --color-surface-50:  #1a1d26;
-  --color-surface-100: #13151e;
-  --color-surface-200: #0d0f18;
-  --color-surface-300: #09090f;
-  --color-surface-400: #07080c;
+  /* ── Violet Secondary ── */
+  --color-violet-50:  #f5f3ff;
+  --color-violet-100: #ede9fe;
+  --color-violet-200: #ddd6fe;
+  --color-violet-300: #c4b5fd;
+  --color-violet-400: #a78bfa;
+  --color-violet-500: #8b5cf6;
+  --color-violet-600: #7c3aed;
+  --color-violet-700: #6d28d9;
+  --color-violet-800: #5b21b6;
+  --color-violet-900: #4c1d95;
 
-  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  /* ── Gold ── */
+  --color-gold-400: #fbbf24;
+  --color-gold-500: #f59e0b;
+  --color-gold-600: #d97706;
+  --color-gold-700: #b45309;
+
+  /* ── Cyan ── */
+  --color-cyan-400: #22d3ee;
+  --color-cyan-500: #06b6d4;
+  --color-cyan-600: #0891b2;
+
+  /* ── Dark Surfaces ── */
+  --color-surface-bg:      #07080F;
+  --color-surface-default: #0D0F1C;
+  --color-surface-card:    #12152A;
+  --color-surface-muted:   #1A1D2E;
+
+  /* ── Fonts ── */
+  --font-sans-ar: 'Noto Sans Arabic', 'Inter', system-ui, sans-serif;
+  --font-sans-he: 'Noto Sans Hebrew', 'Inter', system-ui, sans-serif;
+  --font-sans:    'Inter', system-ui, sans-serif;
+
+  /* ── Breakpoints ── */
+  --breakpoint-mobile:  430px;
+  --breakpoint-tablet:  768px;
+  --breakpoint-desktop: 1280px;
 }
 
-* {
+/* ── CSS Custom Properties (runtime vars) ─────────────────────────────────── */
+:root {
+  --c-bg:        #07080F;
+  --c-surface:   #0D0F1C;
+  --c-card:      #12152A;
+  --c-primary:   #F97316;
+  --c-secondary: #7C3AED;
+  --c-gold:      #D97706;
+  --c-cyan:      #06B6D4;
+  --c-success:   #22C55E;
+  --c-warning:   #EAB308;
+  --c-danger:    #EF4444;
+  --c-text:      #F8FAFC;
+  --c-text-dim:  #64748B;
+  --c-border:    rgba(249,115,22,0.08);
+  --c-border-mid:rgba(249,115,22,0.18);
+  --grad-primary: linear-gradient(135deg, #F97316, #DC2626);
+  --grad-premium: linear-gradient(135deg, #7C3AED, #2563EB);
+  --grad-gold:    linear-gradient(135deg, #D97706, #F59E0B);
+}
+
+/* ── Reset ─────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
   height: 100%;
-  background: #07080C;
-  color: #F8FAFC;
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background: var(--c-bg);
+  color: var(--c-text);
   -webkit-font-smoothing: antialiased;
-  direction: rtl;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
-::-webkit-scrollbar { width: 3px; height: 3px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(245,158,11,0.2); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(245,158,11,0.4); }
+/* RTL (Arabic / Hebrew) */
+[dir="rtl"] body,
+body[dir="rtl"],
+html[lang="ar"],
+html[lang="he"] {
+  font-family: 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Inter', system-ui, sans-serif;
+  direction: rtl;
+}
+
+/* LTR (English) */
+html[lang="en"] {
+  font-family: 'Inter', system-ui, sans-serif;
+  direction: ltr;
+}
+
+/* Default RTL (app default is Arabic) */
+body {
+  font-family: 'Noto Sans Arabic', 'Inter', system-ui, sans-serif;
+  direction: rtl;
+}
 
 input, select, textarea, button { font-family: inherit; }
-button:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
+button:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(249,115,22,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(249,115,22,0.4); }
+
+/* ── Utility classes ────────────────────────────────────────────────────────── */
+.glass {
+  background: rgba(7,8,15,0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(249,115,22,0.07);
+}
+
+.app-root { min-height: var(--actual-vh, 100dvh); }
+
+/* ── Animations ─────────────────────────────────────────────────────────────── */
+@keyframes spin       { to { transform: rotate(360deg) } }
+@keyframes float      { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-7px) } }
+@keyframes shimmer    { 0% { background-position: 200% 0 } to { background-position: -200% 0 } }
+@keyframes ping       { 75%,100% { transform: scale(2.2); opacity: 0 } }
+@keyframes glowPulse  { 0%,100% { box-shadow: 0 0 14px rgba(249,115,22,0.3) } 50% { box-shadow: 0 0 28px rgba(249,115,22,0.55) } }
+@keyframes badgePop   { 0% { transform: scale(0) } 70% { transform: scale(1.2) } 100% { transform: scale(1) } }
+@keyframes auroraMove { 0%,100% { opacity: 0.6 } 50% { opacity: 1 } }
+@keyframes slideUp    { from { transform: translateY(12px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+@keyframes fadeIn     { from { opacity: 0 } to { opacity: 1 } }
+
+.badge-pop   { animation: badgePop .3s cubic-bezier(0.34,1.56,0.64,1) both; }
+.slide-up    { animation: slideUp .25s ease both; }
+.fade-in     { animation: fadeIn .2s ease both; }

@@ -1,0 +1,160 @@
+{
+  "app": {
+    "name": "Contractor Pro",
+    "tagline": "Manage your projects smartly"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "projects":  "Projects",
+    "workers":   "Workers",
+    "finance":   "Finance",
+    "settings":  "Settings",
+    "more":      "More"
+  },
+  "more": {
+    "workdays":   "Work Days",
+    "expenses":   "Expenses",
+    "payments":   "Salaries",
+    "tracker":    "Unit Tracker",
+    "materials":  "Materials",
+    "accounting": "Accounting",
+    "activity":   "Activity"
+  },
+  "common": {
+    "save":         "Save",
+    "cancel":       "Cancel",
+    "delete":       "Delete",
+    "edit":         "Edit",
+    "add":          "Add",
+    "search":       "Search",
+    "loading":      "Loading...",
+    "error":        "An error occurred",
+    "success":      "Success",
+    "confirm":      "Confirm",
+    "back":         "Back",
+    "close":        "Close",
+    "yes":          "Yes",
+    "no":           "No",
+    "required":     "Required",
+    "optional":     "Optional",
+    "all":          "All",
+    "none":         "None",
+    "total":        "Total",
+    "date":         "Date",
+    "amount":       "Amount",
+    "notes":        "Notes",
+    "status":       "Status",
+    "type":         "Type",
+    "name":         "Name",
+    "phone":        "Phone",
+    "export":       "Export",
+    "filter":       "Filter",
+    "sort":         "Sort",
+    "refresh":      "Refresh",
+    "noData":       "No data available",
+    "startNow":     "Get Started"
+  },
+  "auth": {
+    "login":           "Sign In",
+    "logout":          "Sign Out",
+    "email":           "Email",
+    "password":        "Password",
+    "forgotPassword":  "Forgot password?",
+    "noAccount":       "Don't have an account?",
+    "signUp":          "Sign Up",
+    "loginAs":         "Sign in as",
+    "owner":           "Account Owner",
+    "teamMember":      "Team Member",
+    "wrongCredentials":"Invalid credentials",
+    "blocked":         "Your access has been blocked",
+    "expired":         "Your access has expired"
+  },
+  "dashboard": {
+    "title":         "Dashboard",
+    "totalRevenue":  "Total Revenue",
+    "totalExpenses": "Total Expenses",
+    "netProfit":     "Net Profit",
+    "activeProjects":"Active Projects",
+    "totalWorkers":  "Workers",
+    "pendingDays":   "Pending Days",
+    "insights":      "Smart Insights",
+    "recentActivity":"Recent Activity"
+  },
+  "projects": {
+    "title":      "Projects",
+    "add":        "New Project",
+    "empty":      "No projects yet",
+    "name":       "Project Name",
+    "type":       "Project Type",
+    "status":     "Status",
+    "budget":     "Budget",
+    "profit":     "Profit",
+    "expenses":   "Expenses",
+    "receipts":   "Receipts",
+    "workdays":   "Work Days",
+    "materials":  "Materials",
+    "tracker":    "Unit Tracker",
+    "details":    "Project Details"
+  },
+  "workers": {
+    "title":      "Workers",
+    "add":        "New Worker",
+    "empty":      "No workers yet",
+    "name":       "Worker Name",
+    "specialty":  "Specialty",
+    "phone":      "Phone",
+    "salary":     "Salary",
+    "advances":   "Advances",
+    "workdays":   "Work Days",
+    "details":    "Worker Details",
+    "dailyRate":  "Daily Rate"
+  },
+  "finance": {
+    "title":       "Finance",
+    "expenses":    "Expenses",
+    "payments":    "Salaries",
+    "accounting":  "Accounting",
+    "income":      "Income",
+    "balance":     "Balance",
+    "vat":         "VAT",
+    "tax":         "Tax"
+  },
+  "settings": {
+    "title":       "Settings",
+    "language":    "Language",
+    "profile":     "Profile",
+    "team":        "Team",
+    "specs":       "Specialties",
+    "categories":  "Categories",
+    "payMethods":  "Payment Methods",
+    "subscription":"Subscription",
+    "security":    "Security",
+    "appearance":  "Appearance"
+  },
+  "trial": {
+    "banner":   "Free Trial — {{days}} days remaining",
+    "expired":  "Your free trial has ended",
+    "subscribe":"Subscribe Now",
+    "message":  "All your data is saved. Subscribe to continue using Contractor Pro."
+  },
+  "offline": {
+    "message": "No connection — data saved locally"
+  },
+  "onboarding": {
+    "welcome":   "Welcome to Contractor Pro",
+    "subtitle":  "Here are the key features to get you started",
+    "projects":  "Add projects and track profits and expenses for each",
+    "workers":   "Manage your team, salaries, and advances easily",
+    "workdays":  "Log daily work days with an approval system",
+    "expenses":  "Track project expenses and VAT refunds"
+  },
+  "pwa": {
+    "updateAvailable": "New update available",
+    "updateMessage":   "Tap to install the latest version",
+    "update":          "Update"
+  },
+  "access": {
+    "denied":   "You don't have permission to view this page",
+    "contact":  "Contact the account owner to restore your access"
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "app": {
+    "name": "Contractor Pro",
+    "tagline": "נהל את הפרויקטים שלך בחוכמה"
+  },
+  "nav": {
+    "dashboard": "לוח בקרה",
+    "projects":  "פרויקטים",
+    "workers":   "עובדים",
+    "finance":   "כספים",
+    "settings":  "הגדרות",
+    "more":      "עוד"
+  },
+  "more": {
+    "workdays":   "ימי עבודה",
+    "expenses":   "הוצאות",
+    "payments":   "משכורות",
+    "tracker":    "מעקב יחידות",
+    "materials":  "חומרים",
+    "accounting": "הנהלת חשבונות",
+    "activity":   "פעילות"
+  },
+  "common": {
+    "save":         "שמור",
+    "cancel":       "ביטול",
+    "delete":       "מחק",
+    "edit":         "ערוך",
+    "add":          "הוסף",
+    "search":       "חיפוש",
+    "loading":      "טוען...",
+    "error":        "שגיאה",
+    "success":      "בוצע בהצלחה",
+    "confirm":      "אישור",
+    "back":         "חזרה",
+    "close":        "סגור",
+    "yes":          "כן",
+    "no":           "לא",
+    "required":     "שדה חובה",
+    "optional":     "אופציונלי",
+    "all":          "הכל",
+    "none":         "כלום",
+    "total":        "סה\"כ",
+    "date":         "תאריך",
+    "amount":       "סכום",
+    "notes":        "הערות",
+    "status":       "סטטוס",
+    "type":         "סוג",
+    "name":         "שם",
+    "phone":        "טלפון",
+    "export":       "ייצוא",
+    "filter":       "סינון",
+    "sort":         "מיון",
+    "refresh":      "רענן",
+    "noData":       "אין נתונים",
+    "startNow":     "התחל עכשיו"
+  },
+  "auth": {
+    "login":           "כניסה",
+    "logout":          "יציאה",
+    "email":           "אימייל",
+    "password":        "סיסמה",
+    "forgotPassword":  "שכחת סיסמה?",
+    "noAccount":       "אין לך חשבון?",
+    "signUp":          "הרשמה",
+    "loginAs":         "כניסה בתור",
+    "owner":           "בעל חשבון",
+    "teamMember":      "חבר צוות",
+    "wrongCredentials":"פרטים שגויים",
+    "blocked":         "הגישה שלך חסומה",
+    "expired":         "תוקף הגישה שלך פג"
+  },
+  "dashboard": {
+    "title":         "לוח בקרה",
+    "totalRevenue":  "סה\"כ הכנסות",
+    "totalExpenses": "סה\"כ הוצאות",
+    "netProfit":     "רווח נקי",
+    "activeProjects":"פרויקטים פעילים",
+    "totalWorkers":  "עובדים",
+    "pendingDays":   "ימים ממתינים",
+    "insights":      "תובנות חכמות",
+    "recentActivity":"פעילות אחרונה"
+  },
+  "projects": {
+    "title":      "פרויקטים",
+    "add":        "פרויקט חדש",
+    "empty":      "אין פרויקטים עדיין",
+    "name":       "שם הפרויקט",
+    "type":       "סוג פרויקט",
+    "status":     "סטטוס",
+    "budget":     "תקציב",
+    "profit":     "רווח",
+    "expenses":   "הוצאות",
+    "receipts":   "קבלות",
+    "workdays":   "ימי עבודה",
+    "materials":  "חומרים",
+    "tracker":    "מעקב יחידות",
+    "details":    "פרטי פרויקט"
+  },
+  "workers": {
+    "title":      "עובדים",
+    "add":        "עובד חדש",
+    "empty":      "אין עובדים עדיין",
+    "name":       "שם העובד",
+    "specialty":  "התמחות",
+    "phone":      "טלפון",
+    "salary":     "שכר",
+    "advances":   "מקדמות",
+    "workdays":   "ימי עבודה",
+    "details":    "פרטי עובד",
+    "dailyRate":  "תעריף יומי"
+  },
+  "finance": {
+    "title":       "כספים",
+    "expenses":    "הוצאות",
+    "payments":    "משכורות",
+    "accounting":  "הנהלת חשבונות",
+    "income":      "הכנסה",
+    "balance":     "יתרה",
+    "vat":         "מע\"מ",
+    "tax":         "מס"
+  },
+  "settings": {
+    "title":       "הגדרות",
+    "language":    "שפה",
+    "profile":     "פרופיל",
+    "team":        "צוות",
+    "specs":       "התמחויות",
+    "categories":  "קטגוריות",
+    "payMethods":  "אמצעי תשלום",
+    "subscription":"מנוי",
+    "security":    "אבטחה",
+    "appearance":  "מראה"
+  },
+  "trial": {
+    "banner":   "ניסיון חינם — נותרו {{days}} ימים",
+    "expired":  "תקופת הניסיון החינמי הסתיימה",
+    "subscribe":"הירשם עכשיו",
+    "message":  "כל הנתונים שלך שמורים. הירשם להמשך השימוש."
+  },
+  "offline": {
+    "message": "אין חיבור — הנתונים שמורים מקומית"
+  },
+  "onboarding": {
+    "welcome":   "ברוכים הבאים ל-Contractor Pro",
+    "subtitle":  "הנה התכונות החשובות להתחלה מהירה",
+    "projects":  "הוסף פרויקטים ועקוב אחר רווחים והוצאות לכל פרויקט",
+    "workers":   "נהל את הצוות שלך, משכורות ומקדמות בקלות",
+    "workdays":  "רשום ימי עבודה יומיים עם מערכת אישורים",
+    "expenses":  "עקוב אחר הוצאות פרויקטים והחזרי מע\"מ"
+  },
+  "pwa": {
+    "updateAvailable": "עדכון חדש זמין",
+    "updateMessage":   "לחץ להתקנת הגרסה האחרונה",
+    "update":          "עדכן"
+  },
+  "access": {
+    "denied":   "אין לך הרשאה לצפות בדף זה",
+    "contact":  "פנה לבעל החשבון לשחזור הגישה שלך"
+  }
+}

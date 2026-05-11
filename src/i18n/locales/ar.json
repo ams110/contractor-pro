@@ -1,0 +1,160 @@
+{
+  "app": {
+    "name": "Contractor Pro",
+    "tagline": "إدارة مشاريعك بذكاء"
+  },
+  "nav": {
+    "dashboard": "الرئيسية",
+    "projects":  "مشاريع",
+    "workers":   "عمال",
+    "finance":   "المالية",
+    "settings":  "الإعدادات",
+    "more":      "المزيد"
+  },
+  "more": {
+    "workdays":   "أيام العمل",
+    "expenses":   "المصاريف",
+    "payments":   "الرواتب",
+    "tracker":    "تتبع الوحدات",
+    "materials":  "البضاعة",
+    "accounting": "المحاسبة",
+    "activity":   "النشاط"
+  },
+  "common": {
+    "save":         "حفظ",
+    "cancel":       "إلغاء",
+    "delete":       "حذف",
+    "edit":         "تعديل",
+    "add":          "إضافة",
+    "search":       "بحث",
+    "loading":      "جاري التحميل...",
+    "error":        "حدث خطأ",
+    "success":      "تم بنجاح",
+    "confirm":      "تأكيد",
+    "back":         "رجوع",
+    "close":        "إغلاق",
+    "yes":          "نعم",
+    "no":           "لا",
+    "required":     "مطلوب",
+    "optional":     "اختياري",
+    "all":          "الكل",
+    "none":         "لا شيء",
+    "total":        "الإجمالي",
+    "date":         "التاريخ",
+    "amount":       "المبلغ",
+    "notes":        "ملاحظات",
+    "status":       "الحالة",
+    "type":         "النوع",
+    "name":         "الاسم",
+    "phone":        "الهاتف",
+    "export":       "تصدير",
+    "filter":       "فلتر",
+    "sort":         "ترتيب",
+    "refresh":      "تحديث",
+    "noData":       "لا توجد بيانات",
+    "startNow":     "ابدأ الآن"
+  },
+  "auth": {
+    "login":           "تسجيل الدخول",
+    "logout":          "تسجيل الخروج",
+    "email":           "البريد الإلكتروني",
+    "password":        "كلمة المرور",
+    "forgotPassword":  "نسيت كلمة المرور؟",
+    "noAccount":       "ليس لديك حساب؟",
+    "signUp":          "إنشاء حساب",
+    "loginAs":         "دخول كـ",
+    "owner":           "صاحب الحساب",
+    "teamMember":      "عضو فريق",
+    "wrongCredentials":"بيانات خاطئة",
+    "blocked":         "تم إيقاف وصولك",
+    "expired":         "انتهت صلاحية وصولك"
+  },
+  "dashboard": {
+    "title":         "لوحة التحكم",
+    "totalRevenue":  "إجمالي الإيرادات",
+    "totalExpenses": "إجمالي المصاريف",
+    "netProfit":     "صافي الربح",
+    "activeProjects":"مشاريع نشطة",
+    "totalWorkers":  "العمال",
+    "pendingDays":   "أيام معلقة",
+    "insights":      "رؤى ذكية",
+    "recentActivity":"النشاط الأخير"
+  },
+  "projects": {
+    "title":      "المشاريع",
+    "add":        "مشروع جديد",
+    "empty":      "لا توجد مشاريع بعد",
+    "name":       "اسم المشروع",
+    "type":       "نوع المشروع",
+    "status":     "الحالة",
+    "budget":     "الميزانية",
+    "profit":     "الربح",
+    "expenses":   "المصاريف",
+    "receipts":   "الإيصالات",
+    "workdays":   "أيام العمل",
+    "materials":  "البضاعة",
+    "tracker":    "تتبع الوحدات",
+    "details":    "تفاصيل المشروع"
+  },
+  "workers": {
+    "title":      "العمال",
+    "add":        "عامل جديد",
+    "empty":      "لا يوجد عمال بعد",
+    "name":       "اسم العامل",
+    "specialty":  "التخصص",
+    "phone":      "الهاتف",
+    "salary":     "الراتب",
+    "advances":   "السلف",
+    "workdays":   "أيام العمل",
+    "details":    "تفاصيل العامل",
+    "dailyRate":  "الأجر اليومي"
+  },
+  "finance": {
+    "title":       "المالية",
+    "expenses":    "المصاريف",
+    "payments":    "الرواتب",
+    "accounting":  "المحاسبة",
+    "income":      "الدخل",
+    "balance":     "الرصيد",
+    "vat":         "ضريبة القيمة المضافة",
+    "tax":         "الضريبة"
+  },
+  "settings": {
+    "title":       "الإعدادات",
+    "language":    "اللغة",
+    "profile":     "الملف الشخصي",
+    "team":        "الفريق",
+    "specs":       "التخصصات",
+    "categories":  "الفئات",
+    "payMethods":  "طرق الدفع",
+    "subscription":"الاشتراك",
+    "security":    "الأمان",
+    "appearance":  "المظهر"
+  },
+  "trial": {
+    "banner":   "التجربة المجانية — متبقي {{days}} يوم",
+    "expired":  "انتهت فترة التجربة المجانية",
+    "subscribe":"اشترك الآن",
+    "message":  "جميع بياناتك محفوظة. اشترك الآن للاستمرار."
+  },
+  "offline": {
+    "message": "لا يوجد اتصال — البيانات محفوظة محلياً"
+  },
+  "onboarding": {
+    "welcome":   "أهلاً بك في Contractor Pro",
+    "subtitle":  "إليك أهم الميزات للبداية السريعة",
+    "projects":  "أضف مشاريعك وتابع الأرباح والمصاريف لكل مشروع",
+    "workers":   "أدر فريق عملك، الرواتب، والسلف بسهولة",
+    "workdays":  "سجّل أيام العمل اليومية مع نظام الموافقات",
+    "expenses":  "تتبع مصاريف المشاريع واسترداد ضريبة القيمة المضافة"
+  },
+  "pwa": {
+    "updateAvailable": "تحديث جديد متوفر",
+    "updateMessage":   "اضغط لتثبيت آخر نسخة",
+    "update":          "تحديث"
+  },
+  "access": {
+    "denied":   "ليس لديك صلاحية لعرض هذه الصفحة",
+    "contact":  "تواصل مع صاحب الحساب لإعادة تفعيل صلاحياتك"
+  }
+}
