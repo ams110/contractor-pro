@@ -2,10 +2,10 @@ import React, { useState, useMemo, lazy, Suspense, useEffect } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  LayoutDashboard, Building2, Users, Wallet, Grid3x3,
+  LayoutDashboard, Building2, Users, Wallet, Settings,
   Bell, Search, ClipboardCheck, HardHat, WifiOff, Gift,
   Clock, ShieldOff, Lock, CalendarDays, CreditCard, Banknote,
-  ClipboardList, Package, Calculator, Activity, Settings, X,
+  ClipboardList, Package, Calculator, Activity, Grid3x3,
   ChevronLeft, RefreshCw,
 } from 'lucide-react'
 
@@ -47,6 +47,7 @@ const NAV_ICONS = {
   projects:   Building2,
   workers:    Users,
   finance:    Wallet,
+  settings:   Settings,
   more:       Grid3x3,
   workdays:   CalendarDays,
   expenses:   CreditCard,
@@ -55,32 +56,18 @@ const NAV_ICONS = {
   materials:  Package,
   accounting: Calculator,
   activity:   Activity,
-  settings:   Settings,
 }
 
 const globalCSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,400..900&display=swap');
-
-  @keyframes spin      { to { transform:rotate(360deg) } }
-  @keyframes float     { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-7px) } }
-  @keyframes shimmer   { 0% { background-position:200% 0 } to { background-position:-200% 0 } }
-  @keyframes ping      { 75%,100% { transform:scale(2.2); opacity:0 } }
-  @keyframes glowPulse { 0%,100% { box-shadow:0 0 14px rgba(245,158,11,0.3) } 50% { box-shadow:0 0 28px rgba(245,158,11,0.55) } }
-  @keyframes badgePop  { 0% { transform:scale(0) } 70% { transform:scale(1.2) } 100% { transform:scale(1) } }
+  @keyframes spin       { to { transform:rotate(360deg) } }
+  @keyframes float      { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-7px) } }
+  @keyframes shimmer    { 0% { background-position:200% 0 } to { background-position:-200% 0 } }
+  @keyframes ping       { 75%,100% { transform:scale(2.2); opacity:0 } }
+  @keyframes glowPulse  { 0%,100% { box-shadow:0 0 14px rgba(249,115,22,0.3) } 50% { box-shadow:0 0 28px rgba(249,115,22,0.55) } }
+  @keyframes badgePop   { 0% { transform:scale(0) } 70% { transform:scale(1.2) } 100% { transform:scale(1) } }
   @keyframes auroraMove { 0%,100% { opacity:0.6 } 50% { opacity:1 } }
 
-  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-
-  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif !important; -webkit-font-smoothing:antialiased; }
-  input, select, textarea, button { font-family: inherit; }
-  button:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
-
-  ::-webkit-scrollbar { width:3px; height:3px; }
-  ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:rgba(245,158,11,0.2); border-radius:3px; }
-  ::-webkit-scrollbar-thumb:hover { background:rgba(245,158,11,0.4); }
-
-  .glass { background:rgba(7,8,12,0.88); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid rgba(245,158,11,0.07); }
+  .glass { background:rgba(7,8,15,0.88); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid rgba(249,115,22,0.07); }
   .badge-pop { animation: badgePop .3s cubic-bezier(0.34,1.56,0.64,1) both; }
   .app-root { min-height: var(--actual-vh, 100dvh); }
 `
@@ -106,7 +93,7 @@ function NoAccess() {
   )
 }
 
-// ─── "المزيد" Drawer ─────────────────────────────────────────────────────────
+// ─── "المزيد" Drawer — accessed via settings tab on mobile ──────────────────
 function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
   const p = permissions || {}
   const filtered = MORE_SCREENS.filter(s => {
@@ -196,15 +183,15 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
     }}>
       <div style={{ padding: '18px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 11, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(245,158,11,0.35)', flexShrink: 0 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 11, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(245,158,11,0.35)', flexShrink: 0 }}>
             <HardHat size={18} color="#000" strokeWidth={2} />
           </div>
-          <div style={{ fontSize: 14, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>Contractor Pro</div>
+          <div style={{ fontSize: 14, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>Contractor Pro</div>
         </div>
       </div>
 
       <div style={{ padding: '12px 10px', flex: 1 }}>
-        {NAV.filter(n => n.id !== 'more').map(n => {
+        {NAV.map(n => {
           const active = activeScreen === n.id
           const Icon = NAV_ICONS[n.id]
           return (
@@ -367,15 +354,15 @@ export default function App() {
       <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, overflow: 'hidden', position: 'relative' }}>
         <style>{globalCSS}</style>
         {/* Aurora */}
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(245,158,11,0.1) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(239,68,68,0.06) 0%, transparent 60%)', animation: 'auroraMove 4s ease-in-out infinite', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(249,115,22,0.1) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(124,58,237,0.07) 0%, transparent 60%)', animation: 'auroraMove 4s ease-in-out infinite', pointerEvents: 'none' }} />
         <motion.div
           animate={{ y: [0, -8, 0] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ width: 96, height: 96, borderRadius: 30, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 26, boxShadow: '0 20px 60px rgba(245,158,11,0.4), 0 0 0 1px rgba(255,255,255,0.12) inset', position: 'relative', zIndex: 1 }}
+          style={{ width: 96, height: 96, borderRadius: 30, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 26, boxShadow: '0 20px 60px rgba(245,158,11,0.4), 0 0 0 1px rgba(255,255,255,0.12) inset', position: 'relative', zIndex: 1 }}
         >
           <HardHat size={48} color="#000" strokeWidth={1.5} />
         </motion.div>
-        <div style={{ fontSize: 28, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6, letterSpacing: '-0.02em', position: 'relative', zIndex: 1 }}>Contractor Pro</div>
+        <div style={{ fontSize: 28, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6, letterSpacing: '-0.02em', position: 'relative', zIndex: 1 }}>Contractor Pro</div>
         <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.15em', marginBottom: 44, textTransform: 'uppercase', fontWeight: 600, position: 'relative', zIndex: 1 }}>إدارة مشاريعك بذكاء</div>
         <div style={{ position: 'relative', zIndex: 1 }}><LoadingSpinner /></div>
       </div>
@@ -410,13 +397,13 @@ export default function App() {
   if (!orgLoading && org && !isPlanActive() && !effectiveOwnerId) return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", padding: 32, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
       <style>{globalCSS}</style>
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 50% at 50% 30%, rgba(245,158,11,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 50% at 50% 30%, rgba(249,115,22,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
       <div style={{ width: 72, height: 72, borderRadius: 24, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', position: 'relative', zIndex: 1 }}><Clock size={36} color={C.primary} strokeWidth={1.5} /></div>
       <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 10, position: 'relative', zIndex: 1 }}>انتهت فترة التجربة المجانية</div>
       <div style={{ fontSize: 14, color: C.textDim, lineHeight: 1.7, maxWidth: 300, marginBottom: 32, position: 'relative', zIndex: 1 }}>
         جميع بياناتك محفوظة. اشترك الآن للاستمرار في استخدام Contractor Pro.
       </div>
-      <button onClick={() => navigate('/pricing')} style={{ padding: '14px 36px', borderRadius: 16, background: GRAD.brand, border: 'none', color: '#000', fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 28px rgba(245,158,11,0.4)', marginBottom: 14, position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
+      <button onClick={() => navigate('/pricing')} style={{ padding: '14px 36px', borderRadius: 16, background: GRAD.primary, border: 'none', color: '#000', fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 28px rgba(245,158,11,0.4)', marginBottom: 14, position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
         اختر خطة اشتراك ←
       </button>
       <button onClick={() => supabase.auth.signOut()} style={{ padding: '10px 24px', borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
@@ -452,7 +439,7 @@ export default function App() {
 
   // Determine active NAV tab
   const moreScreenIds = MORE_SCREENS.map(s => s.id)
-  const activeNav = moreScreenIds.includes(screen) ? 'more'
+  const activeNav = moreScreenIds.includes(screen) ? 'settings'
     : NAV.find(n => n.id === screen) ? screen
     : 'dashboard'
 
@@ -462,7 +449,7 @@ export default function App() {
       {isDesktop && <DesktopSidebar screen={screen} setScreen={setScreen} permissions={p} pendingCount={pendingCount} />}
 
       {/* ─── Aurora background ─── */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 40% at 15% 0%, rgba(245,158,11,0.06) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 85% 100%, rgba(239,68,68,0.04) 0%, transparent 60%)' }} />
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 40% at 15% 0%, rgba(249,115,22,0.07) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 85% 100%, rgba(124,58,237,0.04) 0%, transparent 60%)' }} />
 
       {/* ─── Offline banner ─── */}
       {!isOnline && (
@@ -481,20 +468,20 @@ export default function App() {
               التجربة المجانية — متبقي <strong style={{ color: '#fff' }}>{trialDaysLeft()} يوم</strong>
             </span>
           </div>
-          <button onClick={() => navigate('/pricing')} style={{ padding: '5px 14px', borderRadius: 9, background: GRAD.brand, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
+          <button onClick={() => navigate('/pricing')} style={{ padding: '5px 14px', borderRadius: 9, background: GRAD.primary, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
             اشترك الآن
           </button>
         </div>
       )}
 
       {/* ─── Header ─── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(7,8,12,0.92)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(245,158,11,0.07)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(7,8,15,0.93)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(249,115,22,0.07)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 14, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(245,158,11,0.4), 0 1px 0 rgba(255,255,255,0.15) inset', flexShrink: 0 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 14, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(245,158,11,0.4), 0 1px 0 rgba(255,255,255,0.15) inset', flexShrink: 0 }}>
             <HardHat size={22} color="#000" strokeWidth={2} />
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.2, letterSpacing: '-0.02em' }}>Contractor Pro</div>
+            <div style={{ fontSize: 16, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.2, letterSpacing: '-0.02em' }}>Contractor Pro</div>
             <div style={{ fontSize: 9, color: C.primary, letterSpacing: '0.08em', fontWeight: 700, opacity: 0.75, textTransform: 'uppercase' }}>
               {NAV.find(n => n.id === activeNav)?.label || MORE_SCREENS.find(s => s.id === screen)?.label || 'إدارة مشاريعك بذكاء'}
             </div>
@@ -536,8 +523,8 @@ export default function App() {
           </motion.button>
         </div>
 
-        {/* Amber accent line */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(245,158,11,0.5), rgba(239,68,68,0.3), transparent)' }} />
+        {/* Primary accent line */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.5), rgba(124,58,237,0.3), transparent)' }} />
       </div>
 
       {/* ─── Screen content ─── */}
@@ -552,12 +539,12 @@ export default function App() {
         {NAV.map(n => {
           const active = activeNav === n.id
           const Icon = NAV_ICONS[n.id]
-          const hasBadge = n.id === 'more' && pendingCount > 0
+          const hasBadge = n.id === 'settings' && pendingCount > 0
 
           return (
             <motion.button
               key={n.id}
-              onClick={() => n.id === 'more' ? setShowMore(true) : setScreen(n.id)}
+              onClick={() => setScreen(n.id)}
               whileTap={{ scale: 0.88 }}
               transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '4px 0', background: 'none', border: 'none', cursor: 'pointer', flex: 1, position: 'relative', minWidth: 0, fontFamily: 'inherit' }}
@@ -567,7 +554,7 @@ export default function App() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  style={{ position: 'absolute', top: 1, left: 0, right: 0, marginInline: 'auto', width: 46, height: 35, borderRadius: 16, background: 'linear-gradient(160deg, rgba(245,158,11,0.2), rgba(239,68,68,0.12))', border: '1px solid rgba(245,158,11,0.28)', pointerEvents: 'none', animation: 'glowPulse 2.5s ease-in-out infinite' }}
+                  style={{ position: 'absolute', top: 1, left: 0, right: 0, marginInline: 'auto', width: 46, height: 35, borderRadius: 16, background: 'linear-gradient(160deg, rgba(249,115,22,0.2), rgba(220,38,38,0.12))', border: '1px solid rgba(249,115,22,0.28)', pointerEvents: 'none', animation: 'glowPulse 2.5s ease-in-out infinite' }}
                 />
               )}
 
@@ -576,7 +563,7 @@ export default function App() {
                 {Icon && <Icon size={active ? 21 : 18} color={active ? C.primary : 'rgba(255,255,255,0.28)'} strokeWidth={active ? 2.3 : 1.8} style={{ filter: active ? `drop-shadow(0 0 6px ${C.primary}88)` : 'none', display: 'block' }} />}
               </div>
 
-              {/* Badge on "more" */}
+              {/* Badge on "settings" (pending work days) */}
               {hasBadge && (
                 <div className="badge-pop" style={{ position: 'absolute', top: -1, right: 'calc(50% - 20px)', minWidth: 16, height: 16, borderRadius: 8, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', padding: '0 3px', boxShadow: `0 2px 10px ${C.accent}99` }}>
                   {pendingCount}
@@ -590,7 +577,7 @@ export default function App() {
 
               {/* Active dot */}
               {active && (
-                <div style={{ width: 18, height: 2, borderRadius: 2, background: GRAD.warm, marginTop: 1, boxShadow: '0 0 8px rgba(245,158,11,0.7)' }} />
+                <div style={{ width: 18, height: 2, borderRadius: 2, background: GRAD.primary, marginTop: 1, boxShadow: '0 0 8px rgba(249,115,22,0.7)' }} />
               )}
             </motion.button>
           )
@@ -684,10 +671,10 @@ export default function App() {
               style={{ background: C.surface, borderRadius: 24, padding: '28px 22px', width: '100%', maxWidth: 380, border: `1px solid ${C.borderMid}` }}
             >
               <div style={{ textAlign: 'center', marginBottom: 22 }}>
-                <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 8px 28px rgba(245,158,11,0.35)' }}>
+                <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 8px 28px rgba(245,158,11,0.35)' }}>
                   <HardHat size={32} color="#000" strokeWidth={1.8} />
                 </div>
-                <div style={{ fontSize: 19, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>أهلاً بك في Contractor Pro</div>
+                <div style={{ fontSize: 19, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>أهلاً بك في Contractor Pro</div>
                 <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>إليك أهم الميزات للبداية السريعة</div>
               </div>
 
@@ -711,7 +698,7 @@ export default function App() {
               <motion.button
                 whileTap={{ scale: 0.96 }}
                 onClick={() => { localStorage.setItem('cp_onboarded', '1'); setShowOnboarding(false) }}
-                style={{ marginTop: 22, width: '100%', padding: '13px', borderRadius: 14, background: GRAD.brand, border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 24px rgba(245,158,11,0.35)', letterSpacing: '0.02em', fontFamily: 'inherit' }}
+                style={{ marginTop: 22, width: '100%', padding: '13px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 24px rgba(245,158,11,0.35)', letterSpacing: '0.02em', fontFamily: 'inherit' }}
               >
                 ابدأ الآن ←
               </motion.button>

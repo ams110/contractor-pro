@@ -1,13 +1,15 @@
-// ─── Amber Gold Dark Theme ────────────────────────────────────────────────────
+// ─── New Color System (Psychology-Based) ─────────────────────────────────────
 export const C = {
   // Backgrounds
-  bg:        '#07080C',
-  surface:   '#0D0F18',
-  card:      '#13151E',
+  bg:        '#07080F',
+  surface:   '#0D0F1C',
+  card:      '#12152A',
 
-  // Brand — Amber Gold
-  primary:   '#F59E0B',
-  secondary: '#F97316',
+  // Brand
+  primary:   '#F97316',   // orange  — energy + construction
+  secondary: '#7C3AED',   // violet  — professionalism
+  gold:      '#D97706',   // gold    — wealth + success
+  cyan:      '#06B6D4',   // cyan    — technology
 
   // Status
   success:   '#22C55E',
@@ -19,26 +21,30 @@ export const C = {
   textDim:   '#64748B',
   textMuted: '#1C2030',
 
-  // Borders (amber-tinted)
-  border:    'rgba(245,158,11,0.08)',
-  borderMid: 'rgba(245,158,11,0.16)',
+  // Borders (orange-tinted)
+  border:    'rgba(249,115,22,0.08)',
+  borderMid: 'rgba(249,115,22,0.18)',
 
-  // Extra
+  // Legacy aliases (kept for backwards compat with existing screens)
   blue:      '#3B82F6',
   purple:    '#8B5CF6',
   orange:    '#F97316',
   pink:      '#EC4899',
-  cyan:      '#06B6D4',
 }
 
 export const GRAD = {
-  brand:   'linear-gradient(135deg, #FBBF24 0%, #F59E0B 50%, #EF4444 100%)',
-  warm:    'linear-gradient(135deg, #F59E0B 0%, #F97316 100%)',
-  success: 'linear-gradient(135deg, #22C55E 0%, #06B6D4 100%)',
-  danger:  'linear-gradient(135deg, #EF4444 0%, #F97316 100%)',
-  purple:  'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
-  blue:    'linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%)',
-  dark:    'linear-gradient(180deg, #0D0F18 0%, #07080C 100%)',
+  primary: 'linear-gradient(135deg, #F97316, #DC2626)',
+  premium: 'linear-gradient(135deg, #7C3AED, #2563EB)',
+  gold:    'linear-gradient(135deg, #D97706, #F59E0B)',
+  success: 'linear-gradient(135deg, #22C55E, #06B6D4)',
+  danger:  'linear-gradient(135deg, #EF4444, #F97316)',
+  cyan:    'linear-gradient(135deg, #06B6D4, #0EA5E9)',
+  dark:    'linear-gradient(180deg, #0D0F1C 0%, #07080F 100%)',
+  // brand kept as alias for primary
+  brand:   'linear-gradient(135deg, #F97316, #DC2626)',
+  warm:    'linear-gradient(135deg, #F97316, #F59E0B)',
+  purple:  'linear-gradient(135deg, #7C3AED, #6366F1)',
+  blue:    'linear-gradient(135deg, #3B82F6, #06B6D4)',
 }
 
 export const SPECS = [
@@ -92,14 +98,14 @@ export const BITUACH_LEUMI_RATE   = 0.105
 
 // ─── Navigation — 5 tabs ─────────────────────────────────────────────────────
 export const NAV = [
-  { id: 'dashboard',  icon: 'LayoutDashboard', label: 'الرئيسية' },
-  { id: 'projects',   icon: 'Building2',        label: 'مشاريع'  },
-  { id: 'workers',    icon: 'Users',             label: 'عمال'    },
-  { id: 'finance',    icon: 'Wallet',            label: 'المالية' },
-  { id: 'more',       icon: 'Grid3x3',           label: 'المزيد'  },
+  { id: 'dashboard', icon: 'LayoutDashboard', label: 'الرئيسية' },
+  { id: 'projects',  icon: 'Building2',       label: 'مشاريع'  },
+  { id: 'workers',   icon: 'Users',            label: 'عمال'    },
+  { id: 'finance',   icon: 'Wallet',           label: 'المالية' },
+  { id: 'settings',  icon: 'Settings',         label: 'الإعدادات'},
 ]
 
-// Screens accessible from the "المزيد" tab
+// Screens accessible from the settings / more tab
 export const MORE_SCREENS = [
   { id: 'workdays',   icon: 'CalendarDays',  label: 'أيام العمل'  },
   { id: 'expenses',   icon: 'CreditCard',    label: 'المصاريف'    },
@@ -108,5 +114,11 @@ export const MORE_SCREENS = [
   { id: 'materials',  icon: 'Package',       label: 'البضاعة'     },
   { id: 'accounting', icon: 'Calculator',    label: 'المحاسبة'    },
   { id: 'activity',   icon: 'Activity',      label: 'النشاط'      },
-  { id: 'settings',   icon: 'Settings',      label: 'الإعدادات'   },
 ]
+
+// ─── Breakpoints ──────────────────────────────────────────────────────────────
+export const BP = {
+  mobile:  430,
+  tablet:  768,
+  desktop: 1280,
+}
