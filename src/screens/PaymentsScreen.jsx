@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react'
+import { motion } from 'framer-motion'
+import { Wallet, BarChart2, Plus, Building2, Paperclip, MessageCircle, Trash2, Camera } from 'lucide-react'
 import { C, GRAD, PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validatePayment } from '../lib/helpers.js'
 import { GlassCard, Modal, Input, Btn, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
@@ -117,23 +119,23 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
       {/* ── Header ── */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
         <div>
-          <div style={{ fontSize:22, fontWeight:900, background:GRAD.success, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
-            💰 الدفعات
+          <div style={{ fontSize:22, fontWeight:900, background:GRAD.success, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Wallet size={22} strokeWidth={2} style={{ color: C.success }} /> الدفعات
           </div>
           <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{payments.length} دفعة</div>
         </div>
         <div style={{ display:'flex', gap:8 }}>
           {permissions?.isOwner && payments.length > 0 && (
-            <button onClick={() => exportPaymentsToExcel(payments, employees)}
-              style={{ padding:'8px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, fontSize:12, cursor:'pointer', fontWeight:600 }}>
-              📊
-            </button>
+            <motion.button whileTap={{ scale: 0.93 }} onClick={() => exportPaymentsToExcel(payments, employees)}
+              style={{ padding:'8px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, cursor:'pointer', display:'flex', alignItems:'center', fontFamily:'inherit' }}>
+              <BarChart2 size={15} strokeWidth={2} />
+            </motion.button>
           )}
           {permissions?.addPayments !== false && (
-            <button onClick={() => { setFormError(''); setEditingId(null); setForm(emptyForm); setPreview(''); setShowForm(true) }}
-              style={{ padding:'10px 18px', borderRadius:14, background:GRAD.success, color:'#fff', border:'none', cursor:'pointer', fontWeight:800, fontSize:13, boxShadow:`0 4px 16px ${C.success}44` }}>
-              + دفعة
-            </button>
+            <motion.button whileTap={{ scale: 0.93 }} onClick={() => { setFormError(''); setEditingId(null); setForm(emptyForm); setPreview(''); setShowForm(true) }}
+              style={{ padding:'10px 18px', borderRadius:14, background:GRAD.brand, color:'#000', border:'none', cursor:'pointer', fontWeight:800, fontSize:13, boxShadow:'0 4px 16px rgba(245,158,11,0.3)', display:'flex', alignItems:'center', gap:5, fontFamily:'inherit' }}>
+              <Plus size={14} strokeWidth={2.5} /> دفعة
+            </motion.button>
           )}
         </div>
       </div>
@@ -260,31 +262,33 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                         <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{emp?.name || '?'}</div>
                         <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{fmtDate(p.date)}{p.method ? ` • ${p.method}` : ''}</div>
                         {projName && (
-                          <div style={{ fontSize:10, color:C.secondary, fontWeight:700, marginTop:3, background:`${C.secondary}18`, borderRadius:6, padding:'2px 7px', display:'inline-block' }}>
-                            🏗 {projName}
+                          <div style={{ fontSize:10, color:C.secondary, fontWeight:700, marginTop:3, background:`${C.secondary}18`, borderRadius:6, padding:'2px 7px', display:'inline-flex', alignItems:'center', gap:4 }}>
+                            <Building2 size={10} strokeWidth={2} /> {projName}
                           </div>
                         )}
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                         <div style={{ fontSize:16, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmtA(p.amount)}</div>
                         {p.receipt_url && (
-                          <a href={p.receipt_url} target="_blank" rel="noreferrer" style={{ textDecoration:'none', fontSize:16 }}>📎</a>
+                          <a href={p.receipt_url} target="_blank" rel="noreferrer" style={{ textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:8, background:`${C.secondary}18`, border:`1px solid ${C.secondary}33`, color:C.secondary }}>
+                            <Paperclip size={12} strokeWidth={2} />
+                          </a>
                         )}
                         {emp?.phone && (
                           <button onClick={() => sendWhatsApp(emp.phone, emp.name, p.amount, p.date)}
-                            style={{ background:`${C.success}15`, border:`1px solid ${C.success}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', fontSize:13 }}>
-                            💬
+                            style={{ background:`${C.success}15`, border:`1px solid ${C.success}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', display:'flex', alignItems:'center', color:C.success, fontFamily:'inherit' }}>
+                            <MessageCircle size={13} strokeWidth={2} />
                           </button>
                         )}
                         {permissions?.addPayments !== false && (
                           <button onClick={() => openEdit(p)}
-                            style={{ background:`${C.primary}15`, border:`1px solid ${C.primary}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', fontSize:12 }}>
-                            ✏️
+                            style={{ background:`${C.primary}15`, border:`1px solid ${C.primary}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', display:'flex', alignItems:'center', color:C.primary, fontFamily:'inherit' }}>
+                            <Wallet size={12} strokeWidth={2} />
                           </button>
                         )}
                         <button onClick={() => setConfirmDel(p.id)}
-                          style={{ background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', fontSize:12 }}>
-                          🗑️
+                          style={{ background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', display:'flex', alignItems:'center', color:C.accent, fontFamily:'inherit' }}>
+                          <Trash2 size={12} strokeWidth={2} />
                         </button>
                       </div>
                     </div>
@@ -341,7 +345,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
 
         {form.method === 'تحويل بنكي' && (
           <div style={{ marginBottom:14 }}>
-            <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>📎 إثبات التحويل</label>
+            <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600, display:'flex', alignItems:'center', gap:5 }}><Paperclip size={12} strokeWidth={2} /> إثبات التحويل</label>
             <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={pickFile} />
             {preview
               ? <div style={{ position:'relative' }}>
@@ -350,8 +354,8 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                     style={{ position:'absolute', top:6, left:6, background:`${C.accent}dd`, border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', fontSize:14 }}>×</button>
                 </div>
               : <button onClick={() => fileRef.current.click()}
-                  style={{ width:'100%', padding:'14px', borderRadius:12, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer' }}>
-                  📷 اضغط لرفع صورة الإثبات
+                  style={{ width:'100%', padding:'14px', borderRadius:12, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontFamily:'inherit' }}>
+                  <Camera size={16} strokeWidth={1.8} /> اضغط لرفع صورة الإثبات
                 </button>
             }
           </div>
