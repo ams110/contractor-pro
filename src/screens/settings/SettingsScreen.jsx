@@ -145,7 +145,7 @@ export default function SettingsScreen({
             icon={item.IconComp}
             label={item.label}
             color={[C.primary, C.secondary, C.gold, C.cyan, C.success, C.warning, C.accent][i % 7]}
-            onClick={() => onNav?.(item.id)}
+            onClick={() => onNav?.('projects')}
             last={i === MORE_WITH_ICONS.length - 1}
           />
         ))}
