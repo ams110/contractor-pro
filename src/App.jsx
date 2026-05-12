@@ -310,7 +310,7 @@ export default function App() {
   const { holidays, addHoliday, deleteHoliday } = useHolidays(eid)
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar, saveContractorNumber } = useProfile(uid)
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
-  useSalaryAlerts(uid, employees, workDays, payments)
+  useSalaryAlerts(uid, employees, workDays, payments, advances, expenses)
 
   const { org, loading: orgLoading, isPlanActive, isTrialActive, trialDaysLeft } = useOrganization(uid)
 

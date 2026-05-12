@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { fmt } from '../lib/helpers.js'
+import { calcMutabqi } from '../lib/calculations.js'
 
 const OVERDUE_DAYS = 14
 const CHECK_KEY    = 'salary_alert_checked'
 
-export function useSalaryAlerts(userId, employees, workDays, payments) {
+export function useSalaryAlerts(userId, employees, workDays, payments, advances = [], expenses = []) {
   const ran = useRef(false)
 
   useEffect(() => {
@@ -23,13 +24,11 @@ export function useSalaryAlerts(userId, employees, workDays, payments) {
       const overdueWorkers = []
 
       employees.forEach(emp => {
-        const earned = workDays
-          .filter(w => w.employee_id === emp.id && w.status !== 'pending')
-          .reduce((s, w) => s + (w.amount || 0), 0)
-        const paid = payments
-          .filter(p => p.employee_id === emp.id)
-          .reduce((s, p) => s + (p.amount || 0), 0)
-        const owed = earned - paid
+        const wds  = workDays.filter(w => w.employee_id === emp.id && w.status !== 'pending')
+        const wExp = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved')
+        const pays = payments.filter(p => p.employee_id === emp.id)
+        const advs = advances.filter(a => a.employee_id === emp.id)
+        const owed = calcMutabqi(wds, wExp, pays, advs)
         if (owed <= 0) return
 
         const lastWorkDate = workDays

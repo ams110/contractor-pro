@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { LayoutGrid, FileText, Wallet, HardHat, AlertTriangle, TrendingUp, TrendingDown, Check } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { fmt, todayStr } from '../lib/helpers.js'
+import { calcPaid } from '../lib/calculations.js'
 import {
   calcAnnualTaxSummary, calcAllWorkersDeductions, calcVATReport,
   calcIncomeTaxAnnual, OSEK_PATUR_CAP,
@@ -506,7 +507,7 @@ export default function AccountingScreen({
   const thisMonth   = new Date().toISOString().slice(0, 7)
   const monthRevenue  = clientReceipts.filter(r => (r.date||'').startsWith(thisMonth)).reduce((s, r) => s + (r.amount||0), 0)
   const monthExpenses = expenses.filter(e => e.status !== 'pending' && (e.date||'').startsWith(thisMonth)).reduce((s, e) => s + (e.amount||0), 0)
-  const monthSalaries = payments.filter(p => (p.date||'').startsWith(thisMonth)).reduce((s, p) => s + (p.amount||0), 0)
+  const monthSalaries = calcPaid(payments.filter(p => (p.date||'').startsWith(thisMonth)))
   const monthNet      = monthRevenue - monthExpenses - monthSalaries
 
   const tips     = useMemo(() => getSmartTips(summary, businessType), [summary, businessType])
