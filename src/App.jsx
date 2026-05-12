@@ -346,7 +346,7 @@ export default function App() {
   const visibleEmployeeIds    = useMemo(() => allowedProjectIds ? new Set(visibleWorkDays.map(w => w.employee_id)) : null, [visibleWorkDays, allowedProjectIds])
   const visibleExpenses       = useMemo(() => allowedProjectIds ? expenses.filter(e => e.employee_id ? visibleEmployeeIds.has(e.employee_id) : allowedProjectIds.includes(e.project_id)) : expenses, [expenses, allowedProjectIds, visibleEmployeeIds])
   const visibleEmployees      = useMemo(() => visibleEmployeeIds ? employees.filter(e => visibleEmployeeIds.has(e.id)) : employees, [employees, visibleEmployeeIds])
-  const visiblePayments       = useMemo(() => allowedProjectIds ? payments.filter(p => p.project_id && allowedProjectIds.includes(p.project_id)) : payments, [payments, allowedProjectIds])
+  const visiblePayments       = useMemo(() => visibleEmployeeIds ? payments.filter(p => visibleEmployeeIds.has(p.employee_id)) : payments, [payments, visibleEmployeeIds])
   const visibleAdvances       = useMemo(() => visibleEmployeeIds ? advances.filter(a => visibleEmployeeIds.has(a.employee_id)) : advances, [advances, visibleEmployeeIds])
 
   const _approveWorkDay = id      => approveWorkDay(id).then(() => showToast('تمت الموافقة على يوم العمل'))
