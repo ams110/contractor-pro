@@ -728,6 +728,7 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           open={showReceiptForm}
           onClose={closeReceiptForm}
           title={editingReceiptId ? 'تعديل الدفعة المقبوضة' : quickReceiptProjId && !detail ? `💵 قبضة يوميات — ${projects.find(p=>p.id===quickReceiptProjId)?.name||''}` : 'تسجيل دفعة مقبوضة'}
+          action={<Btn onClick={saveReceipt} full disabled={saving}>{saving ? 'جاري الحفظ...' : 'حفظ الدفعة'}</Btn>}
         >
           <Input label="المبلغ المقبوض (₪)" value={receiptForm.amount} onChange={fr('amount')} type="number" min="0" required />
           <Input label="التاريخ"             value={receiptForm.date}   onChange={fr('date')}   type="date" required />
@@ -768,9 +769,6 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
               ⚠ {receiptError}
             </div>
           )}
-          <Btn onClick={saveReceipt} full disabled={saving}>
-            {saving ? 'جاري الحفظ...' : 'حفظ الدفعة'}
-          </Btn>
         </Modal>
 
         <ConfirmDialog open={!!confirmDel}  onClose={() => setConfirmDel(null)}  onConfirm={confirmDelete}        message="متأكد بدك تحذف هالمشروع؟" />
@@ -959,7 +957,9 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
       )}
 
       {/* ── Add/Edit modal ── */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'تعديل مشروع' : 'مشروع جديد'}>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'تعديل مشروع' : 'مشروع جديد'}
+        action={<Btn onClick={save} full disabled={saving}>{saving ? 'جاري الحفظ...' : editing ? 'حفظ التعديلات' : 'أضف المشروع'}</Btn>}
+      >
         <Input label="اسم المشروع"    value={form.name}           onChange={f('name')}           required />
         <Input label="اسم الزبون"     value={form.client_name}    onChange={f('client_name')} />
         <Input label="تلفون الزبون"   value={form.client_phone}   onChange={f('client_phone')}   type="tel" />
@@ -1009,15 +1009,14 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
             ⚠ {formError}
           </div>
         )}
-        <Btn onClick={save} full disabled={saving}>
-          {saving ? 'جاري الحفظ...' : editing ? 'حفظ التعديلات' : 'أضف المشروع'}
-        </Btn>
       </Modal>
 
       <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={confirmDelete} message="متأكد بدك تحذف هالمشروع؟" />
 
       {/* ── Multi-project receipt modal ── */}
-      <Modal open={showMultiReceipt} onClose={() => setShowMultiReceipt(false)} title="💵 توزيع حوالة على مشاريع">
+      <Modal open={showMultiReceipt} onClose={() => setShowMultiReceipt(false)} title="💵 توزيع حوالة على مشاريع"
+        action={<Btn onClick={saveMultiReceipts} full disabled={multiSaving || multiSelProjs.size === 0}>{multiSaving ? 'جاري الحفظ...' : `✓ حفظ ${multiSelProjs.size > 0 ? multiSelProjs.size + ' دفعة' : 'الدفعات'}`}</Btn>}
+      >
 
         {/* Step 1: Total amount received */}
         <div style={{ padding: '14px 16px', borderRadius: 14, background: `${C.primary}10`, border: `1px solid ${C.primary}30`, marginBottom: 14 }}>
@@ -1136,9 +1135,6 @@ export default function ProjectsScreen({ projects, workDays, expenses, clientRec
           </div>
         )}
 
-        <Btn onClick={saveMultiReceipts} full disabled={multiSaving || multiSelProjs.size === 0}>
-          {multiSaving ? 'جاري الحفظ...' : `✓ حفظ ${multiSelProjs.size > 0 ? multiSelProjs.size + ' دفعة' : 'الدفعات'}`}
-        </Btn>
       </Modal>
 
       {/* ═══════════════════════════════════

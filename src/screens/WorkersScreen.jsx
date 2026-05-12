@@ -445,7 +445,9 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       {/* ════════════════════════════════════
           Modal: إضافة / تعديل عامل
       ════════════════════════════════════ */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'تعديل عامل' : 'عامل جديد'}>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'تعديل عامل' : 'عامل جديد'}
+        action={<Btn onClick={save} full disabled={saving}>{saving ? 'جاري الحفظ...' : editing ? '✓ حفظ التعديلات' : '+ أضف العامل'}</Btn>}
+      >
         <Input label="الاسم"             value={form.name}       onChange={f('name')}       required />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Input label="التلفون"           value={form.phone}      onChange={f('phone')}      type="tel" />
@@ -539,15 +541,17 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
             ⚠ {formError}
           </div>
         )}
-        <Btn onClick={save} full disabled={saving}>
-          {saving ? 'جاري الحفظ...' : editing ? '✓ حفظ التعديلات' : '+ أضف العامل'}
-        </Btn>
       </Modal>
 
       {/* ════════════════════════════════════
           Modal: بيانات الدخول
       ════════════════════════════════════ */}
-      <Modal open={!!credWorker} onClose={() => setCredWorker(null)} title={`بيانات دخول ${credWorker?.name || ''}`}>
+      <Modal open={!!credWorker} onClose={() => setCredWorker(null)} title={`بيانات دخول ${credWorker?.name || ''}`}
+        action={credDone
+          ? <Btn onClick={() => setCredWorker(null)} full>إغلاق</Btn>
+          : <Btn onClick={saveCreds} full disabled={credSaving}>{credSaving ? 'جاري الحفظ...' : credResetMode ? 'تعيين كلمة المرور الجديدة' : 'حفظ بيانات الدخول'}</Btn>
+        }
+      >
         {credDone ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <div style={{
@@ -572,7 +576,6 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                 </div>
               </div>
             </GlassCard>
-            <Btn onClick={() => setCredWorker(null)} full>إغلاق</Btn>
           </div>
         ) : (
           <>
@@ -626,9 +629,6 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
                 ⚠ {credError}
               </div>
             )}
-            <Btn onClick={saveCreds} full disabled={credSaving}>
-              {credSaving ? 'جاري الحفظ...' : credResetMode ? 'تعيين كلمة المرور الجديدة' : 'حفظ بيانات الدخول'}
-            </Btn>
           </>
         )}
       </Modal>
@@ -656,7 +656,9 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
       {/* ════════════════════════════════════
           Modal: منح سلفة
       ════════════════════════════════════ */}
-      <Modal open={!!advWorker} onClose={() => setAdvWorker(null)} title={`سلفة لـ ${advWorker?.name || ''}`}>
+      <Modal open={!!advWorker} onClose={() => setAdvWorker(null)} title={`سلفة لـ ${advWorker?.name || ''}`}
+        action={<Btn onClick={saveAdvance} full disabled={advSaving} color={C.warning}>{advSaving ? 'جاري الحفظ...' : 'تسجيل السلفة'}</Btn>}
+      >
         <GlassCard style={{ marginBottom: 16, borderRadius: 14 }}>
           <div style={{ padding: '11px 14px', fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
             السلف تُخصم تلقائياً من الراتب المستحق للعامل
@@ -678,9 +680,6 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
             ⚠ {advError}
           </div>
         )}
-        <Btn onClick={saveAdvance} full disabled={advSaving} color={C.warning}>
-          {advSaving ? 'جاري الحفظ...' : 'تسجيل السلفة'}
-        </Btn>
       </Modal>
 
       {/* ════════════════════════════════════
