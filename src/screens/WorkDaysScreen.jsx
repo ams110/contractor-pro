@@ -654,7 +654,15 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       }
 
       {/* ─── Add Modal ─── */}
-      <Modal open={showForm} onClose={closeForm} title={editingDay ? 'تعديل يوم عمل' : 'تسجيل يوم عمل'}>
+      <Modal open={showForm} onClose={closeForm} title={editingDay ? 'تعديل يوم عمل' : 'تسجيل يوم عمل'}
+        action={activeEmps.length > 0 && activeProjs.length > 0
+          ? <Btn onClick={save} full disabled={saving || (!rangeMode && !multiMode && (!form.employee_id || (!form.project_id && form.day_type !== 'عطلة'))) || (!rangeMode && multiMode && (multiEmps.size === 0 || (!form.project_id && form.day_type !== 'عطلة'))) || (rangeMode && !form.project_id && form.day_type !== 'عطلة')}>
+              {saving ? 'جاري الحفظ...' : rangeMode
+                ? `✓ سجّل ${(multiMode ? multiEmps.size : (form.employee_id ? 1 : 0)) * (dateFrom && dateTo && dateTo >= dateFrom ? getDatesInRange(dateFrom, dateTo).length : 0)} سجل`
+                : multiMode ? `✓ سجّل لـ ${multiEmps.size || '...'} عمال` : '✓ سجّل اليوم'}
+            </Btn>
+          : null}
+      >
         {activeEmps.length === 0 || activeProjs.length === 0
           ? <div style={{ textAlign:'center', padding:32 }}>
               <AlertTriangle size={44} style={{ color:C.warning, margin:'0 auto 14px', display:'block' }} />
@@ -905,11 +913,6 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 <div style={{ fontSize:12, color:C.accent, marginBottom:16, padding:'12px 16px', borderRadius:12, background:`${C.accent}10`, border:`1px solid ${C.accent}33` }}>⚠ {formError}</div>
               )}
 
-              <Btn onClick={save} full disabled={saving || (!rangeMode && !multiMode && (!form.employee_id || (!form.project_id && form.day_type !== 'عطلة'))) || (!rangeMode && multiMode && (multiEmps.size === 0 || (!form.project_id && form.day_type !== 'عطلة'))) || (rangeMode && !form.project_id && form.day_type !== 'عطلة')}>
-                {saving ? 'جاري الحفظ...' : rangeMode
-                  ? `✓ سجّل ${(multiMode ? multiEmps.size : (form.employee_id ? 1 : 0)) * (dateFrom && dateTo && dateTo >= dateFrom ? getDatesInRange(dateFrom, dateTo).length : 0)} سجل`
-                  : multiMode ? `✓ سجّل لـ ${multiEmps.size || '...'} عمال` : '✓ سجّل اليوم'}
-              </Btn>
             </>
         }
       </Modal>
@@ -917,10 +920,11 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={async () => { await deleteWorkDay(confirmDel); setConfirmDel(null) }} message="حذف هذا اليوم؟" />
 
       {/* ─── Reject with reason modal ─── */}
-      <Modal open={!!rejectTarget} onClose={() => { setRejectTarget(null); setRejectReason('') }} title="رفض يوم العمل">
+      <Modal open={!!rejectTarget} onClose={() => { setRejectTarget(null); setRejectReason('') }} title="رفض يوم العمل"
+        action={<Btn onClick={confirmReject} full style={{ background:`${C.accent}cc` }}>✗ تأكيد الرفض</Btn>}
+      >
         <div style={{ fontSize:13, color:C.textDim, marginBottom:14 }}>سيصل سبب الرفض للعامل في بوابته</div>
         <Input label="سبب الرفض (اختياري)" value={rejectReason} onChange={v => setRejectReason(v)} />
-        <Btn onClick={confirmReject} full style={{ background:`${C.accent}cc`, marginTop:4 }}>✗ تأكيد الرفض</Btn>
       </Modal>
 
       {/* ─── Worker detail panel ─── */}
