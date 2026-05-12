@@ -37,10 +37,11 @@ export function Modal({ open, onClose, title, children, action, size = 'md', sty
             style={{
               background: '#0D0F18',
               border: '1px solid rgba(245,158,11,0.12)',
-              borderRadius: '24px 24px 0 0',
+              borderRadius: 24,
               width: '100%',
               maxWidth: maxW,
-              maxHeight: '90dvh',
+              maxHeight: 'calc(90dvh - 80px)',
+              marginBottom: 'max(72px, calc(66px + env(safe-area-inset-bottom, 0px)))',
               display: 'flex',
               flexDirection: 'column',
               direction: 'rtl',
@@ -63,11 +64,9 @@ export function Modal({ open, onClose, title, children, action, size = 'md', sty
               {children}
             </div>
 
-            {/* Sticky action footer — always visible above nav bar */}
             {action && (
               <div style={{
-                padding: '12px 20px',
-                paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+                padding: '12px 20px 16px',
                 borderTop: '1px solid rgba(245,158,11,0.08)',
                 background: '#0D0F18',
                 flexShrink: 0,

@@ -115,7 +115,7 @@ export function Modal({ open, onClose, title, children, action }) {
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }} onClick={onClose} />
-      <div className="slide-up" style={{ position: 'relative', width: '100%', maxWidth: 430, maxHeight: '92vh', background: C.surface, borderRadius: '28px 28px 0 0', display: 'flex', flexDirection: 'column', boxShadow: '0 -16px 60px rgba(0,0,0,0.7)', border: `1px solid ${C.border}`, borderBottom: 'none' }}>
+      <div className="slide-up" style={{ position: 'relative', width: '100%', maxWidth: 430, maxHeight: 'calc(92vh - 80px)', background: C.surface, borderRadius: 24, marginBottom: 'max(72px, calc(66px + env(safe-area-inset-bottom, 0px)))', display: 'flex', flexDirection: 'column', boxShadow: '0 -16px 60px rgba(0,0,0,0.7)', border: `1px solid ${C.border}` }}>
         {/* Handle */}
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, flexShrink: 0 }}>
           <div style={{ width: 44, height: 4, borderRadius: 2, background: C.borderMid }} />
@@ -130,9 +130,8 @@ export function Modal({ open, onClose, title, children, action }) {
         <div style={{ padding: '0 20px 12px', overflowY: 'auto', flex: 1 }}>
           {children}
         </div>
-        {/* Sticky action footer — always visible above nav bar */}
         {action && (
-          <div style={{ padding: '12px 20px', paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
+          <div style={{ padding: '12px 20px 16px', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
             {action}
           </div>
         )}
