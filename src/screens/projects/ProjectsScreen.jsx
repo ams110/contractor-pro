@@ -369,7 +369,7 @@ export default function ProjectsScreen({
 
       {/* Summary bar */}
       {projects.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+        <div className="grid-3" style={{ gap: 8, marginBottom: 16 }}>
           {[
             { label: language === 'he' ? 'פעילים' : language === 'en' ? 'Active' : 'نشطة', value: projects.filter(p => p.status === 'نشط').length, color: C.success },
             { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'إيرادات', value: `₪${fmt(clientReceipts.reduce((s, r) => s + (r.amount || 0), 0))}`, color: C.primary, small: true },
@@ -426,7 +426,7 @@ export default function ProjectsScreen({
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  <div className="grid-3" style={{ gap: 6 }}>
                     {[
                       { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'إيرادات', value: `₪${fmt(stats.revenue)}`, color: C.success },
                       { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'مصاريف', value: `₪${fmt(stats.expTotal)}`, color: C.accent },

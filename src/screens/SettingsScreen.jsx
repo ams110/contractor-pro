@@ -249,7 +249,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
       </GlassCard>
 
       {/* ── إحصائيات ── */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:8, marginBottom:16 }}>
+      <div className="grid-5" style={{ gap:8, marginBottom:16 }}>
         {stats.map(s => (
           <div key={s.l} style={{ textAlign:'center', padding:'12px 4px', background:'rgba(255,255,255,0.04)', backdropFilter:'blur(12px)', borderRadius:14, border:`1px solid ${s.c}33` }}>
             <div style={{ fontSize:20, fontWeight:900, color:s.c, fontFamily:'monospace' }}>{s.v}</div>

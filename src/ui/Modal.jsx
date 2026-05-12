@@ -8,7 +8,7 @@ export function Modal({ open, onClose, title, children, action, size = 'md', sty
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  const maxW = size === 'sm' ? 340 : size === 'lg' ? 480 : 400
+  const maxW = size === 'sm' ? 340 : size === 'lg' ? 520 : 430
 
   return (
     <AnimatePresence>

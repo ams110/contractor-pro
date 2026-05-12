@@ -188,7 +188,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
     <div>
       {/* إحصائيات سريعة */}
       {data.plots.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 7, marginBottom: 14 }}>
+        <div className="grid-4" style={{ gap: 7, marginBottom: 14 }}>
           {[
             { val: data.plots.length, label: 'قطعة',   color: C.primary   },
             { val: totalHouses,       label: 'بيت',     color: C.secondary },
@@ -632,7 +632,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+      <div className="grid-3" style={{ gap: 8, marginBottom: 8 }}>
         <div>
           <div style={{ fontSize: 10, color: C.textDim, marginBottom: 3, fontWeight: 600 }}>الكمية *</div>
           <input type="number" min="0" step="any" value={form.qty} onChange={e => setF('qty', e.target.value)} placeholder="0"

@@ -35,7 +35,7 @@ function SummaryCard({ earned, expenses, paid, owed, pendingCount }) {
       <div style={{ height: 3, background: owed > 0 ? GRAD.danger : GRAD.success }} />
       <div style={{ padding: '14px 16px' }}>
         <div style={{ fontSize: 11, color: C.textDim, marginBottom: 12, fontWeight: 700, letterSpacing: '0.04em' }}>الملخص المالي الإجمالي</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <div className="grid-3" style={{ gap: 8 }}>
           {[
             { l: 'مستحق إجمالي', v: `${fmt(totalDue)}₪`, c: C.text },
             { l: 'واصل',         v: `${fmt(paid)}₪`,     c: C.success },

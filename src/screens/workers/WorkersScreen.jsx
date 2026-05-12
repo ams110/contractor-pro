@@ -344,7 +344,7 @@ export default function WorkersScreen({
 
       {/* Summary */}
       {employees.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+        <div className="grid-3" style={{ gap: 8, marginBottom: 16 }}>
           {[
             { label: language === 'he' ? 'עובדים' : language === 'en' ? 'Workers' : 'عمال', value: employees.length, color: C.secondary },
             { label: language === 'he' ? 'חייבים' : language === 'en' ? 'Owed' : 'مستحق', value: `₪${fmt(totalOwed)}`, color: C.warning, small: true },
@@ -415,7 +415,7 @@ export default function WorkersScreen({
                 </div>
 
                 {(ws.days > 0 || ws.balance > 0) && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  <div className="grid-3" style={{ gap: 6 }}>
                     {[
                       { label: language === 'he' ? 'הרוויח' : language === 'en' ? 'Earned' : 'المستحق', value: `₪${fmt(ws.earned || 0)}`, color: C.success },
                       { label: language === 'he' ? 'שולם' : language === 'en' ? 'Paid' : 'المدفوع', value: `₪${fmt(ws.paid || 0)}`, color: C.secondary },

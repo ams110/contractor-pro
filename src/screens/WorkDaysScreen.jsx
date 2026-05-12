@@ -965,7 +965,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               <div style={{ overflowY:'auto', flex:1, padding:'14px 16px 30px' }}>
 
                 {/* Summary stats */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:16 }}>
+                <div className="grid-3" style={{ gap:8, marginBottom:16 }}>
                   {[
                     { label:'أيام معتمدة', value: totalDays, color: C.primary },
                     { label:'إجمالي مكتسب', value: fmt(totalAmt)+'₪', color: C.success },

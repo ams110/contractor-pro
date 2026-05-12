@@ -35,11 +35,11 @@ const variants = {
 }
 
 const sizes = {
-  sm:  { padding: '6px 14px',  fontSize: 12, borderRadius: 10, height: 32 },
-  md:  { padding: '9px 18px',  fontSize: 13, borderRadius: 12, height: 40 },
-  lg:  { padding: '12px 24px', fontSize: 15, borderRadius: 14, height: 48 },
-  xl:  { padding: '14px 32px', fontSize: 16, borderRadius: 16, height: 54 },
-  icon:{ padding: '0',         fontSize: 16, borderRadius: 12, width: 40, height: 40 },
+  sm:  { padding: '8px 14px',  fontSize: 12, borderRadius: 10, height: 38 },
+  md:  { padding: '10px 18px', fontSize: 13, borderRadius: 12, height: 44 },
+  lg:  { padding: '12px 24px', fontSize: 15, borderRadius: 14, height: 50 },
+  xl:  { padding: '14px 32px', fontSize: 16, borderRadius: 16, height: 56 },
+  icon:{ padding: '0',         fontSize: 16, borderRadius: 12, width: 44, height: 44 },
 }
 
 export function Button({

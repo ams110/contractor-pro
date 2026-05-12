@@ -75,6 +75,23 @@ const globalCSS = `
   .glass { background:rgba(7,8,15,0.88); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid rgba(249,115,22,0.07); }
   .badge-pop { animation: badgePop .3s cubic-bezier(0.34,1.56,0.64,1) both; }
   .app-root { min-height: var(--actual-vh, 100dvh); }
+
+  /* ─── Responsive grid utilities ─── */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; }
+  .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); }
+  .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); }
+  .grid-5 { display:grid; grid-template-columns:repeat(5,1fr); }
+  @media (max-width:380px) {
+    .grid-3 { grid-template-columns:1fr 1fr; }
+    .grid-4 { grid-template-columns:1fr 1fr; }
+    .grid-5 { grid-template-columns:repeat(3,1fr); }
+  }
+  @media (max-width:320px) {
+    .grid-2 { grid-template-columns:1fr; }
+    .grid-3 { grid-template-columns:1fr; }
+    .grid-4 { grid-template-columns:1fr 1fr; }
+    .grid-5 { grid-template-columns:1fr 1fr; }
+  }
 `
 
 function useIsDesktop() {
@@ -128,7 +145,8 @@ function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
               background: '#0D0F18',
               border: '1px solid rgba(245,158,11,0.12)',
               borderRadius: '24px 24px 0 0',
-              padding: '8px 0 40px',
+              padding: '8px 0',
+              paddingBottom: 'max(40px, calc(24px + env(safe-area-inset-bottom, 0px)))',
               maxWidth: 430, margin: '0 auto',
             }}
           >
@@ -518,16 +536,16 @@ export default function App() {
 
           {(p?.isOwner || p?.viewActivity) && (
             <motion.button whileTap={{ scale: 0.9 }} onClick={() => setScreen('activity')}
-              style={{ background: screen === 'activity' ? `${C.primary}18` : 'rgba(255,255,255,0.04)', border: `1px solid ${screen === 'activity' ? C.primary+'40' : 'rgba(255,255,255,0.07)'}`, borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ background: screen === 'activity' ? `${C.primary}18` : 'rgba(255,255,255,0.04)', border: `1px solid ${screen === 'activity' ? C.primary+'40' : 'rgba(255,255,255,0.07)'}`, borderRadius: 12, width: 40, height: 40, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
             >
-              <ClipboardCheck size={16} color={screen === 'activity' ? C.primary : '#64748B'} strokeWidth={2} />
+              <ClipboardCheck size={17} color={screen === 'activity' ? C.primary : '#64748B'} strokeWidth={2} />
             </motion.button>
           )}
 
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowNotifs(true)}
-            style={{ position: 'relative', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ position: 'relative', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 40, height: 40, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
           >
-            <Bell size={16} color="#64748B" strokeWidth={2} />
+            <Bell size={17} color="#64748B" strokeWidth={2} />
             {unreadCount > 0 && (
               <div className="badge-pop" style={{ position: 'absolute', top: -4, insetInlineEnd: -4, minWidth: 17, height: 17, borderRadius: 9, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', padding: '0 3px' }}>
                 {unreadCount}
@@ -536,9 +554,9 @@ export default function App() {
           </motion.button>
 
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowSearch(true)}
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 40, height: 40, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
           >
-            <Languages size={16} color="#64748B" strokeWidth={2} />
+            <Languages size={17} color="#64748B" strokeWidth={2} />
           </motion.button>
         </div>
 
@@ -590,7 +608,7 @@ export default function App() {
               )}
 
               {/* Label */}
-              <span style={{ fontSize: 8.5, fontWeight: active ? 800 : 500, color: active ? C.primary : 'rgba(255,255,255,0.25)', position: 'relative', zIndex: 1, letterSpacing: '0.01em', lineHeight: 1 }}>
+              <span style={{ fontSize: 10, fontWeight: active ? 800 : 500, color: active ? C.primary : 'rgba(255,255,255,0.25)', position: 'relative', zIndex: 1, letterSpacing: '0.01em', lineHeight: 1 }}>
                 {n.label}
               </span>
 

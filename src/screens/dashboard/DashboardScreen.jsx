@@ -226,7 +226,7 @@ export default function DashboardScreen({
       </div>
 
       {/* ─── Quick Numbers ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
+      <div className="grid-3" style={{ gap: 10, marginBottom: 12 }}>
         {[
           { label: t('dashboard.activeProjects'), value: stats.activeCount, icon: Building2, color: C.primary, screen: 'projects' },
           { label: t('dashboard.totalWorkers'),   value: employees.length,  icon: Users,     color: C.secondary, screen: 'workers' },
