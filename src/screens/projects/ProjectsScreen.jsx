@@ -11,7 +11,7 @@ import {
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
-import { calcEarned } from '../../lib/calculations.js'
+import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function statusColor(s) {
@@ -19,18 +19,8 @@ function statusColor(s) {
   return m[s] || C.textDim
 }
 
-function calcProjectStats(project, workDays, expenses, clientReceipts) {
-  const pid       = project.id
-  const revenue   = clientReceipts.filter(r => r.project_id === pid).reduce((s, r) => s + (r.amount || 0), 0)
-  const wdList    = workDays.filter(w => w.project_id === pid)
-  const wdCost    = calcEarned(wdList)
-  const projExp   = expenses.filter(e => e.project_id === pid && !e.employee_id)
-  const workerExp = expenses.filter(e => e.project_id === pid && e.employee_id)
-  const expTotal  = projExp.reduce((s, e) => s + (e.amount || 0), 0) + workerExp.reduce((s, e) => s + (e.amount || 0), 0)
-  const profit    = revenue - wdCost - expTotal
-  const margin    = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : null
-  return { revenue, expTotal, wdCost, profit, margin, wdCount: wdList.length, pending: wdList.filter(w => w.status === 'pending').length }
-}
+const calcProjectStats = (project, workDays, expenses, clientReceipts) =>
+  _calcStats(project.id, workDays, expenses, clientReceipts)
 
 // ─── UI components ───────────────────────────────────────────────────────────
 function TabBtn({ active, label, icon: Icon, onClick }) {

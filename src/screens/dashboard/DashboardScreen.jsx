@@ -10,7 +10,7 @@ import {
 import { C, GRAD } from '../../constants/index.js'
 import { fmt } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
-import { calcEarned, calcMustahaq, calcPaid, calcAdvances } from '../../lib/calculations.js'
+import { calcEarned, calcPaid, calcAdvances, calcRevenue, calcProjectStats } from '../../lib/calculations.js'
 
 // ─── Bento Card ───────────────────────────────────────────────────────────────
 function BentoCard({ children, style = {}, gradient, onClick }) {
@@ -123,23 +123,22 @@ export default function DashboardScreen({
 
   // ── Computed stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const totalRevenue  = clientReceipts.reduce((s, r) => s + (r.amount || 0), 0)
-    const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0)
-    const totalPayments  = calcPaid(payments)
-    const totalAdvances  = calcAdvances(advances)
-    const totalWasel     = totalPayments + totalAdvances
+    const workerCosts   = calcEarned(workDays)
+    const totalRevenue  = calcRevenue(clientReceipts)
+    const totalExpenses = expenses.filter(e => !e.employee_id).reduce((s, e) => s + (e.amount || 0), 0)
+    const totalPayments = calcPaid(payments)
+    const totalAdvances = calcAdvances(advances)
+    const totalWasel    = totalPayments + totalAdvances
     const netProfit     = totalRevenue - totalExpenses - workerCosts
     const activeCount   = projects.filter(p => p.status === 'نشط').length
     const pendingWD     = workDays.filter(w => w.status === 'pending').length
-    const workerCosts   = calcEarned(workDays)
 
-    // Monthly chart (last 6 months)
     const now = new Date()
     const monthlyData = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+      const d   = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      const rev = clientReceipts.filter(r => r.date?.startsWith(key)).reduce((s, r) => s + (r.amount || 0), 0)
-      const exp = expenses.filter(e => e.date?.startsWith(key)).reduce((s, e) => s + (e.amount || 0), 0)
+      const rev = calcRevenue(clientReceipts.filter(r => r.date?.startsWith(key)))
+      const exp = expenses.filter(e => !e.employee_id && e.date?.startsWith(key)).reduce((s, e) => s + (e.amount || 0), 0)
       return { month: key.slice(5), v: rev - exp, rev, exp }
     })
 
@@ -151,9 +150,8 @@ export default function DashboardScreen({
     return projects
       .filter(p => p.status === 'نشط' || p.status === 'مكتمل')
       .map(p => {
-        const rev = clientReceipts.filter(r => r.project_id === p.id).reduce((s, r) => s + (r.amount || 0), 0)
-        const exp = expenses.filter(e => e.project_id === p.id).reduce((s, e) => s + (e.amount || 0), 0)
-        return { project: p, revenue: rev, expenses: exp, profit: rev - exp }
+        const s = calcProjectStats(p.id, workDays, expenses, clientReceipts)
+        return { project: p, revenue: s.revenue, expenses: s.cost - s.wdCost, profit: s.profit }
       })
       .sort((a, b) => b.profit - a.profit)
       .slice(0, 4)
