@@ -522,7 +522,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
             {/* Stats row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
               {[
-                { label: lbl('مكتسب', 'הרוויח', 'Earned', language),  value: earned + wExp, color: C.success   },
+                { label: lbl('مكتسب', 'הרוויח', 'Earned', language),  value: earned,        color: C.success   },
                 { label: lbl('مدفوع', 'שולם',   'Paid',   language),  value: paid,          color: C.secondary },
                 { label: lbl('مستحق', 'חוב',    'Owed',   language),  value: owed,          color: owed > 0 ? C.warning : C.textDim },
               ].map(({ label, value, color }) => (
