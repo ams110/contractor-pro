@@ -749,6 +749,7 @@ export default function WorkersScreen({ employees, workDays, payments, advances 
         workDays={workDays}
         payments={payments}
         advances={advances}
+        expenses={expenses}
         holidays={holidays || []}
         addHoliday={addHoliday}
         deleteHoliday={deleteHoliday}

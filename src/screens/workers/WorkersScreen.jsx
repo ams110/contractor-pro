@@ -9,6 +9,7 @@ import {
 import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi, calcEarned } from '../../lib/calculations.js'
 
 // ─── Worker avatar initials ───────────────────────────────────────────────────
 function Avatar({ name, size = 42, color = C.primary }) {
@@ -112,16 +113,11 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, onClose,
   const wPayments = payments.filter(p => p.employee_id === eid)
   const wAdvances = advances.filter(a => a.employee_id === eid)
 
-  const totalEarned = wWorkers.reduce((s, w) => {
-    const rate = w.daily_rate || 0
-    if (w.day_type === 'נص יוم') return s + rate / 2
-    if (w.day_type === 'ساعات') return s + (rate / 8) * (w.hours || 0)
-    if (w.day_type === 'مبلغ مسكر') return s + (w.fixed_amount || rate)
-    return s + rate
-  }, 0)
-  const totalPaid    = wPayments.reduce((s, p) => s + (p.amount || 0), 0)
-  const totalAdvances = wAdvances.reduce((s, a) => s + (a.amount || 0), 0)
-  const balance = totalEarned - totalPaid - totalAdvances
+  const wWorkerExp    = expenses.filter(e => e.employee_id === eid)
+  const totalEarned   = calcMustahaq(wWorkers, wWorkerExp)
+  const totalPaid     = calcPaid(wPayments)
+  const totalAdvances = calcAdvances(wAdvances)
+  const balance       = calcMutabqi(wWorkers, wWorkerExp, wPayments, wAdvances)
 
   const TABS = [
     { id: 'overview', icon: BarChart3, label: language === 'he' ? 'סיכום' : language === 'en' ? 'Overview' : 'ملخص' },
@@ -296,13 +292,7 @@ export default function WorkersScreen({
       const wds = workDays.filter(w => w.employee_id === eid)
       const paid = payments.filter(p => p.employee_id === eid).reduce((s, p) => s + (p.amount || 0), 0)
       const adv  = advances.filter(a => a.employee_id === eid).reduce((s, a) => s + (a.amount || 0), 0)
-      const earned = wds.reduce((s, w) => {
-        const rate = w.daily_rate || 0
-        if (w.day_type === 'נص יוم') return s + rate / 2
-        if (w.day_type === 'ساعات') return s + (rate / 8) * (w.hours || 0)
-        if (w.day_type === 'مبلغ مسكر') return s + (w.fixed_amount || rate)
-        return s + rate
-      }, 0)
+      const earned = calcMustahaq(wds, expenses.filter(e => e.employee_id === eid))
       map[eid] = { earned, paid, adv, balance: earned - paid - adv, days: wds.length, pending: wds.filter(w => w.status === 'pending').length }
     }
     return map

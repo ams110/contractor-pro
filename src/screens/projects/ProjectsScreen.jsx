@@ -11,6 +11,7 @@ import {
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function statusColor(s) {
@@ -18,22 +19,8 @@ function statusColor(s) {
   return m[s] || C.textDim
 }
 
-function calcProjectStats(project, workDays, expenses, clientReceipts, employees, payments) {
-  const pid = project.id
-  const revenue  = clientReceipts.filter(r => r.project_id === pid).reduce((s, r) => s + (r.amount || 0), 0)
-  const expTotal = expenses.filter(e => e.project_id === pid).reduce((s, e) => s + (e.amount || 0), 0)
-  const wdList   = workDays.filter(w => w.project_id === pid)
-  const wdCost   = wdList.reduce((s, w) => {
-    const rate = w.daily_rate || 0
-    if (w.day_type === 'נص יוم') return s + rate / 2
-    if (w.day_type === 'ساعات') return s + (rate / 8) * (w.hours || 0)
-    if (w.day_type === 'مبلغ مسكر') return s + (w.fixed_amount || rate)
-    return s + rate
-  }, 0)
-  const profit = revenue - expTotal - wdCost
-  const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : null
-  return { revenue, expTotal, wdCost, profit, margin, wdCount: wdList.length, pending: wdList.filter(w => w.status === 'pending').length }
-}
+const calcProjectStats = (project, workDays, expenses, clientReceipts) =>
+  _calcStats(project.id, workDays, expenses, clientReceipts)
 
 // ─── UI components ───────────────────────────────────────────────────────────
 function TabBtn({ active, label, icon: Icon, onClick }) {

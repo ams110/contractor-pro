@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { BarChart2, X, TrendingUp, CalendarDays, Plus, Check, Trash2 } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmtDate, todayStr } from '../lib/helpers.js'
+import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../lib/calculations.js'
 
 const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو',
                    'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
@@ -68,7 +69,7 @@ function MonthCalendar({ year, month, workDays, holidays }) {
   )
 }
 
-export default function WorkerStatsPanel({ open, onClose, worker, workDays, payments = [], advances = [], holidays, addHoliday, deleteHoliday }) {
+export default function WorkerStatsPanel({ open, onClose, worker, workDays, payments = [], advances = [], expenses = [], holidays, addHoliday, deleteHoliday }) {
   const [year,       setYear]       = useState(new Date().getFullYear())
   const [openMonth,  setOpenMonth]  = useState(null)
   const [showAddHol, setShowAddHol] = useState(false)
@@ -81,12 +82,15 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
   const yearHolidays = holidays.filter(h => String(h.date).startsWith(String(year)))
 
   // Cumulative all-time stats
-  const allApproved    = myDays.filter(w => w.status === 'approved')
-  const totalDaysEver  = allApproved.length
-  const totalEarnedEver = allApproved.reduce((s, w) => s + (w.amount || 0), 0)
-  const totalPaidEver  = payments.filter(p => p.employee_id === worker.id).reduce((s, p) => s + (p.amount || 0), 0)
-  const totalAdvEver   = advances.filter(a => a.employee_id === worker.id).reduce((s, a) => s + (a.amount || 0), 0)
-  const totalOwedEver  = Math.max(0, totalEarnedEver - totalPaidEver - totalAdvEver)
+  const allApproved     = myDays.filter(w => w.status === 'approved')
+  const totalDaysEver   = allApproved.length
+  const wExp            = expenses.filter(e => e.employee_id === worker.id && e.status === 'approved')
+  const wPays           = payments.filter(p => p.employee_id === worker.id)
+  const wAdvs           = advances.filter(a => a.employee_id === worker.id)
+  const totalEarnedEver = calcMustahaq(allApproved, wExp)
+  const totalPaidEver   = calcPaid(wPays)
+  const totalAdvEver    = calcAdvances(wAdvs)
+  const totalOwedEver   = Math.max(0, calcMutabqi(allApproved, wExp, wPays, wAdvs))
   const projIds        = new Set(allApproved.map(w => w.project_id).filter(Boolean))
   const totalProjects  = projIds.size
 

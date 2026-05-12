@@ -9,6 +9,7 @@ import {
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense, validatePayment } from '../../lib/helpers.js'
+import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../../lib/calculations.js'
 import { uploadReceipt } from '../../lib/storage.js'
 import { useAppStore } from '../../store/useAppStore.js'
 
@@ -333,7 +334,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
 }
 
 // ─── PAYMENTS TAB ─────────────────────────────────────────────────────────────
-function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = [], projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods = [], language }) {
+function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = [], advances = [], projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods = [], language }) {
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const methods = payMethods.length ? payMethods : PAY_METHODS
 
@@ -354,10 +355,12 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
   const f = k => v => setForm(p => ({ ...p, [k]: v }))
 
   function calcOwed(empId) {
-    const earned = workDays.filter(w => w.employee_id === empId && w.status === 'approved').reduce((s, w) => s + (w.amount || 0), 0)
-    const wExp   = expenses.filter(e => e.employee_id === empId && e.status === 'approved').reduce((s, e) => s + (e.amount || 0), 0)
-    const paid   = payments.filter(p => p.employee_id === empId).reduce((s, p) => s + (p.amount || 0), 0)
-    return Math.max(0, earned + wExp - paid)
+    return Math.max(0, calcMutabqi(
+      workDays.filter(w => w.employee_id === empId && w.status === 'approved'),
+      expenses.filter(e => e.employee_id === empId && e.status === 'approved'),
+      payments.filter(p => p.employee_id === empId),
+      advances.filter(a => a.employee_id === empId),
+    ))
   }
 
   function openAdd() {
@@ -479,13 +482,16 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
           {lbl('لا يوجد عمال', 'אין עובדים', 'No workers', language)}
         </div>
       ) : employees.filter(emp => !search || emp.name?.toLowerCase().includes(search.toLowerCase())).map(emp => {
-        const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + (w.amount || 0), 0)
-        const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved').reduce((s, e) => s + (e.amount || 0), 0)
-        const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + (p.amount || 0), 0)
-        const owed   = Math.max(0, earned + wExp - paid)
-        const pct    = (earned + wExp) > 0 ? Math.min(100, Math.round((paid / (earned + wExp)) * 100)) : 0
-        const recent = payments.filter(p => p.employee_id === emp.id).sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 2)
-        if (earned + wExp === 0 && paid === 0) return null
+        const wds    = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved')
+        const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved')
+        const pays   = payments.filter(p => p.employee_id === emp.id)
+        const advs   = advances.filter(a => a.employee_id === emp.id)
+        const earned = calcMustahaq(wds, wExp)
+        const paid   = calcPaid(pays)
+        const owed   = Math.max(0, calcMutabqi(wds, wExp, pays, advs))
+        const pct    = earned > 0 ? Math.min(100, Math.round(((paid + calcAdvances(advs)) / earned) * 100)) : 0
+        const recent = pays.sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 2)
+        if (earned === 0 && paid === 0) return null
 
         return (
           <div key={emp.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: '14px', marginBottom: 12 }}>
@@ -734,7 +740,7 @@ export default function FinanceScreen({
       )}
       {tab === 'payments' && (
         <PaymentsTab payments={payments} employees={employees} workDays={workDays}
-          expenses={expenses} projects={projects}
+          expenses={expenses} advances={advances} projects={projects}
           addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment}
           approvePaymentRequest={approvePaymentRequest} rejectPaymentRequest={rejectPaymentRequest}
           userId={userId} permissions={permissions} payMethods={payMethods} language={language} />
