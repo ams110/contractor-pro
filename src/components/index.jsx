@@ -107,7 +107,7 @@ export function StatCard({ icon, label, value, color = C.primary, sub, onClick }
 }
 
 /* ─── Modal (Bottom Sheet via Portal) ─── */
-export function Modal({ open, onClose, title, children }) {
+export function Modal({ open, onClose, title, children, action }) {
   if (!open) return null
   const sheet = (
     <div
@@ -115,18 +115,27 @@ export function Modal({ open, onClose, title, children }) {
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }} onClick={onClose} />
-      <div className="slide-up" style={{ position: 'relative', width: '100%', maxWidth: 430, maxHeight: '92vh', background: C.surface, borderRadius: '28px 28px 0 0', overflow: 'hidden', boxShadow: '0 -16px 60px rgba(0,0,0,0.7)', border: `1px solid ${C.border}`, borderBottom: 'none' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
+      <div className="slide-up" style={{ position: 'relative', width: '100%', maxWidth: 430, maxHeight: '92vh', background: C.surface, borderRadius: '28px 28px 0 0', display: 'flex', flexDirection: 'column', boxShadow: '0 -16px 60px rgba(0,0,0,0.7)', border: `1px solid ${C.border}`, borderBottom: 'none' }}>
+        {/* Handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, flexShrink: 0 }}>
           <div style={{ width: 44, height: 4, borderRadius: 2, background: C.borderMid }} />
         </div>
-        <div style={{ height: 1, background: GRAD.brand, margin: '10px 20px 0', borderRadius: 1 }} />
-        <div style={{ padding: '14px 20px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ height: 1, background: GRAD.brand, margin: '10px 20px 0', borderRadius: 1, flexShrink: 0 }} />
+        {/* Header */}
+        <div style={{ padding: '14px 20px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <span style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{title}</span>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, borderRadius: '50%', width: 32, height: 32, color: C.textDim, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s' }}>✕</button>
         </div>
-        <div style={{ padding: '0 20px 20px', overflowY: 'auto', maxHeight: 'calc(92vh - 90px)' }}>
+        {/* Scrollable body */}
+        <div style={{ padding: '0 20px 12px', overflowY: 'auto', flex: 1 }}>
           {children}
         </div>
+        {/* Sticky action footer — always visible above nav bar */}
+        {action && (
+          <div style={{ padding: '12px 20px', paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
+            {action}
+          </div>
+        )}
       </div>
     </div>
   )
