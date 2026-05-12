@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { CalendarDays, BarChart2, Search, ClipboardList, Clock, Gift, Pencil, Trash2, AlertTriangle, Users, MapPin, X, CheckSquare, Square, Sun, CloudSun, DollarSign, Star, Zap, BedDouble, HardHat, Check, ChevronDown } from 'lucide-react'
+import { CalendarDays, BarChart2, Search, ClipboardList, Clock, Gift, Pencil, Trash2, AlertTriangle, Users, MapPin, X, CheckSquare, Square, Sun, CloudSun, DollarSign, Star, Zap, BedDouble, HardHat, Check, ChevronDown, Plus } from 'lucide-react'
 import { C, GRAD, DAY_TYPES } from '../constants/index.js'
 import { fmt, fmtDate, fmtDateFull, todayStr, calcSalary, validateWorkDay } from '../lib/helpers.js'
 import { GlassCard, Modal, Input, Btn, Badge, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
@@ -296,26 +296,31 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             </div>
           )}
         </div>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          {workDays.length > 0 && (
-            <button onClick={() => exportWorkDaysToExcel(workDays, employees, projects)}
-              style={{ padding:'10px 16px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6, backdropFilter:'blur(10px)' }}>
-              <BarChart2 size={13} strokeWidth={2} /> Excel
-            </button>
-          )}
-          {approvedDays.length > 0 && (
-            <button onClick={() => setShowFilters(v => !v)}
-              style={{ padding:'10px 14px', borderRadius:12, border:`1.5px solid ${hasFilter ? C.secondary : C.border}`, background: hasFilter ? `${C.secondary}15` : 'rgba(255,255,255,0.04)', color: hasFilter ? C.secondary : C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
-              <Search size={13} strokeWidth={2} /> {hasFilter ? 'فلتر نشط' : 'فلتر'}
+        <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap', justifyContent:'flex-end' }}>
+          {!bulkSelectMode && (
+            <button onClick={openForm}
+              style={{ padding:'9px 16px', borderRadius:12, border:'none', background:GRAD.brand, color:'#000', fontSize:12, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
+              <Plus size={13} strokeWidth={2.5} /> سجّل يوم
             </button>
           )}
           {approvedDays.length > 0 && (
             <button onClick={() => bulkSelectMode ? exitBulkMode() : setBulkSelectMode(true)}
-              style={{ padding:'10px 14px', borderRadius:12, border:`1.5px solid ${bulkSelectMode ? C.primary : C.border}`, background: bulkSelectMode ? `${C.primary}15` : 'rgba(255,255,255,0.04)', color: bulkSelectMode ? C.primary : C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+              style={{ padding:'9px 12px', borderRadius:12, border:`1.5px solid ${bulkSelectMode ? C.primary : C.border}`, background: bulkSelectMode ? `${C.primary}15` : 'rgba(255,255,255,0.04)', color: bulkSelectMode ? C.primary : C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
               <CheckSquare size={13} strokeWidth={2} /> {bulkSelectMode ? (selectedDayIds.size > 0 ? `${selectedDayIds.size} محدد` : 'تحديد') : 'تحديد'}
             </button>
           )}
-          {!bulkSelectMode && <Btn onClick={openForm}>+ سجّل يوم</Btn>}
+          {approvedDays.length > 0 && (
+            <button onClick={() => setShowFilters(v => !v)}
+              style={{ padding:'9px 12px', borderRadius:12, border:`1.5px solid ${hasFilter ? C.secondary : C.border}`, background: hasFilter ? `${C.secondary}15` : 'rgba(255,255,255,0.04)', color: hasFilter ? C.secondary : C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+              <Search size={13} strokeWidth={2} /> {hasFilter ? 'فلتر نشط' : 'فلتر'}
+            </button>
+          )}
+          {workDays.length > 0 && (
+            <button onClick={() => exportWorkDaysToExcel(workDays, employees, projects)}
+              style={{ padding:'9px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5, backdropFilter:'blur(10px)' }}>
+              <BarChart2 size={13} strokeWidth={2} /> Excel
+            </button>
+          )}
         </div>
       </div>
 
