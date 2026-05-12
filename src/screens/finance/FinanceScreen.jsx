@@ -58,9 +58,9 @@ function Sheet({ open, onClose, title, children, action }) {
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
             onClick={e => e.stopPropagation()}
             style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto',
-              background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: '24px 24px 0 0',
-              maxHeight: '92dvh', display: 'flex', flexDirection: 'column',
+              position: 'absolute', bottom: 'max(72px, calc(66px + env(safe-area-inset-bottom, 0px)))', left: 0, right: 0, maxWidth: 480, margin: '0 auto',
+              background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: 24,
+              maxHeight: 'calc(92dvh - 80px)', display: 'flex', flexDirection: 'column',
             }}>
             {/* Handle */}
             <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, flexShrink: 0 }}>
@@ -75,9 +75,8 @@ function Sheet({ open, onClose, title, children, action }) {
             </div>
             {/* Scrollable body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>{children}</div>
-            {/* Sticky action footer — padding accounts for app nav bar + device safe area */}
             {action && (
-              <div style={{ padding: '12px 18px', paddingBottom: 'max(24px, env(safe-area-inset-bottom, 16px))', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
+              <div style={{ padding: '12px 18px 16px', borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0 }}>
                 {action}
               </div>
             )}
