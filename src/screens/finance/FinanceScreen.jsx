@@ -264,6 +264,12 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>-₪{fmt(exp.amount || 0)}</span>
+              {exp.receipt_url && (
+                <a href={exp.receipt_url} target="_blank" rel="noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 8, background: `${C.primary}18`, border: `1px solid ${C.primary}33`, color: C.primary, flexShrink: 0, textDecoration: 'none' }}>
+                  <Paperclip size={12} strokeWidth={2} />
+                </a>
+              )}
               {permissions?.isOwner && (
                 <button onClick={() => setConfirmDel(exp.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
                   <Trash2 size={13} strokeWidth={2} />
@@ -548,6 +554,12 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
                     <div key={pay.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ flex: 1, fontSize: 10, color: C.textDim }}>{fmtDate(pay.date)}{pay.method ? ` · ${pay.method}` : ''}{proj ? ` · ${proj.name}` : ''}</div>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.secondary, flexShrink: 0 }}>₪{fmt(pay.amount || 0)}</span>
+                      {pay.receipt_url && (
+                        <a href={pay.receipt_url} target="_blank" rel="noreferrer"
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: `${C.secondary}18`, border: `1px solid ${C.secondary}33`, color: C.secondary, flexShrink: 0, textDecoration: 'none' }}>
+                          <Paperclip size={10} strokeWidth={2} />
+                        </a>
+                      )}
                       {permissions?.isOwner && (
                         <div style={{ display: 'flex', gap: 3 }}>
                           <button onClick={() => openEdit(pay)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}>
