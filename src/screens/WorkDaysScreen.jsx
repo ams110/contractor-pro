@@ -954,7 +954,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
           <div style={{ position:'fixed', inset:0, zIndex:9900, display:'flex', alignItems:'flex-end', justifyContent:'center', direction:'rtl' }}
             onClick={e => { if (e.target === e.currentTarget) setWorkerDetail(null) }}>
             <div onClick={() => setWorkerDetail(null)} style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(6px)' }} />
-            <div className="slide-up" style={{ position:'relative', width:'100%', maxWidth:430, background:C.bg, borderRadius:'20px 20px 0 0', maxHeight:'85vh', display:'flex', flexDirection:'column', boxShadow:'0 -16px 60px rgba(0,0,0,0.7)', border:`1px solid ${C.border}`, borderBottom:'none' }}>
+            <div className="slide-up" style={{ position:'relative', width:'100%', maxWidth:430, background:C.bg, borderRadius:'20px 20px 0 0', maxHeight:'calc(85vh - 80px)', display:'flex', flexDirection:'column', boxShadow:'0 -16px 60px rgba(0,0,0,0.7)', border:`1px solid ${C.border}`, borderBottom:'none', marginBottom:'max(72px, calc(66px + env(safe-area-inset-bottom, 0px)))' }}>
 
               {/* Header */}
               <div style={{ padding:'16px 18px 12px', borderBottom:`1px solid ${C.border}`, display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
@@ -1059,7 +1059,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       {showBulkProj && (
         <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)' }}
           onClick={e => { if (e.target === e.currentTarget) { setShowBulkProj(false); setBulkProjId(''); setBulkError('') } }}>
-          <div className="slide-up" style={{ width:'100%', maxWidth:480, background:C.surface, borderRadius:'20px 20px 0 0', padding:'20px 20px 32px', border:`1px solid ${C.borderMid}`, maxHeight:'80vh', overflowY:'auto' }}>
+          <div className="slide-up" style={{ width:'100%', maxWidth:480, background:C.surface, borderRadius:'20px 20px 0 0', padding:'20px 20px 20px', border:`1px solid ${C.borderMid}`, maxHeight:'calc(80vh - 80px)', overflowY:'auto', marginBottom:'max(72px, calc(66px + env(safe-area-inset-bottom, 0px)))' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
               <div>
                 <div style={{ fontSize:15, fontWeight:800, color:C.text }}>🗂 تعديل المشروع</div>

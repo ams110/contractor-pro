@@ -57,7 +57,7 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
           <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
             onClick={e => e.stopPropagation()} dir={dir}
-            style={{ width: '100%', maxWidth: 500, background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: '24px 24px 0 0', padding: '20px 18px 36px' }}>
+            style={{ width: '100%', maxWidth: 500, background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: '24px 24px 0 0', padding: '20px 18px 24px', marginBottom: 'max(72px, calc(66px + env(safe-area-inset-bottom, 0px)))', maxHeight: 'calc(92vh - 80px)', overflowY: 'auto' }}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)', margin: '0 auto 20px' }} />
             <div style={{ fontSize: 17, fontWeight: 900, color: C.text, marginBottom: 18 }}>
               {language === 'he' ? 'עובד חדש' : language === 'en' ? 'New Worker' : 'عامل جديد'}

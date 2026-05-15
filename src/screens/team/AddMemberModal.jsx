@@ -32,7 +32,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
       style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
       onClick={e => { if (e.target === e.currentTarget) closeAddMember() }}
     >
-      <div className="slide-up" style={{ width: '100%', maxWidth: 480, background: C.surface, borderRadius: '20px 20px 0 0', padding: '20px 20px 32px', border: `1px solid ${C.borderMid}`, maxHeight: '92vh', overflowY: 'auto' }}>
+      <div className="slide-up" style={{ width: '100%', maxWidth: 480, background: C.surface, borderRadius: '20px 20px 0 0', padding: '20px 20px 20px', border: `1px solid ${C.borderMid}`, maxHeight: 'calc(92vh - 80px)', overflowY: 'auto', marginBottom: 'max(72px, calc(66px + env(safe-area-inset-bottom, 0px)))' }}>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
