@@ -4,6 +4,10 @@ import { usePushNotifications } from './usePushNotifications.js'
 
 const TYPE_TAG = {
   advance_request: 'advance',
+  pending_advance: 'advance',
+  pending_day:     'workday',
+  pending_expense: 'expense',
+  pending_payment: 'payment',
   work_day:        'workday',
   salary:          'salary',
   team:            'team',

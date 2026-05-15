@@ -37,16 +37,14 @@ CREATE OR REPLACE FUNCTION worker_request_advance(
 ) RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-  v_owner_id UUID;
+  emp employees%ROWTYPE;
 BEGIN
-  -- Validate token
-  SELECT owner_id INTO v_owner_id
-  FROM employees
+  SELECT * INTO emp FROM employees
   WHERE id = p_emp_id
-    AND worker_token = p_token
-    AND worker_token IS NOT NULL;
+    AND worker_session_token = p_token
+    AND worker_session_token IS NOT NULL;
 
-  IF v_owner_id IS NULL THEN
+  IF NOT FOUND THEN
     RETURN jsonb_build_object('error', 'غير مصرح');
   END IF;
 
@@ -54,14 +52,22 @@ BEGIN
     RETURN jsonb_build_object('error', 'مبلغ غير صالح');
   END IF;
 
-  -- Check pending advance requests (max 1 pending)
   IF (SELECT COUNT(*) FROM worker_advance_requests
         WHERE employee_id = p_emp_id AND status = 'pending') >= 1 THEN
     RETURN jsonb_build_object('error', 'لديك طلب سلفة معلق — انتظر موافقة المشرف أولاً');
   END IF;
 
   INSERT INTO worker_advance_requests (owner_id, employee_id, amount, notes)
-  VALUES (v_owner_id, p_emp_id, p_amount, p_notes);
+  VALUES (emp.user_id, p_emp_id, p_amount, p_notes);
+
+  INSERT INTO notifications (user_id, title, body, type)
+  VALUES (
+    emp.user_id,
+    'طلب سلفة جديد',
+    emp.name || ' يطلب سلفة ' || p_amount || '₪' ||
+      CASE WHEN p_notes <> '' THEN ' • ' || p_notes ELSE '' END,
+    'pending_advance'
+  );
 
   RETURN jsonb_build_object('ok', true);
 END;

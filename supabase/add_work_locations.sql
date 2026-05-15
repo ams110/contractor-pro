@@ -99,6 +99,8 @@ AS $$
 DECLARE
   emp               employees%ROWTYPE;
   calculated_amount NUMERIC;
+  proj_name         TEXT;
+  new_day_id        UUID;
 BEGIN
   SELECT * INTO emp FROM employees
   WHERE id = p_emp_id AND worker_session_token = p_token;
@@ -129,8 +131,20 @@ BEGIN
     calculated_amount := ROUND((emp.daily_rate / 8.0) * COALESCE(p_hours, 8), 2);
   END IF;
 
+  SELECT name INTO proj_name FROM projects WHERE id = p_project_id;
+
   INSERT INTO work_days (user_id, employee_id, project_id, date, day_type, hours, amount, status, location)
-  VALUES (emp.user_id, p_emp_id, p_project_id, p_date, p_day_type, p_hours, calculated_amount, 'pending', p_location);
+  VALUES (emp.user_id, p_emp_id, p_project_id, p_date, p_day_type, p_hours, calculated_amount, 'pending', p_location)
+  RETURNING id INTO new_day_id;
+
+  INSERT INTO notifications (user_id, title, body, type, ref_id)
+  VALUES (
+    emp.user_id,
+    'طلب حضور جديد',
+    emp.name || ' • ' || COALESCE(proj_name, '?') || ' • ' || to_char(p_date, 'DD/MM/YYYY') || ' • ' || calculated_amount || '₪',
+    'pending_day',
+    new_day_id
+  );
 
   RETURN json_build_object('success', true, 'amount', calculated_amount);
 END;
