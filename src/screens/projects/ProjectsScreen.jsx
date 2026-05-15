@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
@@ -49,17 +49,35 @@ function Row({ label, value, color, bold }) {
   )
 }
 
-// ─── Add Project Modal ────────────────────────────────────────────────────────
-function AddProjectModal({ open, onClose, onSave, language }) {
-  const [form, setForm] = useState({ name: '', type: PROJECT_TYPES[0], status: 'نشط', budget: '', notes: '' })
+// ─── Add/Edit Project Modal ───────────────────────────────────────────────────
+function ProjectFormModal({ open, onClose, onSave, language, initialData = null }) {
+  const empty = { name: '', type: PROJECT_TYPES[0], status: 'نشط', price: '', notes: '' }
+  const [form, setForm] = useState(empty)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
   const dir = language === 'en' ? 'ltr' : 'rtl'
+  const isEdit = !!initialData
 
-  function handleSave() {
-    if (!form.name.trim()) return
-    onSave({ ...form, budget: Number(form.budget) || 0, date: todayStr() })
-    setForm({ name: '', type: PROJECT_TYPES[0], status: 'نشط', budget: '', notes: '' })
-    onClose()
+  useEffect(() => {
+    if (open) {
+      setForm(initialData ? { ...empty, ...initialData, price: String(initialData.price || '') } : empty)
+      setError('')
+    }
+  }, [open, initialData])
+
+  async function handleSave() {
+    if (!form.name.trim()) return setError(language === 'en' ? 'Name is required' : 'اسم المشروع مطلوب')
+    setSaving(true)
+    setError('')
+    try {
+      await onSave({ ...form, price: Number(form.price) || 0 })
+      onClose()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -72,26 +90,28 @@ function AddProjectModal({ open, onClose, onSave, language }) {
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
             onClick={e => e.stopPropagation()}
             dir={dir}
-            style={{ width: '100%', maxWidth: 500, background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: '24px 24px 0 0', padding: '20px 18px 36px' }}>
+            style={{ width: '100%', maxWidth: 500, background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: '24px 24px 0 0', padding: '20px 18px 0', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)', margin: '0 auto 20px' }} />
             <div style={{ fontSize: 17, fontWeight: 900, color: C.text, marginBottom: 18 }}>
-              {language === 'he' ? 'פרויקט חדש' : language === 'en' ? 'New Project' : 'مشروع جديد'}
+              {isEdit
+                ? (language === 'en' ? 'Edit Project' : 'تعديل المشروع')
+                : (language === 'he' ? 'פרויקט חדש' : language === 'en' ? 'New Project' : 'مشروع جديد')}
             </div>
 
             {[
-              { key: 'name', label: language === 'he' ? 'שם' : language === 'en' ? 'Name' : 'الاسم', type: 'text', required: true },
-              { key: 'budget', label: language === 'he' ? 'תקציב' : language === 'en' ? 'Budget' : 'الميزانية', type: 'number' },
-            ].map(({ key, label, type, required }) => (
+              { key: 'name',  label: language === 'en' ? 'Name' : 'اسم المشروع',  type: 'text' },
+              { key: 'price', label: language === 'en' ? 'Price (₪)' : 'السعر (₪)', type: 'number' },
+            ].map(({ key, label, type }) => (
               <div key={key} style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>{label}</label>
                 <input value={form[key]} onChange={f(key)} type={type}
-                  style={{ width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
+                  style={{ width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
               </div>
             ))}
 
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>
-                {language === 'he' ? 'סוג' : language === 'en' ? 'Type' : 'النوع'}
+                {language === 'en' ? 'Type' : 'النوع'}
               </label>
               <select value={form.type} onChange={f('type')}
                 style={{ width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none' }}>
@@ -99,21 +119,37 @@ function AddProjectModal({ open, onClose, onSave, language }) {
               </select>
             </div>
 
-            <div style={{ marginBottom: 18 }}>
+            <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>
-                {language === 'he' ? 'הערות' : language === 'en' ? 'Notes' : 'ملاحظات'}
+                {language === 'en' ? 'Status' : 'الحالة'}
               </label>
-              <textarea value={form.notes} onChange={f('notes')} rows={2}
-                style={{ width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical' }} />
+              <select value={form.status} onChange={f('status')}
+                style={{ width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none' }}>
+                {PROJECT_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
 
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: 14, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {language === 'he' ? 'ביטול' : language === 'en' ? 'Cancel' : 'إلغاء'}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>
+                {language === 'en' ? 'Notes' : 'ملاحظات'}
+              </label>
+              <textarea value={form.notes} onChange={f('notes')} rows={2}
+                style={{ width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+            </div>
+
+            {error && (
+              <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 12 }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, position: 'sticky', bottom: 0, background: C.surface, paddingTop: 10, paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))' }}>
+              <button onClick={onClose} style={{ flex: 1, padding: '13px', borderRadius: 14, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {language === 'en' ? 'Cancel' : 'إلغاء'}
               </button>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave}
-                style={{ flex: 2, padding: '12px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 20px rgba(249,115,22,0.35)' }}>
-                {language === 'he' ? 'שמור' : language === 'en' ? 'Save' : 'حفظ'}
+              <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave} disabled={saving}
+                style={{ flex: 2, padding: '13px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 20px rgba(249,115,22,0.35)', opacity: saving ? 0.7 : 1 }}>
+                {saving ? '...' : isEdit ? (language === 'en' ? 'Save Changes' : 'حفظ التعديلات') : (language === 'en' ? 'Save' : 'حفظ')}
               </motion.button>
             </div>
           </motion.div>
@@ -126,6 +162,9 @@ function AddProjectModal({ open, onClose, onSave, language }) {
 // ─── Project Detail ───────────────────────────────────────────────────────────
 function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language }) {
   const [tab, setTab] = useState('overview')
+  const [showEdit, setShowEdit] = useState(false)
+  const [confirmDel, setConfirmDel] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
   const pid = project.id
@@ -141,10 +180,16 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
     { id: 'receipts',  icon: ReceiptText,  label: language === 'he' ? 'קבלות' : language === 'en' ? 'Receipts' : 'قبضات' },
   ]
 
+  async function handleDelete() {
+    setDeleting(true)
+    try { await onDelete(project.id); onClose() }
+    catch { setDeleting(false); setConfirmDel(false) }
+  }
+
   return (
-    <div dir={dir} style={{ minHeight: '100vh' }}>
+    <div dir={dir} style={{ minHeight: '100vh', paddingBottom: 80 }}>
       {/* Header */}
-      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}`, background: C.surface, position: 'sticky', top: 0, zIndex: 10 }}>
+      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${C.border}`, background: C.surface, position: 'sticky', top: 0, zIndex: 10 }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 11, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <ArrowLeft size={16} color={C.textDim} style={{ transform: dir === 'rtl' ? 'rotate(180deg)' : 'none' }} />
         </button>
@@ -152,10 +197,54 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
           <div style={{ fontSize: 15, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</div>
           <div style={{ fontSize: 10, color: statusColor(project.status), marginTop: 1, fontWeight: 700 }}>{project.status}</div>
         </div>
-        <div style={{ fontSize: 13, fontWeight: 900, color: stats.profit >= 0 ? C.success : C.accent }}>
+        <div style={{ fontSize: 13, fontWeight: 900, color: stats.profit >= 0 ? C.success : C.accent, marginInlineEnd: 4 }}>
           {stats.profit >= 0 ? '+' : ''}₪{fmt(stats.profit)}
         </div>
+        {permissions?.editProjects !== false && (
+          <button onClick={() => setShowEdit(true)}
+            style={{ width: 34, height: 34, borderRadius: 10, background: `${C.primary}18`, border: `1px solid ${C.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            <Edit3 size={14} color={C.primary} strokeWidth={2} />
+          </button>
+        )}
+        {permissions?.canDelete !== false && (
+          <button onClick={() => setConfirmDel(true)}
+            style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            <Trash2 size={14} color='#EF4444' strokeWidth={2} />
+          </button>
+        )}
       </div>
+
+      {/* Edit Modal */}
+      <ProjectFormModal open={showEdit} onClose={() => setShowEdit(false)}
+        onSave={form => onUpdate(project.id, form)} language={language} initialData={project} />
+
+      {/* Delete Confirm */}
+      <AnimatePresence>
+        {confirmDel && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+              style={{ width: '100%', maxWidth: 300, background: C.surface, border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: '24px 20px' }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 8, textAlign: 'center' }}>
+                {language === 'en' ? 'Delete Project?' : 'حذف المشروع؟'}
+              </div>
+              <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
+                {language === 'en' ? 'This cannot be undone.' : 'لا يمكن التراجع عن هذا الإجراء.'}
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setConfirmDel(false)}
+                  style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {language === 'en' ? 'Cancel' : 'إلغاء'}
+                </button>
+                <button onClick={handleDelete} disabled={deleting}
+                  style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(239,68,68,0.9)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', opacity: deleting ? 0.7 : 1 }}>
+                  {deleting ? '...' : (language === 'en' ? 'Delete' : 'حذف')}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, padding: '10px 12px', background: C.surface, borderBottom: `1px solid ${C.border}` }}>
@@ -439,7 +528,7 @@ export default function ProjectsScreen({
         </div>
       )}
 
-      <AddProjectModal open={showAdd} onClose={() => setShowAdd(false)} onSave={addProject} language={language} />
+      <ProjectFormModal open={showAdd} onClose={() => setShowAdd(false)} onSave={addProject} language={language} />
     </div>
   )
 }
