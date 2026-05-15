@@ -137,9 +137,10 @@ export default function DashboardScreen({
     const monthlyData = Array.from({ length: 6 }, (_, i) => {
       const d   = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      const rev = calcRevenue(clientReceipts.filter(r => r.date?.startsWith(key)))
-      const exp = expenses.filter(e => !e.employee_id && e.date?.startsWith(key)).reduce((s, e) => s + (e.amount || 0), 0)
-      return { month: key.slice(5), v: rev - exp, rev, exp }
+      const rev    = calcRevenue(clientReceipts.filter(r => r.date?.startsWith(key)))
+      const exp    = expenses.filter(e => !e.employee_id && e.date?.startsWith(key)).reduce((s, e) => s + (e.amount || 0), 0)
+      const labor  = calcEarned(workDays.filter(w => w.date?.startsWith(key)))
+      return { month: key.slice(5), v: rev - exp - labor, rev, exp: exp + labor }
     })
 
     return { totalRevenue, totalExpenses, totalPayments, totalAdvances, totalWasel, netProfit, activeCount, pendingWD, workerCosts, monthlyData }
@@ -188,7 +189,7 @@ export default function DashboardScreen({
           <StatCard label={t('dashboard.totalRevenue')} value={stats.totalRevenue} icon={DollarSign} color={C.primary} />
         </motion.div>
         <motion.div {...cardAnim} transition={{ delay: 0.1 }}>
-          <StatCard label={t('dashboard.totalExpenses')} value={stats.totalExpenses + stats.totalPayments} icon={CreditCard} color={C.accent} />
+          <StatCard label={t('dashboard.totalExpenses')} value={stats.totalExpenses + stats.workerCosts} icon={CreditCard} color={C.accent} />
         </motion.div>
       </div>
 
