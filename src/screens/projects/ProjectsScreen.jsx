@@ -112,18 +112,20 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   const [confirmDel, setConfirmDel] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showReceiptForm, setShowReceiptForm] = useState(false)
+  const [editingReceiptId, setEditingReceiptId] = useState(null)
   const [receiptForm, setReceiptForm] = useState({ amount: '', date: todayStr(), payment_method: 'كاش', payer_name: '', notes: '' })
   const [receiptFile, setReceiptFile] = useState(null)
   const [receiptPreview, setReceiptPreview] = useState('')
   const [receiptSaving, setReceiptSaving] = useState(false)
   const [receiptError, setReceiptError] = useState('')
+  const [confirmDelReceipt, setConfirmDelReceipt] = useState(null)
   const receiptFileRef = useRef()
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
   const pid = project.id
   const pWorkDays = workDays.filter(w => w.project_id === pid)
   const pExpenses = expenses.filter(e => e.project_id === pid)
-  const pReceipts = clientReceipts.filter(r => r.project_id === pid)
+  const pReceipts = clientReceipts.filter(r => r.project_id === pid).slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))
   const stats = calcProjectStats(project, workDays, expenses, clientReceipts, employees, payments)
 
   const TABS = [
@@ -141,10 +143,20 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 
   function closeReceiptForm() {
     setShowReceiptForm(false)
+    setEditingReceiptId(null)
     setReceiptError('')
     setReceiptFile(null)
     setReceiptPreview('')
     setReceiptForm({ amount: '', date: todayStr(), payment_method: 'كاش', payer_name: '', notes: '' })
+  }
+
+  function openEditReceipt(r) {
+    setEditingReceiptId(r.id)
+    setReceiptForm({ amount: String(r.amount || ''), date: r.date || todayStr(), payment_method: r.payment_method || 'كاش', payer_name: r.payer_name || '', notes: r.notes || '' })
+    setReceiptFile(null)
+    setReceiptPreview('')
+    setReceiptError('')
+    setShowReceiptForm(true)
   }
 
   async function handleAddReceipt() {
@@ -153,15 +165,27 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
     setReceiptSaving(true)
     setReceiptError('')
     try {
-      let receipt_url = ''
+      let receipt_url = editingReceiptId ? undefined : ''
       if (receiptFile) receipt_url = await uploadReceipt(userId, receiptFile)
-      await addReceipt({ ...receiptForm, amount: parseFloat(receiptForm.amount), project_id: project.id, receipt_url })
+      const payload = { ...receiptForm, amount: parseFloat(receiptForm.amount), project_id: project.id }
+      if (receipt_url !== undefined) payload.receipt_url = receipt_url
+      if (editingReceiptId) {
+        await updateReceipt(editingReceiptId, payload)
+      } else {
+        await addReceipt({ ...payload, receipt_url: receipt_url || '' })
+      }
       closeReceiptForm()
     } catch (e) {
       setReceiptError(e.message)
     } finally {
       setReceiptSaving(false)
     }
+  }
+
+  async function handleDeleteReceipt(id) {
+    try { await deleteReceipt(id) }
+    catch {}
+    setConfirmDelReceipt(null)
   }
 
   return (
@@ -327,8 +351,8 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 
             {/* Receipt form modal */}
             <Modal open={showReceiptForm} onClose={closeReceiptForm}
-              title="تسجيل قبضة"
-              action={<Btn onClick={handleAddReceipt} full disabled={receiptSaving}>{receiptSaving ? 'جاري الحفظ...' : 'حفظ القبضة'}</Btn>}>
+              title={editingReceiptId ? 'تعديل قبضة' : 'تسجيل قبضة'}
+              action={<Btn onClick={handleAddReceipt} full disabled={receiptSaving}>{receiptSaving ? 'جاري الحفظ...' : editingReceiptId ? 'حفظ التعديلات' : 'حفظ القبضة'}</Btn>}>
               <Input label="المبلغ المقبوض (₪)" value={receiptForm.amount} type="number" min="0"
                 onChange={v => setReceiptForm(p => ({ ...p, amount: v }))} required />
               <Input label="التاريخ" value={receiptForm.date} type="date"
@@ -379,6 +403,30 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
               )}
             </Modal>
 
+            {/* Confirm delete receipt */}
+            <AnimatePresence>
+              {confirmDelReceipt && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                  <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+                    style={{ width: '100%', maxWidth: 300, background: C.surface, border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: '24px 20px' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 8, textAlign: 'center' }}>حذف القبضة؟</div>
+                    <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>لا يمكن التراجع عن هذا الإجراء.</div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button onClick={() => setConfirmDelReceipt(null)}
+                        style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        إلغاء
+                      </button>
+                      <button onClick={() => handleDeleteReceipt(confirmDelReceipt)}
+                        style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(239,68,68,0.9)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        حذف
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* List */}
             {pReceipts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 20px', color: C.textDim, fontSize: 13, background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: `1px dashed ${C.border}` }}>
@@ -401,6 +449,18 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
                     title="عرض الإيصال">
                     <Paperclip size={14} strokeWidth={2} />
                   </a>
+                )}
+                {permissions?.editProjects !== false && (
+                  <button onClick={() => openEditReceipt(r)}
+                    style={{ width: 30, height: 30, borderRadius: 9, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                    <Edit3 size={13} color={C.primary} strokeWidth={2} />
+                  </button>
+                )}
+                {permissions?.canDelete !== false && (
+                  <button onClick={() => setConfirmDelReceipt(r.id)}
+                    style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                    <Trash2 size={13} color='#EF4444' strokeWidth={2} />
+                  </button>
                 )}
               </div>
             ))}
