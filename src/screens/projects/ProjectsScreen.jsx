@@ -126,6 +126,8 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   const pWorkDays = workDays.filter(w => w.project_id === pid)
   const pExpenses = expenses.filter(e => e.project_id === pid)
   const pReceipts = clientReceipts.filter(r => r.project_id === pid).slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+  const pPayments = (payments || []).filter(p => p.project_id === pid)
+  const paidToWorkers = pPayments.reduce((s, p) => s + (p.amount || 0), 0)
   const stats = calcProjectStats(project, workDays, expenses, clientReceipts, employees, payments)
 
   const TABS = [
@@ -299,6 +301,52 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
                 </div>
               ))}
             </div>
+            {/* Worker payment breakdown */}
+            {(stats.wdCost > 0 || paidToWorkers > 0) && (() => {
+              const owedToWorkers = stats.wdCost - paidToWorkers
+              const ownerCash = stats.revenue - paidToWorkers - stats.expTotal
+              return (
+                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '14px', marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10 }}>توزيع الأجور</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, color: C.textDim }}>أجور مستحقة للعمال</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: C.secondary, fontFamily: 'monospace' }}>₪{fmt(stats.wdCost)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, color: C.textDim }}>دُفع للعمال</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>-₪{fmt(paidToWorkers)}</span>
+                    </div>
+                    <div style={{ height: 1, background: C.border }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: owedToWorkers > 0 ? C.warning : C.success }}>
+                        {owedToWorkers > 0 ? 'باقي على العمال' : 'عمال مكتفون'}
+                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 900, color: owedToWorkers > 0 ? C.warning : C.success, fontFamily: 'monospace' }}>
+                        ₪{fmt(Math.abs(owedToWorkers))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Owner's remaining cash */}
+            {stats.revenue > 0 && (() => {
+              const ownerCash = stats.revenue - paidToWorkers - stats.expTotal
+              return (
+                <div style={{ background: ownerCash >= 0 ? `${C.success}10` : `${C.accent}10`, border: `1px solid ${ownerCash >= 0 ? C.success : C.accent}28`, borderRadius: 14, padding: '14px 16px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 3 }}>متبقي بيد المالك</div>
+                    <div style={{ fontSize: 10, color: C.textDim }}>إيرادات − ما دُفع للعمال − المصاريف</div>
+                  </div>
+                  <span style={{ fontSize: 20, fontWeight: 900, color: ownerCash >= 0 ? C.success : C.accent, fontFamily: 'monospace' }}>
+                    {ownerCash >= 0 ? '' : '-'}₪{fmt(Math.abs(ownerCash))}
+                  </span>
+                </div>
+              )
+            })()}
+
             {stats.margin && (
               <div style={{ background: `${stats.profit >= 0 ? C.success : C.accent}12`, border: `1px solid ${stats.profit >= 0 ? C.success : C.accent}28`, borderRadius: 14, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 12, color: C.textDim }}>{language === 'he' ? 'מרג\'ין' : language === 'en' ? 'Profit Margin' : 'هامش الربح'}</span>
