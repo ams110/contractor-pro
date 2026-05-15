@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
@@ -6,9 +6,10 @@ import {
   ChevronRight, X, Calendar, CreditCard, ReceiptText, Package,
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
-  ChevronDown, CheckCircle2, CircleDot,
+  ChevronDown, CheckCircle2, CircleDot, Paperclip,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
+import { uploadReceipt } from '../../lib/storage.js'
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
@@ -105,15 +106,18 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
 }
 
 // ─── Project Detail ───────────────────────────────────────────────────────────
-function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language }) {
+function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId }) {
   const [tab, setTab] = useState('overview')
   const [showEdit, setShowEdit] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showReceiptForm, setShowReceiptForm] = useState(false)
   const [receiptForm, setReceiptForm] = useState({ amount: '', date: todayStr(), payment_method: 'كاش', payer_name: '', notes: '' })
+  const [receiptFile, setReceiptFile] = useState(null)
+  const [receiptPreview, setReceiptPreview] = useState('')
   const [receiptSaving, setReceiptSaving] = useState(false)
   const [receiptError, setReceiptError] = useState('')
+  const receiptFileRef = useRef()
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
   const pid = project.id
@@ -135,15 +139,24 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
     catch { setDeleting(false); setConfirmDel(false) }
   }
 
+  function closeReceiptForm() {
+    setShowReceiptForm(false)
+    setReceiptError('')
+    setReceiptFile(null)
+    setReceiptPreview('')
+    setReceiptForm({ amount: '', date: todayStr(), payment_method: 'كاش', payer_name: '', notes: '' })
+  }
+
   async function handleAddReceipt() {
     if (!receiptForm.amount || parseFloat(receiptForm.amount) <= 0)
       return setReceiptError('أدخل المبلغ المقبوض')
     setReceiptSaving(true)
     setReceiptError('')
     try {
-      await addReceipt({ ...receiptForm, amount: parseFloat(receiptForm.amount), project_id: project.id })
-      setShowReceiptForm(false)
-      setReceiptForm({ amount: '', date: todayStr(), payment_method: 'كاش', payer_name: '', notes: '' })
+      let receipt_url = ''
+      if (receiptFile) receipt_url = await uploadReceipt(userId, receiptFile)
+      await addReceipt({ ...receiptForm, amount: parseFloat(receiptForm.amount), project_id: project.id, receipt_url })
+      closeReceiptForm()
     } catch (e) {
       setReceiptError(e.message)
     } finally {
@@ -311,7 +324,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
             </div>
 
             {/* Receipt form modal */}
-            <Modal open={showReceiptForm} onClose={() => { setShowReceiptForm(false); setReceiptError('') }}
+            <Modal open={showReceiptForm} onClose={closeReceiptForm}
               title="تسجيل قبضة"
               action={<Btn onClick={handleAddReceipt} full disabled={receiptSaving}>{receiptSaving ? 'جاري الحفظ...' : 'حفظ القبضة'}</Btn>}>
               <Input label="المبلغ المقبوض (₪)" value={receiptForm.amount} type="number" min="0"
@@ -325,6 +338,38 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
                 onChange={v => setReceiptForm(p => ({ ...p, payer_name: v }))} />
               <Input label="ملاحظات" value={receiptForm.notes}
                 onChange={v => setReceiptForm(p => ({ ...p, notes: v }))} />
+
+              {/* File upload */}
+              <input ref={receiptFileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
+                onChange={e => {
+                  const f = e.target.files?.[0]
+                  if (!f) return
+                  setReceiptFile(f)
+                  if (f.type.startsWith('image/')) setReceiptPreview(URL.createObjectURL(f))
+                  else setReceiptPreview('pdf')
+                  e.target.value = ''
+                }} />
+              {receiptPreview && receiptPreview !== 'pdf' ? (
+                <div style={{ position: 'relative', marginBottom: 14 }}>
+                  <img src={receiptPreview} alt="إيصال" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 14, border: `1px solid ${C.success}55` }} />
+                  <button onClick={() => { setReceiptFile(null); setReceiptPreview('') }}
+                    style={{ position: 'absolute', top: 8, left: 8, width: 26, height: 26, borderRadius: '50%', background: 'rgba(239,68,68,0.85)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <X size={12} strokeWidth={2.5} />
+                  </button>
+                </div>
+              ) : receiptPreview === 'pdf' ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 12, background: `${C.primary}10`, border: `1px solid ${C.primary}33`, marginBottom: 14 }}>
+                  <span style={{ fontSize: 12, color: C.primary, fontWeight: 700 }}><FileText size={13} strokeWidth={2} style={{ marginLeft: 6, verticalAlign: 'middle' }} />{receiptFile?.name}</span>
+                  <button onClick={() => { setReceiptFile(null); setReceiptPreview('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim }}><X size={14} strokeWidth={2.5} /></button>
+                </div>
+              ) : (
+                <button onClick={() => receiptFileRef.current?.click()}
+                  style={{ width: '100%', padding: '14px', borderRadius: 14, border: `2px dashed ${C.border}`, background: 'rgba(255,255,255,0.02)', color: C.textDim, fontSize: 13, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 14, fontFamily: 'inherit' }}>
+                  <Paperclip size={20} strokeWidth={1.5} style={{ color: C.textDim }} />
+                  <span>إرفاق صورة الإيصال أو PDF (اختياري)</span>
+                </button>
+              )}
+
               {receiptError && (
                 <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
                   ⚠ {receiptError}
@@ -348,6 +393,13 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
                     {fmtDate(r.date)}{r.payment_method ? ` · ${r.payment_method}` : ''}{r.payer_name ? ` · ${r.payer_name}` : ''}{r.notes ? ` · ${r.notes}` : ''}
                   </div>
                 </div>
+                {r.receipt_url && (
+                  <a href={r.receipt_url} target="_blank" rel="noreferrer"
+                    style={{ width: 32, height: 32, borderRadius: 10, background: `${C.primary}18`, border: `1px solid ${C.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary, textDecoration: 'none', flexShrink: 0 }}
+                    title="عرض الإيصال">
+                    <Paperclip size={14} strokeWidth={2} />
+                  </a>
+                )}
               </div>
             ))}
           </div>
@@ -400,7 +452,7 @@ export default function ProjectsScreen({
         addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay}
         approveWorkDay={approveWorkDay} rejectWorkDay={rejectWorkDay}
         expCats={expCats} payMethods={payMethods} permissions={permissions}
-        holidays={holidays} language={language}
+        holidays={holidays} language={language} userId={userId}
       />
     )
   }
