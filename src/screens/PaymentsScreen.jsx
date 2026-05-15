@@ -325,9 +325,15 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
           </div>
         )}
 
-        {projects.length > 0 && (
-          <div style={{ marginBottom:14 }}>
-            <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>المشروع</label>
+        <div style={{ marginBottom:14 }}>
+          <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>
+            المشروع <span style={{ color: C.accent }}>*</span>
+          </label>
+          {projects.length === 0 ? (
+            <div style={{ fontSize:12, color:C.accent, padding:'8px 12px', background:`${C.accent}10`, borderRadius:10 }}>
+              لا توجد مشاريع — أضف مشروعاً أولاً
+            </div>
+          ) : (
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
               {projects.map(p => (
                 <button key={p.id} onClick={() => setForm(prev => ({ ...prev, project_id: prev.project_id === p.id ? '' : p.id }))}
@@ -336,13 +342,8 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                 </button>
               ))}
             </div>
-            {projects.length > 0 && !form.project_id && (
-              <div style={{ fontSize:10, color:C.warning, marginTop:6, fontWeight:600 }}>
-                ⚠ بدون مشروع، الدفعة لن تظهر لأعضاء الفريق المقيّدين بمشاريع
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         <Input label="المبلغ (₪)" value={form.amount} onChange={f('amount')} type="number" min="0.01" required />
         <Input label="طريقة الدفع" value={form.method} onChange={f('method')} options={methods} />

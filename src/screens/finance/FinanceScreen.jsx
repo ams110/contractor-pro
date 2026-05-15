@@ -612,9 +612,9 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
             {methods.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </Field>
-        <Field label={lbl('المشروع (اختياري)', 'פרויקט (אופציונלי)', 'Project (optional)', language)}>
-          <select value={form.project_id} onChange={e => f('project_id')(e.target.value)} style={sel}>
-            <option value="">{lbl('بدون مشروع', 'ללא פרויקט', 'No project', language)}</option>
+        <Field label={lbl('المشروع *', 'פרויקט *', 'Project *', language)}>
+          <select value={form.project_id} onChange={e => f('project_id')(e.target.value)} style={{ ...sel, borderColor: !form.project_id ? C.accent + '88' : undefined }}>
+            <option value="">{lbl('اختر المشروع...', 'בחר פרויקט...', 'Select project...', language)}</option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </Field>

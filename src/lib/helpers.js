@@ -86,6 +86,7 @@ export function validateExpense(form) {
  */
 export function validatePayment(form) {
   if (!form.employee_id)                             return 'اختر العامل'
+  if (!form.project_id)                              return 'اختر المشروع — الدفعة يجب أن تكون مرتبطة بمشروع'
   if (!form.amount)                                  return 'المبلغ مطلوب'
   const amt = parseFloat(form.amount)
   if (isNaN(amt) || amt <= 0)                        return 'المبلغ يجب أن يكون أكبر من صفر'
