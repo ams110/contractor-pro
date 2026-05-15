@@ -257,11 +257,20 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
       <div style={{ padding: '14px 16px' }}>
         {tab === 'overview' && (
           <div>
+            {project.type === 'مقاولة مغلقة' && project.price > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 14, background: `${C.primary}10`, border: `1px solid ${C.primary}28`, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Banknote size={14} color={C.primary} strokeWidth={2} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: C.primary }}>قيمة الصفقة</span>
+                </div>
+                <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>₪{fmt(project.price)}</span>
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               {[
                 { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'الإيرادات', value: `₪${fmt(stats.revenue)}`, color: C.success },
                 { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'المصاريف', value: `₪${fmt(stats.expTotal)}`, color: C.accent },
-                { label: language === 'he' ? 'שכר' : language === 'en' ? 'Labor' : 'أجور', value: `₪${fmt(stats.wdCost)}`, color: C.secondary },
+                { label: language === 'he' ? 'שכר' : language === 'en' ? 'Labor' : 'أجور العمال', value: `₪${fmt(stats.wdCost)}`, color: C.secondary },
                 { label: language === 'he' ? 'ימי עבודה' : language === 'en' ? 'Work Days' : 'أيام العمل', value: stats.wdCount, color: C.primary },
               ].map(({ label, value, color }) => (
                 <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
@@ -560,7 +569,7 @@ export default function ProjectsScreen({
           {[
             { label: language === 'he' ? 'פעילים' : language === 'en' ? 'Active' : 'نشطة', value: projects.filter(p => p.status === 'نشط').length, color: C.success },
             { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'إيرادات', value: `₪${fmt(clientReceipts.reduce((s, r) => s + (r.amount || 0), 0))}`, color: C.primary, small: true },
-            { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'مصاريف', value: `₪${fmt(expenses.reduce((s, e) => s + (e.amount || 0), 0))}`, color: C.accent, small: true },
+            { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'تكاليف', value: `₪${fmt(workDays.reduce((s, w) => s + (w.amount || 0), 0) + expenses.reduce((s, e) => s + (e.amount || 0), 0))}`, color: C.accent, small: true },
           ].map(({ label, value, color, small }) => (
             <div key={label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '10px 12px', textAlign: 'center' }}>
               <div style={{ fontSize: small ? 12 : 18, fontWeight: 900, color, letterSpacing: '-0.02em' }}>{value}</div>
@@ -616,7 +625,7 @@ export default function ProjectsScreen({
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
                     {[
                       { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'إيرادات', value: `₪${fmt(stats.revenue)}`, color: C.success },
-                      { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'مصاريف', value: `₪${fmt(stats.expTotal)}`, color: C.accent },
+                      { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'التكاليف', value: `₪${fmt(stats.cost)}`, color: C.accent },
                       { label: language === 'he' ? 'ימים' : language === 'en' ? 'Days' : 'أيام', value: stats.wdCount, color: C.primary },
                     ].map(({ label, value, color }) => (
                       <div key={label} style={{ background: C.card, borderRadius: 10, padding: '7px 8px', textAlign: 'center' }}>
@@ -625,6 +634,13 @@ export default function ProjectsScreen({
                       </div>
                     ))}
                   </div>
+
+                  {project.type === 'مقاولة مغلقة' && project.price > 0 && (
+                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: `${C.primary}10`, border: `1px solid ${C.primary}28`, borderRadius: 8 }}>
+                      <Banknote size={11} color={C.primary} strokeWidth={2} />
+                      <span style={{ fontSize: 10, color: C.primary, fontWeight: 700 }}>الصفقة: ₪{fmt(project.price)}</span>
+                    </div>
+                  )}
 
                   {stats.pending > 0 && (
                     <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, padding: '5px 8px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: 8 }}>
