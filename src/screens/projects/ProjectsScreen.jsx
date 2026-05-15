@@ -257,15 +257,35 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
       <div style={{ padding: '14px 16px' }}>
         {tab === 'overview' && (
           <div>
-            {project.type === 'مقاولة مغلقة' && project.price > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 14, background: `${C.primary}10`, border: `1px solid ${C.primary}28`, marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Banknote size={14} color={C.primary} strokeWidth={2} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: C.primary }}>قيمة الصفقة</span>
+            {project.type === 'مقاولة مغلقة' && project.price > 0 && (() => {
+              const remaining = project.price - stats.revenue
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 14, background: `${C.primary}10`, border: `1px solid ${C.primary}28` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Banknote size={14} color={C.primary} strokeWidth={2} />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.primary }}>قيمة الصفقة</span>
+                    </div>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>₪{fmt(project.price)}</span>
+                  </div>
+                  {remaining > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 14, background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Clock size={14} color={C.warning} strokeWidth={2} />
+                        <span style={{ fontSize: 12, fontWeight: 700, color: C.warning }}>متبقي للتحصيل</span>
+                      </div>
+                      <span style={{ fontSize: 16, fontWeight: 900, color: C.warning, fontFamily: 'monospace' }}>₪{fmt(remaining)}</span>
+                    </div>
+                  )}
+                  {remaining <= 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 14, background: `${C.success}10`, border: `1px solid ${C.success}28` }}>
+                      <CheckCircle2 size={14} color={C.success} strokeWidth={2} />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.success }}>تم تحصيل كامل الصفقة</span>
+                    </div>
+                  )}
                 </div>
-                <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>₪{fmt(project.price)}</span>
-              </div>
-            )}
+              )
+            })()}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               {[
                 { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'الإيرادات', value: `₪${fmt(stats.revenue)}`, color: C.success },
@@ -635,12 +655,28 @@ export default function ProjectsScreen({
                     ))}
                   </div>
 
-                  {project.type === 'مقاولة مغلقة' && project.price > 0 && (
-                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: `${C.primary}10`, border: `1px solid ${C.primary}28`, borderRadius: 8 }}>
-                      <Banknote size={11} color={C.primary} strokeWidth={2} />
-                      <span style={{ fontSize: 10, color: C.primary, fontWeight: 700 }}>الصفقة: ₪{fmt(project.price)}</span>
-                    </div>
-                  )}
+                  {project.type === 'مقاولة مغلقة' && project.price > 0 && (() => {
+                    const remaining = project.price - stats.revenue
+                    return (
+                      <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px', background: `${C.primary}10`, border: `1px solid ${C.primary}28`, borderRadius: 8 }}>
+                          <Banknote size={10} color={C.primary} strokeWidth={2} />
+                          <span style={{ fontSize: 9, color: C.primary, fontWeight: 700 }}>الصفقة: ₪{fmt(project.price)}</span>
+                        </div>
+                        {remaining > 0 ? (
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', borderRadius: 8 }}>
+                            <Clock size={10} color={C.warning} strokeWidth={2} />
+                            <span style={{ fontSize: 9, color: C.warning, fontWeight: 700 }}>متبقي: ₪{fmt(remaining)}</span>
+                          </div>
+                        ) : (
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px', background: `${C.success}10`, border: `1px solid ${C.success}28`, borderRadius: 8 }}>
+                            <CheckCircle2 size={10} color={C.success} strokeWidth={2} />
+                            <span style={{ fontSize: 9, color: C.success, fontWeight: 700 }}>مكتمل التحصيل</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
 
                   {stats.pending > 0 && (
                     <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, padding: '5px 8px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: 8 }}>
