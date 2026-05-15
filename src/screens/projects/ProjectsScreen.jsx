@@ -8,6 +8,7 @@ import {
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
   ChevronDown, CheckCircle2, CircleDot,
 } from 'lucide-react'
+import { Modal, Input, Btn } from '../../components/index.jsx'
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
@@ -55,8 +56,6 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
   const [form, setForm] = useState(empty)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
-  const dir = language === 'en' ? 'ltr' : 'rtl'
   const isEdit = !!initialData
 
   useEffect(() => {
@@ -67,7 +66,7 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
   }, [open, initialData])
 
   async function handleSave() {
-    if (!form.name.trim()) return setError(language === 'en' ? 'Name is required' : 'اسم المشروع مطلوب')
+    if (!form.name.trim()) return setError('اسم المشروع مطلوب')
     setSaving(true)
     setError('')
     try {
@@ -80,82 +79,28 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
     }
   }
 
+  const title = isEdit ? 'تعديل المشروع' : 'مشروع جديد'
+  const saveLabel = saving ? 'جاري الحفظ...' : isEdit ? 'حفظ التعديلات' : 'أضف المشروع'
+
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          onClick={onClose}
-          style={{ position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-            onClick={e => e.stopPropagation()}
-            dir={dir}
-            style={{ width: '100%', maxWidth: 500, background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: '24px 24px 0 0', padding: '20px 18px 0', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)', margin: '0 auto 20px' }} />
-            <div style={{ fontSize: 17, fontWeight: 900, color: C.text, marginBottom: 18 }}>
-              {isEdit
-                ? (language === 'en' ? 'Edit Project' : 'تعديل المشروع')
-                : (language === 'he' ? 'פרויקט חדש' : language === 'en' ? 'New Project' : 'مشروع جديد')}
-            </div>
-
-            {[
-              { key: 'name',  label: language === 'en' ? 'Name' : 'اسم المشروع',  type: 'text' },
-              { key: 'price', label: language === 'en' ? 'Price (₪)' : 'السعر (₪)', type: 'number' },
-            ].map(({ key, label, type }) => (
-              <div key={key} style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>{label}</label>
-                <input value={form[key]} onChange={f(key)} type={type}
-                  style={{ width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-            ))}
-
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>
-                {language === 'en' ? 'Type' : 'النوع'}
-              </label>
-              <select value={form.type} onChange={f('type')}
-                style={{ width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none' }}>
-                {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>
-                {language === 'en' ? 'Status' : 'الحالة'}
-              </label>
-              <select value={form.status} onChange={f('status')}
-                style={{ width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none' }}>
-                {PROJECT_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>
-                {language === 'en' ? 'Notes' : 'ملاحظات'}
-              </label>
-              <textarea value={form.notes} onChange={f('notes')} rows={2}
-                style={{ width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
-            </div>
-
-            {error && (
-              <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 12 }}>
-                {error}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: 10, position: 'sticky', bottom: 0, background: C.surface, paddingTop: 10, paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))' }}>
-              <button onClick={onClose} style={{ flex: 1, padding: '13px', borderRadius: 14, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {language === 'en' ? 'Cancel' : 'إلغاء'}
-              </button>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave} disabled={saving}
-                style={{ flex: 2, padding: '13px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 20px rgba(249,115,22,0.35)', opacity: saving ? 0.7 : 1 }}>
-                {saving ? '...' : isEdit ? (language === 'en' ? 'Save Changes' : 'حفظ التعديلات') : (language === 'en' ? 'Save' : 'حفظ')}
-              </motion.button>
-            </div>
-          </motion.div>
-        </motion.div>
+    <Modal open={open} onClose={onClose} title={title}
+      action={<Btn onClick={handleSave} full disabled={saving}>{saveLabel}</Btn>}>
+      <Input label="اسم المشروع" value={form.name}
+        onChange={v => setForm(p => ({ ...p, name: v }))} required />
+      <Input label="السعر (₪)" value={form.price} type="number" min="0"
+        onChange={v => setForm(p => ({ ...p, price: v }))} />
+      <Input label="النوع" value={form.type}
+        onChange={v => setForm(p => ({ ...p, type: v }))} options={PROJECT_TYPES} />
+      <Input label="الحالة" value={form.status}
+        onChange={v => setForm(p => ({ ...p, status: v }))} options={PROJECT_STATUS} />
+      <Input label="ملاحظات" value={form.notes}
+        onChange={v => setForm(p => ({ ...p, notes: v }))} />
+      {error && (
+        <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
+          ⚠ {error}
+        </div>
       )}
-    </AnimatePresence>
+    </Modal>
   )
 }
 
