@@ -270,15 +270,17 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{emp?.name || '—'}</div>
-                    <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(wd.date)} · {wd.day_type}</div>
+                    <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(wd.date)}{wd.day_type ? ` · ${wd.day_type}` : ''}</div>
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.primary }}>₪{fmt(wd.daily_rate || 0)}</div>
+                  <div style={{ textAlign: 'end' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>₪{fmt(wd.amount || 0)}</div>
+                    {wd.status === 'pending' && <div style={{ fontSize: 9, color: C.warning, fontWeight: 700 }}>بانتظار الموافقة</div>}
+                    {wd.status === 'approved' && <div style={{ fontSize: 9, color: C.success, fontWeight: 700 }}>معتمد</div>}
+                  </div>
                   {wd.status === 'pending' && permissions?.isOwner && (
-                    <div style={{ display: 'flex', gap: 5 }}>
-                      <button onClick={() => approveWorkDay(wd.id)} style={{ width: 26, height: 26, borderRadius: 8, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: C.success, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Check size={12} strokeWidth={2.5} />
-                      </button>
-                    </div>
+                    <button onClick={() => approveWorkDay(wd.id)} style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: C.success, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Check size={13} strokeWidth={2.5} />
+                    </button>
                   )}
                 </div>
               )
