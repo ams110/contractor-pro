@@ -104,7 +104,7 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
 }
 
 // ─── Worker Detail ────────────────────────────────────────────────────────────
-function WorkerDetail({ worker, workDays, payments, advances, projects, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language }) {
+function WorkerDetail({ worker, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language }) {
   const [tab, setTab] = useState('overview')
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
@@ -302,7 +302,7 @@ export default function WorkersScreen({
     return (
       <WorkerDetail
         worker={selected}
-        workDays={workDays} payments={payments} advances={advances} projects={projects}
+        workDays={workDays} payments={payments} advances={advances} projects={projects} expenses={expenses}
         onClose={() => setSelected(null)}
         addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay}
         approveWorkDay={approveWorkDay} rejectWorkDay={rejectWorkDay}
