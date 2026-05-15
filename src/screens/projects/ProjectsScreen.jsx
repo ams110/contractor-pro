@@ -110,6 +110,10 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   const [showEdit, setShowEdit] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showReceiptForm, setShowReceiptForm] = useState(false)
+  const [receiptForm, setReceiptForm] = useState({ amount: '', date: todayStr(), payment_method: 'كاش', payer_name: '', notes: '' })
+  const [receiptSaving, setReceiptSaving] = useState(false)
+  const [receiptError, setReceiptError] = useState('')
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
   const pid = project.id
@@ -129,6 +133,22 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
     setDeleting(true)
     try { await onDelete(project.id); onClose() }
     catch { setDeleting(false); setConfirmDel(false) }
+  }
+
+  async function handleAddReceipt() {
+    if (!receiptForm.amount || parseFloat(receiptForm.amount) <= 0)
+      return setReceiptError('أدخل المبلغ المقبوض')
+    setReceiptSaving(true)
+    setReceiptError('')
+    try {
+      await addReceipt({ ...receiptForm, amount: parseFloat(receiptForm.amount), project_id: project.id })
+      setShowReceiptForm(false)
+      setReceiptForm({ amount: '', date: todayStr(), payment_method: 'كاش', payer_name: '', notes: '' })
+    } catch (e) {
+      setReceiptError(e.message)
+    } finally {
+      setReceiptSaving(false)
+    }
   }
 
   return (
@@ -276,26 +296,58 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 
         {tab === 'receipts' && (
           <div>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 4 }}>
-                {language === 'he' ? 'סה"כ' : language === 'en' ? 'Total Received' : 'إجمالي المقبوضات'}
+            {/* Header row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>إجمالي المقبوضات</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>₪{fmt(stats.revenue)}</div>
               </div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: C.success }}>₪{fmt(stats.revenue)}</div>
+              {permissions?.editProjects !== false && (
+                <motion.button whileTap={{ scale: 0.93 }} onClick={() => setShowReceiptForm(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 14, background: `${C.success}18`, border: `1px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <Plus size={14} strokeWidth={2.5} /> قبض جديد
+                </motion.button>
+              )}
             </div>
+
+            {/* Receipt form modal */}
+            <Modal open={showReceiptForm} onClose={() => { setShowReceiptForm(false); setReceiptError('') }}
+              title="تسجيل قبضة"
+              action={<Btn onClick={handleAddReceipt} full disabled={receiptSaving}>{receiptSaving ? 'جاري الحفظ...' : 'حفظ القبضة'}</Btn>}>
+              <Input label="المبلغ المقبوض (₪)" value={receiptForm.amount} type="number" min="0"
+                onChange={v => setReceiptForm(p => ({ ...p, amount: v }))} required />
+              <Input label="التاريخ" value={receiptForm.date} type="date"
+                onChange={v => setReceiptForm(p => ({ ...p, date: v }))} />
+              <Input label="طريقة الدفع" value={receiptForm.payment_method}
+                onChange={v => setReceiptForm(p => ({ ...p, payment_method: v }))}
+                options={payMethods?.length ? payMethods : ['كاش', 'حوالة', 'شيك', 'بطاقة']} />
+              <Input label="اسم الدافع" value={receiptForm.payer_name} placeholder="مثال: أبو محمد"
+                onChange={v => setReceiptForm(p => ({ ...p, payer_name: v }))} />
+              <Input label="ملاحظات" value={receiptForm.notes}
+                onChange={v => setReceiptForm(p => ({ ...p, notes: v }))} />
+              {receiptError && (
+                <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
+                  ⚠ {receiptError}
+                </div>
+              )}
+            </Modal>
+
+            {/* List */}
             {pReceipts.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', color: C.textDim, fontSize: 13 }}>
-                {language === 'he' ? 'אין קבלות' : language === 'en' ? 'No receipts yet' : 'لا توجد قبضات'}
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: C.textDim, fontSize: 13, background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: `1px dashed ${C.border}` }}>
+                لم يُقبض شيء بعد
               </div>
             ) : pReceipts.map(r => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 8 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.success}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <ReceiptText size={14} color={C.success} strokeWidth={2} />
+              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: `${C.success}06`, border: `1px solid ${C.success}20`, borderRadius: 14, marginBottom: 8 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 11, background: `${C.success}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <ReceiptText size={15} color={C.success} strokeWidth={2} />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{r.description || r.notes || (language === 'en' ? 'Receipt' : 'قبضة')}</div>
-                  <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(r.date)}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>+₪{fmt(r.amount || 0)}</div>
+                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>
+                    {fmtDate(r.date)}{r.payment_method ? ` · ${r.payment_method}` : ''}{r.payer_name ? ` · ${r.payer_name}` : ''}{r.notes ? ` · ${r.notes}` : ''}
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: C.success }}>+₪{fmt(r.amount || 0)}</div>
               </div>
             ))}
           </div>
