@@ -304,7 +304,6 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
             {/* Worker payment breakdown */}
             {(stats.wdCost > 0 || paidToWorkers > 0) && (() => {
               const owedToWorkers = stats.wdCost - paidToWorkers
-              const ownerCash = stats.revenue - paidToWorkers - stats.expTotal
               return (
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '14px', marginBottom: 10 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10 }}>توزيع الأجور</div>
@@ -333,12 +332,12 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 
             {/* Owner's remaining cash */}
             {stats.revenue > 0 && (() => {
-              const ownerCash = stats.revenue - paidToWorkers - stats.expTotal
+              const ownerCash = stats.profit
               return (
                 <div style={{ background: ownerCash >= 0 ? `${C.success}10` : `${C.accent}10`, border: `1px solid ${ownerCash >= 0 ? C.success : C.accent}28`, borderRadius: 14, padding: '14px 16px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 3 }}>متبقي بيد المالك</div>
-                    <div style={{ fontSize: 10, color: C.textDim }}>إيرادات − ما دُفع للعمال − المصاريف</div>
+                    <div style={{ fontSize: 10, color: C.textDim }}>إيرادات − أجور العمال − المصاريف</div>
                   </div>
                   <span style={{ fontSize: 20, fontWeight: 900, color: ownerCash >= 0 ? C.success : C.accent, fontFamily: 'monospace' }}>
                     {ownerCash >= 0 ? '' : '-'}₪{fmt(Math.abs(ownerCash))}
