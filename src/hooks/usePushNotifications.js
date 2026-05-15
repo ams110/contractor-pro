@@ -21,22 +21,28 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 export function usePushNotifications(userId) {
-  const supported   = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
-  const [permission, setPermission] = useState(supported ? Notification.permission : 'denied')
+  // هل الـ browser يدعم الإشعارات على الأقل؟ (للإظهار في الإعدادات)
+  const notifSupported = typeof window !== 'undefined' && 'Notification' in window
+  // هل يدعم Web Push الكامل؟ (يحتاج HTTPS + serviceWorker + PushManager)
+  const supported = notifSupported && 'serviceWorker' in navigator && 'PushManager' in window
+  const [permission, setPermission] = useState(notifSupported ? Notification.permission : 'denied')
   const [subscribing, setSubscribing] = useState(false)
 
   useEffect(() => {
-    if (supported) setPermission(Notification.permission)
-  }, [supported])
+    if (notifSupported) setPermission(Notification.permission)
+  }, [notifSupported])
 
-  // اشتراك Web Push حقيقي (يشتغل حتى لو التطبيق مغلق)
+  // اشتراك: Web Push إذا مدعوم، وإلا طلب إذن إشعارات عادية فقط
   const subscribeToPush = useCallback(async () => {
-    if (!supported || !userId) return
+    if (!notifSupported) return
     setSubscribing(true)
     try {
       const perm = await Notification.requestPermission()
       setPermission(perm)
       if (perm !== 'granted') return
+
+      // لو PushManager مش موجود → اكتفي بطلب الإذن (إشعارات في المتصفح فقط)
+      if (!supported || !userId) return
 
       const reg = await navigator.serviceWorker.ready
       const existing = await reg.pushManager.getSubscription()
@@ -75,7 +81,7 @@ export function usePushNotifications(userId) {
 
   // إشعار فوري (لما التطبيق مفتوح - fallback)
   const notify = useCallback((title, body, tag) => {
-    if (!supported || Notification.permission !== 'granted') return
+    if (!notifSupported || Notification.permission !== 'granted') return
     const prefs = getNotifPrefs()
     if (prefs[tag] === false) return
     try {
@@ -85,5 +91,5 @@ export function usePushNotifications(userId) {
     } catch { /* ignore */ }
   }, [supported])
 
-  return { supported, permission, subscribing, subscribeToPush, unsubscribeFromPush, notify }
+  return { supported, notifSupported, permission, subscribing, subscribeToPush, unsubscribeFromPush, notify }
 }

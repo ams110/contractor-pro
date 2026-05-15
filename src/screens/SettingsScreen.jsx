@@ -51,7 +51,7 @@ const ACTION_COLOR = { insert: C.success, update: C.primary, delete: C.accent, v
 
 export default function SettingsScreen({ projects, employees, workDays, expenses, payments, clientReceipts, userId, specs, expCats, payMethods, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, pensionMonthly, setPensionMonthly, taxEnabled, businessType, setTaxEnabled, setBusinessType, taxModules = {}, setTaxModule, holidays = [], addHoliday, deleteHoliday, profile, profSaving, uploading, saveName, uploadAvatar, saveContractorNumber, permissions, teamMembers, addMember, resetMemberPassword, updateMember, removeMember, blockMember, getActivity, reloadTeam }) {
   const { signOut, registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, setPin, hasPinSet, removePin, user } = useAuth()
-  const { supported: pushSupported, permission: pushPerm, subscribing: pushSubscribing, subscribeToPush, unsubscribeFromPush } = usePushNotifications(userId)
+  const { supported: pushWebSupported, notifSupported: pushSupported, permission: pushPerm, subscribing: pushSubscribing, subscribeToPush, unsubscribeFromPush } = usePushNotifications(userId)
   const [notifPrefs, setNotifPrefsState] = useState(() => getNotifPrefs())
 
   function toggleNotifPref(key) {
@@ -395,13 +395,15 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
             {pushPerm !== 'granted' ? (
               <div style={{ textAlign:'center' }}>
                 <div style={{ fontSize:11, color:C.textDim, marginBottom:10 }}>
-                  فعّل إشعارات الهاتف لتلقّي تنبيهات فورية حتى لو التطبيق مغلق
+                  {pushWebSupported
+                    ? 'فعّل إشعارات الهاتف لتلقّي تنبيهات فورية حتى لو التطبيق مغلق'
+                    : 'فعّل الإشعارات لتلقّي تنبيهات عند وجود طلبات جديدة من العمال'}
                 </div>
                 <button
                   onClick={async () => { await subscribeToPush(); setNotifPrefsState(getNotifPrefs()) }}
                   disabled={pushSubscribing}
                   style={{ padding:'10px 24px', borderRadius:12, border:'none', background:'linear-gradient(90deg,#F59E0B,#EF4444)', color:'#fff', fontSize:12, fontWeight:800, cursor: pushSubscribing ? 'wait' : 'pointer', opacity: pushSubscribing ? 0.7 : 1 }}>
-                  {pushSubscribing ? 'جاري التفعيل...' : 'تفعيل إشعارات الهاتف'}
+                  {pushSubscribing ? 'جاري التفعيل...' : pushWebSupported ? 'تفعيل إشعارات الهاتف' : 'تفعيل الإشعارات'}
                 </button>
                 {pushPerm === 'denied' && (
                   <div style={{ fontSize:10, color:C.accent, marginTop:8 }}>
@@ -412,7 +414,9 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px', background:`${C.success}12`, borderRadius:10, border:`1px solid ${C.success}30`, marginBottom:4 }}>
-                  <span style={{ fontSize:11, color:C.success, fontWeight:700 }}>إشعارات الهاتف مفعّلة</span>
+                  <span style={{ fontSize:11, color:C.success, fontWeight:700 }}>
+                    {pushWebSupported ? 'إشعارات الهاتف مفعّلة' : 'إشعارات المتصفح مفعّلة'}
+                  </span>
                   <button onClick={unsubscribeFromPush}
                     style={{ fontSize:10, color:C.textDim, background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>
                     إلغاء
@@ -437,7 +441,9 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                     </div>
                   )
                 })}
-                <div style={{ fontSize:10, color:C.success, textAlign:'center', marginTop:4 }}>الإشعارات تصلك حتى لو التطبيق مغلق</div>
+                <div style={{ fontSize:10, color:C.success, textAlign:'center', marginTop:4 }}>
+                  {pushWebSupported ? 'الإشعارات تصلك حتى لو التطبيق مغلق' : 'الإشعارات تعمل عند فتح التطبيق في المتصفح'}
+                </div>
               </div>
             )}
           </div>
