@@ -16,7 +16,7 @@ const TYPE_TAG = {
 export function useNotifications(userId) {
   const [notifications, setNotifications] = useState([])
   const [unreadCount,   setUnreadCount]   = useState(0)
-  const { notify } = usePushNotifications()
+  const { notify } = usePushNotifications(userId)
   const initialized = useRef(false)
 
   const fetch = useCallback(async () => {
