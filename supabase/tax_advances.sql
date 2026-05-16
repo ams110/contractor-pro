@@ -1,7 +1,7 @@
 -- جدول المقدمات الضريبية (מקדמות מס הכנסה + ביטוח לאומי)
 CREATE TABLE IF NOT EXISTS tax_advances (
   id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id    UUID REFERENCES auth.users NOT NULL,
+  user_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   type       TEXT NOT NULL CHECK (type IN ('income_tax', 'bituach_leumi')),
   amount     NUMERIC NOT NULL CHECK (amount > 0),
   date       DATE NOT NULL DEFAULT CURRENT_DATE,

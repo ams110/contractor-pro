@@ -388,7 +388,7 @@ function TaxesTab({ summary, taxAdvances, addTaxAdvance, deleteTaxAdvance, pensi
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input type="number" value={pensVal} onChange={e => setPensVal(e.target.value)}
                 style={{ width: 80, padding: '6px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 12, outline: 'none', textAlign: 'center' }} />
-              <button onClick={() => { setPensionMonthly?.(pensVal); setPensEdit(false) }}
+              <button onClick={() => { setPensionMonthly?.(parseFloat(pensVal) || 0); setPensEdit(false) }}
                 style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: C.cyan, color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>✓</button>
               <button onClick={() => setPensEdit(false)}
                 style={{ padding: '6px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 11, cursor: 'pointer' }}>✕</button>

@@ -1,7 +1,7 @@
 -- جدول السلف (salary advances)
 CREATE TABLE IF NOT EXISTS advances (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id     UUID REFERENCES auth.users NOT NULL,
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   employee_id UUID REFERENCES employees  NOT NULL,
   amount      NUMERIC NOT NULL CHECK (amount > 0),
   date        DATE NOT NULL DEFAULT CURRENT_DATE,

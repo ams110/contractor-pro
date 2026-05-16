@@ -129,6 +129,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  deleted_count INT;
 BEGIN
   IF auth.uid() IS NULL THEN
     RETURN json_build_object('error', 'غير مصرح');
@@ -136,6 +138,12 @@ BEGIN
 
   DELETE FROM payments
   WHERE id = p_payment_id AND user_id = auth.uid() AND status = 'pending';
+
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+
+  IF deleted_count = 0 THEN
+    RETURN json_build_object('error', 'الطلب غير موجود أو تم معالجته مسبقاً');
+  END IF;
 
   RETURN json_build_object('success', true);
 END;

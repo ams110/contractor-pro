@@ -711,7 +711,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
             {/* ── Reset Password Modal ── */}
             {showResetPass && (
               <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.7)', backdropFilter:'blur(6px)', padding:16 }}
-                onClick={e => { if (e.target === e.currentTarget) setShowResetPass(null) }}>
+                onClick={e => { if (e.target === e.currentTarget) { setShowResetPass(null); setNewPass(''); setResetPassErr('') } }}>
                 <div style={{ width:'100%', maxWidth:360, background:C.surface, borderRadius:20, padding:20, border:`1px solid ${C.borderMid}` }}>
                   <div style={{ fontSize:15, fontWeight:800, color:C.text, marginBottom:4, display:'flex', alignItems:'center', gap:7 }}><KeyRound size={15} strokeWidth={2} style={{ color: C.warning }} /> تغيير الباسورد</div>
                   <div style={{ fontSize:11, color:C.textDim, marginBottom:14 }}>{showResetPass.display_name || showResetPass.username}</div>
@@ -727,7 +727,7 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
                       catch(e) { setResetPassErr(e.message) }
                       finally { setResetPassSaving(false) }
                     }} full disabled={resetPassSaving}>{resetPassSaving ? '...' : 'حفظ'}</Btn>
-                    <Btn onClick={() => setShowResetPass(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
+                    <Btn onClick={() => { setShowResetPass(null); setNewPass(''); setResetPassErr('') }} variant="outline" color={C.textDim} full>إلغاء</Btn>
                   </div>
                 </div>
               </div>

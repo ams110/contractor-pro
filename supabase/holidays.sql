@@ -1,7 +1,7 @@
 -- جدول الإجازات والأعياد
 CREATE TABLE IF NOT EXISTS holidays (
   id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id    UUID NOT NULL,
+  user_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name       TEXT NOT NULL,
   date       DATE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now()
