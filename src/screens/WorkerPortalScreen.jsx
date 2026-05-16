@@ -280,7 +280,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
           <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4, display:'flex', alignItems:'center', gap:6 }}><Bell size={13} strokeWidth={2} /> وصل إشعار للمشرف</div>
           <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب في التطبيق ويوافق عليه</div>
         </div>
-        <button onClick={() => { setDone(false); setForm({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8', location: '' }) }}
+        <button onClick={() => { setDone(false); setSubmitErr(''); setForm({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8', location: '' }) }}
           style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           + أضف يوم آخر
         </button>
@@ -484,7 +484,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
           <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4, display:'flex', alignItems:'center', gap:6 }}><Bell size={13} strokeWidth={2} /> وصل إشعار للمشرف</div>
           <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب والفاتورة ويوافق عليه</div>
         </div>
-        <button onClick={() => { setDone(false); setForm(emptyForm); clearFile() }}
+        <button onClick={() => { setDone(false); setSubmitErr(''); setForm(emptyForm); clearFile() }}
           style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           + أضف مصروف آخر
         </button>
@@ -945,7 +945,7 @@ function SubmitMaterialForm({ worker, projects }) {
           <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
           <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم التسجيل!</div>
           <div style={{ fontSize: 12, color: C.textDim, marginBottom: 16 }}>تم حفظ سجل البضاعة بنجاح</div>
-          <button onClick={() => setDone(false)}
+          <button onClick={() => { setDone(false); setFormErr('') }}
             style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
             + تسجيل مادة أخرى
           </button>

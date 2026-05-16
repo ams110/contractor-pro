@@ -165,7 +165,7 @@ export function useExpenses(userId) {
   }
 
   async function rejectExpense(id) {
-    const { error } = await supabase.from('expenses').delete().eq('id', id).eq('user_id', userId)
+    const { error } = await supabase.from('expenses').update({ status: 'rejected' }).eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
   }

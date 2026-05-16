@@ -20,7 +20,7 @@ serve(async (req) => {
     )
 
     // جلب معرّف المستخدم من الإيميل
-    const { data: userData } = await supabase.auth.admin.listUsers()
+    const { data: userData } = await supabase.auth.admin.listUsers({ perPage: 1000 })
     const user = userData?.users?.find(u => u.email === email)
     if (!user) throw new Error('البريد الإلكتروني غير مسجّل')
 

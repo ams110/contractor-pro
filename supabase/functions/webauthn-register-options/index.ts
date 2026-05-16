@@ -27,7 +27,7 @@ serve(async (req) => {
 
     const options = await generateRegistrationOptions({
       rpName: 'Contractor Pro',
-      rpID: req.headers.get('origin')?.replace(/^https?:\/\//, '') || 'localhost',
+      rpID: req.headers.get('origin')?.replace(/^https?:\/\//, '').split(':')[0] || 'localhost',
       userID: userId,
       userName: userEmail,
       userDisplayName: userEmail,

@@ -25,7 +25,10 @@ const PRICE_MAP = buildPriceMap()
 // ─── Paddle HMAC-SHA256 signature verification ───────────────────────────────
 // Header format:  Paddle-Signature: ts=<unix>;h1=<hex>
 async function verifySignature(rawBody: string, header: string): Promise<boolean> {
-  if (!WEBHOOK_SECRET) return true  // dev: skip if secret not configured
+  if (!WEBHOOK_SECRET) {
+    if (Deno.env.get('ENVIRONMENT') === 'development') return true
+    return false  // production: reject unsigned webhooks
+  }
   if (!header) return false
 
   const parts: Record<string, string> = {}

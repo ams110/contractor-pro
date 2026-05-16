@@ -22,14 +22,14 @@ serve(async (req) => {
     )
 
     // جلب المستخدم
-    const { data: userData } = await supabase.auth.admin.listUsers()
+    const { data: userData } = await supabase.auth.admin.listUsers({ perPage: 1000 })
     const user = userData?.users?.find(u => u.email === email)
     if (!user) throw new Error('المستخدم غير موجود')
 
     // جلب challenge وبيانات الاعتماد
     const [{ data: ch }, { data: cred }] = await Promise.all([
-      supabase.from('passkey_challenges').select('challenge').eq('user_id', user.id).eq('type', 'authentication').single(),
-      supabase.from('passkey_credentials').select('*').eq('credential_id', credential.id).eq('user_id', user.id).single(),
+      supabase.from('passkey_challenges').select('challenge').eq('user_id', user.id).eq('type', 'authentication').maybeSingle(),
+      supabase.from('passkey_credentials').select('*').eq('credential_id', credential.id).eq('user_id', user.id).maybeSingle(),
     ])
 
     if (!ch)   throw new Error('انتهت صلاحية التحقق، أعد المحاولة')

@@ -1,7 +1,8 @@
 import webPush from "npm:web-push@3.6.7"
 
 const VAPID_PUBLIC_KEY  = "BO6PvgB5GmV_Sq8g0pxYJm2T0F_JYRdtgCUkFmpb_KfYIaUjc0ytKxTI3GpoNZrH5gkvUhh4vUqjhpooZkX3l_k"
-const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "61Urv14sKQMiXaZhzu1ZY7dMgbw2F6PVH4V2DkMZDEs"
+const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")
+if (!VAPID_PRIVATE_KEY) throw new Error("VAPID_PRIVATE_KEY env var is not set")
 const SUPABASE_URL      = Deno.env.get("SUPABASE_URL")!
 const SERVICE_KEY       = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 
