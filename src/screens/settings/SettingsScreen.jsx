@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
-  Settings, User, Users, Globe, Shield, Bell, Database,
+  Settings, User, Users, Users2, Globe, Shield, Bell, Database,
   ChevronRight, Check, LogOut, HardHat, Palette, CalendarDays,
   CreditCard, Banknote, ClipboardList, Package, Calculator,
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
@@ -19,6 +19,7 @@ const LANGS = [
 ]
 
 const NAV_ICONS_MAP = {
+  team:       Users2,
   workdays:   CalendarDays,
   expenses:   CreditCard,
   payments:   Banknote,

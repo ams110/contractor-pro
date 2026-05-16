@@ -45,6 +45,7 @@ const AccountingScreen  = lazy(() => import('./screens/AccountingScreen.jsx'))
 const UnitTrackerScreen = lazy(() => import('./screens/UnitTrackerScreen.jsx'))
 const MaterialsScreen   = lazy(() => import('./screens/MaterialsScreen.jsx'))
 const ActivityScreen    = lazy(() => import('./screens/ActivityScreen.jsx'))
+const TeamScreen        = lazy(() => import('./screens/team/TeamScreen.jsx'))
 
 // ─── Icon map ────────────────────────────────────────────────────────────────
 const NAV_ICONS = {
@@ -448,6 +449,7 @@ export default function App() {
       case 'materials':  content = p?.viewProjects  ? <MaterialsScreen userId={eid} employees={visibleEmployees} projects={visibleProjects} /> : <NoAccess />; break
       case 'accounting': setScreen('finance'); content = null; break
       case 'activity':   content = (p?.viewActivity || p?.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />; break
+      case 'team':       content = p?.isOwner ? <TeamScreen projects={visibleProjects} teamMembers={teamMembers} permissions={p} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} /> : <NoAccess />; break
       default:           content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} />
     }
     return <ErrorBoundary key={screen}>{content}</ErrorBoundary>
