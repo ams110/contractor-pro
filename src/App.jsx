@@ -7,7 +7,7 @@ import {
   Bell, ClipboardCheck, HardHat, WifiOff, Gift,
   Clock, ShieldOff, Lock, CalendarDays, CreditCard, Banknote,
   ClipboardList, Package, Calculator, Activity, Grid3x3,
-  RefreshCw, Languages,
+  Languages,
 } from 'lucide-react'
 
 import { supabase }            from './lib/supabase.js'
@@ -282,8 +282,13 @@ export default function App() {
 
   const [showOnboarding, setShowOnboarding] = useState(false)
 
-  // ─── PWA update prompt ────────────────────────────────────────────────────
-  const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
+  // ─── PWA auto-update ─────────────────────────────────────────────────────
+  useRegisterSW({
+    onNeedRefresh() {
+      // New SW ready — activate it and reload to pick up the update
+      window.location.reload()
+    },
+  })
 
   // Fix Android Chrome 100vh bug — set --actual-vh CSS variable
   useEffect(() => {
@@ -629,47 +634,6 @@ export default function App() {
             }}
           >
             {toast.msg}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ─── PWA update banner ─── */}
-      <AnimatePresence>
-        {needRefresh && (
-          <motion.div
-            key="pwa-update"
-            initial={{ opacity: 0, y: 60 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 60 }}
-            style={{
-              position: 'fixed',
-              bottom: isDesktop ? 32 : 'max(100px, calc(84px + env(safe-area-inset-bottom, 0px)))',
-              left: '50%', transform: 'translateX(-50%)',
-              zIndex: 500,
-              background: 'rgba(7,8,12,0.97)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: `1px solid ${C.primary}40`,
-              borderRadius: 18,
-              padding: '12px 16px',
-              display: 'flex', alignItems: 'center', gap: 12,
-              boxShadow: `0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px ${C.primary}20`,
-              minWidth: 260,
-            }}
-          >
-            <div style={{ width: 36, height: 36, borderRadius: 11, background: `${C.primary}20`, border: `1px solid ${C.primary}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <RefreshCw size={17} color={C.primary} strokeWidth={2} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>تحديث جديد متوفر</div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>اضغط لتثبيت آخر نسخة</div>
-            </div>
-            <button
-              onClick={() => updateServiceWorker(true)}
-              style={{ flexShrink: 0, padding: '7px 14px', borderRadius: 11, background: C.primary, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              تحديث
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
