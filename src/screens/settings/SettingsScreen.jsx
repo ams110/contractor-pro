@@ -5,7 +5,7 @@ import {
   Settings, User, Users, Globe, Shield, Bell, Database,
   ChevronRight, Check, LogOut, HardHat, Palette, CalendarDays,
   CreditCard, Banknote, ClipboardList, Package, Calculator,
-  Activity, Plus, Trash2, Save, Camera, Tag,
+  Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
@@ -76,8 +76,32 @@ export default function SettingsScreen({
   const [newMethod, setNewMethod] = useState('')
   const [editName, setEditName] = useState('')
   const [editingName, setEditingName] = useState(false)
+  const [updateStatus, setUpdateStatus] = useState('idle') // idle | checking | upToDate | updating
 
   const MORE_WITH_ICONS = MORE_SCREENS.map(s => ({ ...s, IconComp: NAV_ICONS_MAP[s.id] || Settings }))
+
+  async function handleCheckUpdate() {
+    if (updateStatus === 'checking') return
+    setUpdateStatus('checking')
+    try {
+      const reg = await navigator.serviceWorker?.getRegistration()
+      if (reg) {
+        await reg.update()
+        if (reg.waiting || reg.installing) {
+          setUpdateStatus('updating')
+          setTimeout(() => window.location.reload(), 800)
+        } else {
+          setUpdateStatus('upToDate')
+          setTimeout(() => setUpdateStatus('idle'), 3000)
+        }
+      } else {
+        setUpdateStatus('upToDate')
+        setTimeout(() => setUpdateStatus('idle'), 3000)
+      }
+    } catch {
+      setUpdateStatus('idle')
+    }
+  }
 
   return (
     <div dir={dir} style={{ padding: '16px 16px 8px' }}>
@@ -235,6 +259,64 @@ export default function SettingsScreen({
       {/* ── Subscription ── */}
       <Section title={t('settings.subscription')}>
         <Row icon={Shield} label={language === 'he' ? 'ניהול מנוי' : language === 'en' ? 'Manage Subscription' : 'إدارة الاشتراك'} color={C.gold} onClick={() => navigate('/pricing')} last />
+      </Section>
+
+      {/* ── App Update ── */}
+      <Section title={language === 'he' ? 'עדכון אפליקציה' : language === 'en' ? 'App Update' : 'تحديث التطبيق'}>
+        <div style={{ padding: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: `${C.primary}18`, border: `1px solid ${C.primary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <RefreshCw size={18} color={C.primary} strokeWidth={2} />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Contractor Pro v2.0</div>
+              <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
+                {updateStatus === 'upToDate'
+                  ? (language === 'he' ? 'האפליקציה מעודכנת' : language === 'en' ? 'App is up to date' : 'التطبيق محدّث')
+                  : updateStatus === 'updating'
+                  ? (language === 'he' ? 'מעדכן...' : language === 'en' ? 'Updating...' : 'جاري التحديث...')
+                  : (language === 'he' ? 'בדוק אם קיים עדכון' : language === 'en' ? 'Check for a new version' : 'تحقق من إصدار جديد')}
+              </div>
+            </div>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleCheckUpdate}
+            disabled={updateStatus === 'checking' || updateStatus === 'updating'}
+            style={{
+              width: '100%',
+              padding: '11px 16px',
+              borderRadius: 14,
+              border: 'none',
+              cursor: updateStatus === 'checking' || updateStatus === 'updating' ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 13,
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              background: updateStatus === 'upToDate'
+                ? `${C.success}20`
+                : updateStatus === 'updating'
+                ? `${C.primary}20`
+                : GRAD.primary,
+              color: updateStatus === 'upToDate' || updateStatus === 'updating' ? C.success : '#fff',
+              boxShadow: updateStatus === 'idle' || updateStatus === 'checking' ? '0 4px 16px rgba(245,158,11,0.3)' : 'none',
+              opacity: updateStatus === 'checking' ? 0.7 : 1,
+            }}
+          >
+            {updateStatus === 'upToDate' ? (
+              <><Check size={15} strokeWidth={2.5} />{language === 'he' ? 'מעודכן' : language === 'en' ? 'Up to date' : 'محدّث'}</>
+            ) : updateStatus === 'updating' ? (
+              <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}><Download size={15} /></motion.div>{language === 'he' ? 'מעדכן...' : language === 'en' ? 'Updating...' : 'جاري التحديث...'}</>
+            ) : updateStatus === 'checking' ? (
+              <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}><RefreshCw size={15} /></motion.div>{language === 'he' ? 'בודק...' : language === 'en' ? 'Checking...' : 'جاري التحقق...'}</>
+            ) : (
+              <><RefreshCw size={15} strokeWidth={2.5} />{language === 'he' ? 'בדוק עדכונים' : language === 'en' ? 'Check for Updates' : 'التحقق من التحديثات'}</>
+            )}
+          </motion.button>
+        </div>
       </Section>
 
       {/* App version */}
