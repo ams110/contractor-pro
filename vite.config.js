@@ -31,6 +31,6 @@ export default defineConfig({
       },
     }),
   ],
-  base: '/',
+  base: process.env.GITHUB_PAGES === 'true' ? '/contractor-pro/' : '/',
   server: { port: 3000 },
 })
