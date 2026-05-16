@@ -58,10 +58,10 @@ export const calcMargin = (revenue, profit) =>
 
 // إحصائيات مشروع كاملة من البيانات الخام
 export const calcProjectStats = (projectId, workDays = [], expenses = [], clientReceipts = []) => {
-  const wdList    = workDays.filter(w => w.project_id === projectId)
+  const wdList    = workDays.filter(w => w.project_id === projectId && w.status === 'approved')
   const receipts  = clientReceipts.filter(r => r.project_id === projectId)
-  const projExp   = expenses.filter(e => e.project_id === projectId && !e.employee_id)
-  const workerExp = expenses.filter(e => e.project_id === projectId && e.employee_id)
+  const projExp   = expenses.filter(e => e.project_id === projectId && !e.employee_id && e.status === 'approved')
+  const workerExp = expenses.filter(e => e.project_id === projectId && e.employee_id && e.status === 'approved')
 
   const revenue  = calcRevenue(receipts)
   const wdCost   = calcEarned(wdList)

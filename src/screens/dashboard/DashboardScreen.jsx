@@ -123,9 +123,9 @@ export default function DashboardScreen({
 
   // ── Computed stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const workerCosts   = calcEarned(workDays)
+    const workerCosts   = calcEarned(workDays.filter(w => w.status === 'approved'))
     const totalRevenue  = calcRevenue(clientReceipts)
-    const totalExpenses = expenses.filter(e => !e.employee_id).reduce((s, e) => s + (e.amount || 0), 0)
+    const totalExpenses = expenses.filter(e => !e.employee_id && e.status === 'approved').reduce((s, e) => s + (e.amount || 0), 0)
     const totalPayments = calcPaid(payments)
     const totalAdvances = calcAdvances(advances)
     const totalWasel    = totalPayments + totalAdvances
@@ -138,8 +138,8 @@ export default function DashboardScreen({
       const d   = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       const rev    = calcRevenue(clientReceipts.filter(r => r.date?.startsWith(key)))
-      const exp    = expenses.filter(e => !e.employee_id && e.date?.startsWith(key)).reduce((s, e) => s + (e.amount || 0), 0)
-      const labor  = calcEarned(workDays.filter(w => w.date?.startsWith(key)))
+      const exp    = expenses.filter(e => !e.employee_id && e.status === 'approved' && e.date?.startsWith(key)).reduce((s, e) => s + (e.amount || 0), 0)
+      const labor  = calcEarned(workDays.filter(w => w.status === 'approved' && w.date?.startsWith(key)))
       return { month: key.slice(5), v: rev - exp - labor, rev, exp: exp + labor }
     })
 

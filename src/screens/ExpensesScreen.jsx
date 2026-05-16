@@ -82,7 +82,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
   }
 
   const pendingExpenses  = expenses.filter(e => e.status === 'pending')
-  const approvedExpenses = expenses.filter(e => e.status !== 'pending')
+  const approvedExpenses = expenses.filter(e => e.status === 'approved')
   const total       = approvedExpenses.reduce((s, e) => s + e.amount, 0)
   const totalVATIn  = Math.round(approvedExpenses.reduce((s, e) => {
     const rate   = (e.date || '') >= '2025-01-01' ? 0.18 : 0.17

@@ -506,7 +506,7 @@ export default function AccountingScreen({
 
   const thisMonth   = new Date().toISOString().slice(0, 7)
   const monthRevenue  = clientReceipts.filter(r => (r.date||'').startsWith(thisMonth)).reduce((s, r) => s + (r.amount||0), 0)
-  const monthExpenses = expenses.filter(e => e.status !== 'pending' && (e.date||'').startsWith(thisMonth)).reduce((s, e) => s + (e.amount||0), 0)
+  const monthExpenses = expenses.filter(e => e.status === 'approved' && (e.date||'').startsWith(thisMonth)).reduce((s, e) => s + (e.amount||0), 0)
   const monthSalaries = calcPaid(payments.filter(p => (p.date||'').startsWith(thisMonth)))
   const monthNet      = monthRevenue - monthExpenses - monthSalaries
 

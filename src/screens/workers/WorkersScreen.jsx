@@ -109,15 +109,16 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
   const eid = worker.id
-  const wWorkers = workDays.filter(w => w.employee_id === eid)
+  const wWorkers  = workDays.filter(w => w.employee_id === eid)
+  const wWorksApp = wWorkers.filter(w => w.status === 'approved')
   const wPayments = payments.filter(p => p.employee_id === eid)
   const wAdvances = advances.filter(a => a.employee_id === eid)
 
-  const wWorkerExp    = expenses.filter(e => e.employee_id === eid)
-  const totalEarned   = calcMustahaq(wWorkers, wWorkerExp)
+  const wWorkerExp    = expenses.filter(e => e.employee_id === eid && e.status === 'approved')
+  const totalEarned   = calcMustahaq(wWorksApp, wWorkerExp)
   const totalPaid     = calcPaid(wPayments)
   const totalAdvances = calcAdvances(wAdvances)
-  const balance       = calcMutabqi(wWorkers, wWorkerExp, wPayments, wAdvances)
+  const balance       = calcMutabqi(wWorksApp, wWorkerExp, wPayments, wAdvances)
 
   const TABS = [
     { id: 'overview', icon: BarChart3, label: language === 'he' ? 'סיכום' : language === 'en' ? 'Overview' : 'ملخص' },
@@ -289,11 +290,13 @@ export default function WorkersScreen({
     const map = {}
     for (const e of employees) {
       const eid = e.id
-      const wds = workDays.filter(w => w.employee_id === eid)
-      const paid = payments.filter(p => p.employee_id === eid).reduce((s, p) => s + (p.amount || 0), 0)
-      const adv  = advances.filter(a => a.employee_id === eid).reduce((s, a) => s + (a.amount || 0), 0)
-      const earned = calcMustahaq(wds, expenses.filter(e => e.employee_id === eid))
-      map[eid] = { earned, paid, adv, balance: earned - paid - adv, days: wds.length, pending: wds.filter(w => w.status === 'pending').length }
+      const wds    = workDays.filter(w => w.employee_id === eid)
+      const wdsApp = wds.filter(w => w.status === 'approved')
+      const expApp = expenses.filter(ex => ex.employee_id === eid && ex.status === 'approved')
+      const paid   = payments.filter(p => p.employee_id === eid).reduce((s, p) => s + (p.amount || 0), 0)
+      const adv    = advances.filter(a => a.employee_id === eid).reduce((s, a) => s + (a.amount || 0), 0)
+      const earned = calcMustahaq(wdsApp, expApp)
+      map[eid] = { earned, paid, adv, balance: earned - paid - adv, days: wdsApp.length, pending: wds.filter(w => w.status === 'pending').length }
     }
     return map
   }, [employees, workDays, payments, advances])
