@@ -44,7 +44,6 @@ export function Modal({ open, onClose, title, children, action, size = 'md', sty
               marginBottom: 'max(72px, calc(66px + env(safe-area-inset-bottom, 0px)))',
               display: 'flex',
               flexDirection: 'column',
-              direction: 'rtl',
               ...style,
             }}
           >
