@@ -24,7 +24,11 @@ export const useAppStore = create((set, get) => ({
     const timer = setTimeout(() => set({ toast: null, toastTimer: null }), 3000)
     set({ toast: { msg, type }, toastTimer: timer })
   },
-  clearToast: () => set({ toast: null }),
+  clearToast: () => {
+    const { toastTimer } = get()
+    if (toastTimer) clearTimeout(toastTimer)
+    set({ toast: null, toastTimer: null })
+  },
 
   // ─── Online state ─────────────────────────────────────────────────────────
   isOnline: navigator.onLine,

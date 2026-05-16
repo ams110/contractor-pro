@@ -172,8 +172,9 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
               const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
               const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
               const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
-              const owed   = Math.max(0, earned + wExp - paid)
-              const pct    = (earned + wExp) > 0 ? Math.min(100, Math.round((paid / (earned + wExp)) * 100)) : 100
+              const advs   = advances.filter(a => a.employee_id === emp.id).reduce((s, a) => s + a.amount, 0)
+              const owed   = Math.max(0, earned + wExp - paid - advs)
+              const pct    = (earned + wExp) > 0 ? Math.min(100, Math.round(((paid + advs) / (earned + wExp)) * 100)) : 0
               const grad   = owed > 0 ? GRAD.danger : GRAD.success
 
               return (
