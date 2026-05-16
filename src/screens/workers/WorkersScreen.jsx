@@ -4,12 +4,13 @@ import { useTranslation } from 'react-i18next'
 import {
   Plus, Search, Users, ArrowLeft, Calendar, Banknote,
   TrendingUp, Phone, Star, BarChart3, CreditCard,
-  Check, AlertTriangle, Trash2, ChevronRight,
+  Check, AlertTriangle, Trash2, ChevronRight, CalendarDays,
 } from 'lucide-react'
 import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi, calcEarned } from '../../lib/calculations.js'
+import WorkDaysScreen from '../WorkDaysScreen.jsx'
 
 // ─── Worker avatar initials ───────────────────────────────────────────────────
 function Avatar({ name, size = 42, color = C.primary }) {
@@ -259,7 +260,7 @@ export default function WorkersScreen({
   projects = [],
   addEmployee, updateEmployee, deleteEmployee,
   addAdvance, deleteAdvance,
-  addWorkDay, bulkAddWorkDays, updateWorkDay, deleteWorkDay,
+  addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays, deleteWorkDay,
   approveWorkDay, rejectWorkDay,
   addPayment, updatePayment, deletePayment,
   specs = [], permissions, holidays = [], addHoliday, deleteHoliday,
@@ -271,6 +272,7 @@ export default function WorkersScreen({
   const { language } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
+  const [mainTab, setMainTab] = useState('workers')
   const [search, setSearch] = useState('')
   const [specFilter, setSpecFilter] = useState('all')
   const [showAdd, setShowAdd] = useState(false)
@@ -316,10 +318,68 @@ export default function WorkersScreen({
     )
   }
 
+  if (mainTab === 'workdays') {
+    return (
+      <div dir={dir}>
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', marginBottom: 4 }}>
+          {[
+            { id: 'workers',  label: 'العمال',     Icon: Users },
+            { id: 'workdays', label: 'أيام العمل', Icon: CalendarDays, badge: workDays.filter(w => w.status === 'pending').length },
+          ].map(({ id, label, Icon, badge }) => (
+            <button key={id} onClick={() => setMainTab(id)} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
+              borderRadius: 12, border: `1px solid ${mainTab === id ? C.primary + '60' : C.border}`,
+              background: mainTab === id ? `${C.primary}15` : 'transparent',
+              color: mainTab === id ? C.primary : C.textDim,
+              fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', position: 'relative',
+            }}>
+              <Icon size={14} strokeWidth={2} />
+              {label}
+              {badge > 0 && (
+                <span style={{ background: C.accent, color: '#fff', fontSize: 9, fontWeight: 900, padding: '1px 5px', borderRadius: 7, minWidth: 16, textAlign: 'center' }}>{badge}</span>
+              )}
+            </button>
+          ))}
+        </div>
+        <WorkDaysScreen
+          workDays={workDays} employees={employees} projects={projects}
+          addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays}
+          updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays}
+          deleteWorkDay={deleteWorkDay} approveWorkDay={approveWorkDay}
+          rejectWorkDay={rejectWorkDay} permissions={permissions} holidays={holidays}
+        />
+      </div>
+    )
+  }
+
   const totalOwed = Object.values(workerStats).reduce((s, v) => s + Math.max(0, v.balance), 0)
+  const pendingWD = workDays.filter(w => w.status === 'pending').length
 
   return (
     <div dir={dir} style={{ padding: '16px 16px 8px' }}>
+      {/* Tab switcher */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {[
+          { id: 'workers',  label: 'العمال',     Icon: Users },
+          { id: 'workdays', label: 'أيام العمل', Icon: CalendarDays, badge: pendingWD },
+        ].map(({ id, label, Icon, badge }) => (
+          <button key={id} onClick={() => setMainTab(id)} style={{
+            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
+            borderRadius: 12, border: `1px solid ${mainTab === id ? C.primary + '60' : C.border}`,
+            background: mainTab === id ? `${C.primary}15` : 'transparent',
+            color: mainTab === id ? C.primary : C.textDim,
+            fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            <Icon size={14} strokeWidth={2} />
+            {label}
+            {badge > 0 && (
+              <span style={{ background: C.accent, color: '#fff', fontSize: 9, fontWeight: 900, padding: '1px 5px', borderRadius: 7, minWidth: 16, textAlign: 'center' }}>{badge}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
