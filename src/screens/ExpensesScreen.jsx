@@ -76,13 +76,14 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
       let receipt_url = ''
       if (receiptFile) receipt_url = await uploadReceipt(userId, receiptFile)
       await addExpense({ ...form, amount: parseFloat(form.amount), receipt_url })
-      setForm(emptyForm); setReceiptFile(null); setPreview(''); setShowForm(false)
+      if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview)
+      setForm(emptyForm); setFormError(''); setReceiptFile(null); setPreview(''); setShowForm(false)
     } catch (e) { setFormError(e.message) }
     finally     { setSaving(false) }
   }
 
   const pendingExpenses  = expenses.filter(e => e.status === 'pending')
-  const approvedExpenses = expenses.filter(e => e.status !== 'pending')
+  const approvedExpenses = expenses.filter(e => e.status === 'approved')
   const total       = approvedExpenses.reduce((s, e) => s + e.amount, 0)
   const totalVATIn  = Math.round(approvedExpenses.reduce((s, e) => {
     const rate   = (e.date || '') >= '2025-01-01' ? 0.18 : 0.17
@@ -234,7 +235,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
       {/* ── قائمة المصاريف ── */}
       {sorted.length === 0 && pendingExpenses.length === 0
-        ? <EmptyState icon="💸" text="ما في مصاريف" action="+ أضف مصروف" onAction={() => setShowForm(true)} />
+        ? <EmptyState icon="💸" text="ما في مصاريف" action="+ أضف مصروف" onAction={() => { setFormError(''); setShowForm(true) }} />
         : sorted.length === 0 ? null
         : sorted.map(ex => {
             const proj   = projects.find(p => p.id === ex.project_id)

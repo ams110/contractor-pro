@@ -240,11 +240,11 @@ export default function DashboardScreen({
   // ─── Alerts ───────────────────────────────────────────────────────────────
   const alerts = []
   employees.forEach(emp => {
-    const earned = _wd.filter(w => w.employee_id === emp.id).reduce((s, w) => s + w.amount, 0)
+    const earned = _wd.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + (w.amount || 0), 0)
     const paid   = _py.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
     const owed   = earned - paid
     if (owed <= 0) return
-    const lastDay = _wd.filter(w => w.employee_id === emp.id).map(w => new Date(w.date)).sort((a, b) => b - a)[0]
+    const lastDay = _wd.filter(w => w.employee_id === emp.id && w.status === 'approved').map(w => new Date(w.date)).sort((a, b) => b - a)[0]
     if (lastDay) {
       const daysSince = Math.floor((today - lastDay) / 86400000)
       if (daysSince >= 14) alerts.push({ text: `${emp.name} - راتب متأخر ${daysSince} يوم (${fmt(owed)}₪)`, color: C.accent, urgent: true, nav: 'payments' })

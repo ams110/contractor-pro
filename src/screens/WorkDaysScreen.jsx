@@ -67,7 +67,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const multiTotal = multiPreviews.reduce((s, x) => s + x.amount, 0)
 
   const pendingDays  = workDays.filter(wd => wd.status === 'pending')
-  const approvedDays = workDays.filter(wd => wd.status !== 'pending')
+  const approvedDays = workDays.filter(wd => wd.status === 'approved')
 
   function setDayType(t) {
     const hours = t === 'كامل' ? '8' : t === 'نص يوم' ? '4' : form.hours
