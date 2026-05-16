@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, Pencil, Trash2, Eye, Bell, Wrench, Tag, CreditCard, CalendarDays, Users, FileDown, Download, KeyRound, Fingerprint, Camera, User, Clock, FileSpreadsheet } from 'lucide-react'
+import { Plus, Pencil, Trash2, Eye, Bell, Wrench, Tag, CreditCard, CalendarDays, Users, FileDown, Download, KeyRound, Fingerprint, Camera, User, Clock, FileSpreadsheet, RefreshCw } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { Btn, GlassCard, SectionLabel, ConfirmDialog } from '../components/index.jsx'
 import { useAuth } from '../hooks/useAuth.js'
@@ -762,6 +762,20 @@ export default function SettingsScreen({ projects, employees, workDays, expenses
           </div>
         </>
       )}
+
+      {/* ── تحديث التطبيق ── */}
+      <GlassCard style={{ marginBottom: 16, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 16px' }}>
+          <SectionLabel color={C.primary}>التطبيق</SectionLabel>
+          <button
+            onClick={() => { if ('caches' in window) caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).finally(() => window.location.reload()) ; else window.location.reload() }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px 16px', borderRadius: 14, border: `1.5px solid ${C.primary}44`, background: `${C.primary}12`, color: C.primary, fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <RefreshCw size={15} strokeWidth={2.2} />
+            تحديث التطبيق
+          </button>
+        </div>
+      </GlassCard>
 
       <ConfirmDialog open={confirmSignOut} onClose={() => setConfirmSignOut(false)} onConfirm={signOut} message="متأكد بدك تسجّل خروج؟" />
     </div>
