@@ -109,7 +109,6 @@ export const NAV = [
 export const MORE_SCREENS = [
   { id: 'tracker',    icon: 'ClipboardList', label: 'تتبع الوحدات'},
   { id: 'materials',  icon: 'Package',       label: 'البضاعة'     },
-  { id: 'accounting', icon: 'Calculator',    label: 'المحاسبة'    },
   { id: 'activity',   icon: 'Activity',      label: 'النشاط'      },
 ]
 

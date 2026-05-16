@@ -12,6 +12,7 @@ import { fmt, fmtDate, todayStr, validateExpense, validatePayment } from '../../
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../../lib/calculations.js'
 import { uploadReceipt } from '../../lib/storage.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import AccountingScreen from '../AccountingScreen.jsx'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function lbl(ar, he, en, lang) { return lang === 'he' ? he : lang === 'en' ? en : ar }
@@ -739,9 +740,11 @@ export default function FinanceScreen({
       </div>
 
       {tab === 'accounting' && (
-        <AccountingTab expenses={expenses} payments={payments} clientReceipts={clientReceipts}
-          employees={employees} projects={projects} taxAdvances={taxAdvances}
-          pensionMonthly={pensionMonthly} businessType={businessType} language={language} />
+        <AccountingScreen expenses={expenses} payments={payments} clientReceipts={clientReceipts}
+          employees={employees} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance}
+          deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly}
+          setPensionMonthly={setPensionMonthly} businessType={businessType}
+          setBusinessType={setBusinessType} />
       )}
       {tab === 'expenses' && (
         <ExpensesTab expenses={expenses} projects={projects} employees={employees}
