@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
-  Settings, User, Users, Users2, Globe, Shield, Bell, Database,
+  Settings, User, Users, Users2, Globe, Shield, Bell, BellOff, BellRing, Database,
   ChevronRight, Check, LogOut, HardHat, Palette, CalendarDays,
   CreditCard, Banknote, ClipboardList, Package, Calculator,
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { navigate } from '../../Router.jsx'
+import { usePushNotifications } from '../../hooks/usePushNotifications.js'
 
 const LANGS = [
   { code: 'ar', label: 'العربية', flag: '🇸🇦', dir: 'rtl' },
@@ -71,6 +72,9 @@ export default function SettingsScreen({
   const { t } = useTranslation()
   const { language, setLanguage } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
+
+  const { supported: pushSupported, permission, requestPermission } = usePushNotifications(userId)
+  const [notifLoading, setNotifLoading] = useState(false)
 
   const [newSpec, setNewSpec] = useState('')
   const [newCat, setNewCat] = useState('')
@@ -256,6 +260,76 @@ export default function SettingsScreen({
           </div>
         </div>
       </Section>
+
+      {/* ── Notifications Permission ── */}
+      {pushSupported && (
+        <Section title={language === 'he' ? 'התראות' : language === 'en' ? 'Notifications' : 'الإشعارات'}>
+          <div style={{ padding: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: permission === 'granted' ? `${C.success}18` : permission === 'denied' ? `${C.accent}18` : `${C.primary}18`,
+                border: `1px solid ${permission === 'granted' ? C.success : permission === 'denied' ? C.accent : C.primary}28`,
+              }}>
+                {permission === 'granted'
+                  ? <BellRing size={18} color={C.success} strokeWidth={2} />
+                  : permission === 'denied'
+                  ? <BellOff size={18} color={C.accent} strokeWidth={2} />
+                  : <Bell size={18} color={C.primary} strokeWidth={2} />
+                }
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                  {permission === 'granted'
+                    ? (language === 'he' ? 'התראות מופעלות' : language === 'en' ? 'Notifications enabled' : 'الإشعارات مفعّلة')
+                    : permission === 'denied'
+                    ? (language === 'he' ? 'התראות חסומות' : language === 'en' ? 'Notifications blocked' : 'الإشعارات محظورة')
+                    : (language === 'he' ? 'הפעל התראות' : language === 'en' ? 'Enable notifications' : 'تفعيل الإشعارات')
+                  }
+                </div>
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
+                  {permission === 'granted'
+                    ? (language === 'he' ? 'תקבל התראות גם כשהאפליקציה סגורה' : language === 'en' ? 'You\'ll get alerts even when the app is closed' : 'ستصلك إشعارات حتى لو التطبيق مغلق')
+                    : permission === 'denied'
+                    ? (language === 'he' ? 'אפשר מהגדרות הדפדפן / מערכת' : language === 'en' ? 'Enable from browser / system settings' : 'فعّلها من إعدادات المتصفح أو الهاتف')
+                    : (language === 'he' ? 'לקבל התראות על ימי עבודה, תשלומים ועוד' : language === 'en' ? 'Get alerts for work days, payments & more' : 'استقبل تنبيهات عن أيام العمل والمدفوعات')
+                  }
+                </div>
+              </div>
+            </div>
+            {permission !== 'denied' && permission !== 'granted' && (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                disabled={notifLoading}
+                onClick={async () => {
+                  setNotifLoading(true)
+                  await requestPermission()
+                  setNotifLoading(false)
+                }}
+                style={{
+                  width: '100%', padding: '11px 16px', borderRadius: 14, border: 'none',
+                  cursor: notifLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                  fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: 8,
+                  background: GRAD.primary, color: '#fff',
+                  boxShadow: '0 4px 16px rgba(245,158,11,0.3)',
+                  opacity: notifLoading ? 0.7 : 1,
+                }}
+              >
+                <Bell size={15} strokeWidth={2.5} />
+                {language === 'he' ? 'אפשר התראות' : language === 'en' ? 'Allow Notifications' : 'السماح بالإشعارات'}
+              </motion.button>
+            )}
+            {permission === 'granted' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: `${C.success}12`, borderRadius: 10, border: `1px solid ${C.success}25` }}>
+                <Check size={14} color={C.success} strokeWidth={2.5} />
+                <span style={{ fontSize: 12, color: C.success, fontWeight: 700 }}>
+                  {language === 'he' ? 'פעיל — תקבל התראות ברקע' : language === 'en' ? 'Active — background alerts on' : 'مفعّل — ستصلك إشعارات في الخلفية'}
+                </span>
+              </div>
+            )}
+          </div>
+        </Section>
+      )}
 
       {/* ── Subscription ── */}
       <Section title={t('settings.subscription')}>

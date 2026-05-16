@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
@@ -23,21 +26,8 @@ export default defineConfig({
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
-      workbox: {
-        skipWaiting: true,
-        clientsClaim: true,
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
-              networkTimeoutSeconds: 10,
-            },
-          },
-        ],
       },
     }),
   ],
