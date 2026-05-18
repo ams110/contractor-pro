@@ -6,7 +6,7 @@ import {
   ChevronRight, X, Calendar, CreditCard, ReceiptText, Package,
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
-  ChevronDown, CheckCircle2, CircleDot, Paperclip,
+  ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { uploadReceipt } from '../../lib/storage.js'
@@ -53,18 +53,34 @@ function Row({ label, value, color, bold }) {
 
 // ─── Add/Edit Project Modal ───────────────────────────────────────────────────
 function ProjectFormModal({ open, onClose, onSave, language, initialData = null }) {
-  const empty = { name: '', type: PROJECT_TYPES[0], status: 'نشط', price: '', notes: '' }
+  const empty = { name: '', type: PROJECT_TYPES[0], status: 'نشط', price: '', notes: '', locations: [] }
   const [form, setForm] = useState(empty)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [locInput, setLocInput] = useState('')
   const isEdit = !!initialData
 
   useEffect(() => {
     if (open) {
-      setForm(initialData ? { ...empty, ...initialData, price: String(initialData.price || '') } : empty)
+      setForm(initialData
+        ? { ...empty, ...initialData, price: String(initialData.price || ''), locations: initialData.locations || [] }
+        : empty)
       setError('')
+      setLocInput('')
     }
   }, [open, initialData])
+
+  function addLocation() {
+    const v = locInput.trim()
+    if (!v) return
+    if ((form.locations || []).includes(v)) return
+    setForm(p => ({ ...p, locations: [...(p.locations || []), v] }))
+    setLocInput('')
+  }
+
+  function removeLocation(loc) {
+    setForm(p => ({ ...p, locations: (p.locations || []).filter(l => l !== loc) }))
+  }
 
   async function handleSave() {
     if (!form.name.trim()) return setError('اسم المشروع مطلوب')
@@ -91,11 +107,45 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
       <Input label="السعر (₪)" value={form.price} type="number" min="0"
         onChange={v => setForm(p => ({ ...p, price: v }))} />
       <Input label="النوع" value={form.type}
-        onChange={v => setForm(p => ({ ...p, type: v }))} options={PROJECT_TYPES} />
+        onChange={v => setForm(p => ({ ...p, type: v, locations: [] }))} options={PROJECT_TYPES} />
       <Input label="الحالة" value={form.status}
         onChange={v => setForm(p => ({ ...p, status: v }))} options={PROJECT_STATUS} />
       <Input label="ملاحظات" value={form.notes}
         onChange={v => setForm(p => ({ ...p, notes: v }))} />
+
+      {form.type === 'يومي' && (
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            <MapPin size={11} strokeWidth={2} /> أماكن العمل
+          </label>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <input
+              value={locInput}
+              onChange={e => setLocInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addLocation())}
+              placeholder="اسم المكان..."
+              style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '10px 14px', color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none', direction: 'rtl' }}
+            />
+            <button onClick={addLocation} style={{ padding: '10px 14px', borderRadius: 12, background: `${C.primary}22`, border: `1.5px solid ${C.primary}55`, color: C.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
+              <Plus size={14} strokeWidth={2.5} />
+            </button>
+          </div>
+          {(form.locations || []).length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {(form.locations || []).map(loc => (
+                <div key={loc} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, background: `${C.primary}18`, border: `1.5px solid ${C.primary}44`, color: C.primary, fontSize: 12, fontWeight: 700 }}>
+                  <MapPin size={10} strokeWidth={2} />
+                  {loc}
+                  <button onClick={() => removeLocation(loc)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: C.primary, display: 'flex', alignItems: 'center', opacity: 0.7 }}>
+                    <X size={12} strokeWidth={2.5} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {error && (
         <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
           ⚠ {error}
@@ -301,6 +351,22 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
                 </div>
               ))}
             </div>
+            {/* Locations — daily projects */}
+            {project.type === 'يومي' && (project.locations || []).length > 0 && (
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px', marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <MapPin size={10} strokeWidth={2} /> أماكن العمل
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {(project.locations || []).map(loc => (
+                    <span key={loc} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, background: `${C.primary}15`, border: `1px solid ${C.primary}35`, color: C.primary, fontSize: 12, fontWeight: 700 }}>
+                      <MapPin size={9} strokeWidth={2} /> {loc}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Worker payment breakdown */}
             {(stats.wdCost > 0 || paidToWorkers > 0) && (() => {
               const owedToWorkers = stats.wdCost - paidToWorkers
