@@ -5,6 +5,7 @@ import {
   Plus, Search, Users, ArrowLeft, Calendar, Banknote,
   TrendingUp, Phone, Star, BarChart3, CreditCard,
   Check, AlertTriangle, Trash2, ChevronRight, CalendarDays,
+  Link2, Copy, CheckCheck,
 } from 'lucide-react'
 import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
@@ -105,8 +106,18 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
 }
 
 // ─── Worker Detail ────────────────────────────────────────────────────────────
+const PORTAL_URL = `${window.location.origin}${window.location.pathname}?portal`
+
 function WorkerDetail({ worker, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language }) {
   const [tab, setTab] = useState('overview')
+  const [copied, setCopied] = useState(false)
+
+  function copyPortalLink() {
+    navigator.clipboard.writeText(PORTAL_URL).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
   const eid = worker.id
@@ -173,11 +184,25 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
             </div>
 
             {worker.phone && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 10 }}>
                 <Phone size={15} color={C.cyan} strokeWidth={2} />
                 <span style={{ fontSize: 13, color: C.text, direction: 'ltr' }}>{worker.phone}</span>
               </div>
             )}
+
+            {/* Portal link */}
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Link2 size={10} strokeWidth={2} /> بورتال العامل
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ flex: 1, fontSize: 11, color: C.textDim, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr' }}>{PORTAL_URL}</span>
+                <button onClick={copyPortalLink} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10, background: copied ? `${C.success}22` : `${C.primary}18`, border: `1.5px solid ${copied ? C.success+'55' : C.primary+'44'}`, color: copied ? C.success : C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .2s' }}>
+                  {copied ? <CheckCheck size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
+                  {copied ? 'تم النسخ' : 'نسخ'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
