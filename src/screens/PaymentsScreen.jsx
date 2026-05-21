@@ -102,14 +102,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
     finally { setApprovingSaving(false) }
   }
 
-  const activeEmployees = employees.filter(emp => {
-    const mustahaq = calcMustahaq(
-      workDays.filter(w => w.employee_id === emp.id && w.status === 'approved'),
-      expenses.filter(e => e.employee_id === emp.id && e.status === 'approved')
-    )
-    const paid = calcPaid(payments.filter(p => p.employee_id === emp.id))
-    return mustahaq > 0 || paid > 0
-  })
+  const activeEmployees = employees.filter(emp => emp.status !== 'ملغي' && emp.status !== 'محذوف')
 
   const totalOwed = activeEmployees.reduce((s, e) => s + calcOwed(e.id), 0)
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0)
