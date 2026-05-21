@@ -6,7 +6,7 @@ import {
   ChevronRight, X, Calendar, CreditCard, ReceiptText, Package,
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
-  ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin,
+  ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { uploadReceipt } from '../../lib/storage.js'
@@ -184,6 +184,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   const TABS = [
     { id: 'overview',  icon: BarChart3,    label: language === 'he' ? 'סיכום' : language === 'en' ? 'Overview' : 'نظرة عامة' },
     { id: 'workdays',  icon: Calendar,     label: language === 'he' ? 'ימים' : language === 'en' ? 'Days' : 'أيام' },
+    { id: 'workers',   icon: Users,        label: language === 'he' ? 'עובדים' : language === 'en' ? 'Workers' : 'عمال' },
     { id: 'expenses',  icon: CreditCard,   label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'مصاريف' },
     { id: 'receipts',  icon: ReceiptText,  label: language === 'he' ? 'קבלות' : language === 'en' ? 'Receipts' : 'قبضات' },
   ]
@@ -458,6 +459,85 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
             })}
           </div>
         )}
+
+        {tab === 'workers' && (() => {
+          // جمع معرّفات العمال المرتبطين بهذا المشروع
+          const workerIds = [...new Set([
+            ...pWorkDays.map(w => w.employee_id),
+            ...pPayments.map(p => p.employee_id),
+            ...pExpenses.filter(e => e.employee_id).map(e => e.employee_id),
+          ])].filter(Boolean)
+
+          if (workerIds.length === 0) return (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: C.textDim, fontSize: 13 }}>
+              لا يوجد عمال مرتبطون بهذا المشروع بعد
+            </div>
+          )
+
+          return (
+            <div>
+              {workerIds.map(wid => {
+                const emp       = employees.find(e => e.id === wid)
+                if (!emp) return null
+                const wds       = pWorkDays.filter(w => w.employee_id === wid)
+                const wdsApp    = wds.filter(w => w.status === 'approved')
+                const earned    = wdsApp.reduce((s, w) => s + (w.amount || 0), 0)
+                const paid      = pPayments.filter(p => p.employee_id === wid).reduce((s, p) => s + (p.amount || 0), 0)
+                const expAmt    = pExpenses.filter(e => e.employee_id === wid && e.status === 'approved').reduce((s, e) => s + (e.amount || 0), 0)
+                const balance   = earned + expAmt - paid
+                const payRefs   = pPayments.filter(p => p.employee_id === wid)
+                return (
+                  <div key={wid} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, marginBottom: 10, overflow: 'hidden' }}>
+                    {/* رأس العامل */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 12, background: `${C.secondary}20`, border: `1px solid ${C.secondary}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: C.secondary, flexShrink: 0 }}>
+                        {emp.name?.[0] || '?'}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{emp.name}</div>
+                        <div style={{ fontSize: 10, color: C.textDim }}>{emp.specialization || emp.specialty || ''}</div>
+                      </div>
+                      <div style={{ textAlign: 'end' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: balance > 0 ? C.warning : C.success }}>
+                          {balance > 0 ? 'مستحق' : 'مكتفي'}
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 900, color: balance > 0 ? C.warning : C.success, fontFamily: 'monospace' }}>
+                          ₪{fmt(Math.abs(balance))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* إحصائيات */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, borderTop: `1px solid ${C.border}` }}>
+                      {[
+                        { label: 'أيام العمل', value: wds.length, color: C.primary },
+                        { label: 'الأجور', value: `₪${fmt(earned)}`, color: C.secondary },
+                        { label: 'المدفوع', value: `₪${fmt(paid)}`, color: C.success },
+                      ].map(s => (
+                        <div key={s.label} style={{ padding: '8px', textAlign: 'center', background: 'rgba(255,255,255,0.02)' }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: s.color }}>{s.value}</div>
+                          <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* أرقام الرواتب المرتبطة */}
+                    {payRefs.length > 0 && (
+                      <div style={{ borderTop: `1px solid ${C.border}`, padding: '8px 14px', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                        <span style={{ fontSize: 9, color: C.textDim, fontWeight: 700 }}>رواتب:</span>
+                        {payRefs.map(p => (
+                          <span key={p.id} style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}25`, borderRadius: 5, padding: '2px 7px' }}>
+                            {p.ref_number || '—'} · ₪{fmt(p.amount)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
 
         {tab === 'expenses' && (
           <div>
