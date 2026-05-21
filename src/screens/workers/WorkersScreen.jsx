@@ -39,15 +39,25 @@ function TabBtn({ active, label, icon: Icon, onClick }) {
 
 // ─── Add Worker Modal ─────────────────────────────────────────────────────────
 function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
-  const [form, setForm] = useState({ name: '', specialty: specs[0] || '', phone: '', daily_rate: '', notes: '' })
+  const [form, setForm] = useState({ name: '', specialization: specs[0] || '', phone: '', daily_rate: '', notes: '' })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.name.trim()) return
-    onSave({ ...form, daily_rate: Number(form.daily_rate) || 0 })
-    setForm({ name: '', specialty: specs[0] || '', phone: '', daily_rate: '', notes: '' })
-    onClose()
+    setSaving(true)
+    setError('')
+    try {
+      await onSave({ ...form, daily_rate: Number(form.daily_rate) || 0 })
+      setForm({ name: '', specialization: specs[0] || '', phone: '', daily_rate: '', notes: '' })
+      onClose()
+    } catch (e) {
+      setError(e.message || 'حدث خطأ، حاول مجدداً')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -82,20 +92,26 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>
                   {language === 'he' ? 'התמחות' : language === 'en' ? 'Specialty' : 'التخصص'}
                 </label>
-                <select value={form.specialty} onChange={f('specialty')}
+                <select value={form.specialization} onChange={f('specialization')}
                   style={{ width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none' }}>
                   {specs.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             )}
 
+            {error && (
+              <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 10 }}>
+                ⚠ {error}
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-              <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: 14, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={onClose} disabled={saving} style={{ flex: 1, padding: '12px', borderRadius: 14, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {language === 'he' ? 'ביטול' : language === 'en' ? 'Cancel' : 'إلغاء'}
               </button>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave}
-                style={{ flex: 2, padding: '12px', borderRadius: 14, background: GRAD.premium, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 20px rgba(124,58,237,0.35)' }}>
-                {language === 'he' ? 'שמור' : language === 'en' ? 'Save' : 'حفظ'}
+              <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave} disabled={saving}
+                style={{ flex: 2, padding: '12px', borderRadius: 14, background: GRAD.premium, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 20px rgba(124,58,237,0.35)', opacity: saving ? 0.7 : 1 }}>
+                {saving ? 'جاري الحفظ...' : language === 'he' ? 'שמור' : language === 'en' ? 'Save' : 'حفظ'}
               </motion.button>
             </div>
           </motion.div>
