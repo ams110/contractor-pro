@@ -497,7 +497,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
         const owed   = Math.max(0, calcMutabqi(wds, wExp, pays, advs))
         const pct    = earned > 0 ? Math.min(100, Math.round(((paid + calcAdvances(advs)) / earned) * 100)) : 0
         const recent = pays.sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 2)
-        if (earned === 0 && paid === 0) return null
+        if (emp.status === 'ملغي' || emp.status === 'محذوف') return null
 
         return (
           <div key={emp.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: '14px', marginBottom: 12 }}>
