@@ -48,4 +48,32 @@ export const useAppStore = create((set, get) => ({
   // ─── Command Palette ──────────────────────────────────────────────────────
   showCommandPalette: false,
   setShowCommandPalette: (v) => set({ showCommandPalette: v }),
+
+  // ─── Signer Info (set once on login) ──────────────────────────────────────
+  signerName:   '',
+  signerRole:   'owner',
+  signerUserId: null,
+  ownerUserId:  null,
+  setSigner: (name, role, userId, ownerUserId) =>
+    set({ signerName: name, signerRole: role, signerUserId: userId, ownerUserId }),
+
+  // ─── Biometric Confirm (Promise-based global modal trigger) ───────────────
+  bioPending:   null,   // { description, tbl } | null
+  bioResolvers: null,   // { resolve, reject }  — non-serializable, fine in Zustand
+  requestBioConfirm: ({ description, tbl }) =>
+    new Promise((resolve, reject) => {
+      set({ bioPending: { description, tbl }, bioResolvers: { resolve, reject } })
+    }),
+  resolveBioConfirm: () => {
+    const { bioResolvers, signerName, signerRole } = get()
+    const info = { name: signerName, role: signerRole }
+    bioResolvers?.resolve(info)
+    set({ bioPending: null, bioResolvers: null })
+    return info
+  },
+  rejectBioConfirm: () => {
+    const { bioResolvers } = get()
+    bioResolvers?.reject(new Error('CANCELLED'))
+    set({ bioPending: null, bioResolvers: null })
+  },
 }))

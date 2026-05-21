@@ -13,6 +13,7 @@ import { uploadReceipt } from '../../lib/storage.js'
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -180,6 +181,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   const pPayments = (payments || []).filter(p => p.project_id === pid)
   const paidToWorkers = pPayments.reduce((s, p) => s + (p.amount || 0), 0)
   const stats = calcProjectStats(project, workDays, expenses, clientReceipts, employees, payments)
+  const { confirm: bioConfirm } = useBiometricConfirm()
 
   const TABS = [
     { id: 'overview',  icon: BarChart3,    label: language === 'he' ? 'סיכום' : language === 'en' ? 'Overview' : 'نظرة عامة' },
@@ -190,6 +192,18 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   ]
 
   async function handleDelete() {
+    const sig = await bioConfirm(`حذف المشروع: ${project.name}`, 'projects')
+    if (sig === null) {
+      // No passkey registered — fallback to existing confirm UI
+      setConfirmDel(true)
+      return
+    }
+    setDeleting(true)
+    try { await onDelete(project.id); onClose() }
+    catch { setDeleting(false) }
+  }
+
+  async function handleDeleteConfirmed() {
     setDeleting(true)
     try { await onDelete(project.id); onClose() }
     catch { setDeleting(false); setConfirmDel(false) }
@@ -237,8 +251,17 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   }
 
   async function handleDeleteReceipt(id) {
-    try { await deleteReceipt(id) }
-    catch {}
+    const receipt = pReceipts.find(r => r.id === id)
+    const sig = await bioConfirm(`حذف القبضة: ₪${fmt(receipt?.amount || 0)} — ${receipt?.payer_name || ''}`, 'receipts')
+    if (sig === null) {
+      setConfirmDelReceipt(id)
+      return
+    }
+    try { await deleteReceipt(id) } catch {}
+  }
+
+  async function handleDeleteReceiptConfirmed(id) {
+    try { await deleteReceipt(id) } catch {}
     setConfirmDelReceipt(null)
   }
 
@@ -295,7 +318,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
                   style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {language === 'en' ? 'Cancel' : 'إلغاء'}
                 </button>
-                <button onClick={handleDelete} disabled={deleting}
+                <button onClick={handleDeleteConfirmed} disabled={deleting}
                   style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(239,68,68,0.9)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', opacity: deleting ? 0.7 : 1 }}>
                   {deleting ? '...' : (language === 'en' ? 'Delete' : 'حذف')}
                 </button>
@@ -651,7 +674,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
                         style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                         إلغاء
                       </button>
-                      <button onClick={() => handleDeleteReceipt(confirmDelReceipt)}
+                      <button onClick={() => handleDeleteReceiptConfirmed(confirmDelReceipt)}
                         style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(239,68,68,0.9)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
                         حذف
                       </button>

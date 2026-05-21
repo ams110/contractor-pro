@@ -12,6 +12,7 @@ import { fmt, fmtDate, todayStr, validateExpense, validatePayment } from '../../
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../../lib/calculations.js'
 import { uploadReceipt } from '../../lib/storage.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import AccountingScreen from '../AccountingScreen.jsx'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -117,6 +118,7 @@ function Confirm({ open, msg, onConfirm, onCancel, lang }) {
 function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [], clientReceipts = [], addExpense, deleteExpense, approveExpense, rejectExpense, userId, permissions, businessType, language }) {
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const cats = expCats.length ? expCats : EXP_CATS
+  const { confirm: bioConfirm } = useBiometricConfirm()
 
   const [showForm, setShowForm]   = useState(false)
   const [search, setSearch]       = useState('')
@@ -307,7 +309,11 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
                   </a>
                 )}
                 {permissions?.isOwner && (
-                  <button onClick={() => setConfirmDel(exp.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
+                  <button onClick={async () => {
+                    const sig = await bioConfirm(`حذف مصروف: ${exp.category || ''} — ₪${fmt(exp.amount || 0)}`, 'expenses')
+                    if (sig === null) { setConfirmDel(exp.id); return }
+                    deleteExpense?.(exp.id)
+                  }} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
                     <Trash2 size={13} strokeWidth={2} />
                   </button>
                 )}
@@ -449,6 +455,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
 function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = [], advances = [], projects = [], clientReceipts = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods = [], language }) {
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const methods = payMethods.length ? payMethods : PAY_METHODS
+  const { confirm: bioConfirm } = useBiometricConfirm()
 
   const [showForm, setShowForm]   = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -706,7 +713,12 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
                           <button onClick={() => openEdit(pay)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                           </button>
-                          <button onClick={() => setConfirmDel(pay.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}>
+                          <button onClick={async () => {
+                            const emp = employees.find(e => e.id === pay.employee_id)
+                            const sig = await bioConfirm(`حذف دفعة: ${emp?.name || ''} — ₪${fmt(pay.amount || 0)}`, 'payments')
+                            if (sig === null) { setConfirmDel(pay.id); return }
+                            deletePayment?.(pay.id)
+                          }} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}>
                             <Trash2 size={11} strokeWidth={2} />
                           </button>
                         </div>

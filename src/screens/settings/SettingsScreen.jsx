@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
@@ -6,6 +6,7 @@ import {
   ChevronRight, Check, LogOut, HardHat, Palette, CalendarDays,
   CreditCard, Banknote, ClipboardList, Package, Calculator,
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
+  Fingerprint, ShieldCheck, Clock,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
@@ -75,6 +76,18 @@ export default function SettingsScreen({
 
   const { supported: pushSupported, permission, requestPermission } = usePushNotifications(userId)
   const [notifLoading, setNotifLoading] = useState(false)
+  const [sigLog, setSigLog] = useState([])
+  const [sigLogLoading, setSigLogLoading] = useState(false)
+
+  useEffect(() => {
+    if (!userId || !permissions?.isOwner) return
+    setSigLogLoading(true)
+    supabase.rpc('get_signature_log', { p_limit: 20 })
+      .then(({ data }) => { setSigLog(data || []); setSigLogLoading(false) })
+  }, [userId, permissions?.isOwner])
+
+  const PASSKEY_KEY = 'cpro_passkey_cred'
+  const [hasPasskey, setHasPasskey] = useState(!!localStorage.getItem(PASSKEY_KEY))
 
   const [newSpec, setNewSpec] = useState('')
   const [newCat, setNewCat] = useState('')
@@ -393,6 +406,61 @@ export default function SettingsScreen({
           </motion.button>
         </div>
       </Section>
+
+      {/* ── Biometric Status + Signature Log ── */}
+      {permissions?.isOwner && (
+        <Section title="التوقيع الرقمي بالبصمة">
+          {/* Passkey status */}
+          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: hasPasskey ? `${C.success}18` : `${C.primary}18`, border: `1px solid ${hasPasskey ? C.success : C.primary}28` }}>
+              <Fingerprint size={18} color={hasPasskey ? C.success : C.primary} strokeWidth={2} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                {hasPasskey ? 'البصمة مفعّلة على هذا الجهاز' : 'البصمة غير مفعّلة'}
+              </div>
+              <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
+                {hasPasskey ? 'العمليات الحساسة تتطلب تأكيد ببصمة الإصبع' : 'فعّل البصمة من إعدادات الأمان لحماية عملياتك'}
+              </div>
+            </div>
+            {hasPasskey && (
+              <button
+                onClick={() => { localStorage.removeItem(PASSKEY_KEY); setHasPasskey(false) }}
+                style={{ padding: '6px 12px', borderRadius: 9, background: `${C.accent}15`, border: `1px solid ${C.accent}30`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+              >إلغاء</button>
+            )}
+          </div>
+
+          {/* Signature log */}
+          <div style={{ padding: '12px 16px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 8, letterSpacing: '0.05em' }}>سجل التوقيعات الأخيرة</div>
+            {sigLogLoading ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: C.textDim, fontSize: 12 }}>جاري التحميل...</div>
+            ) : sigLog.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: C.textDim, fontSize: 12 }}>لا توجد توقيعات بعد</div>
+            ) : sigLog.slice(0, 10).map(s => (
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: `${C.primary}15`, border: `1px solid ${C.primary}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <ShieldCheck size={13} color={C.primary} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{s.signer_name}</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: s.signer_role === 'owner' ? C.primary : C.secondary, background: s.signer_role === 'owner' ? `${C.primary}15` : `${C.secondary}15`, border: `1px solid ${s.signer_role === 'owner' ? C.primary : C.secondary}30`, borderRadius: 4, padding: '1px 5px' }}>
+                      {s.signer_role === 'owner' ? 'مالك' : 'عضو'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.record_label}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  <Clock size={10} color={C.textDim} />
+                  <span style={{ fontSize: 9, color: C.textDim }}>{new Date(s.created_at).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' })}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* App version */}
       <div style={{ textAlign: 'center', padding: '20px 0 8px', fontSize: 10, color: C.textDim }}>

@@ -23,11 +23,13 @@ import { useTeam, teamMemberSignIn } from './hooks/useTeam.js'
 import { useNotifications }    from './hooks/useNotifications.js'
 import { useSalaryAlerts }     from './hooks/useSalaryAlerts.js'
 
-import WorkerPortalScreen from './screens/WorkerPortalScreen.jsx'
-import NotificationsPanel from './components/NotificationsPanel.jsx'
-import ErrorBoundary      from './components/ErrorBoundary.jsx'
-import SmartSearch        from './components/SmartSearch.jsx'
-import { LoadingSpinner } from './components/index.jsx'
+import WorkerPortalScreen      from './screens/WorkerPortalScreen.jsx'
+import NotificationsPanel      from './components/NotificationsPanel.jsx'
+import ErrorBoundary            from './components/ErrorBoundary.jsx'
+import SmartSearch              from './components/SmartSearch.jsx'
+import BiometricConfirmModal   from './components/BiometricConfirmModal.jsx'
+import { LoadingSpinner }       from './components/index.jsx'
+import { usePushNotifications } from './hooks/usePushNotifications.js'
 
 // ── New screens ───────────────────────────────────────────────────────────────
 const LoginScreen    = lazy(() => import('./screens/auth/LoginScreen.jsx'))
@@ -269,6 +271,7 @@ export default function App() {
     toast, showToast,
     isOnline, setOnline,
     language, setLanguage: setLang,
+    setSigner,
   } = useAppStore()
 
   const dir = (language === 'ar' || language === 'he') ? 'rtl' : 'ltr'
@@ -317,12 +320,27 @@ export default function App() {
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar, saveContractorNumber } = useProfile(uid)
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
   useSalaryAlerts(uid, employees, workDays, payments, advances, expenses)
+  const { permission: pushPermission, requestPermission: requestPushPermission } = usePushNotifications(uid)
 
   const { org, loading: orgLoading, isPlanActive, isTrialActive, trialDaysLeft } = useOrganization(uid)
 
   useEffect(() => {
     if (uid && !localStorage.getItem('cp_onboarded')) setShowOnboarding(true)
   }, [uid])
+
+  // Set signer info whenever user/profile/permissions change
+  useEffect(() => {
+    if (!uid) return
+    const isOwner = permissions?.isOwner !== false
+    let name = ''
+    if (isOwner) {
+      name = profile?.name || user?.email || 'المالك'
+    } else {
+      const member = teamMembers?.find(m => m.member_id === uid)
+      name = member?.display_name || user?.email || 'عضو'
+    }
+    setSigner(name, isOwner ? 'owner' : 'member', uid, eid)
+  }, [uid, eid, profile, permissions, teamMembers])
 
   // Auto logout after 30 min idle (owner only)
   useEffect(() => {
@@ -493,6 +511,26 @@ export default function App() {
         </div>
       )}
 
+      {/* ─── Notification Permission Banner (one-time prompt) ─── */}
+      {uid && pushPermission === 'default' && !localStorage.getItem('cpro_notif_dismissed') && (
+        <div style={{ position: 'sticky', top: 0, zIndex: 198, background: 'rgba(249,115,22,0.1)', backdropFilter: 'blur(12px)', padding: '9px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid rgba(249,115,22,0.2)', direction: 'rtl' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Bell size={14} color={C.primary} strokeWidth={2} />
+            <span style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>فعّل الإشعارات لاستقبال طلبات العمال فورياً</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            <button
+              onClick={() => { requestPushPermission(); localStorage.setItem('cpro_notif_dismissed', '1') }}
+              style={{ padding: '5px 12px', borderRadius: 9, background: C.primary, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}
+            >تفعيل</button>
+            <button
+              onClick={() => localStorage.setItem('cpro_notif_dismissed', '1')}
+              style={{ padding: '5px 8px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: 'none', color: C.textDim, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
+            >×</button>
+          </div>
+        </div>
+      )}
+
       {/* ─── Header ─── */}
       <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(7,8,15,0.93)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(249,115,22,0.07)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -615,6 +653,9 @@ export default function App() {
 
       {/* ─── Notifications ─── */}
       <NotificationsPanel open={showNotifs} onClose={() => setShowNotifs(false)} notifications={notifications} unreadCount={unreadCount} markAllRead={markAllRead} markRead={markRead} deleteAll={deleteAll} onNav={nav => { setScreen(nav); setShowNotifs(false) }} />
+
+      {/* ─── Biometric Confirm ─── */}
+      <BiometricConfirmModal />
 
       {/* ─── Smart Search (cmdk) ─── */}
       <SmartSearch projects={projects} employees={employees} expenses={expenses} payments={payments} onNav={nav => { setScreen(nav); setShowSearch(false) }} />
