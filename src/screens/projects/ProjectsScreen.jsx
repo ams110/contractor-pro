@@ -169,6 +169,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   const [receiptSaving, setReceiptSaving] = useState(false)
   const [receiptError, setReceiptError] = useState('')
   const [confirmDelReceipt, setConfirmDelReceipt] = useState(null)
+  const [expandedReceipt, setExpandedReceipt] = useState(null)
   const receiptFileRef = useRef()
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
@@ -575,41 +576,96 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
               <div style={{ textAlign: 'center', padding: '40px 20px', color: C.textDim, fontSize: 13, background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: `1px dashed ${C.border}` }}>
                 لم يُقبض شيء بعد
               </div>
-            ) : pReceipts.map(r => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: `${C.success}06`, border: `1px solid ${C.success}20`, borderRadius: 14, marginBottom: 8 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 11, background: `${C.success}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <ReceiptText size={15} color={C.success} strokeWidth={2} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>+₪{fmt(r.amount || 0)}</div>
-                    {r.ref_number && <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 6, padding: '1px 7px', letterSpacing: '0.04em' }}>{r.ref_number}</span>}
+            ) : pReceipts.map(r => {
+              const linkedPays = payments.filter(p => p.client_receipt_id === r.id)
+              const usedAmt    = linkedPays.reduce((s, p) => s + (p.amount || 0), 0)
+              const remaining  = (r.amount || 0) - usedAmt
+              const pct        = r.amount > 0 ? Math.min(100, Math.round((usedAmt / r.amount) * 100)) : 0
+              const isExpanded = expandedReceipt === r.id
+              return (
+                <div key={r.id} style={{ background: `${C.success}06`, border: `1px solid ${C.success}20`, borderRadius: 14, marginBottom: 8, overflow: 'hidden' }}>
+                  {/* Header row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 11, background: `${C.success}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <ReceiptText size={15} color={C.success} strokeWidth={2} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>+₪{fmt(r.amount || 0)}</div>
+                        {r.ref_number && <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 6, padding: '1px 7px', letterSpacing: '0.04em' }}>{r.ref_number}</span>}
+                      </div>
+                      <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>
+                        {fmtDate(r.date)}{r.payment_method ? ` · ${r.payment_method}` : ''}{r.payer_name ? ` · ${r.payer_name}` : ''}{r.notes ? ` · ${r.notes}` : ''}
+                      </div>
+                    </div>
+                    {/* زر توسيع */}
+                    {linkedPays.length > 0 && (
+                      <button onClick={() => setExpandedReceipt(isExpanded ? null : r.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8, background: `${C.primary}18`, border: `1px solid ${C.primary}30`, color: C.primary, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                        <Banknote size={11} strokeWidth={2} />
+                        {linkedPays.length}
+                        <ChevronDown size={10} strokeWidth={2.5} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+                      </button>
+                    )}
+                    {r.receipt_url && (
+                      <a href={r.receipt_url} target="_blank" rel="noreferrer"
+                        style={{ width: 30, height: 30, borderRadius: 9, background: `${C.primary}18`, border: `1px solid ${C.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary, textDecoration: 'none', flexShrink: 0 }}>
+                        <Paperclip size={13} strokeWidth={2} />
+                      </a>
+                    )}
+                    {permissions?.editProjects !== false && (
+                      <button onClick={() => openEditReceipt(r)}
+                        style={{ width: 30, height: 30, borderRadius: 9, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                        <Edit3 size={13} color={C.primary} strokeWidth={2} />
+                      </button>
+                    )}
+                    {permissions?.canDelete !== false && (
+                      <button onClick={() => setConfirmDelReceipt(r.id)}
+                        style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                        <Trash2 size={13} color='#EF4444' strokeWidth={2} />
+                      </button>
+                    )}
                   </div>
-                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>
-                    {fmtDate(r.date)}{r.payment_method ? ` · ${r.payment_method}` : ''}{r.payer_name ? ` · ${r.payer_name}` : ''}{r.notes ? ` · ${r.notes}` : ''}
-                  </div>
+
+                  {/* شريط الاستخدام */}
+                  {linkedPays.length > 0 && (
+                    <div style={{ padding: '0 14px 10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: C.textDim, marginBottom: 4, fontWeight: 600 }}>
+                        <span>مُصرَّف على رواتب: <span style={{ color: C.secondary }}>₪{fmt(usedAmt)}</span></span>
+                        <span>متبقي: <span style={{ color: remaining >= 0 ? C.success : C.accent }}>₪{fmt(Math.abs(remaining))}{remaining < 0 ? ' ↑زيادة' : ''}</span></span>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 3, background: `${C.border}` }}>
+                        <div style={{ height: '100%', borderRadius: 3, width: `${pct}%`, background: pct >= 100 ? C.accent : `linear-gradient(90deg,${C.secondary},${C.primary})`, transition: 'width .3s' }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* قائمة الرواتب المرتبطة */}
+                  {isExpanded && (
+                    <div style={{ borderTop: `1px solid ${C.border}`, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {linkedPays.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(p => {
+                        const emp = employees.find(e => e.id === p.employee_id)
+                        return (
+                          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: `1px solid ${C.border}` }}>
+                            <div style={{ width: 26, height: 26, borderRadius: 8, background: `${C.secondary}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: C.secondary, flexShrink: 0 }}>
+                              {emp?.name?.[0] || '?'}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{emp?.name || '—'}</div>
+                              <div style={{ fontSize: 9, color: C.textDim }}>{fmtDate(p.date)}{p.method ? ` · ${p.method}` : ''}</div>
+                            </div>
+                            <div style={{ textAlign: 'end' }}>
+                              <div style={{ fontSize: 12, fontWeight: 800, color: C.secondary }}>₪{fmt(p.amount || 0)}</div>
+                              {p.ref_number && <div style={{ fontSize: 9, color: C.primary, fontWeight: 700 }}>{p.ref_number}</div>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
-                {r.receipt_url && (
-                  <a href={r.receipt_url} target="_blank" rel="noreferrer"
-                    style={{ width: 32, height: 32, borderRadius: 10, background: `${C.primary}18`, border: `1px solid ${C.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary, textDecoration: 'none', flexShrink: 0 }}
-                    title="عرض الإيصال">
-                    <Paperclip size={14} strokeWidth={2} />
-                  </a>
-                )}
-                {permissions?.editProjects !== false && (
-                  <button onClick={() => openEditReceipt(r)}
-                    style={{ width: 30, height: 30, borderRadius: 9, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                    <Edit3 size={13} color={C.primary} strokeWidth={2} />
-                  </button>
-                )}
-                {permissions?.canDelete !== false && (
-                  <button onClick={() => setConfirmDelReceipt(r.id)}
-                    style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                    <Trash2 size={13} color='#EF4444' strokeWidth={2} />
-                  </button>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
