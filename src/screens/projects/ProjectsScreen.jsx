@@ -581,7 +581,10 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
                   <ReceiptText size={15} color={C.success} strokeWidth={2} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>+₪{fmt(r.amount || 0)}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>+₪{fmt(r.amount || 0)}</div>
+                    {r.ref_number && <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 6, padding: '1px 7px', letterSpacing: '0.04em' }}>{r.ref_number}</span>}
+                  </div>
                   <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>
                     {fmtDate(r.date)}{r.payment_method ? ` · ${r.payment_method}` : ''}{r.payer_name ? ` · ${r.payer_name}` : ''}{r.notes ? ` · ${r.notes}` : ''}
                   </div>
