@@ -263,6 +263,7 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{pay.method || ''}</div>
                   <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(pay.date)}</div>
+                  {pay.ref_number && <div style={{ fontSize: 9, fontWeight: 700, color: C.primary, marginTop: 2, letterSpacing: '0.04em' }}>{pay.ref_number}</div>}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: C.success }}>₪{fmt(pay.amount || 0)}</div>
               </div>
@@ -284,6 +285,7 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{adv.notes || (language === 'en' ? 'Advance' : language === 'he' ? 'מקדמה' : 'سلفة')}</div>
                   <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(adv.date)}</div>
+                  {adv.ref_number && <div style={{ fontSize: 9, fontWeight: 700, color: C.primary, marginTop: 2, letterSpacing: '0.04em' }}>{adv.ref_number}</div>}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>-₪{fmt(adv.amount || 0)}</div>
               </div>

@@ -553,7 +553,10 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
                   const proj = projects.find(p => p.id === pay.project_id)
                   return (
                     <div key={pay.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ flex: 1, fontSize: 10, color: C.textDim }}>{fmtDate(pay.date)}{pay.method ? ` · ${pay.method}` : ''}{proj ? ` · ${proj.name}` : ''}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(pay.date)}{pay.method ? ` · ${pay.method}` : ''}{proj ? ` · ${proj.name}` : ''}</div>
+                        {pay.ref_number && <div style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.04em', marginTop: 1 }}>{pay.ref_number}</div>}
+                      </div>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.secondary, flexShrink: 0 }}>₪{fmt(pay.amount || 0)}</span>
                       {pay.receipt_url && (
                         <a href={pay.receipt_url} target="_blank" rel="noreferrer"
