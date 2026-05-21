@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   CreditCard, Banknote, Calculator,
   Plus, Search, X, Trash2, Check, CheckCircle2,
-  XCircle, Paperclip, ChevronDown,
+  XCircle, Paperclip, ChevronDown, Receipt, AlertTriangle,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../../constants/index.js'
@@ -340,7 +340,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
 }
 
 // ─── PAYMENTS TAB ─────────────────────────────────────────────────────────────
-function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = [], advances = [], projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods = [], language }) {
+function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = [], advances = [], projects = [], clientReceipts = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods = [], language }) {
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const methods = payMethods.length ? payMethods : PAY_METHODS
 
@@ -356,9 +356,27 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
   const [approveProj, setApproveProj] = useState('')
   const fileRef = useRef()
 
-  const emptyForm = { date: todayStr(), employee_id: '', amount: '', method: '', project_id: '' }
+  const emptyForm = { date: todayStr(), employee_id: '', amount: '', method: '', project_id: '', client_receipt_id: '' }
   const [form, setForm] = useState(emptyForm)
   const f = k => v => setForm(p => ({ ...p, [k]: v }))
+
+  // قبضات المشروع المحدد مع الميزانية المتبقية
+  const projectReceipts = useMemo(() => {
+    if (!form.project_id) return []
+    return clientReceipts
+      .filter(r => r.project_id === form.project_id)
+      .map(r => {
+        const used = payments
+          .filter(p => p.client_receipt_id === r.id && p.id !== editingId)
+          .reduce((s, p) => s + (p.amount || 0), 0)
+        return { ...r, used, remaining: (r.amount || 0) - used }
+      })
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+  }, [form.project_id, clientReceipts, payments, editingId])
+
+  const selectedReceipt = form.client_receipt_id
+    ? projectReceipts.find(r => r.id === form.client_receipt_id)
+    : null
 
   function calcOwed(empId) {
     return Math.max(0, calcMutabqi(
@@ -375,7 +393,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
   }
   function openEdit(pay) {
     setEditingId(pay.id)
-    setForm({ date: pay.date, employee_id: pay.employee_id, amount: String(pay.amount), method: pay.method || '', project_id: pay.project_id || '' })
+    setForm({ date: pay.date, employee_id: pay.employee_id, amount: String(pay.amount), method: pay.method || '', project_id: pay.project_id || '', client_receipt_id: pay.client_receipt_id || '' })
     setFormErr(''); setReceiptFile(null); setPreview(pay.receipt_url || ''); setShowForm(true)
   }
 
@@ -390,13 +408,20 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
   async function save() {
     const err = validatePayment(form)
     if (err) return setFormErr(err)
+    // تحقق من ميزانية القبضة
+    if (form.client_receipt_id && selectedReceipt) {
+      const newAmt = parseFloat(form.amount)
+      if (newAmt > selectedReceipt.remaining) {
+        return setFormErr(`المبلغ يتجاوز المتبقي من القبضة ${selectedReceipt.ref_number || ''} — المتبقي: ₪${fmt(selectedReceipt.remaining)}`)
+      }
+    }
     setSaving(true); setFormErr('')
     try {
       let receipt_url = preview && !receiptFile ? preview : ''
       if (receiptFile) receipt_url = await uploadReceipt(userId, receiptFile)
-      const payload = { ...form, amount: parseFloat(form.amount), receipt_url, project_id: form.project_id || null }
+      const payload = { ...form, amount: parseFloat(form.amount), receipt_url, project_id: form.project_id || null, client_receipt_id: form.client_receipt_id || null }
       if (editingId) {
-        await updatePayment(editingId, { date: payload.date, amount: payload.amount, method: payload.method, project_id: payload.project_id, receipt_url: payload.receipt_url })
+        await updatePayment(editingId, { date: payload.date, amount: payload.amount, method: payload.method, project_id: payload.project_id, receipt_url: payload.receipt_url, client_receipt_id: payload.client_receipt_id })
       } else {
         await addPayment(payload)
       }
@@ -555,7 +580,13 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
                     <div key={pay.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(pay.date)}{pay.method ? ` · ${pay.method}` : ''}{proj ? ` · ${proj.name}` : ''}</div>
-                        {pay.ref_number && <div style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.04em', marginTop: 1 }}>{pay.ref_number}</div>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
+                          {pay.ref_number && <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.04em' }}>{pay.ref_number}</span>}
+                          {pay.client_receipt_id && (() => {
+                            const rcpt = clientReceipts.find(r => r.id === pay.client_receipt_id)
+                            return rcpt ? <span style={{ fontSize: 9, fontWeight: 600, color: C.cyan, display: 'flex', alignItems: 'center', gap: 2 }}><Receipt size={8} strokeWidth={2} />{rcpt.ref_number}</span> : null
+                          })()}
+                        </div>
                       </div>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.secondary, flexShrink: 0 }}>₪{fmt(pay.amount || 0)}</span>
                       {pay.receipt_url && (
@@ -617,11 +648,45 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
           </select>
         </Field>
         <Field label={lbl('المشروع *', 'פרויקט *', 'Project *', language)}>
-          <select value={form.project_id} onChange={e => f('project_id')(e.target.value)} style={{ ...sel, borderColor: !form.project_id ? C.accent + '88' : undefined }}>
+          <select value={form.project_id} onChange={e => { f('project_id')(e.target.value); f('client_receipt_id')('') }} style={{ ...sel, borderColor: !form.project_id ? C.accent + '88' : undefined }}>
             <option value="">{lbl('اختر المشروع...', 'בחר פרויקט...', 'Select project...', language)}</option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </Field>
+
+        {/* ربط القبضة */}
+        {form.project_id && (
+          <Field label={lbl('القبضة (اختياري)', 'קבלה מלקוח', 'Client Receipt', language)}>
+            {projectReceipts.length === 0 ? (
+              <div style={{ fontSize: 11, color: C.textDim, padding: '8px 12px', background: C.card, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                {lbl('لا توجد قبضات لهذا المشروع', 'אין קבלות לפרויקט', 'No receipts for this project', language)}
+              </div>
+            ) : (
+              <>
+                <select value={form.client_receipt_id} onChange={e => f('client_receipt_id')(e.target.value)} style={sel}>
+                  <option value="">{lbl('بدون ربط بقبضة', 'ללא קישור', 'No receipt link', language)}</option>
+                  {projectReceipts.map(r => (
+                    <option key={r.id} value={r.id} disabled={r.remaining <= 0}>
+                      {r.ref_number || '—'} · ₪{fmt(r.amount)} · {lbl('متبقي', 'נותר', 'Left', language)}: ₪{fmt(r.remaining)}{r.remaining <= 0 ? ' ✗' : ''}
+                    </option>
+                  ))}
+                </select>
+                {selectedReceipt && (
+                  <div style={{ marginTop: 6, padding: '8px 12px', borderRadius: 10, background: selectedReceipt.remaining <= 0 ? `${C.accent}12` : `${C.success}12`, border: `1px solid ${selectedReceipt.remaining <= 0 ? C.accent : C.success}30`, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {selectedReceipt.remaining <= 0
+                      ? <AlertTriangle size={12} color={C.accent} strokeWidth={2} />
+                      : <Receipt size={12} color={C.success} strokeWidth={2} />}
+                    <span style={{ fontSize: 11, fontWeight: 700, color: selectedReceipt.remaining <= 0 ? C.accent : C.success }}>
+                      {selectedReceipt.remaining <= 0
+                        ? lbl('القبضة مستنفدة بالكامل', 'קבלה מנוצלת', 'Receipt depleted', language)
+                        : `${lbl('متبقي', 'נותר', 'Remaining', language)}: ₪${fmt(selectedReceipt.remaining)}`}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+          </Field>
+        )}
 
         <Field label={lbl('إيصال (اختياري)', 'קבלה (אופציונלי)', 'Receipt (optional)', language)}>
           <input ref={fileRef} type="file" accept="image/*" onChange={pickFile} style={{ display: 'none' }} />
@@ -757,7 +822,7 @@ export default function FinanceScreen({
       )}
       {tab === 'payments' && (
         <PaymentsTab payments={payments} employees={employees} workDays={workDays}
-          expenses={expenses} advances={advances} projects={projects}
+          expenses={expenses} advances={advances} projects={projects} clientReceipts={clientReceipts}
           addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment}
           approvePaymentRequest={approvePaymentRequest} rejectPaymentRequest={rejectPaymentRequest}
           userId={userId} permissions={permissions} payMethods={payMethods} language={language} />
