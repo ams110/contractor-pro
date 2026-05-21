@@ -114,7 +114,7 @@ function Confirm({ open, msg, onConfirm, onCancel, lang }) {
 }
 
 // ─── EXPENSES TAB ─────────────────────────────────────────────────────────────
-function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [], addExpense, deleteExpense, approveExpense, rejectExpense, userId, permissions, businessType, language }) {
+function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [], clientReceipts = [], addExpense, deleteExpense, approveExpense, rejectExpense, userId, permissions, businessType, language }) {
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const cats = expCats.length ? expCats : EXP_CATS
 
@@ -126,11 +126,28 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
   const [formErr, setFormErr]     = useState('')
   const [receiptFile, setReceiptFile] = useState(null)
   const [preview, setPreview]     = useState('')
+  const [expandedExp, setExpandedExp] = useState(null)
   const fileRef = useRef()
 
-  const emptyForm = { date: todayStr(), amount: '', category: '', project_id: '', vendor: '', payment_method: '' }
+  const emptyForm = { date: todayStr(), amount: '', category: '', project_id: '', vendor: '', payment_method: '', client_receipt_id: '', employee_id: '' }
   const [form, setForm] = useState(emptyForm)
   const f = k => v => setForm(p => ({ ...p, [k]: v }))
+
+  // قبضات المشروع المحدد مع الميزانية المتبقية (مصاريف)
+  const projectReceipts = useMemo(() => {
+    if (!form.project_id) return []
+    return clientReceipts
+      .filter(r => r.project_id === form.project_id)
+      .map(r => {
+        const usedPay = expenses.filter(e => e.client_receipt_id === r.id).reduce((s, e) => s + (e.amount || 0), 0)
+        return { ...r, usedPay, remaining: (r.amount || 0) - usedPay }
+      })
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+  }, [form.project_id, clientReceipts, expenses])
+
+  const selectedReceipt = form.client_receipt_id
+    ? projectReceipts.find(r => r.id === form.client_receipt_id)
+    : null
 
   const pending  = expenses.filter(e => e.status === 'pending')
   const approved = expenses.filter(e => e.status !== 'pending')
@@ -161,11 +178,16 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
   async function save() {
     const err = validateExpense(form)
     if (err) return setFormErr(err)
+    if (form.client_receipt_id && selectedReceipt) {
+      if (parseFloat(form.amount) > selectedReceipt.remaining) {
+        return setFormErr(`المبلغ يتجاوز المتبقي من القبضة ${selectedReceipt.ref_number || ''} — المتبقي: ₪${fmt(selectedReceipt.remaining)}`)
+      }
+    }
     setSaving(true); setFormErr('')
     try {
       let receipt_url = ''
       if (receiptFile) receipt_url = await uploadReceipt(userId, receiptFile)
-      await addExpense({ ...form, amount: parseFloat(form.amount), receipt_url })
+      await addExpense({ ...form, amount: parseFloat(form.amount), receipt_url, client_receipt_id: form.client_receipt_id || null, employee_id: form.employee_id || null })
       setForm(emptyForm); setReceiptFile(null); setPreview(''); setShowForm(false)
     } catch (e) { setFormErr(e.message) }
     finally { setSaving(false) }
@@ -253,30 +275,78 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
           {lbl('لا توجد مصاريف', 'אין הוצאות', 'No expenses', language)}
         </div>
       ) : filtered.map(exp => {
-        const proj = projects.find(p => p.id === exp.project_id)
+        const proj    = projects.find(p => p.id === exp.project_id)
+        const emp     = employees.find(e => e.id === exp.employee_id)
+        const rcpt    = clientReceipts.find(r => r.id === exp.client_receipt_id)
+        const isOpen  = expandedExp === exp.id
         return (
-          <div key={exp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 8 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <CreditCard size={14} color={C.accent} strokeWidth={2} />
+          <div key={exp.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 8, overflow: 'hidden' }}>
+            {/* صف رئيسي */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <CreditCard size={14} color={C.accent} strokeWidth={2} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{exp.category || exp.vendor || '—'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 9, color: C.textDim }}>{fmtDate(exp.date)}</span>
+                  {exp.ref_number && (
+                    <button onClick={() => setExpandedExp(isOpen ? null : exp.id)}
+                      style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 5, padding: '1px 6px', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.04em' }}>
+                      {exp.ref_number}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>-₪{fmt(exp.amount || 0)}</span>
+                {exp.receipt_url && (
+                  <a href={exp.receipt_url} target="_blank" rel="noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 8, background: `${C.primary}18`, border: `1px solid ${C.primary}33`, color: C.primary, flexShrink: 0, textDecoration: 'none' }}>
+                    <Paperclip size={12} strokeWidth={2} />
+                  </a>
+                )}
+                {permissions?.isOwner && (
+                  <button onClick={() => setConfirmDel(exp.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
+                    <Trash2 size={13} strokeWidth={2} />
+                  </button>
+                )}
+              </div>
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{exp.category || exp.vendor || '—'}</div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{fmtDate(exp.date)}{proj ? ` · ${proj.name}` : ''}{exp.vendor ? ` · ${exp.vendor}` : ''}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>-₪{fmt(exp.amount || 0)}</span>
-              {exp.receipt_url && (
-                <a href={exp.receipt_url} target="_blank" rel="noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 8, background: `${C.primary}18`, border: `1px solid ${C.primary}33`, color: C.primary, flexShrink: 0, textDecoration: 'none' }}>
-                  <Paperclip size={12} strokeWidth={2} />
-                </a>
-              )}
-              {permissions?.isOwner && (
-                <button onClick={() => setConfirmDel(exp.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
-                  <Trash2 size={13} strokeWidth={2} />
-                </button>
-              )}
-            </div>
+            {/* تفاصيل موسّعة عند الضغط على الرقم */}
+            {isOpen && (
+              <div style={{ borderTop: `1px solid ${C.border}`, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {proj && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>المشروع</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{proj.name}</span>
+                    {proj.ref_number && <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: `${C.primary}15`, borderRadius: 5, padding: '1px 6px' }}>{proj.ref_number}</span>}
+                  </div>
+                )}
+                {rcpt && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>القبضة</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.cyan }}>{rcpt.ref_number}</span>
+                    <span style={{ fontSize: 10, color: C.textDim }}>₪{fmt(rcpt.amount)}</span>
+                  </div>
+                )}
+                {emp && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>العامل</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.secondary }}>{emp.name}</span>
+                  </div>
+                )}
+                {exp.vendor && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>المورّد</span>
+                    <span style={{ fontSize: 11, color: C.text }}>{exp.vendor}</span>
+                  </div>
+                )}
+                {!proj && !rcpt && !emp && (
+                  <span style={{ fontSize: 11, color: C.textDim }}>لا توجد ارتباطات مسجّلة</span>
+                )}
+              </div>
+            )}
           </div>
         )
       })}
@@ -302,11 +372,47 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
           </select>
         </Field>
         <Field label={lbl('المشروع', 'פרויקט', 'Project', language)}>
-          <select value={form.project_id} onChange={e => f('project_id')(e.target.value)} style={sel}>
+          <select value={form.project_id} onChange={e => { f('project_id')(e.target.value); f('client_receipt_id')('') }} style={sel}>
             <option value="">{lbl('بدون مشروع', 'ללא פרויקט', 'No project', language)}</option>
-            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {projects.map(p => <option key={p.id} value={p.id}>{p.name}{p.ref_number ? ` · ${p.ref_number}` : ''}</option>)}
           </select>
         </Field>
+
+        {form.project_id && (
+          <Field label={lbl('القبضة (اختياري)', 'קבלה מלקוח', 'Client Receipt', language)}>
+            {projectReceipts.length === 0
+              ? <div style={{ fontSize: 11, color: C.textDim, padding: '8px 12px', background: C.card, borderRadius: 10, border: `1px solid ${C.border}` }}>{lbl('لا توجد قبضات لهذا المشروع', 'אין קבלות', 'No receipts', language)}</div>
+              : <>
+                  <select value={form.client_receipt_id} onChange={e => f('client_receipt_id')(e.target.value)} style={sel}>
+                    <option value="">{lbl('بدون ربط بقبضة', 'ללא קישור', 'No receipt link', language)}</option>
+                    {projectReceipts.map(r => (
+                      <option key={r.id} value={r.id} disabled={r.remaining <= 0}>
+                        {r.ref_number || '—'} · ₪{fmt(r.amount)} · {lbl('متبقي', 'נותר', 'Left', language)}: ₪{fmt(r.remaining)}{r.remaining <= 0 ? ' ✗' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedReceipt && (
+                    <div style={{ marginTop: 6, padding: '8px 12px', borderRadius: 10, background: selectedReceipt.remaining <= 0 ? `${C.accent}12` : `${C.success}12`, border: `1px solid ${selectedReceipt.remaining <= 0 ? C.accent : C.success}30`, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {selectedReceipt.remaining <= 0
+                        ? <AlertTriangle size={12} color={C.accent} strokeWidth={2} />
+                        : <Receipt size={12} color={C.success} strokeWidth={2} />}
+                      <span style={{ fontSize: 11, fontWeight: 700, color: selectedReceipt.remaining <= 0 ? C.accent : C.success }}>
+                        {selectedReceipt.remaining <= 0 ? lbl('القبضة مستنفدة', 'מנוצל', 'Depleted', language) : `${lbl('متبقي', 'נותר', 'Remaining', language)}: ₪${fmt(selectedReceipt.remaining)}`}
+                      </span>
+                    </div>
+                  )}
+                </>
+            }
+          </Field>
+        )}
+
+        <Field label={lbl('العامل (اختياري)', 'עובד', 'Worker (optional)', language)}>
+          <select value={form.employee_id} onChange={e => f('employee_id')(e.target.value)} style={sel}>
+            <option value="">{lbl('بدون عامل', 'ללא עובד', 'No worker', language)}</option>
+            {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+          </select>
+        </Field>
+
         <Field label={lbl('المورّد / الوصف', 'ספק / תיאור', 'Vendor / Description', language)}>
           <input value={form.vendor} onChange={e => f('vendor')(e.target.value)} style={inp} />
         </Field>
@@ -816,7 +922,7 @@ export default function FinanceScreen({
       )}
       {tab === 'expenses' && (
         <ExpensesTab expenses={expenses} projects={projects} employees={employees}
-          expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense}
+          expCats={expCats} clientReceipts={clientReceipts} addExpense={addExpense} deleteExpense={deleteExpense}
           approveExpense={approveExpense} rejectExpense={rejectExpense}
           userId={userId} permissions={permissions} businessType={businessType} language={language} />
       )}
