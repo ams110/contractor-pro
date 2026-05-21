@@ -250,7 +250,10 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</div>
-          <div style={{ fontSize: 10, color: statusColor(project.status), marginTop: 1, fontWeight: 700 }}>{project.status}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
+            <span style={{ fontSize: 10, color: statusColor(project.status), fontWeight: 700 }}>{project.status}</span>
+            {project.ref_number && <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.04em' }}>{project.ref_number}</span>}
+          </div>
         </div>
         <div style={{ fontSize: 13, fontWeight: 900, color: stats.profit >= 0 ? C.success : C.accent, marginInlineEnd: 4 }}>
           {stats.profit >= 0 ? '+' : ''}₪{fmt(stats.profit)}
@@ -805,6 +808,7 @@ export default function ProjectsScreen({
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: 10, fontWeight: 700, color: statusColor(project.status), background: `${statusColor(project.status)}18`, padding: '2px 7px', borderRadius: 6 }}>{project.status || 'نشط'}</span>
                         {project.type && <span style={{ fontSize: 10, color: C.textDim }}>{project.type}</span>}
+                        {project.ref_number && <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.04em' }}>{project.ref_number}</span>}
                       </div>
                     </div>
                     <div style={{ textAlign: 'end', flexShrink: 0, marginInlineStart: 8 }}>
