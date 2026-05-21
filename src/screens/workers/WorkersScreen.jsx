@@ -255,7 +255,7 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
               <div style={{ textAlign: 'center', padding: '40px', color: C.textDim, fontSize: 13 }}>
                 {language === 'he' ? 'אין תשלומים' : language === 'en' ? 'No payments' : 'لا توجد رواتب'}
               </div>
-            ) : wPayments.slice().reverse().map(pay => (
+            ) : wPayments.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(pay => (
               <div key={pay.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 8 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.success}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Banknote size={13} color={C.success} strokeWidth={2} />
@@ -277,7 +277,7 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
               <div style={{ textAlign: 'center', padding: '40px', color: C.textDim, fontSize: 13 }}>
                 {language === 'he' ? 'אין מקדמות' : language === 'en' ? 'No advances' : 'لا توجد سلف'}
               </div>
-            ) : wAdvances.slice().reverse().map(adv => (
+            ) : wAdvances.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(adv => (
               <div key={adv.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 8 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <CreditCard size={13} color={C.accent} strokeWidth={2} />

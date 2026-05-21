@@ -552,7 +552,14 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{exp.category || exp.description || '—'}</div>
-                  <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(exp.date)}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 10, color: C.textDim }}>{fmtDate(exp.date)}</span>
+                    {exp.ref_number && (
+                      <span style={{ fontSize: 9, fontWeight: 700, color: C.accent, background: `${C.accent}15`, border: `1px solid ${C.accent}30`, borderRadius: 5, padding: '1px 6px', letterSpacing: '0.04em' }}>
+                        {exp.ref_number}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>₪{fmt(exp.amount || 0)}</div>
               </div>
