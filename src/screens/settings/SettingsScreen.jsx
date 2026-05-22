@@ -13,6 +13,7 @@ import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { navigate } from '../../Router.jsx'
 import { usePushNotifications } from '../../hooks/usePushNotifications.js'
+import { useAuth } from '../../hooks/useAuth.js'
 
 const LANGS = [
   { code: 'ar', label: 'العربية', flag: '🇸🇦', dir: 'rtl' },
@@ -74,6 +75,7 @@ export default function SettingsScreen({
   const { language, setLanguage } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
+  const { registerPasskey, isPasskeySupported } = useAuth()
   const { supported: pushSupported, permission, requestPermission } = usePushNotifications(userId)
   const [notifLoading, setNotifLoading] = useState(false)
   const [sigLog, setSigLog] = useState([])
@@ -88,6 +90,26 @@ export default function SettingsScreen({
 
   const PASSKEY_KEY = 'cpro_passkey_cred'
   const [hasPasskey, setHasPasskey] = useState(!!localStorage.getItem(PASSKEY_KEY))
+  const [showRegisterBio, setShowRegisterBio] = useState(false)
+  const [bioPassword, setBioPassword]         = useState('')
+  const [bioLoading, setBioLoading]           = useState(false)
+  const [bioError, setBioError]               = useState('')
+
+  async function handleRegisterBiometric() {
+    if (!bioPassword) { setBioError('أدخل كلمة المرور أولاً'); return }
+    setBioLoading(true)
+    setBioError('')
+    try {
+      await registerPasskey(bioPassword)
+      setHasPasskey(true)
+      setShowRegisterBio(false)
+      setBioPassword('')
+    } catch (e) {
+      setBioError(e.message || 'فشل تسجيل البصمة')
+    } finally {
+      setBioLoading(false)
+    }
+  }
 
   const [newSpec, setNewSpec] = useState('')
   const [newCat, setNewCat] = useState('')
@@ -410,7 +432,7 @@ export default function SettingsScreen({
       {/* ── Biometric Status + Signature Log ── */}
       {permissions?.isOwner && (
         <Section title="التوقيع الرقمي بالبصمة">
-          {/* Passkey status */}
+          {/* Passkey status row */}
           <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: hasPasskey ? `${C.success}18` : `${C.primary}18`, border: `1px solid ${hasPasskey ? C.success : C.primary}28` }}>
               <Fingerprint size={18} color={hasPasskey ? C.success : C.primary} strokeWidth={2} />
@@ -420,16 +442,87 @@ export default function SettingsScreen({
                 {hasPasskey ? 'البصمة مفعّلة على هذا الجهاز' : 'البصمة غير مفعّلة'}
               </div>
               <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
-                {hasPasskey ? 'العمليات الحساسة تتطلب تأكيد ببصمة الإصبع' : 'فعّل البصمة من إعدادات الأمان لحماية عملياتك'}
+                {hasPasskey
+                  ? 'العمليات الحساسة تتطلب تأكيد ببصمة الإصبع'
+                  : 'اضغط تفعيل لتأمين عملياتك بالبصمة'}
               </div>
             </div>
-            {hasPasskey && (
+            {hasPasskey ? (
               <button
                 onClick={() => { localStorage.removeItem(PASSKEY_KEY); setHasPasskey(false) }}
                 style={{ padding: '6px 12px', borderRadius: 9, background: `${C.accent}15`, border: `1px solid ${C.accent}30`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
               >إلغاء</button>
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => { setBioError(''); setBioPassword(''); setShowRegisterBio(true) }}
+                style={{ padding: '8px 14px', borderRadius: 10, background: 'linear-gradient(135deg,#F97316,#DC2626)', border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <Fingerprint size={13} />
+                تفعيل
+              </motion.button>
             )}
           </div>
+
+          {/* Register biometric modal */}
+          <AnimatePresence>
+            {showRegisterBio && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+                onClick={e => e.target === e.currentTarget && setShowRegisterBio(false)}
+              >
+                <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+                  style={{ background: C.surface, borderRadius: '24px 24px 0 0', padding: '8px 20px calc(32px + env(safe-area-inset-bottom, 0px))', width: '100%', maxWidth: 480 }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 12px' }}>
+                    <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 14, background: `${C.primary}18`, border: `1px solid ${C.primary}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Fingerprint size={22} color={C.primary} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تفعيل التوقيع بالبصمة</div>
+                      <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>أدخل كلمة مرورك للتحقق أولاً</div>
+                    </div>
+                  </div>
+
+                  <input
+                    type="password"
+                    placeholder="كلمة المرور"
+                    value={bioPassword}
+                    onChange={e => setBioPassword(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleRegisterBiometric()}
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${bioError ? C.accent : C.border}`, borderRadius: 14, padding: '13px 16px', color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', marginBottom: 10, boxSizing: 'border-box', direction: 'ltr', textAlign: 'right' }}
+                  />
+
+                  {bioError && (
+                    <div style={{ fontSize: 12, color: C.accent, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span>⚠</span> {bioError}
+                    </div>
+                  )}
+
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleRegisterBiometric}
+                    disabled={bioLoading}
+                    style={{ width: '100%', padding: '15px', borderRadius: 16, background: bioLoading ? `${C.primary}88` : 'linear-gradient(135deg,#F97316,#DC2626)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: bioLoading ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                  >
+                    {bioLoading
+                      ? <motion.div animate={{ opacity: [1, 0.4, 1] }} transition={{ repeat: Infinity, duration: 0.9 }}><Fingerprint size={18} /></motion.div>
+                      : <><Fingerprint size={18} /> تسجيل البصمة</>}
+                  </motion.button>
+
+                  <button onClick={() => setShowRegisterBio(false)}
+                    style={{ width: '100%', marginTop: 10, padding: '11px', background: 'transparent', border: 'none', color: C.textDim, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    إلغاء
+                  </button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Signature log */}
           <div style={{ padding: '12px 16px' }}>
