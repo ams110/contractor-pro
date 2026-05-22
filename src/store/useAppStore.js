@@ -57,6 +57,17 @@ export const useAppStore = create((set, get) => ({
   setSigner: (name, role, userId, ownerUserId) =>
     set({ signerName: name, signerRole: role, signerUserId: userId, ownerUserId }),
 
+  // ─── Session Lock ─────────────────────────────────────────────────────────
+  isLocked:      false,
+  lockSession:   () => set({ isLocked: true }),
+  unlockSession: () => set({ isLocked: false }),
+
+  // ─── App Config (synced from DB) ──────────────────────────────────────────
+  isReadOnly:      false,
+  dailySpendLimit: 0,
+  setReadOnly:      (v) => set({ isReadOnly: v }),
+  setDailySpendLimit: (v) => set({ dailySpendLimit: v }),
+
   // ─── Biometric Confirm (Promise-based global modal trigger) ───────────────
   bioPending:   null,   // { description, tbl } | null
   bioResolvers: null,   // { resolve, reject }  — non-serializable, fine in Zustand

@@ -6,7 +6,8 @@ import {
   ChevronRight, Check, LogOut, HardHat, Palette, CalendarDays,
   CreditCard, Banknote, ClipboardList, Package, Calculator,
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
-  Fingerprint, ShieldCheck, Clock,
+  Fingerprint, ShieldCheck, Clock, Lock, Eye, EyeOff, Smartphone,
+  ToggleLeft, ToggleRight, Timer, CalendarOff, UserCheck, UserX,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
@@ -69,7 +70,7 @@ export default function SettingsScreen({
   holidays = [], addHoliday, deleteHoliday,
   permissions, teamMembers = [],
   addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, reloadTeam,
-  onNav,
+  onNav, appCfg,
 }) {
   const { t } = useTranslation()
   const { language, setLanguage } = useAppStore()
@@ -109,6 +110,39 @@ export default function SettingsScreen({
     } finally {
       setBioLoading(false)
     }
+  }
+
+  // ── Security features state ───────────────────────────────────────────────
+  const [loginLog, setLoginLog] = useState([])
+  const [loginLogOpen, setLoginLogOpen] = useState(false)
+  const [limitInput, setLimitInput] = useState('')
+  const [timeoutInput, setTimeoutInput] = useState('')
+  const [memberExpiryEditing, setMemberExpiryEditing] = useState(null) // memberId
+  const [memberExpiryValue, setMemberExpiryValue] = useState('')
+
+  useEffect(() => {
+    if (!limitInput && appCfg?.config) setLimitInput(String(appCfg.config.daily_spend_limit || ''))
+  }, [appCfg?.config?.daily_spend_limit])
+
+  useEffect(() => {
+    if (!timeoutInput && appCfg?.config) setTimeoutInput(String(appCfg.config.session_timeout || '30'))
+  }, [appCfg?.config?.session_timeout])
+
+  async function loadLoginLog() {
+    if (!appCfg) return
+    const data = await appCfg.getLoginLog(30)
+    setLoginLog(data)
+    setLoginLogOpen(true)
+  }
+
+  async function saveMemberExpiry(memberId) {
+    try {
+      await supabase.from('team_members')
+        .update({ expires_at: memberExpiryValue || null })
+        .eq('id', memberId)
+      setMemberExpiryEditing(null)
+      setMemberExpiryValue('')
+    } catch {}
   }
 
   const [newSpec, setNewSpec] = useState('')
@@ -428,6 +462,160 @@ export default function SettingsScreen({
           </motion.button>
         </div>
       </Section>
+
+      {/* ── Security & Access Control ── */}
+      {permissions?.isOwner && appCfg && (
+        <Section title="الأمان والتحكم">
+
+          {/* وضع القراءة فقط */}
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: appCfg.config.is_read_only ? `${C.accent}18` : `${C.primary}15`, border: `1px solid ${appCfg.config.is_read_only ? C.accent : C.primary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {appCfg.config.is_read_only ? <Lock size={16} color={C.accent} /> : <EyeOff size={16} color={C.primary} />}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>وضع القراءة فقط</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
+                {appCfg.config.is_read_only ? 'مفعّل — لا يمكن لأي عضو إضافة أو حذف بيانات' : 'معطّل — الأعضاء يمكنهم العمل بشكل طبيعي'}
+              </div>
+            </div>
+            <button
+              onClick={() => appCfg.update({ is_read_only: !appCfg.config.is_read_only })}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: appCfg.config.is_read_only ? C.accent : C.primary }}
+            >
+              {appCfg.config.is_read_only ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+            </button>
+          </div>
+
+          {/* حد الصرف اليومي */}
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.warning}15`, border: `1px solid ${C.warning}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Banknote size={16} color={C.warning} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>حد الصرف اليومي</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>يطلب توقيع إضافي عند التجاوز (0 = معطّل)</div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                type="number" min="0" value={limitInput}
+                onChange={e => setLimitInput(e.target.value)}
+                onBlur={() => appCfg.update({ daily_spend_limit: Number(limitInput) || 0 })}
+                style={{ width: 70, padding: '6px 8px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
+              />
+              <span style={{ fontSize: 11, color: C.textDim }}>₪</span>
+            </div>
+          </div>
+
+          {/* مهلة الجلسة */}
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.cyan}15`, border: `1px solid ${C.cyan}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Timer size={16} color={C.cyan} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>مهلة قفل الجلسة</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>دقائق بدون نشاط قبل قفل التطبيق</div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                type="number" min="5" max="480" value={timeoutInput}
+                onChange={e => setTimeoutInput(e.target.value)}
+                onBlur={() => appCfg.update({ session_timeout: Number(timeoutInput) || 30 })}
+                style={{ width: 55, padding: '6px 8px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
+              />
+              <span style={{ fontSize: 11, color: C.textDim }}>د</span>
+            </div>
+          </div>
+
+          {/* سجل الدخول */}
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.secondary}15`, border: `1px solid ${C.secondary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Smartphone size={16} color={C.secondary} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>سجل تسجيل الدخول</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>آخر 30 عملية دخول</div>
+            </div>
+            <button
+              onClick={loadLoginLog}
+              style={{ padding: '6px 12px', borderRadius: 10, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, color: C.primary, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              عرض
+            </button>
+          </div>
+        </Section>
+      )}
+
+      {/* Login log sheet */}
+      {loginLogOpen && (
+        <div onClick={() => setLoginLogOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: C.surface, borderRadius: '20px 20px 0 0', padding: '16px 16px calc(32px + env(safe-area-inset-bottom,0px))', width: '100%', maxWidth: 480, maxHeight: '70dvh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 14 }}>سجل تسجيل الدخول</div>
+            {loginLog.length === 0
+              ? <div style={{ textAlign: 'center', color: C.textDim, padding: 24, fontSize: 12 }}>لا توجد سجلات</div>
+              : loginLog.map(l => (
+                <div key={l.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: l.role === 'owner' ? `${C.primary}18` : `${C.secondary}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Smartphone size={13} color={l.role === 'owner' ? C.primary : C.secondary} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{l.email || '—'}</div>
+                    <div style={{ fontSize: 10, color: C.textDim, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.device_info}</div>
+                  </div>
+                  <div style={{ fontSize: 9, color: C.textDim, flexShrink: 0, marginTop: 2 }}>
+                    {new Date(l.logged_at).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+
+      {/* ── Timed Permissions (members) ── */}
+      {permissions?.isOwner && teamMembers.length > 0 && (
+        <Section title="صلاحيات الأعضاء الوقتية">
+          {teamMembers.map(m => {
+            const hasExpiry = !!m.expires_at
+            const isExpired = hasExpiry && new Date(m.expires_at) < new Date()
+            const isEditing = memberExpiryEditing === m.id
+            return (
+              <div key={m.id} style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: isExpired ? `${C.accent}18` : hasExpiry ? `${C.warning}18` : `${C.primary}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {isExpired ? <UserX size={14} color={C.accent} /> : <UserCheck size={14} color={hasExpiry ? C.warning : C.primary} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{m.display_name || m.username}</div>
+                  {isEditing ? (
+                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                      <input type="datetime-local" value={memberExpiryValue}
+                        onChange={e => setMemberExpiryValue(e.target.value)}
+                        style={{ flex: 1, padding: '4px 6px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 10, fontFamily: 'inherit', outline: 'none' }}
+                      />
+                      <button onClick={() => saveMemberExpiry(m.id)}
+                        style={{ padding: '4px 8px', borderRadius: 7, background: C.primary, border: 'none', color: '#fff', fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        حفظ
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 10, color: isExpired ? C.accent : hasExpiry ? C.warning : C.textDim, marginTop: 1 }}>
+                      {isExpired ? 'منتهي الصلاحية' : hasExpiry ? `ينتهي ${new Date(m.expires_at).toLocaleDateString('ar-SA')}` : 'بدون انتهاء'}
+                    </div>
+                  )}
+                </div>
+                {!isEditing && (
+                  <button onClick={() => { setMemberExpiryEditing(m.id); setMemberExpiryValue(m.expires_at ? m.expires_at.slice(0,16) : '') }}
+                    style={{ padding: '5px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    تعديل
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </Section>
+      )}
 
       {/* ── Biometric Status + Signature Log ── */}
       {permissions?.isOwner && (

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
@@ -124,8 +124,36 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
 // ─── Worker Detail ────────────────────────────────────────────────────────────
 const PORTAL_URL = `${window.location.origin}${window.location.pathname}?portal`
 
-function WorkerDetail({ worker, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language }) {
+function WorkerDetail({ worker, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language, appCfg }) {
   const [tab, setTab] = useState('overview')
+  const [advRequests, setAdvRequests] = useState([])
+
+  useEffect(() => {
+    if (!worker?.id || !permissions?.isOwner) return
+    import('../../lib/supabase.js').then(({ supabase }) => {
+      supabase.from('worker_advance_requests')
+        .select('*').eq('employee_id', worker.id).eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .then(({ data }) => setAdvRequests(data || []))
+    })
+  }, [worker?.id, permissions?.isOwner])
+
+  async function approveAdvanceRequest(req) {
+    const { supabase } = await import('../../lib/supabase.js')
+    await supabase.from('worker_advance_requests')
+      .update({ status: 'approved', responded_at: new Date().toISOString() })
+      .eq('id', req.id)
+    await addAdvance({ employee_id: req.employee_id, amount: req.amount, notes: req.notes || 'سلفة مطلوبة من العامل', date: new Date().toISOString().slice(0, 10) })
+    setAdvRequests(r => r.filter(x => x.id !== req.id))
+  }
+
+  async function rejectAdvanceRequest(req) {
+    const { supabase } = await import('../../lib/supabase.js')
+    await supabase.from('worker_advance_requests')
+      .update({ status: 'rejected', responded_at: new Date().toISOString() })
+      .eq('id', req.id)
+    setAdvRequests(r => r.filter(x => x.id !== req.id))
+  }
   const [copied, setCopied] = useState(false)
 
   function copyPortalLink() {
@@ -273,7 +301,31 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
 
         {tab === 'advances' && (
           <div>
-            {wAdvances.length === 0 ? (
+            {/* Pending advance requests */}
+            {advRequests.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: C.warning, letterSpacing: '0.06em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.warning }} />
+                  طلبات سلف معلّقة ({advRequests.length})
+                </div>
+                {advRequests.map(req => (
+                  <div key={req.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: `${C.warning}0A`, border: `1px solid ${C.warning}30`, borderRadius: 14, marginBottom: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>₪{fmt(req.amount || 0)}</div>
+                      {req.notes && <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{req.notes}</div>}
+                      <div style={{ fontSize: 9, color: C.textDim }}>{req.requested_date || new Date(req.created_at).toLocaleDateString('ar-SA')}</div>
+                    </div>
+                    <button onClick={() => approveAdvanceRequest(req)} style={{ padding: '6px 10px', borderRadius: 8, background: `${C.success}20`, border: `1px solid ${C.success}40`, color: C.success, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      موافقة
+                    </button>
+                    <button onClick={() => rejectAdvanceRequest(req)} style={{ padding: '6px 10px', borderRadius: 8, background: `${C.accent}15`, border: `1px solid ${C.accent}30`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      رفض
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {wAdvances.length === 0 && advRequests.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px', color: C.textDim, fontSize: 13 }}>
                 {language === 'he' ? 'אין מקדמות' : language === 'en' ? 'No advances' : 'لا توجد سلف'}
               </div>
@@ -309,7 +361,7 @@ export default function WorkersScreen({
   specs = [], permissions, holidays = [], addHoliday, deleteHoliday,
   teamMembers = [], addMember, updateMember, removeMember, blockMember,
   resetMemberPassword, getActivity, teamLoadError, reloadTeam,
-  payMethods = [], profile,
+  payMethods = [], profile, appCfg,
 }) {
   const { t } = useTranslation()
   const { language } = useAppStore()
@@ -357,6 +409,7 @@ export default function WorkersScreen({
         addPayment={addPayment} deletePayment={deletePayment}
         addAdvance={addAdvance} deleteAdvance={deleteAdvance}
         payMethods={payMethods} permissions={permissions} language={language}
+        appCfg={appCfg}
       />
     )
   }

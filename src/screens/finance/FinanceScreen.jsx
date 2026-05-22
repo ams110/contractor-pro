@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useRef } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   CreditCard, Banknote, Calculator,
   Plus, Search, X, Trash2, Check, CheckCircle2,
   XCircle, Paperclip, ChevronDown, Receipt, AlertTriangle,
+  Lock, CalendarOff, Eye,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../../constants/index.js'
@@ -115,7 +116,7 @@ function Confirm({ open, msg, onConfirm, onCancel, lang }) {
 }
 
 // ─── EXPENSES TAB ─────────────────────────────────────────────────────────────
-function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [], clientReceipts = [], addExpense, deleteExpense, approveExpense, rejectExpense, userId, permissions, businessType, language }) {
+function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [], clientReceipts = [], addExpense, deleteExpense, approveExpense, rejectExpense, userId, permissions, businessType, language, isReadOnly, lockedPeriods = [], appCfg }) {
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const cats = expCats.length ? expCats : EXP_CATS
   const { confirm: bioConfirm } = useBiometricConfirm()
@@ -180,6 +181,21 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
   async function save() {
     const err = validateExpense(form)
     if (err) return setFormErr(err)
+    if (isReadOnly) return setFormErr('التطبيق في وضع القراءة فقط — تواصل مع المالك')
+    // Period lock check
+    if (form.date) {
+      const d = new Date(form.date)
+      const locked = lockedPeriods.some(p => p.year === d.getFullYear() && p.month === d.getMonth() + 1)
+      if (locked) return setFormErr('هذه الفترة مقفلة — لا يمكن إضافة مصاريف لهذا الشهر')
+    }
+    // Daily limit check
+    if (appCfg?.config?.daily_spend_limit > 0) {
+      const today = todayStr()
+      const todayTotal = expenses.filter(e => e.date === today).reduce((s, e) => s + (e.amount || 0), 0)
+      if (todayTotal + parseFloat(form.amount || 0) > appCfg.config.daily_spend_limit) {
+        return setFormErr(`تجاوز حد الصرف اليومي ₪${fmt(appCfg.config.daily_spend_limit)} — المصروف اليوم: ₪${fmt(todayTotal)}`)
+      }
+    }
     if (form.client_receipt_id && selectedReceipt) {
       if (parseFloat(form.amount) > selectedReceipt.remaining) {
         return setFormErr(`المبلغ يتجاوز المتبقي من القبضة ${selectedReceipt.ref_number || ''} — المتبقي: ₪${fmt(selectedReceipt.remaining)}`)
@@ -452,7 +468,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
 }
 
 // ─── PAYMENTS TAB ─────────────────────────────────────────────────────────────
-function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = [], advances = [], projects = [], clientReceipts = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods = [], language }) {
+function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = [], advances = [], projects = [], clientReceipts = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods = [], language, isReadOnly, lockedPeriods = [], appCfg }) {
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const methods = payMethods.length ? payMethods : PAY_METHODS
   const { confirm: bioConfirm } = useBiometricConfirm()
@@ -521,6 +537,13 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
   async function save() {
     const err = validatePayment(form)
     if (err) return setFormErr(err)
+    if (isReadOnly) return setFormErr('التطبيق في وضع القراءة فقط')
+    // Period lock check
+    if (form.date && !editingId) {
+      const d = new Date(form.date)
+      const locked = lockedPeriods.some(p => p.year === d.getFullYear() && p.month === d.getMonth() + 1)
+      if (locked) return setFormErr('هذه الفترة مقفلة — لا يمكن إضافة دفعات لهذا الشهر')
+    }
     // تحقق من ميزانية القبضة
     if (form.client_receipt_id && selectedReceipt) {
       const newAmt = parseFloat(form.amount)
@@ -900,12 +923,35 @@ export default function FinanceScreen({
   addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest,
   taxAdvances = [], addTaxAdvance, deleteTaxAdvance,
   pensionMonthly, setPensionMonthly, businessType, setBusinessType,
-  userId, permissions, payMethods = [],
+  userId, permissions, payMethods = [], appCfg,
 }) {
   const { t } = useTranslation()
-  const { language } = useAppStore()
+  const { language, isReadOnly } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const [tab, setTab] = useState('accounting')
+  const [lockedPeriods, setLockedPeriods] = useState([])
+  const [periodLockOpen, setPeriodLockOpen] = useState(false)
+
+  useEffect(() => {
+    if (appCfg && permissions?.isOwner) {
+      appCfg.getLockedPeriods().then(setLockedPeriods)
+    }
+  }, [appCfg, permissions?.isOwner])
+
+  const now = new Date()
+  const curYear = now.getFullYear()
+  const curMonth = now.getMonth() + 1
+  const isCurrentPeriodLocked = lockedPeriods.some(p => p.year === curYear && p.month === curMonth)
+
+  async function toggleCurrentPeriodLock() {
+    if (!appCfg) return
+    if (isCurrentPeriodLocked) {
+      await appCfg.unlockPeriod(curYear, curMonth)
+    } else {
+      await appCfg.lockPeriod(curYear, curMonth, 'المالك')
+    }
+    appCfg.getLockedPeriods().then(setLockedPeriods)
+  }
 
   const pendingExpenses = expenses.filter(e => e.status === 'pending').length
   const pendingPayments = payments.filter(p => p.status === 'pending').length
@@ -918,11 +964,29 @@ export default function FinanceScreen({
 
   return (
     <div dir={dir} style={{ padding: '16px 16px 8px' }}>
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{t('finance.title')}</div>
-        <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
-          {lbl('إدارة مالية متكاملة', 'ניהול פיננסי מלא', 'Complete financial management', language)}
+      {/* Read-only banner */}
+      {isReadOnly && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: `${C.accent}15`, border: `1px solid ${C.accent}30`, borderRadius: 14, marginBottom: 14 }}>
+          <Lock size={14} color={C.accent} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>وضع القراءة فقط — لا يمكن إضافة أو تعديل البيانات</span>
         </div>
+      )}
+
+      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{t('finance.title')}</div>
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
+            {lbl('إدارة مالية متكاملة', 'ניהול פיננסי מלא', 'Complete financial management', language)}
+          </div>
+        </div>
+        {permissions?.isOwner && appCfg && (
+          <button
+            onClick={toggleCurrentPeriodLock}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 10, background: isCurrentPeriodLocked ? `${C.accent}18` : `${C.primary}12`, border: `1px solid ${isCurrentPeriodLocked ? C.accent : C.primary}30`, color: isCurrentPeriodLocked ? C.accent : C.primary, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+          >
+            {isCurrentPeriodLocked ? <><Lock size={11} />مقفل</> : <><CalendarOff size={11} />قفل الشهر</>}
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 6 }}>
@@ -942,14 +1006,16 @@ export default function FinanceScreen({
         <ExpensesTab expenses={expenses} projects={projects} employees={employees}
           expCats={expCats} clientReceipts={clientReceipts} addExpense={addExpense} deleteExpense={deleteExpense}
           approveExpense={approveExpense} rejectExpense={rejectExpense}
-          userId={userId} permissions={permissions} businessType={businessType} language={language} />
+          userId={userId} permissions={permissions} businessType={businessType} language={language}
+          isReadOnly={isReadOnly} lockedPeriods={lockedPeriods} appCfg={appCfg} />
       )}
       {tab === 'payments' && (
         <PaymentsTab payments={payments} employees={employees} workDays={workDays}
           expenses={expenses} advances={advances} projects={projects} clientReceipts={clientReceipts}
           addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment}
           approvePaymentRequest={approvePaymentRequest} rejectPaymentRequest={rejectPaymentRequest}
-          userId={userId} permissions={permissions} payMethods={payMethods} language={language} />
+          userId={userId} permissions={permissions} payMethods={payMethods} language={language}
+          isReadOnly={isReadOnly} lockedPeriods={lockedPeriods} appCfg={appCfg} />
       )}
     </div>
   )
