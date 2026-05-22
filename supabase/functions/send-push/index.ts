@@ -13,9 +13,16 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false },
 })
 
+const SEND_PUSH_SECRET = Deno.env.get('SEND_PUSH_SECRET') ?? ''
+
 Deno.serve(async (req) => {
-  // Only POST from Supabase DB webhook
   if (req.method !== 'POST') return new Response('method not allowed', { status: 405 })
+
+  // Verify shared secret sent by the DB webhook trigger
+  const incoming = req.headers.get('x-webhook-secret') ?? ''
+  if (!SEND_PUSH_SECRET || incoming !== SEND_PUSH_SECRET) {
+    return new Response('Unauthorized', { status: 401 })
+  }
 
   let record: Record<string, unknown>
   try {
