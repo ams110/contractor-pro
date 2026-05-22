@@ -310,8 +310,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
                 )}
                 {permissions?.isOwner && (
                   <button onClick={async () => {
-                    const sig = await bioConfirm(`حذف مصروف: ${exp.category || ''} — ₪${fmt(exp.amount || 0)}`, 'expenses')
-                    if (sig === null) { setConfirmDel(exp.id); return }
+                    await bioConfirm(`حذف مصروف: ${exp.category || ''} — ₪${fmt(exp.amount || 0)}`, 'expenses')
                     deleteExpense?.(exp.id)
                   }} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
                     <Trash2 size={13} strokeWidth={2} />
@@ -531,8 +530,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
     // توقيع بيومتري عند إضافة دفعة جديدة
     if (!editingId) {
       const emp = employees.find(e => e.id === form.employee_id)
-      const sig = await bioConfirm(`تسجيل دفعة: ${emp?.name || '—'} — ₪${form.amount}`, 'payments')
-      if (sig === null && localStorage.getItem('cpro_passkey_cred')) return
+      await bioConfirm(`تسجيل دفعة: ${emp?.name || '—'} — ₪${form.amount}`, 'payments')
     }
     setSaving(true); setFormErr('')
     try {
@@ -721,8 +719,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
                           </button>
                           <button onClick={async () => {
                             const emp = employees.find(e => e.id === pay.employee_id)
-                            const sig = await bioConfirm(`حذف دفعة: ${emp?.name || ''} — ₪${fmt(pay.amount || 0)}`, 'payments')
-                            if (sig === null) { setConfirmDel(pay.id); return }
+                            await bioConfirm(`حذف دفعة: ${emp?.name || ''} — ₪${fmt(pay.amount || 0)}`, 'payments')
                             deletePayment?.(pay.id)
                           }} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}>
                             <Trash2 size={11} strokeWidth={2} />

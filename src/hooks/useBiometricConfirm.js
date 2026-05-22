@@ -11,21 +11,16 @@ export function useBiometricConfirm() {
     return !!localStorage.getItem(PASSKEY_KEY)
   }
 
-  async function isSupported() {
-    if (typeof window === 'undefined' || !window.PublicKeyCredential) return false
-    try {
-      return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-    } catch {
-      return false
-    }
-  }
-
-  // confirm() — shows biometric modal, returns { name, role } or null if cancelled/not registered
+  // confirm() — دائماً تكمل العملية
+  // إذا البصمة نجحت  → تسجّل التوقيع وترجع { signed: true, name, role }
+  // إذا ألغى / فشل / مش مسجّلة → ترجع { signed: false } والعملية تكمل طبيعي
   async function confirm(description, tbl = 'unknown') {
-    if (!isRegistered()) return null
+    if (!isRegistered()) return { signed: false }
     try {
       const result = await requestBioConfirm({ description, tbl })
-      // Fire-and-forget: log signature to DB
+      if (!result) return { signed: false } // ألغى من المودال
+
+      // سجّل التوقيع في DB (fire-and-forget)
       const { ownerUserId, signerUserId, signerName, signerRole } = useAppStore.getState()
       if (ownerUserId) {
         supabase.from('signature_log').insert({
@@ -33,21 +28,21 @@ export function useBiometricConfirm() {
           signer_id:    signerUserId,
           signer_name:  signerName || 'غير معروف',
           signer_role:  signerRole || 'owner',
-          action:       tbl.includes('delete') ? 'delete' : 'confirm',
+          action:       'confirm',
           tbl,
           record_label: description,
         }).then(() => {})
       }
-      return result
+      return { signed: true, name: result.name, role: result.role }
     } catch {
-      return null
+      return { signed: false }
     }
   }
 
-  return { confirm, isRegistered, isSupported }
+  return { confirm, isRegistered }
 }
 
-// Standalone function for the modal component (doesn't need the hook)
+// دالة مستقلة للمودال (لا تحتاج الـ hook)
 export async function runBiometricAuth() {
   const credId = localStorage.getItem(PASSKEY_KEY)
   if (!credId) throw new Error('NO_PASSKEY')

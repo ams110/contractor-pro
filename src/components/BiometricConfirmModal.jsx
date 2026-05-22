@@ -17,7 +17,7 @@ const ACTION_LABELS = {
 
 export default function BiometricConfirmModal() {
   const {
-    bioPending, resolveBioConfirm, rejectBioConfirm,
+    bioPending, resolveBioConfirm, skipBioConfirm,
     signerName, signerRole,
   } = useAppStore()
 
@@ -37,17 +37,17 @@ export default function BiometricConfirmModal() {
       await runBiometricAuth()
       setPhase('success')
       setTimeout(() => {
-        resolveBioConfirm()
+        resolveBioConfirm() // نجحت — resolve مع بيانات الموقّع
         setPhase('idle')
       }, 800)
     } catch (e) {
-      if (e.name === 'NotAllowedError' || e.message === 'NO_PASSKEY') {
+      if (e.name === 'NotAllowedError') {
+        // المستخدم ألغى نافذة البصمة — اعتبر skip (العملية تكمل)
+        skipBioConfirm()
         setPhase('idle')
-        if (e.message === 'NO_PASSKEY') rejectBioConfirm()
       } else {
         setPhase('error')
-        setErrMsg(e.message || 'فشل التحقق، حاول مرة أخرى')
-        setTimeout(() => setPhase('idle'), 2500)
+        setErrMsg(e.message || 'فشل التحقق')
       }
     }
   }
@@ -68,7 +68,7 @@ export default function BiometricConfirmModal() {
           zIndex: 950,
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
         }}
-        onClick={e => e.target === e.currentTarget && rejectBioConfirm()}
+        onClick={e => e.target === e.currentTarget && skipBioConfirm()}
       >
         <motion.div
           initial={{ y: '100%' }}
@@ -99,7 +99,7 @@ export default function BiometricConfirmModal() {
                 </div>
               </div>
               <button
-                onClick={rejectBioConfirm}
+                onClick={skipBioConfirm}
                 style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
               >
                 <X size={14} color={C.textDim} />
@@ -173,23 +173,31 @@ export default function BiometricConfirmModal() {
               )}
             </motion.button>
 
-            {/* Error message */}
+            {/* Error message + continue without signature */}
             <AnimatePresence>
               {isError && (
                 <motion.div
                   initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, color: C.accent, fontSize: 12 }}
+                  style={{ marginTop: 10 }}
                 >
-                  <AlertCircle size={13} />
-                  {errMsg}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: C.accent, fontSize: 12, marginBottom: 8 }}>
+                    <AlertCircle size={13} />
+                    {errMsg}
+                  </div>
+                  <button
+                    onClick={skipBioConfirm}
+                    style={{ width: '100%', padding: '10px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    متابعة بدون توقيع
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/* Cancel */}
-            {!isSuccess && (
+            {!isSuccess && !isError && (
               <button
-                onClick={rejectBioConfirm}
+                onClick={skipBioConfirm}
                 style={{ width: '100%', marginTop: 12, padding: '11px', background: 'transparent', border: 'none', color: C.textDim, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 إلغاء

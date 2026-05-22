@@ -61,9 +61,10 @@ export const useAppStore = create((set, get) => ({
   bioPending:   null,   // { description, tbl } | null
   bioResolvers: null,   // { resolve, reject }  — non-serializable, fine in Zustand
   requestBioConfirm: ({ description, tbl }) =>
-    new Promise((resolve, reject) => {
-      set({ bioPending: { description, tbl }, bioResolvers: { resolve, reject } })
+    new Promise((resolve) => {
+      set({ bioPending: { description, tbl }, bioResolvers: { resolve } })
     }),
+  // البصمة نجحت — resolve مع بيانات الموقّع
   resolveBioConfirm: () => {
     const { bioResolvers, signerName, signerRole } = get()
     const info = { name: signerName, role: signerRole }
@@ -71,9 +72,10 @@ export const useAppStore = create((set, get) => ({
     set({ bioPending: null, bioResolvers: null })
     return info
   },
-  rejectBioConfirm: () => {
+  // ألغى أو فشل — resolve بـ null (العملية تكمل بدون توقيع)
+  skipBioConfirm: () => {
     const { bioResolvers } = get()
-    bioResolvers?.reject(new Error('CANCELLED'))
+    bioResolvers?.resolve(null)
     set({ bioPending: null, bioResolvers: null })
   },
 }))
