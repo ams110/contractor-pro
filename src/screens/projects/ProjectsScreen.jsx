@@ -86,7 +86,10 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
 
   async function handleSave() {
     if (!form.name.trim()) return setError('اسم المشروع مطلوب')
-    if (!isEdit) await bioConfirm(`إضافة مشروع: ${form.name}`, 'projects')
+    if (!isEdit) {
+      const sig = await bioConfirm(`إضافة مشروع: ${form.name}`, 'projects')
+      if (!sig) return
+    }
     setSaving(true)
     setError('')
     try {
@@ -194,7 +197,8 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   ]
 
   async function handleDelete() {
-    await bioConfirm(`حذف المشروع: ${project.name}`, 'projects')
+    const sig = await bioConfirm(`حذف المشروع: ${project.name}`, 'projects')
+    if (!sig) return
     setDeleting(true)
     try { await onDelete(project.id); onClose() }
     catch { setDeleting(false) }
@@ -250,7 +254,8 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 
   async function handleDeleteReceipt(id) {
     const receipt = pReceipts.find(r => r.id === id)
-    await bioConfirm(`حذف القبضة: ₪${fmt(receipt?.amount || 0)} — ${receipt?.payer_name || ''}`, 'receipts')
+    const sig = await bioConfirm(`حذف القبضة: ₪${fmt(receipt?.amount || 0)} — ${receipt?.payer_name || ''}`, 'receipts')
+    if (!sig) return
     try { await deleteReceipt(id) } catch {}
   }
 

@@ -2,25 +2,29 @@ import { startAuthentication } from '@simplewebauthn/browser'
 import { supabase } from '../lib/supabase.js'
 import { useAppStore } from '../store/useAppStore.js'
 
-const PASSKEY_KEY = 'cpro_passkey_cred'
+const PASSKEY_KEY   = 'cpro_passkey_cred'
+const PIN_HASH_KEY  = 'cpro_pin_hash'
+const PIN_EMAIL_KEY = 'cpro_pin_email'
 
 export function useBiometricConfirm() {
   const { requestBioConfirm } = useAppStore()
 
-  function isRegistered() {
-    return !!localStorage.getItem(PASSKEY_KEY)
-  }
+  function isPasskeyRegistered() { return !!localStorage.getItem(PASSKEY_KEY) }
+  function isPinSet()            { return !!localStorage.getItem(PIN_HASH_KEY) }
+  function hasAnyMethod()        { return isPasskeyRegistered() || isPinSet() }
 
-  // confirm() — دائماً تكمل العملية
-  // إذا البصمة نجحت  → تسجّل التوقيع وترجع { signed: true, name, role }
-  // إذا ألغى / فشل / مش مسجّلة → ترجع { signed: false } والعملية تكمل طبيعي
+  // confirm() — إجباري
+  // إذا نجح → يسجّل التوقيع ويرجع { signed: true, name, role }
+  // إذا ألغى / رفض → يرجع null (يحجب العملية في الشاشة)
+  // إذا ما في وسيلة مسجّلة → يرجع null مباشرة (ما يعطّل المستخدم)
   async function confirm(description, tbl = 'unknown') {
-    if (!isRegistered()) return { signed: false }
+    if (!hasAnyMethod()) return null // لا بصمة ولا PIN → اعمل العملية بدون توقيع
+
     try {
       const result = await requestBioConfirm({ description, tbl })
-      if (!result) return { signed: false } // ألغى من المودال
+      if (!result) return null
 
-      // سجّل التوقيع في DB (fire-and-forget)
+      // سجّل التوقيع في DB
       const { ownerUserId, signerUserId, signerName, signerRole } = useAppStore.getState()
       if (ownerUserId) {
         supabase.from('signature_log').insert({
@@ -35,14 +39,14 @@ export function useBiometricConfirm() {
       }
       return { signed: true, name: result.name, role: result.role }
     } catch {
-      return { signed: false }
+      return null // ألغى → يُحجب في الشاشة
     }
   }
 
-  return { confirm, isRegistered }
+  return { confirm, isPasskeyRegistered, isPinSet, hasAnyMethod }
 }
 
-// دالة مستقلة للمودال (لا تحتاج الـ hook)
+// دالة WebAuthn مستقلة للمودال
 export async function runBiometricAuth() {
   const credId = localStorage.getItem(PASSKEY_KEY)
   if (!credId) throw new Error('NO_PASSKEY')
@@ -58,4 +62,15 @@ export async function runBiometricAuth() {
     timeout:          60000,
     rpId:             window.location.hostname,
   })
+}
+
+// التحقق من PIN محلياً (بدون sign-in كامل)
+export async function verifyPinLocal(pin) {
+  const stored = localStorage.getItem(PIN_HASH_KEY)
+  const email  = localStorage.getItem(PIN_EMAIL_KEY)
+  if (!stored || !email) throw new Error('NO_PIN')
+
+  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin + email))
+  const hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+  if (hash !== stored) throw new Error('WRONG_PIN')
 }
