@@ -24,12 +24,12 @@ function Tab({ active, label, icon: Icon, badge, onClick }) {
   return (
     <button onClick={onClick} style={{
       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-      padding: '10px 6px', background: active ? `${C.gold}18` : 'transparent',
-      border: `1px solid ${active ? C.gold + '40' : 'transparent'}`,
+      padding: '10px 6px', background: active ? `${C.primary}18` : 'transparent',
+      border: `1px solid ${active ? C.primary + '40' : 'transparent'}`,
       borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', position: 'relative',
     }}>
-      <Icon size={16} color={active ? C.gold : C.textDim} strokeWidth={active ? 2.2 : 1.8} />
-      <span style={{ fontSize: 9.5, fontWeight: active ? 800 : 600, color: active ? C.gold : C.textDim }}>{label}</span>
+      <Icon size={16} color={active ? C.primary : C.textDim} strokeWidth={active ? 2.2 : 1.8} />
+      <span style={{ fontSize: 9.5, fontWeight: active ? 800 : 600, color: active ? C.primary : C.textDim }}>{label}</span>
       {badge > 0 && (
         <div style={{ position: 'absolute', top: 4, insetInlineEnd: 8, minWidth: 14, height: 14, borderRadius: 7, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#fff', padding: '0 3px' }}>{badge}</div>
       )}

@@ -7,7 +7,7 @@ import {
   Bell, ClipboardCheck, HardHat, WifiOff, Gift,
   Clock, ShieldOff, Lock, CalendarDays, CreditCard, Banknote,
   ClipboardList, Package, Calculator, Activity, Grid3x3,
-  Languages,
+  Search,
 } from 'lucide-react'
 
 import { supabase }            from './lib/supabase.js'
@@ -130,8 +130,8 @@ function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
             onClick={e => e.stopPropagation()}
             style={{
               position: 'absolute', bottom: 0, left: 0, right: 0,
-              background: '#0D0F18',
-              border: '1px solid rgba(245,158,11,0.12)',
+              background: C.surface,
+              border: `1px solid ${C.primary}1F`,
               borderRadius: '24px 24px 0 0',
               padding: '8px 0 40px',
               maxWidth: 430, margin: '0 auto',
@@ -152,8 +152,8 @@ function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12,
                       padding: '12px 14px', borderRadius: 16,
-                      background: active ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${active ? 'rgba(245,158,11,0.25)' : 'rgba(255,255,255,0.06)'}`,
+                      background: active ? `${C.primary}1F` : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${active ? `${C.primary}40` : 'rgba(255,255,255,0.06)'}`,
                       cursor: 'pointer', color: active ? C.primary : '#94A3B8',
                       fontFamily: 'inherit',
                     }}
@@ -187,7 +187,7 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
   return (
     <div style={{
       position: 'fixed', right: 0, top: 0, width: 240, height: '100vh',
-      background: 'rgba(13,15,24,0.98)', borderLeft: '1px solid rgba(245,158,11,0.1)',
+      background: 'rgba(13,15,24,0.98)', borderLeft: `1px solid ${C.primary}1A`,
       display: 'flex', flexDirection: 'column', zIndex: 40, overflowY: 'auto',
       backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
     }}>
@@ -208,8 +208,8 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
             <button key={n.id} onClick={() => setScreen(n.id)} style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 10,
               padding: '10px 12px', borderRadius: 12, marginBottom: 3,
-              background: active ? 'rgba(245,158,11,0.12)' : 'transparent',
-              border: `1px solid ${active ? 'rgba(245,158,11,0.25)' : 'transparent'}`,
+              background: active ? `${C.primary}1F` : 'transparent',
+              border: `1px solid ${active ? `${C.primary}40` : 'transparent'}`,
               color: active ? C.primary : '#94A3B8', cursor: 'pointer',
               textAlign: 'right', fontFamily: 'inherit', transition: 'all .15s',
             }}>
@@ -229,8 +229,8 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
             <button key={item.id} onClick={() => setScreen(item.id)} style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 10,
               padding: '9px 12px', borderRadius: 12, marginBottom: 3,
-              background: active ? 'rgba(245,158,11,0.12)' : 'transparent',
-              border: `1px solid ${active ? 'rgba(245,158,11,0.25)' : 'transparent'}`,
+              background: active ? `${C.primary}1F` : 'transparent',
+              border: `1px solid ${active ? `${C.primary}40` : 'transparent'}`,
               color: active ? C.primary : '#94A3B8', cursor: 'pointer',
               textAlign: 'right', fontFamily: 'inherit', transition: 'all .15s',
             }}>
@@ -598,7 +598,7 @@ export default function App() {
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowSearch(true)}
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            <Languages size={16} color="#64748B" strokeWidth={2} />
+            <Search size={16} color="#64748B" strokeWidth={2} />
           </motion.button>
         </div>
 
