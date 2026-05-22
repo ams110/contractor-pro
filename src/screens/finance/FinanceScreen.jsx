@@ -528,6 +528,12 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
         return setFormErr(`المبلغ يتجاوز المتبقي من القبضة ${selectedReceipt.ref_number || ''} — المتبقي: ₪${fmt(selectedReceipt.remaining)}`)
       }
     }
+    // توقيع بيومتري عند إضافة دفعة جديدة
+    if (!editingId) {
+      const emp = employees.find(e => e.id === form.employee_id)
+      const sig = await bioConfirm(`تسجيل دفعة: ${emp?.name || '—'} — ₪${form.amount}`, 'payments')
+      if (sig === null && localStorage.getItem('cpro_passkey_cred')) return
+    }
     setSaving(true); setFormErr('')
     try {
       let receipt_url = preview && !receiptFile ? preview : ''

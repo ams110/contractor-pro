@@ -60,6 +60,7 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
   const [error, setError] = useState('')
   const [locInput, setLocInput] = useState('')
   const isEdit = !!initialData
+  const { confirm: bioConfirm } = useBiometricConfirm()
 
   useEffect(() => {
     if (open) {
@@ -85,6 +86,11 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
 
   async function handleSave() {
     if (!form.name.trim()) return setError('اسم المشروع مطلوب')
+    // توقيع بيومتري للمشاريع الجديدة فقط
+    if (!isEdit) {
+      const sig = await bioConfirm(`إضافة مشروع: ${form.name}`, 'projects')
+      if (sig === null && localStorage.getItem('cpro_passkey_cred')) return // مسجّل لكن ألغى
+    }
     setSaving(true)
     setError('')
     try {
