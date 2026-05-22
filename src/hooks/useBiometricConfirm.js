@@ -13,13 +13,7 @@ export function useBiometricConfirm() {
   function isPinSet()            { return !!localStorage.getItem(PIN_HASH_KEY) }
   function hasAnyMethod()        { return isPasskeyRegistered() || isPinSet() }
 
-  // confirm() — إجباري
-  // إذا نجح → يسجّل التوقيع ويرجع { signed: true, name, role }
-  // إذا ألغى / رفض → يرجع null (يحجب العملية في الشاشة)
-  // إذا ما في وسيلة مسجّلة → يرجع null مباشرة (ما يعطّل المستخدم)
   async function confirm(description, tbl = 'unknown') {
-    if (!hasAnyMethod()) return null // لا بصمة ولا PIN → اعمل العملية بدون توقيع
-
     try {
       const result = await requestBioConfirm({ description, tbl })
       if (!result) return null
