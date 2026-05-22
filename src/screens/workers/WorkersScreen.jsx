@@ -28,11 +28,11 @@ function TabBtn({ active, label, icon: Icon, onClick }) {
   return (
     <button onClick={onClick} style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px',
-      background: active ? `${C.secondary}18` : 'transparent', border: `1px solid ${active ? C.secondary+'40' : 'transparent'}`,
+      background: active ? `${C.primary}18` : 'transparent', border: `1px solid ${active ? C.primary+'40' : 'transparent'}`,
       borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', flex: 1,
     }}>
-      <Icon size={15} color={active ? C.secondary : C.textDim} strokeWidth={active ? 2.2 : 1.8} />
-      <span style={{ fontSize: 9, fontWeight: active ? 800 : 600, color: active ? C.secondary : C.textDim, whiteSpace: 'nowrap' }}>{label}</span>
+      <Icon size={15} color={active ? C.primary : C.textDim} strokeWidth={active ? 2.2 : 1.8} />
+      <span style={{ fontSize: 9, fontWeight: active ? 800 : 600, color: active ? C.primary : C.textDim, whiteSpace: 'nowrap' }}>{label}</span>
     </button>
   )
 }
