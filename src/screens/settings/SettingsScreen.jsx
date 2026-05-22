@@ -402,27 +402,34 @@ export default function SettingsScreen({
             )}
             {permission === 'granted' && (
               <div style={{ marginBottom: 10 }}>
-                {/* Push subscription status badge */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, marginBottom: 8,
-                  background: pushSubStatus === 'ok' ? `${C.success}12` : pushSubStatus === 'subscribing' ? `${C.primary}12` : pushSubStatus === 'no_vapid' ? `${C.warning}12` : `${C.accent}12`,
-                  border: `1px solid ${pushSubStatus === 'ok' ? C.success : pushSubStatus === 'subscribing' ? C.primary : pushSubStatus === 'no_vapid' ? C.warning : C.accent}25`,
-                }}>
-                  {pushSubStatus === 'ok' ? <Check size={14} color={C.success} strokeWidth={2.5} /> : pushSubStatus === 'subscribing' ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}><RefreshCw size={14} color={C.primary} /></motion.div> : <BellOff size={14} color={pushSubStatus === 'no_vapid' ? C.warning : C.accent} strokeWidth={2} />}
-                  <span style={{ fontSize: 12, fontWeight: 700, color: pushSubStatus === 'ok' ? C.success : pushSubStatus === 'subscribing' ? C.primary : pushSubStatus === 'no_vapid' ? C.warning : C.accent }}>
+                {/* Push subscription status badge — hide when idle (not yet checked) */}
+                {pushSubStatus && pushSubStatus !== 'idle' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, marginBottom: 8,
+                    background: pushSubStatus === 'ok' ? `${C.success}12` : pushSubStatus === 'subscribing' ? `${C.primary}12` : pushSubStatus === 'no_vapid' ? `${C.warning}12` : `${C.accent}12`,
+                    border: `1px solid ${pushSubStatus === 'ok' ? C.success : pushSubStatus === 'subscribing' ? C.primary : pushSubStatus === 'no_vapid' ? C.warning : C.accent}25`,
+                  }}>
                     {pushSubStatus === 'ok'
-                      ? (language === 'en' ? 'Subscribed — background push active' : 'مشترك — الإشعارات الخلفية فعّالة')
+                      ? <Check size={14} color={C.success} strokeWidth={2.5} />
                       : pushSubStatus === 'subscribing'
-                      ? (language === 'en' ? 'Subscribing...' : 'جاري التسجيل...')
-                      : pushSubStatus === 'no_vapid'
-                      ? (language === 'en' ? 'Push key not configured (admin)' : 'مفتاح الإشعارات غير مُعدّ')
-                      : pushSubStatus === 'db_error'
-                      ? (language === 'en' ? 'Subscription save error — retry' : 'خطأ في حفظ الاشتراك — أعد التفعيل')
-                      : (language === 'en' ? 'Not subscribed — tap Re-activate' : 'غير مشترك — اضغط إعادة التفعيل')
+                      ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}><RefreshCw size={14} color={C.primary} /></motion.div>
+                      : <BellOff size={14} color={pushSubStatus === 'no_vapid' ? C.warning : C.accent} strokeWidth={2} />
                     }
-                  </span>
-                </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: pushSubStatus === 'ok' ? C.success : pushSubStatus === 'subscribing' ? C.primary : pushSubStatus === 'no_vapid' ? C.warning : C.accent }}>
+                      {pushSubStatus === 'ok'
+                        ? (language === 'en' ? 'Subscribed — background push active' : 'مشترك — الإشعارات الخلفية فعّالة')
+                        : pushSubStatus === 'subscribing'
+                        ? (language === 'en' ? 'Subscribing...' : 'جاري التسجيل...')
+                        : pushSubStatus === 'no_vapid'
+                        ? (language === 'en' ? 'Push key not configured (admin)' : 'مفتاح الإشعارات غير مُعدّ')
+                        : pushSubStatus === 'db_error'
+                        ? (language === 'en' ? 'Subscription save error — retry' : 'خطأ في حفظ الاشتراك — أعد التفعيل')
+                        : (language === 'en' ? 'Not subscribed — tap Re-activate' : 'غير مشترك — اضغط إعادة التفعيل')
+                      }
+                    </span>
+                  </div>
+                )}
 
-                {/* Re-subscribe button */}
+                {/* Re-subscribe button — shown on any error except no_vapid */}
                 {pushSubStatus !== 'ok' && pushSubStatus !== 'subscribing' && pushSubStatus !== 'no_vapid' && (
                   <motion.button
                     whileTap={{ scale: 0.97 }}
@@ -440,15 +447,17 @@ export default function SettingsScreen({
                   </motion.button>
                 )}
 
-                {/* Test notification button */}
-                {pushSubStatus === 'ok' && (
+                {/* Test notification button — always shown when permission granted */}
+                {pushSubStatus !== 'subscribing' && (
                   <motion.button
                     whileTap={{ scale: 0.97 }}
                     onClick={sendTestNotification}
                     disabled={testNotifLoading}
                     style={{
-                      width: '100%', padding: '10px 16px', borderRadius: 13, border: `1px solid ${C.success}30`,
-                      background: `${C.success}12`, color: C.success,
+                      width: '100%', padding: '10px 16px', borderRadius: 13,
+                      border: `1px solid ${pushSubStatus === 'ok' ? C.success : C.primary}30`,
+                      background: pushSubStatus === 'ok' ? `${C.success}12` : `${C.primary}12`,
+                      color: pushSubStatus === 'ok' ? C.success : C.primary,
                       fontSize: 12, fontWeight: 800, cursor: testNotifLoading ? 'not-allowed' : 'pointer',
                       fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                       opacity: testNotifLoading ? 0.6 : 1,
