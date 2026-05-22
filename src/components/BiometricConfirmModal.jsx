@@ -135,7 +135,7 @@ export default function BiometricConfirmModal() {
         style={{
           position: 'fixed', inset: 0,
           background: 'rgba(0,0,0,0.82)',
-          zIndex: 950,
+          zIndex: 10100,
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
         }}
         onClick={e => e.target === e.currentTarget && handleCancel()}
