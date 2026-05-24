@@ -1,8 +1,12 @@
 import { useEffect, useCallback, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 
-const PREF_KEY        = 'cpro_notif_prefs'
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY
+const PREF_KEY = 'cpro_notif_prefs'
+
+// VAPID public key — not a secret, safe to hardcode (client-side only)
+const VAPID_PUBLIC_KEY =
+  import.meta.env.VITE_VAPID_PUBLIC_KEY ||
+  'BBWTNkHM3Nz5Rc5sDSLDp0YMXwI-QXqP3VmdDO4hkrCuWuLE3mX5Zt7ZfmhimxwE5NZsbbGMklqpyLB7TO99awI'
 
 export function getNotifPrefs() {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') } catch { return {} }
@@ -22,12 +26,11 @@ function urlBase64ToUint8Array(base64) {
 // Returns 'ok' | 'no_vapid' | 'sw_error' | 'subscribe_error' | 'db_error'
 export async function subscribePush(userId) {
   if (!VAPID_PUBLIC_KEY) {
-    console.warn('[Push] VITE_VAPID_PUBLIC_KEY not set — skipping subscribe')
+    console.warn('[Push] VAPID_PUBLIC_KEY not set — skipping subscribe')
     return 'no_vapid'
   }
   try {
     const reg = await navigator.serviceWorker.ready
-    // Always unsubscribe stale subscription and re-subscribe to refresh keys
     let sub = await reg.pushManager.getSubscription()
     if (!sub) {
       sub = await reg.pushManager.subscribe({
@@ -88,9 +91,8 @@ export function usePushNotifications(userId) {
   const [permission, setPermission] = useState(
     supported ? Notification.permission : 'denied'
   )
-  const [subStatus, setSubStatus] = useState('idle') // idle | subscribing | ok | error | no_vapid
+  const [subStatus, setSubStatus] = useState('idle')
 
-  // Subscribe whenever permission is granted and user is logged in
   useEffect(() => {
     if (!supported || permission !== 'granted' || !userId) return
     setSubStatus('subscribing')
@@ -113,7 +115,6 @@ export function usePushNotifications(userId) {
 
   async function forceResubscribe() {
     if (!supported || !userId) return
-    // Unsubscribe existing then resubscribe fresh
     try {
       const reg = await navigator.serviceWorker.ready
       const existing = await reg.pushManager.getSubscription()
@@ -125,7 +126,6 @@ export function usePushNotifications(userId) {
     return status
   }
 
-  // In-app foreground notification (only when app is open)
   const notify = useCallback((title, body, tag) => {
     if (!supported || Notification.permission !== 'granted') return
     const prefs = getNotifPrefs()
