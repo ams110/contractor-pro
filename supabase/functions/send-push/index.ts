@@ -12,6 +12,13 @@ webpush.setVapidDetails('mailto:admin@contractorpro.app', VAPID_PUBLIC_KEY, VAPI
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } })
 
+// ── CORS headers (required for browser fetch / supabase.functions.invoke) ──
+const cors = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 async function sendToUser(userId: string, title: string, body: string, tag: string) {
   const { data: subs, error } = await supabase
     .from('push_subscriptions')
@@ -37,7 +44,12 @@ async function sendToUser(userId: string, title: string, body: string, tag: stri
 }
 
 Deno.serve(async (req) => {
-  if (req.method !== 'POST') return new Response('method not allowed', { status: 405 })
+  // ── CORS preflight ────────────────────────────────────────────────────────
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+
+  if (req.method !== 'POST') {
+    return new Response('method not allowed', { status: 405, headers: cors })
+  }
 
   const webhookSecret = req.headers.get('x-webhook-secret') ?? ''
   const authHeader    = req.headers.get('Authorization') ?? ''
@@ -45,22 +57,22 @@ Deno.serve(async (req) => {
   // ── Path 1: DB trigger via shared secret ──────────────────────────────────
   if (webhookSecret) {
     if (!SEND_PUSH_SECRET || webhookSecret !== SEND_PUSH_SECRET) {
-      return new Response('Unauthorized', { status: 401 })
+      return new Response('Unauthorized', { status: 401, headers: cors })
     }
 
     let body: Record<string, unknown>
-    try { body = await req.json() } catch { return new Response('bad json', { status: 400 }) }
+    try { body = await req.json() } catch { return new Response('bad json', { status: 400, headers: cors }) }
 
     const record = (body.record ?? body) as Record<string, unknown>
     const userId = record.user_id as string
     const title  = (record.title as string) || 'Contractor Pro'
     const text   = (record.body  as string) || ''
     const tag    = (record.type  as string) || 'general'
-    if (!userId) return new Response('no user_id', { status: 400 })
+    if (!userId) return new Response('no user_id', { status: 400, headers: cors })
 
     const sent = await sendToUser(userId, title, text, tag)
     return new Response(JSON.stringify({ sent }), {
-      status: 200, headers: { 'Content-Type': 'application/json' },
+      status: 200, headers: { ...cors, 'Content-Type': 'application/json' },
     })
   }
 
@@ -70,10 +82,10 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     })
     const { data: { user }, error: authErr } = await callerClient.auth.getUser()
-    if (authErr || !user) return new Response('Unauthorized', { status: 401 })
+    if (authErr || !user) return new Response('Unauthorized', { status: 401, headers: cors })
 
     let body: Record<string, unknown>
-    try { body = await req.json() } catch { return new Response('bad json', { status: 400 }) }
+    try { body = await req.json() } catch { return new Response('bad json', { status: 400, headers: cors }) }
 
     const title   = (body.title as string) || 'Contractor Pro'
     const text    = (body.body  as string) || ''
@@ -86,16 +98,16 @@ Deno.serve(async (req) => {
 
     // Security: client can only send to themselves
     const targets = userIds.filter(id => id === user.id)
-    if (!targets.length) return new Response('Forbidden', { status: 403 })
+    if (!targets.length) return new Response('Forbidden', { status: 403, headers: cors })
 
     let totalSent = 0
     for (const uid of targets) {
       totalSent += await sendToUser(uid, title, text, tag)
     }
     return new Response(JSON.stringify({ sent: totalSent }), {
-      status: 200, headers: { 'Content-Type': 'application/json' },
+      status: 200, headers: { ...cors, 'Content-Type': 'application/json' },
     })
   }
 
-  return new Response('Unauthorized', { status: 401 })
+  return new Response('Unauthorized', { status: 401, headers: cors })
 })
