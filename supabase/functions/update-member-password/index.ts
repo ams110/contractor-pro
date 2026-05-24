@@ -34,7 +34,8 @@ serve(async (req) => {
 
     if (user.id !== ownerId) return json({ error: 'غير مصرح' }, 403)
     if (!memberId || !newPassword) return json({ error: 'memberId و newPassword مطلوبان' }, 400)
-    if (newPassword.length < 6) return json({ error: 'كلمة المرور 6 أحرف على الأقل' }, 400)
+    if (newPassword.length < 8)   return json({ error: 'كلمة المرور 8 أحرف على الأقل' }, 400)
+    if (newPassword.length > 128) return json({ error: 'كلمة المرور 128 حرفاً كحد أقصى' }, 400)
 
     // جلب member_id من team_members للتأكد من الملكية
     const { data: member, error: fetchErr } = await adminClient

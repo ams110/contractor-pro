@@ -8,29 +8,48 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// رسالة خطأ موحّدة — لا تكشف ما إذا كان البريد مسجّلاً أم لا
+const GENERIC_ERROR = 'البصمة غير متوفرة لهذا الحساب'
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  const json = (body: object, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
   try {
-    const { email } = await req.json()
+    let body: { email?: string }
+    try { body = await req.json() } catch { return json({ error: 'JSON غير صالح' }, 400) }
+
+    const { email } = body
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return json({ error: 'البريد الإلكتروني غير صالح' }, 400)
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      { auth: { persistSession: false } },
     )
 
-    // جلب معرّف المستخدم من الإيميل
-    const { data: userData } = await supabase.auth.admin.listUsers()
+    // ── البحث عن المستخدم بالبريد — بدون listUsers() لتجنب تعداد كل المستخدمين ──
+    // نستخدم صفحة واحدة فقط بدل تحميل كل المستخدمين
+    const { data: userData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
     const user = userData?.users?.find(u => u.email === email)
-    if (!user) throw new Error('البريد الإلكتروني غير مسجّل')
 
-    // جلب بيانات اعتماد البصمة
-    const { data: credentials } = await supabase
+    // جلب بيانات اعتماد البصمة (null-safe — لا نكشف وجود المستخدم)
+    const credentials = user ? (await supabase
       .from('passkey_credentials')
       .select('credential_id')
       .eq('user_id', user.id)
+    ).data : null
 
-    if (!credentials?.length) throw new Error('لا توجد بصمة مسجّلة لهذا الحساب')
+    // ── رسالة خطأ موحّدة لكلا الحالتين (user not found / no passkey) ──
+    if (!user || !credentials?.length) {
+      // تأخير ثابت لمنع timing-based enumeration
+      await new Promise(r => setTimeout(r, 150))
+      return json({ error: GENERIC_ERROR }, 400)
+    }
 
     const options = await generateAuthenticationOptions({
       rpID: req.headers.get('origin')?.replace(/^https?:\/\//, '').split(':')[0] || 'localhost',
@@ -53,9 +72,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    // لا تعيد تفاصيل الخطأ الداخلي
+    return json({ error: GENERIC_ERROR }, 400)
   }
 })

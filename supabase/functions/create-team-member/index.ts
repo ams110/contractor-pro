@@ -6,6 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// الأدوار المسموحة فقط
+const ALLOWED_ROLES = new Set(['مدير', 'محاسب', 'مشرف', 'عضو', 'عارض'])
+
+// قواعد التحقق من المدخلات
+const validate = {
+  username:    (v: string) => /^[a-zA-Z0-9._-]{3,30}$/.test(v),
+  displayName: (v: string) => typeof v === 'string' && v.trim().length >= 2 && v.length <= 60,
+  password:    (v: string) => typeof v === 'string' && v.length >= 8 && v.length <= 128,
+  role:        (v: string) => ALLOWED_ROLES.has(v),
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -30,12 +41,41 @@ serve(async (req) => {
     const { data: { user }, error: authErr } = await callerClient.auth.getUser()
     if (authErr || !user) return json({ error: 'Unauthorized' }, 401)
 
-    const { displayName, username, password, role, expiresAt, perms, ownerId, allowedProjectIds } = await req.json()
+    let body: Record<string, unknown>
+    try { body = await req.json() }
+    catch { return json({ error: 'JSON غير صالح' }, 400) }
+
+    const { displayName, username, password, role, expiresAt, perms, ownerId, allowedProjectIds } = body as {
+      displayName?: string; username?: string; password?: string; role?: string
+      expiresAt?: string;   perms?: object;    ownerId?: string;  allowedProjectIds?: string[]
+    }
 
     // تحقق أن المُرسِل هو المالك
-    if (user.id !== ownerId) return json({ error: 'غير مصرح' }, 403)
+    if (!ownerId || user.id !== ownerId) return json({ error: 'غير مصرح' }, 403)
 
-    if (!username || !password) return json({ error: 'username و password مطلوبان' }, 400)
+    // ── التحقق من المدخلات ────────────────────────────────────────────────
+    if (!username || !validate.username(username)) {
+      return json({ error: 'اسم المستخدم: 3-30 حرفاً (حروف لاتينية وأرقام و . _ - فقط)' }, 400)
+    }
+    if (!password || !validate.password(password)) {
+      return json({ error: 'كلمة المرور: 8 أحرف على الأقل، 128 كحد أقصى' }, 400)
+    }
+    if (displayName && !validate.displayName(displayName)) {
+      return json({ error: 'الاسم: 2-60 حرفاً' }, 400)
+    }
+    if (role && !validate.role(role)) {
+      return json({ error: 'الدور غير مسموح' }, 400)
+    }
+    // allowedProjectIds: يجب أن يكون مصفوفة من UUIDs صالحة إذا وُجد
+    if (allowedProjectIds !== undefined && allowedProjectIds !== null) {
+      if (!Array.isArray(allowedProjectIds) || allowedProjectIds.length > 100) {
+        return json({ error: 'allowedProjectIds: مصفوفة بحد أقصى 100 مشروع' }, 400)
+      }
+      const uuidRx = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (!allowedProjectIds.every((id: unknown) => typeof id === 'string' && uuidRx.test(id))) {
+        return json({ error: 'allowedProjectIds: UUIDs غير صالحة' }, 400)
+      }
+    }
 
     // تحقق من تكرار اسم المستخدم (per-owner فقط)
     const { data: existing } = await adminClient
@@ -57,15 +97,16 @@ serve(async (req) => {
     const { error: dbErr } = await adminClient.from('team_members').insert({
       owner_id:     ownerId,
       member_id:    newUserId,
-      display_name: displayName,
+      display_name: displayName?.trim() || username,
       username,
       auth_email:   authEmail,
       email:        authEmail,
       role:         role || 'عضو',
       status:       'active',
       expires_at:   expiresAt || null,
-      ...perms,
-      allowed_project_ids: (allowedProjectIds?.length > 0) ? allowedProjectIds : null,
+      ...(perms && typeof perms === 'object' ? perms : {}),
+      allowed_project_ids: (Array.isArray(allowedProjectIds) && allowedProjectIds.length > 0)
+        ? allowedProjectIds : null,
     })
 
     if (dbErr) {
@@ -76,6 +117,6 @@ serve(async (req) => {
 
     return json({ success: true })
   } catch (e) {
-    return json({ error: e.message || 'خطأ غير متوقع' }, 500)
+    return json({ error: 'خطأ غير متوقع' }, 500) // لا تعيد تفاصيل الخطأ الداخلي
   }
 })

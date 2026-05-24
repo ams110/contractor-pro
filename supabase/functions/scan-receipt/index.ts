@@ -6,41 +6,84 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// ── Rate limit config ─────────────────────────────────────────────────────────
+const RATE_LIMIT_MAX    = 10   // max scans per window
+const RATE_LIMIT_WINDOW = 60   // window in minutes
+// Max base64 payload ≈ 8 MB (raw image ~6 MB after decode)
+const MAX_BASE64_BYTES  = 8 * 1024 * 1024
+const ALLOWED_MIME      = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic'])
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  // Verify caller is an authenticated Supabase user
+  const json = (body: object, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
   const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
+  if (!authHeader) return json({ error: 'Unauthorized' }, 401)
+
   const callerClient = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_ANON_KEY')!,
     { global: { headers: { Authorization: authHeader } } },
   )
   const { data: { user }, error: authErr } = await callerClient.auth.getUser()
-  if (authErr || !user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+  if (authErr || !user) return json({ error: 'Unauthorized' }, 401)
+
+  // ── Rate limiting ─────────────────────────────────────────────────────────
+  const adminClient = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    { auth: { persistSession: false } },
+  )
+
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW * 60 * 1000).toISOString()
+  const { count } = await adminClient
+    .from('rate_limits')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('action', 'scan_receipt')
+    .gte('created_at', windowStart)
+
+  if ((count ?? 0) >= RATE_LIMIT_MAX) {
+    return json({
+      error: `تجاوزت الحد المسموح: ${RATE_LIMIT_MAX} طلبات كل ${RATE_LIMIT_WINDOW} دقيقة`,
+    }, 429)
   }
 
+  // سجّل الطلب الحالي
+  await adminClient.from('rate_limits').insert({
+    user_id: user.id,
+    action:  'scan_receipt',
+  })
+
   try {
-    const { imageBase64, mimeType } = await req.json()
-    if (!imageBase64) {
-      return new Response(JSON.stringify({ error: 'imageBase64 required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    // ── Input validation ──────────────────────────────────────────────────
+    let body: { imageBase64?: string; mimeType?: string }
+    try { body = await req.json() }
+    catch { return json({ error: 'JSON غير صالح' }, 400) }
+
+    const { imageBase64, mimeType } = body
+
+    if (!imageBase64 || typeof imageBase64 !== 'string') {
+      return json({ error: 'imageBase64 مطلوب' }, 400)
     }
 
+    // Server-side size check (base64 string length ≈ 4/3 × raw bytes)
+    if (imageBase64.length > MAX_BASE64_BYTES) {
+      return json({ error: 'حجم الصورة أكبر من 6 MB' }, 413)
+    }
+
+    // Validate MIME type
+    const safeMime = (mimeType || 'image/jpeg').toLowerCase()
+    if (!ALLOWED_MIME.has(safeMime)) {
+      return json({ error: 'نوع الملف غير مدعوم' }, 415)
+    }
+
+    // ── Claude API call ───────────────────────────────────────────────────
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
 
@@ -59,11 +102,7 @@ serve(async (req) => {
           content: [
             {
               type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mimeType || 'image/jpeg',
-                data: imageBase64,
-              },
+              source: { type: 'base64', media_type: safeMime, data: imageBase64 },
             },
             {
               type: 'text',
@@ -97,13 +136,8 @@ serve(async (req) => {
       // return empty if parsing fails
     }
 
-    return new Response(JSON.stringify({ result }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return json({ result })
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return json({ error: (err as Error).message }, 500)
   }
 })

@@ -20,6 +20,37 @@ async function compressImage(file, maxPx = 1200, quality = 0.8) {
   })
 }
 
+// ── مدة انتهاء صلاحية الـ signed URL: سنة واحدة ──────────────────────────────
+const SIGNED_URL_TTL = 60 * 60 * 24 * 365 // 1 year in seconds
+
+/**
+ * استخرج الـ bucket و path من أي URL سواء كان public أو signed.
+ * يُستخدم لتجديد URLs المنتهية الصلاحية.
+ */
+function parseBucketPath(url) {
+  if (!url) return null
+  // Signed URL: /storage/v1/object/sign/<bucket>/<path>
+  let m = url.match(/\/storage\/v1\/object\/sign\/([^/]+)\/(.+?)(\?|$)/)
+  if (m) return { bucket: m[1], path: m[2] }
+  // Public URL: /storage/v1/object/public/<bucket>/<path>
+  m = url.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+?)(\?|$)/)
+  if (m) return { bucket: m[1], path: m[2] }
+  return null
+}
+
+/**
+ * أعد توليد signed URL من أي URL مخزّن (public أو signed منتهي).
+ * استخدمه في مكونات العرض لضمان إمكانية الوصول دائماً.
+ */
+export async function refreshSignedUrl(storedUrl, ttl = SIGNED_URL_TTL) {
+  const parsed = parseBucketPath(storedUrl)
+  if (!parsed) return storedUrl // رابط خارجي أو غير معروف
+  const { data } = await supabase.storage
+    .from(parsed.bucket)
+    .createSignedUrl(parsed.path, ttl)
+  return data?.signedUrl || storedUrl
+}
+
 export async function uploadReceipt(userId, file) {
   const compressed = await compressImage(file)
   const ext  = compressed.type === 'image/jpeg' ? 'jpg' : (file.name.split('.').pop() || 'jpg')
@@ -31,8 +62,12 @@ export async function uploadReceipt(userId, file) {
 
   if (upErr) throw new Error(upErr.message)
 
-  const { data } = supabase.storage.from('receipts').getPublicUrl(path)
-  return data.publicUrl
+  // Signed URL بدلاً من public URL ─ محمية بالمصادقة وتنتهي بعد سنة
+  const { data, error: signErr } = await supabase.storage
+    .from('receipts')
+    .createSignedUrl(path, SIGNED_URL_TTL)
+  if (signErr || !data?.signedUrl) throw new Error('فشل توليد رابط الإيصال')
+  return data.signedUrl
 }
 
 export async function uploadWorkerReceipt(empId, file) {
@@ -46,6 +81,9 @@ export async function uploadWorkerReceipt(empId, file) {
 
   if (upErr) throw new Error(upErr.message)
 
-  const { data } = supabase.storage.from('worker-receipts').getPublicUrl(path)
-  return data.publicUrl
+  const { data, error: signErr } = await supabase.storage
+    .from('worker-receipts')
+    .createSignedUrl(path, SIGNED_URL_TTL)
+  if (signErr || !data?.signedUrl) throw new Error('فشل توليد رابط الإيصال')
+  return data.signedUrl
 }
