@@ -71,6 +71,7 @@ export default function SettingsScreen({
   permissions, teamMembers = [],
   addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, reloadTeam,
   onNav, appCfg,
+  pushSubStatus, forceResubscribePush,
 }) {
   const { t } = useTranslation()
   const { language, setLanguage } = useAppStore()
@@ -79,6 +80,18 @@ export default function SettingsScreen({
   const { registerPasskey, isPasskeySupported } = useAuth()
   const { supported: pushSupported, permission, requestPermission } = usePushNotifications(userId)
   const [notifLoading, setNotifLoading] = useState(false)
+  const [testNotifLoading, setTestNotifLoading] = useState(false)
+
+  async function sendTestNotification() {
+    if (!userId) return
+    setTestNotifLoading(true)
+    try {
+      await supabase.functions.invoke('send-push', {
+        body: { user_ids: [userId], title: 'اختبار الإشعارات', body: 'وصل الإشعار بنجاح حتى بعد إغلاق التطبيق ✓' }
+      })
+    } catch {}
+    setTestNotifLoading(false)
+  }
   const [sigLog, setSigLog] = useState([])
   const [sigLogLoading, setSigLogLoading] = useState(false)
 
@@ -112,12 +125,11 @@ export default function SettingsScreen({
     }
   }
 
-  // ── Security features state ───────────────────────────────────────────────
   const [loginLog, setLoginLog] = useState([])
   const [loginLogOpen, setLoginLogOpen] = useState(false)
   const [limitInput, setLimitInput] = useState('')
   const [timeoutInput, setTimeoutInput] = useState('')
-  const [memberExpiryEditing, setMemberExpiryEditing] = useState(null) // memberId
+  const [memberExpiryEditing, setMemberExpiryEditing] = useState(null)
   const [memberExpiryValue, setMemberExpiryValue] = useState('')
 
   useEffect(() => {
@@ -389,11 +401,74 @@ export default function SettingsScreen({
               </motion.button>
             )}
             {permission === 'granted' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: `${C.success}12`, borderRadius: 10, border: `1px solid ${C.success}25` }}>
-                <Check size={14} color={C.success} strokeWidth={2.5} />
-                <span style={{ fontSize: 12, color: C.success, fontWeight: 700 }}>
-                  {language === 'he' ? 'פעיל — תקבל התראות ברקע' : language === 'en' ? 'Active — background alerts on' : 'مفعّل — ستصلك إشعارات في الخلفية'}
-                </span>
+              <div style={{ marginBottom: 10 }}>
+                {/* Push subscription status badge — hide when idle (not yet checked) */}
+                {pushSubStatus && pushSubStatus !== 'idle' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, marginBottom: 8,
+                    background: pushSubStatus === 'ok' ? `${C.success}12` : pushSubStatus === 'subscribing' ? `${C.primary}12` : pushSubStatus === 'no_vapid' ? `${C.warning}12` : `${C.accent}12`,
+                    border: `1px solid ${pushSubStatus === 'ok' ? C.success : pushSubStatus === 'subscribing' ? C.primary : pushSubStatus === 'no_vapid' ? C.warning : C.accent}25`,
+                  }}>
+                    {pushSubStatus === 'ok'
+                      ? <Check size={14} color={C.success} strokeWidth={2.5} />
+                      : pushSubStatus === 'subscribing'
+                      ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}><RefreshCw size={14} color={C.primary} /></motion.div>
+                      : <BellOff size={14} color={pushSubStatus === 'no_vapid' ? C.warning : C.accent} strokeWidth={2} />
+                    }
+                    <span style={{ fontSize: 12, fontWeight: 700, color: pushSubStatus === 'ok' ? C.success : pushSubStatus === 'subscribing' ? C.primary : pushSubStatus === 'no_vapid' ? C.warning : C.accent }}>
+                      {pushSubStatus === 'ok'
+                        ? (language === 'en' ? 'Subscribed — background push active' : 'مشترك — الإشعارات الخلفية فعّالة')
+                        : pushSubStatus === 'subscribing'
+                        ? (language === 'en' ? 'Subscribing...' : 'جاري التسجيل...')
+                        : pushSubStatus === 'no_vapid'
+                        ? (language === 'en' ? 'Push key not configured (admin)' : 'مفتاح الإشعارات غير مُعدّ')
+                        : pushSubStatus === 'db_error'
+                        ? (language === 'en' ? 'Subscription save error — retry' : 'خطأ في حفظ الاشتراك — أعد التفعيل')
+                        : (language === 'en' ? 'Not subscribed — tap Re-activate' : 'غير مشترك — اضغط إعادة التفعيل')
+                      }
+                    </span>
+                  </div>
+                )}
+
+                {/* Re-subscribe button — shown on any error except no_vapid */}
+                {pushSubStatus !== 'ok' && pushSubStatus !== 'subscribing' && pushSubStatus !== 'no_vapid' && (
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => forceResubscribePush?.()}
+                    style={{
+                      width: '100%', padding: '10px 16px', borderRadius: 13, border: 'none',
+                      background: GRAD.primary, color: '#fff',
+                      fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                      marginBottom: 8, boxShadow: '0 3px 12px rgba(245,158,11,0.3)',
+                    }}
+                  >
+                    <RefreshCw size={13} strokeWidth={2.5} />
+                    {language === 'en' ? 'Re-activate Push' : 'إعادة تفعيل الإشعارات'}
+                  </motion.button>
+                )}
+
+                {/* Test notification button — always shown when permission granted */}
+                {pushSubStatus !== 'subscribing' && (
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={sendTestNotification}
+                    disabled={testNotifLoading}
+                    style={{
+                      width: '100%', padding: '10px 16px', borderRadius: 13,
+                      border: `1px solid ${pushSubStatus === 'ok' ? C.success : C.primary}30`,
+                      background: pushSubStatus === 'ok' ? `${C.success}12` : `${C.primary}12`,
+                      color: pushSubStatus === 'ok' ? C.success : C.primary,
+                      fontSize: 12, fontWeight: 800, cursor: testNotifLoading ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                      opacity: testNotifLoading ? 0.6 : 1,
+                    }}
+                  >
+                    {testNotifLoading
+                      ? <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}><RefreshCw size={13} /></motion.div>{language === 'en' ? 'Sending...' : 'جاري الإرسال...'}</>
+                      : <><BellRing size={13} strokeWidth={2.5} />{language === 'en' ? 'Send Test Notification' : 'إرسال إشعار تجريبي'}</>
+                    }
+                  </motion.button>
+                )}
               </div>
             )}
           </div>

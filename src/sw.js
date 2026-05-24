@@ -17,7 +17,7 @@ registerRoute(
   })
 )
 
-// ── Push Notification handler (background) ──────────────────────────────────
+// ── Push Notification handler (background) ──────────────────────────────
 self.addEventListener('push', event => {
   if (!event.data) return
   let data = { title: 'Contractor Pro', body: '' }
@@ -27,7 +27,7 @@ self.addEventListener('push', event => {
     self.registration.showNotification(data.title, {
       body:      data.body,
       icon:      '/pwa-192.png',
-      badge:     '/pwa-192.png',
+      badge:     '/badge-96.png',
       tag:       data.tag || 'cpro-notif',
       renotify:  true,
       dir:       'rtl',
