@@ -7,6 +7,9 @@ import {
   XCircle, Paperclip, ChevronDown, Receipt, AlertTriangle,
   Lock, CalendarOff, Eye,
 } from 'lucide-react'
+import { useBusinessStore } from '../../store/useBusinessStore.js'
+import BusinessSetup    from './BusinessSetup.jsx'
+import BusinessSwitcher from './BusinessSwitcher.jsx'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense, validatePayment } from '../../lib/helpers.js'
@@ -928,6 +931,17 @@ export default function FinanceScreen({
   const { t } = useTranslation()
   const { language, isReadOnly } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
+
+  // ─── Business store ───────────────────────────────────────────────────────
+  const { businesses, initialized, load } = useBusinessStore()
+
+  useEffect(() => { load() }, [])
+
+  // أول مرة — لا يوجد مصلحة
+  if (initialized && businesses.length === 0) {
+    return <BusinessSetup onDone={() => load()} />
+  }
+
   const [tab, setTab] = useState('accounting')
   const [lockedPeriods, setLockedPeriods] = useState([])
   const [periodLockOpen, setPeriodLockOpen] = useState(false)
@@ -964,6 +978,10 @@ export default function FinanceScreen({
 
   return (
     <div dir={dir} style={{ padding: '16px 16px 8px' }}>
+
+      {/* Business Switcher */}
+      <BusinessSwitcher />
+
       {/* Read-only banner */}
       {isReadOnly && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: `${C.accent}15`, border: `1px solid ${C.accent}30`, borderRadius: 14, marginBottom: 14 }}>
