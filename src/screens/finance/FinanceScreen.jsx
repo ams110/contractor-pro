@@ -13,6 +13,7 @@ import BusinessSwitcher from './BusinessSwitcher.jsx'
 import IncomeTab        from './IncomeTab.jsx'
 import ExpenseTab          from './ExpenseTab.jsx'
 import InvoiceArchiveTab   from './InvoiceArchiveTab.jsx'
+import PayrollTab          from './PayrollTab.jsx'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense, validatePayment } from '../../lib/helpers.js'
@@ -977,6 +978,7 @@ export default function FinanceScreen({
     { id: 'income',   icon: TrendingUp,   label: lbl('مدخولات', 'הכנסות',  'Income',   language) },
     { id: 'bizexp',   icon: TrendingDown, label: lbl('مصاريف',  'הוצאות',  'Expenses', language) },
     { id: 'archive',  icon: FolderOpen,   label: lbl('أرشيف',   'ארכיון',  'Archive',  language) },
+    { id: 'payroll',  icon: Banknote,     label: lbl('قسائم',   'תלושים',  'Payroll',  language) },
     { id: 'payments', icon: Banknote,     label: lbl('رواتب',   'שכר',     'Salaries', language), badge: pendingPayments },
     { id: 'accounting', icon: Calculator, label: lbl('محاسبة',  'חשבונות', 'Accounting', language) },
   ]
@@ -1026,6 +1028,9 @@ export default function FinanceScreen({
       )}
       {tab === 'archive' && (
         <InvoiceArchiveTab projects={projects} userId={userId} />
+      )}
+      {tab === 'payroll' && (
+        <PayrollTab employees={employees} userId={userId} />
       )}
       {tab === 'accounting' && (
         <AccountingScreen expenses={expenses} payments={payments} clientReceipts={clientReceipts}
