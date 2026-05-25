@@ -27,6 +27,69 @@ import AccountingScreen from '../AccountingScreen.jsx'
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function lbl(ar, he, en, lang) { return lang === 'he' ? he : lang === 'en' ? en : ar }
 
+// ─── Sub-tab chip (للاستخدام داخل المحاسبة) ──────────────────────────────────
+function SubTab({ active, label, icon: Icon, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      display: 'flex', alignItems: 'center', gap: 5,
+      padding: '7px 12px', flexShrink: 0,
+      background: active ? `${C.primary}18` : 'transparent',
+      border: `1px solid ${active ? C.primary + '40' : C.border}`,
+      borderRadius: 20, cursor: 'pointer', fontFamily: 'inherit',
+      transition: 'all .15s',
+    }}>
+      <Icon size={12} color={active ? C.primary : C.textDim} strokeWidth={active ? 2.2 : 1.8} />
+      <span style={{ fontSize: 11, fontWeight: active ? 800 : 600, color: active ? C.primary : C.textDim, whiteSpace: 'nowrap' }}>
+        {label}
+      </span>
+    </button>
+  )
+}
+
+// ─── AccountingModuleTab ───────────────────────────────────────────────────────
+// يحتوي على BusinessSwitcher + الـ 5 تابات الجديدة للمحاسبة
+function AccountingModuleTab({ projects, employees, userId }) {
+  const { businesses, initialized, load } = useBusinessStore()
+  const [subTab, setSubTab] = useState('income')
+
+  useEffect(() => { load() }, [])
+
+  if (!initialized) return (
+    <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>تحميل...</div>
+  )
+
+  if (businesses.length === 0) return <BusinessSetup onDone={() => load()} />
+
+  const SUB_TABS = [
+    { id: 'income',     icon: TrendingUp,   label: 'مدخولات' },
+    { id: 'bizexp',     icon: TrendingDown, label: 'مصاريف'  },
+    { id: 'archive',    icon: FolderOpen,   label: 'فواتير'  },
+    { id: 'payroll',    icon: Banknote,     label: 'رواتب'   },
+    { id: 'taxsummary', icon: BarChart3,    label: 'ملخص'    },
+  ]
+
+  return (
+    <div>
+      {/* Business switcher */}
+      <BusinessSwitcher />
+
+      {/* Sub-tabs — قابلة للتمرير */}
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, marginBottom: 12, scrollbarWidth: 'none' }}>
+        {SUB_TABS.map(st => (
+          <SubTab key={st.id} active={subTab === st.id} label={st.label} icon={st.icon} onClick={() => setSubTab(st.id)} />
+        ))}
+      </div>
+
+      {/* Sub-tab content */}
+      {subTab === 'income'     && <IncomeTab projects={projects} userId={userId} />}
+      {subTab === 'bizexp'     && <ExpenseTab projects={projects} userId={userId} />}
+      {subTab === 'archive'    && <InvoiceArchiveTab projects={projects} userId={userId} />}
+      {subTab === 'payroll'    && <PayrollTab employees={employees} userId={userId} />}
+      {subTab === 'taxsummary' && <TaxSummaryTab />}
+    </div>
+  )
+}
+
 // ─── Tab button ───────────────────────────────────────────────────────────────
 function Tab({ active, label, icon: Icon, badge, onClick }) {
   return (
@@ -937,17 +1000,7 @@ export default function FinanceScreen({
   const { language, isReadOnly } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
-  // ─── Business store ───────────────────────────────────────────────────────
-  const { businesses, initialized, load } = useBusinessStore()
-
-  useEffect(() => { load() }, [])
-
-  // أول مرة — لا يوجد مصلحة
-  if (initialized && businesses.length === 0) {
-    return <BusinessSetup onDone={() => load()} />
-  }
-
-  const [tab, setTab] = useState('income')
+  const [tab, setTab] = useState('accounting')
   const [lockedPeriods, setLockedPeriods] = useState([])
   const [periodLockOpen, setPeriodLockOpen] = useState(false)
 
@@ -976,11 +1029,9 @@ export default function FinanceScreen({
   const pendingPayments = payments.filter(p => p.status === 'pending').length
 
   const TABS = [
-    { id: 'income',     icon: TrendingUp,   label: lbl('مدخولات', 'הכנסות', 'Income',   language) },
-    { id: 'bizexp',     icon: TrendingDown, label: lbl('مصاريف',  'הוצאות', 'Expenses', language) },
-    { id: 'archive',    icon: FolderOpen,   label: lbl('فواتير',  'חשבוניות','Invoices', language) },
-    { id: 'payroll',    icon: Banknote,     label: lbl('رواتب',   'שכר',    'Payroll',  language) },
-    { id: 'taxsummary', icon: BarChart3,    label: lbl('ملخص',    'סיכום',  'Summary',  language) },
+    { id: 'accounting', icon: Calculator,   label: lbl('محاسبة', 'חשבונות', 'Accounting', language) },
+    { id: 'expenses',   icon: CreditCard,   label: lbl('مصاريف', 'הוצאות',  'Expenses',   language), badge: pendingExpenses },
+    { id: 'payments',   icon: Banknote,     label: lbl('رواتب',  'שכר',     'Salaries',   language), badge: pendingPayments },
   ]
 
   return (
@@ -1020,27 +1071,8 @@ export default function FinanceScreen({
         ))}
       </div>
 
-      {tab === 'income' && (
-        <IncomeTab projects={projects} userId={userId} />
-      )}
-      {tab === 'bizexp' && (
-        <ExpenseTab projects={projects} userId={userId} />
-      )}
-      {tab === 'archive' && (
-        <InvoiceArchiveTab projects={projects} userId={userId} />
-      )}
-      {tab === 'payroll' && (
-        <PayrollTab employees={employees} userId={userId} />
-      )}
-      {tab === 'taxsummary' && (
-        <TaxSummaryTab />
-      )}
       {tab === 'accounting' && (
-        <AccountingScreen expenses={expenses} payments={payments} clientReceipts={clientReceipts}
-          employees={employees} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance}
-          deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly}
-          setPensionMonthly={setPensionMonthly} businessType={businessType}
-          setBusinessType={setBusinessType} />
+        <AccountingModuleTab projects={projects} employees={employees} userId={userId} />
       )}
       {tab === 'expenses' && (
         <ExpensesTab expenses={expenses} projects={projects} employees={employees}
