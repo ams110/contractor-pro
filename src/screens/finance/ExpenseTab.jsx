@@ -384,7 +384,8 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, allProjects, use
 }
 
 // ─── MAIN: ExpenseTab ─────────────────────────────────────────────────────────
-export default function ExpenseTab({ userId }) {
+// linkedProjects: المشاريع المربوطة بالمصلحة النشطة (من FinanceScreen)
+export default function ExpenseTab({ userId, linkedProjects = [] }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
 
@@ -399,6 +400,10 @@ export default function ExpenseTab({ userId }) {
   const bizId   = activeBusiness?.id
   const bizType = activeBusiness?.business_type ?? 'osek_patur'
   const showVat = bizType === 'osek_moreh' || bizType === 'hevra'
+
+  // قائمة المشاريع المعروضة في النموذج:
+  // إذا في مشاريع مربوطة بالمصلحة → استخدمها، وإلا اعرض كل المشاريع
+  const formProjects = linkedProjects.length > 0 ? linkedProjects : allProjects
 
   const projectMap = useMemo(() => {
     const m = {}
@@ -635,7 +640,7 @@ export default function ExpenseTab({ userId }) {
         onClose={() => setAddOpen(false)}
         onSave={handleSave}
         businessType={bizType}
-        allProjects={allProjects}
+        allProjects={formProjects}
         userId={userId}
       />
     </div>

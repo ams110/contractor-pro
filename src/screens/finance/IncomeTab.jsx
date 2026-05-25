@@ -254,7 +254,8 @@ function AddIncomeSheet({ open, onClose, onSave, allProjects, userId }) {
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
-export default function IncomeTab({ userId }) {
+// linkedProjects: المشاريع المربوطة بالمصلحة النشطة (من FinanceScreen)
+export default function IncomeTab({ userId, linkedProjects = [] }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
 
@@ -264,6 +265,10 @@ export default function IncomeTab({ userId }) {
   const [addOpen,     setAddOpen]     = useState(false)
   const [filterMonth, setFilterMonth] = useState('')
   const [filterProj,  setFilterProj]  = useState('')
+
+  // قائمة المشاريع المعروضة في النموذج:
+  // إذا في مشاريع مربوطة بالمصلحة → استخدمها، وإلا اعرض كل المشاريع
+  const formProjects = linkedProjects.length > 0 ? linkedProjects : allProjects
 
   // projectMap للعرض السريع
   const projectMap = useMemo(() => {
@@ -443,7 +448,7 @@ export default function IncomeTab({ userId }) {
         </motion.button>
       </div>
 
-      <AddIncomeSheet open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSave} allProjects={allProjects} userId={userId} />
+      <AddIncomeSheet open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSave} allProjects={formProjects} userId={userId} />
     </div>
   )
 }

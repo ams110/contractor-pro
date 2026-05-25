@@ -52,6 +52,7 @@ function SubTab({ active, label, icon: Icon, onClick }) {
 // يُفلتر المشاريع بناءً على المصلحة النشطة عبر project_businesses
 function AccountingModuleTab({ projects, employees, userId }) {
   const { businesses, activeBusiness, initialized, load } = useBusinessStore()
+  const { setScreen } = useAppStore()
   const [subTab,         setSubTab]         = useState('income')
   const [bizProjectIds,  setBizProjectIds]  = useState(null)  // null = جاري التحميل
   const [linksLoading,   setLinksLoading]   = useState(false)
@@ -133,9 +134,12 @@ function AccountingModuleTab({ projects, employees, userId }) {
             {linksLoading ? '...' : `${projBadge} مشروع مربوط بهذه المصلحة`}
           </span>
           {projBadge === 0 && !linksLoading && (
-            <span style={{ fontSize: 10, color: C.textDim }}>
-              اذهب لشاشة المشاريع لإضافة الربط
-            </span>
+            <button
+              onClick={() => setScreen('projects')}
+              style={{ background: `${C.primary}18`, border: `1px solid ${C.primary}30`, borderRadius: 8, padding: '3px 8px', fontSize: 10, fontWeight: 700, color: C.primary, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              ربط مشاريع ←
+            </button>
           )}
           {/* زر تحديث يدوي */}
           <button
@@ -156,8 +160,8 @@ function AccountingModuleTab({ projects, employees, userId }) {
       </div>
 
       {/* Sub-tab content */}
-      {subTab === 'income'     && <IncomeTab     projects={projects} userId={userId} />}
-      {subTab === 'bizexp'     && <ExpenseTab    projects={projects} userId={userId} />}
+      {subTab === 'income'     && <IncomeTab     linkedProjects={filteredProjects} userId={userId} />}
+      {subTab === 'bizexp'     && <ExpenseTab    linkedProjects={filteredProjects} userId={userId} />}
       {subTab === 'archive'    && <InvoiceArchiveTab projects={filteredProjects} userId={userId} />}
       {subTab === 'payroll'    && <PayrollTab    employees={employees} userId={userId} />}
       {subTab === 'taxsummary' && <TaxSummaryTab />}
