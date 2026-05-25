@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
-  CreditCard, Banknote, Calculator, TrendingUp, TrendingDown,
+  CreditCard, Banknote, Calculator, TrendingUp, TrendingDown, FolderOpen,
   Plus, Search, X, Trash2, Check, CheckCircle2,
   XCircle, Paperclip, ChevronDown, Receipt, AlertTriangle,
   Lock, CalendarOff, Eye,
@@ -11,7 +11,8 @@ import { useBusinessStore } from '../../store/useBusinessStore.js'
 import BusinessSetup    from './BusinessSetup.jsx'
 import BusinessSwitcher from './BusinessSwitcher.jsx'
 import IncomeTab        from './IncomeTab.jsx'
-import ExpenseTab       from './ExpenseTab.jsx'
+import ExpenseTab          from './ExpenseTab.jsx'
+import InvoiceArchiveTab   from './InvoiceArchiveTab.jsx'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense, validatePayment } from '../../lib/helpers.js'
@@ -973,10 +974,11 @@ export default function FinanceScreen({
   const pendingPayments = payments.filter(p => p.status === 'pending').length
 
   const TABS = [
-    { id: 'income',     icon: TrendingUp,   label: lbl('مدخولات', 'הכנסות',  'Income',     language) },
-    { id: 'bizexp',     icon: TrendingDown, label: lbl('مصاريف',  'הוצאות',  'Expenses',   language) },
-    { id: 'payments',   icon: Banknote,     label: lbl('رواتب',   'שכר',     'Salaries',   language), badge: pendingPayments },
-    { id: 'accounting', icon: Calculator,   label: lbl('محاسبة',  'חשבונות', 'Accounting', language) },
+    { id: 'income',   icon: TrendingUp,   label: lbl('مدخولات', 'הכנסות',  'Income',   language) },
+    { id: 'bizexp',   icon: TrendingDown, label: lbl('مصاريف',  'הוצאות',  'Expenses', language) },
+    { id: 'archive',  icon: FolderOpen,   label: lbl('أرشيف',   'ארכיון',  'Archive',  language) },
+    { id: 'payments', icon: Banknote,     label: lbl('رواتب',   'שכר',     'Salaries', language), badge: pendingPayments },
+    { id: 'accounting', icon: Calculator, label: lbl('محاسبة',  'חשבונות', 'Accounting', language) },
   ]
 
   return (
@@ -1021,6 +1023,9 @@ export default function FinanceScreen({
       )}
       {tab === 'bizexp' && (
         <ExpenseTab projects={projects} userId={userId} />
+      )}
+      {tab === 'archive' && (
+        <InvoiceArchiveTab projects={projects} userId={userId} />
       )}
       {tab === 'accounting' && (
         <AccountingScreen expenses={expenses} payments={payments} clientReceipts={clientReceipts}
