@@ -272,9 +272,11 @@ export default function IncomeTab({ userId }) {
     return m
   }, [allProjects])
 
-  // ─── جلب كل client_receipts + مشاريع المستخدم مباشرة ────────────────────
+  const bizId = activeBusiness?.id
+
+  // ─── جلب client_receipts الخاصة بالمصلحة النشطة + مشاريع المستخدم ───────
   async function load() {
-    if (!userId) return
+    if (!userId || !bizId) return
     setLoading(true)
     try {
       const [receiptsRes, projectsRes] = await Promise.all([
@@ -282,6 +284,7 @@ export default function IncomeTab({ userId }) {
           .from('client_receipts')
           .select('*')
           .eq('user_id', userId)
+          .eq('business_id', bizId)
           .order('date', { ascending: false })
           .order('created_at', { ascending: false }),
         supabase
@@ -298,7 +301,7 @@ export default function IncomeTab({ userId }) {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [userId]) // eslint-disable-line
+  useEffect(() => { load() }, [userId, bizId]) // eslint-disable-line
 
   // ─── Stats ────────────────────────────────────────────────────────────────
   const now = new Date()
@@ -333,7 +336,10 @@ export default function IncomeTab({ userId }) {
 
   // ─── Actions ──────────────────────────────────────────────────────────────
   async function handleSave(fields) {
-    const { data, error } = await supabase.from('client_receipts').insert(fields).select().single()
+    const { data, error } = await supabase
+      .from('client_receipts')
+      .insert({ ...fields, business_id: bizId })
+      .select().single()
     if (error) throw error
     setEntries(prev => [data, ...prev])
     showToast('✅ تم تسجيل القبضة')

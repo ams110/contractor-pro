@@ -137,12 +137,19 @@ export default function TaxSummaryTab() {
   const showVat = bizType === 'osek_moreh' || bizType === 'hevra'
 
   // ─── Load ──────────────────────────────────────────────────────────────
+  // يقرأ من client_receipts و expenses (المصدر الفعلي للبيانات المُدخلة)
   async function load() {
     if (!bizId) return
     setLoading(true)
     const [{ data: inc }, { data: exp }] = await Promise.all([
-      supabase.from('income_entries').select('amount,date').eq('business_id', bizId),
-      supabase.from('expense_entries').select('amount,vat_amount,date,category').eq('business_id', bizId),
+      supabase
+        .from('client_receipts')
+        .select('amount,date')
+        .eq('business_id', bizId),
+      supabase
+        .from('expenses')
+        .select('amount,vat_amount,date,category')
+        .eq('business_id', bizId),
     ])
     setIncome(inc ?? [])
     setExpenses(exp ?? [])
