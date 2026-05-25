@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, X, TrendingDown, AlertTriangle, Trash2,
-  Image, Calendar, ChevronDown, Info, Receipt,
+  Image, Calendar, FolderOpen, Receipt,
   Banknote, Smartphone, CreditCard, Building,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts'
@@ -20,8 +20,8 @@ const METHODS = [
   { id: 'check',    label: 'شيك',             Icon: CreditCard },
   { id: 'app',      label: 'בנקאות סלולרית', Icon: Smartphone },
 ]
+function methodLabel(m) { return METHODS.find(x => x.id === m)?.label ?? m }
 
-// ألوان الفئات
 const CAT_COLORS = [
   '#F59E0B','#22C55E','#3B82F6','#8B5CF6','#EC4899',
   '#06B6D4','#F97316','#EF4444','#84CC16','#94A3B8',
@@ -30,11 +30,8 @@ function catColor(cat) {
   const i = EXP_CATS.indexOf(cat)
   return CAT_COLORS[i % CAT_COLORS.length] ?? '#94A3B8'
 }
+function vatDeductRate(cat) { return EXP_CAT_VAT?.[cat] ?? 1.0 }
 
-// نسبة خصم מע"מ
-function vatDeductRate(cat) { return EXP_CAT_VAT[cat] ?? 1.0 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const inp = (focus, key) => ({
   width: '100%', padding: '11px 13px',
   background: 'rgba(255,255,255,0.05)',
@@ -61,28 +58,28 @@ function StatCard({ label, value, color, sub, icon: Icon }) {
 // ─── VAT Hint Badge ───────────────────────────────────────────────────────────
 function VatHint({ category }) {
   const rate = vatDeductRate(category)
-  if (rate === 1.0) return (
+  if (rate >= 1.0) return (
     <span style={{ fontSize: 9, background: '#22C55E18', color: '#22C55E', border: '1px solid #22C55E30', borderRadius: 8, padding: '2px 7px', fontWeight: 700 }}>
-      מע"מ قابل للخصم 100%
+      {'מע"מ'} قابل للخصم 100%
     </span>
   )
-  if (rate === 0.667) return (
+  if (rate >= 0.6) return (
     <span style={{ fontSize: 9, background: '#F59E0B18', color: '#F59E0B', border: '1px solid #F59E0B30', borderRadius: 8, padding: '2px 7px', fontWeight: 700 }}>
-      מע"מ قابل للخصم 67%
+      {'מע"מ'} قابل للخصم 67%
     </span>
   )
   return (
     <span style={{ fontSize: 9, background: '#EF444418', color: '#EF4444', border: '1px solid #EF444430', borderRadius: 8, padding: '2px 7px', fontWeight: 700 }}>
-      مع"מ غير قابل للخصم
+      {'מע"מ'} غير قابل للخصم
     </span>
   )
 }
 
 // ─── Entry Row ────────────────────────────────────────────────────────────────
-function EntryRow({ entry, showVat, onDelete }) {
+function EntryRow({ entry, showVat, projectName, onDelete }) {
   const [delConfirm, setDelConfirm] = useState(false)
   const color = catColor(entry.category)
-  const deductible = Number(entry.vat_amount) * vatDeductRate(entry.category)
+  const deductible = Number(entry.vat_amount ?? 0) * vatDeductRate(entry.category)
 
   return (
     <motion.div
@@ -101,34 +98,41 @@ function EntryRow({ entry, showVat, onDelete }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
               ₪{fmt(entry.amount)}
-              {showVat && entry.vat_amount > 0 && (
+              {showVat && deductible > 0 && (
                 <span style={{ fontSize: 10, color: '#22C55E', fontWeight: 600, marginRight: 6 }}>
-                  + ₪{fmt(entry.vat_amount)} מע"מ
+                  خصم {'מע"מ'} ₪{fmt(deductible)}
                 </span>
               )}
             </div>
             <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(entry.date)}</div>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: entry.note || entry.vendor_name ? 5 : 0 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color, background: `${color}15`, padding: '2px 7px', borderRadius: 20 }}>
-              {entry.category}
-            </span>
-            <span style={{ fontSize: 10, color: C.textDim, background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>
-              {METHODS.find(m => m.id === entry.method)?.label ?? entry.method}
-            </span>
-            {showVat && deductible > 0 && (
-              <span style={{ fontSize: 9, color: '#22C55E', background: '#22C55E10', padding: '2px 7px', borderRadius: 20 }}>
-                ₪{fmt(deductible)} مخصوم
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: (entry.note || entry.notes || entry.vendor) ? 5 : 0 }}>
+            {entry.category && (
+              <span style={{ fontSize: 10, fontWeight: 700, color, background: `${color}15`, padding: '2px 7px', borderRadius: 20 }}>
+                {entry.category}
               </span>
+            )}
+            {(entry.payment_method || entry.method) && (
+              <span style={{ fontSize: 10, color: C.textDim, background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>
+                {methodLabel(entry.payment_method || entry.method)}
+              </span>
+            )}
+            {projectName && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}15`, padding: '2px 7px', borderRadius: 20 }}>
+                {projectName}
+              </span>
+            )}
+            {showVat && (
+              <VatHint category={entry.category} />
             )}
           </div>
 
-          {(entry.vendor_name || entry.vendor) && (
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{entry.vendor_name || entry.vendor}</div>
+          {(entry.vendor) && (
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{entry.vendor}</div>
           )}
-          {entry.note && (
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, fontStyle: 'italic' }}>{entry.note}</div>
+          {(entry.note || entry.notes) && (
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, fontStyle: 'italic' }}>{entry.note || entry.notes}</div>
           )}
           {entry.receipt_url && (
             <a href={entry.receipt_url} target="_blank" rel="noreferrer"
@@ -164,10 +168,10 @@ function EntryRow({ entry, showVat, onDelete }) {
 }
 
 // ─── Add Sheet ────────────────────────────────────────────────────────────────
-function AddExpenseSheet({ open, onClose, onSave, businessType, projects, userId }) {
+function AddExpenseSheet({ open, onClose, onSave, businessType, allProjects, userId }) {
   const [form, setForm] = useState({
     amount: '', date: todayStr(),
-    category: EXP_CATS[0], vendor: '', payment_method: 'cash',
+    category: EXP_CATS[0] ?? 'مواد بناء', vendor: '', payment_method: 'cash',
     project_id: '', note: '',
   })
   const [proofFile,    setProofFile]    = useState(null)
@@ -176,10 +180,10 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, projects, userId
   const [focus,   setFocus]   = useState('')
   const fileRef = useRef()
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
   function reset() {
-    setForm({ amount: '', date: todayStr(), category: EXP_CATS[0], vendor: '', payment_method: 'cash', project_id: '', note: '' })
+    setForm({ amount: '', date: todayStr(), category: EXP_CATS[0] ?? 'مواد بناء', vendor: '', payment_method: 'cash', project_id: '', note: '' })
     setProofFile(null); setProofPreview(null); setSaving(false)
   }
 
@@ -194,7 +198,6 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, projects, userId
 
   async function handleSave() {
     if (!form.amount || isNaN(Number(form.amount)) || Number(form.amount) <= 0) return
-    if (!form.project_id) return
     setSaving(true)
     try {
       let receipt_url = null
@@ -206,7 +209,8 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, projects, userId
         category:       form.category,
         vendor:         form.vendor.trim() || null,
         payment_method: form.payment_method,
-        project_id:     form.project_id,
+        project_id:     form.project_id || null,
+        note:           form.note.trim() || null,
         receipt_url,
         status:         'approved',
       })
@@ -217,8 +221,7 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, projects, userId
     }
   }
 
-  const canSave = form.amount && Number(form.amount) > 0 && form.project_id && !saving
-  const deductibleVat = 0
+  const canSave = form.amount && Number(form.amount) > 0 && !saving
 
   return (
     <AnimatePresence>
@@ -231,20 +234,20 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, projects, userId
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
             onClick={e => e.stopPropagation()}
             style={{
-              position: 'absolute',
-              bottom: 'max(72px, calc(66px + env(safe-area-inset-bottom,0px)))',
-              left: 0, right: 0, maxWidth: 480, margin: '0 auto',
-              background: C.surface, border: `1px solid ${C.borderMid}`,
-              borderRadius: 24, maxHeight: 'calc(90dvh - 80px)',
-              display: 'flex', flexDirection: 'column',
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              maxWidth: 480, margin: '0 auto',
+              background: C.card, borderRadius: '20px 20px 0 0',
+              border: `1px solid ${C.border}`,
+              display: 'flex', flexDirection: 'column', maxHeight: '92dvh',
             }}>
 
             {/* Handle */}
             <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, flexShrink: 0 }}>
               <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
             </div>
+
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <div style={{ padding: '10px 18px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تسجيل مصروف جديد</div>
               <button onClick={handleClose} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
                 <X size={18} />
@@ -267,17 +270,19 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, projects, userId
                 />
               </div>
 
-              {/* المشروع — مطلوب */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
-                  المشروع <span style={{ color: C.accent }}>*</span>
+              {/* المشروع — اختياري */}
+              {allProjects.length > 0 && (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
+                    المشروع (اختياري)
+                  </div>
+                  <select value={form.project_id} onChange={e => set('project_id', e.target.value)}
+                    style={{ ...inp(focus, 'proj'), cursor: 'pointer' }}>
+                    <option value="">— بدون مشروع —</option>
+                    {allProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
                 </div>
-                <select value={form.project_id} onChange={e => set('project_id', e.target.value)}
-                  style={{ ...inp(focus, 'proj'), cursor: 'pointer' }}>
-                  <option value="">— اختر مشروع —</option>
-                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </div>
+              )}
 
               {/* الفئة */}
               <div style={{ marginBottom: 14 }}>
@@ -311,9 +316,9 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, projects, userId
                     const active = form.payment_method === m.id
                     return (
                       <button key={m.id} onClick={() => set('payment_method', m.id)}
-                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', background: active ? `${C.primary}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${active ? C.primary : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-                        <m.Icon size={14} color={active ? C.primary : C.textDim} />
-                        <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? C.primary : C.textDim }}>{m.label}</span>
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', background: active ? `${C.accent}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${active ? C.accent : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+                        <m.Icon size={14} color={active ? C.accent : C.textDim} />
+                        <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? C.accent : C.textDim }}>{m.label}</span>
                       </button>
                     )
                   })}
@@ -374,7 +379,7 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, projects, userId
 }
 
 // ─── MAIN: ExpenseTab ─────────────────────────────────────────────────────────
-export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
+export default function ExpenseTab({ projects = [], userId }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
 
@@ -383,31 +388,26 @@ export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
   const [addOpen,     setAddOpen]     = useState(false)
   const [filterMonth, setFilterMonth] = useState('')
   const [filterCat,   setFilterCat]   = useState('')
+  const [filterProj,  setFilterProj]  = useState('')
 
-  const bizId       = activeBusiness?.id
-  const bizType     = activeBusiness?.business_type ?? 'osek_patur'
-  const showVat     = bizType === 'osek_moreh' || bizType === 'hevra'
+  const bizType = activeBusiness?.business_type ?? 'osek_patur'
+  const showVat = bizType === 'osek_moreh' || bizType === 'hevra'
 
-  // map projectId → name
   const projectMap = useMemo(() => {
     const m = {}
     projects.forEach(p => { m[p.id] = p.name })
     return m
   }, [projects])
 
-  // ─── Load from expenses ────────────────────────────────────────────────
+  // ─── جلب كل expenses للمستخدم ────────────────────────────────────────────
   async function load() {
-    if (!projectIds || projectIds.length === 0) {
-      setEntries([])
-      setLoading(false)
-      return
-    }
+    if (!userId) return
     setLoading(true)
     try {
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
-        .in('project_id', projectIds)
+        .eq('user_id', userId)
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -416,33 +416,32 @@ export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [JSON.stringify(projectIds)])  // eslint-disable-line
+  useEffect(() => { load() }, [userId]) // eslint-disable-line
 
-  // ─── Calculations ──────────────────────────────────────────────────────
+  // ─── Stats ────────────────────────────────────────────────────────────────
   const now = new Date()
   const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const thisYear     = now.getFullYear()
+  const thisYear = now.getFullYear()
 
   const totalMonth = useMemo(() =>
-    entries.filter(e => e.date?.startsWith(thisMonthKey))
-           .reduce((s, e) => s + Number(e.amount), 0)
+    entries.filter(e => e.date?.startsWith(thisMonthKey)).reduce((s, e) => s + Number(e.amount), 0)
   , [entries, thisMonthKey])
 
   const totalYear = useMemo(() =>
-    entries.filter(e => e.date?.startsWith(String(thisYear)))
-           .reduce((s, e) => s + Number(e.amount), 0)
+    entries.filter(e => e.date?.startsWith(String(thisYear))).reduce((s, e) => s + Number(e.amount), 0)
   , [entries, thisYear])
 
   const totalVatDeductible = useMemo(() =>
-    entries.filter(e => e.date?.startsWith(thisMonthKey))
-           .reduce((s, e) => s + Number(e.vat_amount) * vatDeductRate(e.category), 0)
+    entries
+      .filter(e => e.date?.startsWith(thisMonthKey))
+      .reduce((s, e) => s + Number(e.vat_amount ?? 0) * vatDeductRate(e.category), 0)
   , [entries, thisMonthKey])
 
   // رسم بياني بالفئات (الشهر الحالي)
   const catChartData = useMemo(() => {
     const map = {}
     entries.filter(e => e.date?.startsWith(thisMonthKey)).forEach(e => {
-      map[e.category] = (map[e.category] ?? 0) + Number(e.amount)
+      if (e.category) map[e.category] = (map[e.category] ?? 0) + Number(e.amount)
     })
     return Object.entries(map)
       .filter(([, v]) => v > 0)
@@ -451,13 +450,14 @@ export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
       .map(([name, value]) => ({ name: name.split('/')[0].trim(), value, full: name }))
   }, [entries, thisMonthKey])
 
-  // ─── Filtered entries ──────────────────────────────────────────────────
+  // ─── Filtered ─────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let res = entries
     if (filterMonth) res = res.filter(e => e.date?.startsWith(filterMonth))
     if (filterCat)   res = res.filter(e => e.category === filterCat)
+    if (filterProj)  res = res.filter(e => e.project_id === filterProj)
     return res
-  }, [entries, filterMonth, filterCat])
+  }, [entries, filterMonth, filterCat, filterProj])
 
   const months = useMemo(() => {
     const seen = new Set()
@@ -466,11 +466,11 @@ export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
   }, [entries])
 
   const usedCats = useMemo(() => {
-    const seen = new Set(entries.map(e => e.category))
+    const seen = new Set(entries.map(e => e.category).filter(Boolean))
     return EXP_CATS.filter(c => seen.has(c))
   }, [entries])
 
-  // ─── Actions ───────────────────────────────────────────────────────────
+  // ─── Actions ──────────────────────────────────────────────────────────────
   async function handleSave(fields) {
     const { data, error } = await supabase
       .from('expenses').insert(fields).select().single()
@@ -485,22 +485,11 @@ export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
     showToast('تم الحذف')
   }
 
-  if (!activeBusiness) return null
-
-  // لا يوجد مشاريع مربوطة
-  if (projectIds.length === 0) return (
-    <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-      <TrendingDown size={32} color={C.textDim} style={{ marginBottom: 12, opacity: 0.4 }} />
-      <div style={{ fontSize: 13, color: C.textDim, fontWeight: 600 }}>لا توجد مشاريع مربوطة بهذه المصلحة</div>
-      <div style={{ fontSize: 11, color: C.textDim, marginTop: 6, opacity: 0.7, lineHeight: 1.6 }}>
-        اذهب لشاشة المشاريع → افتح المشروع → عدّل → اختر هذه المصلحة
-      </div>
-    </div>
-  )
+  const anyFilter = filterMonth || filterCat || filterProj
 
   return (
     <div>
-      {/* ─── Stats ─────────────────────────────────────────────────────── */}
+      {/* ─── Stats ──────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <StatCard label="هذا الشهر" value={totalMonth} color={C.accent} icon={TrendingDown} />
         <StatCard label={`سنة ${thisYear}`} value={totalYear} color="#8B5CF6" />
@@ -509,7 +498,7 @@ export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
         )}
       </div>
 
-      {/* ─── Chart ─────────────────────────────────────────────────────── */}
+      {/* ─── Chart ──────────────────────────────────────────────────────────── */}
       {catChartData.length > 0 && (
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '12px 8px 4px', marginBottom: 14 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 8, paddingRight: 8 }}>
@@ -533,13 +522,16 @@ export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
         </div>
       )}
 
-      {/* ─── Filters ───────────────────────────────────────────────────── */}
+      {/* ─── Filters ────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
-          style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterMonth ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-          <option value="">كل الفترات</option>
-          {months.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Calendar size={11} color={C.textDim} />
+          <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
+            style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterMonth ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <option value="">كل الفترات</option>
+            {months.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
 
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
           style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterCat ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -547,9 +539,20 @@ export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
           {usedCats.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
 
+        {projects.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <FolderOpen size={11} color={C.textDim} />
+            <select value={filterProj} onChange={e => setFilterProj(e.target.value)}
+              style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterProj ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', maxWidth: 140 }}>
+              <option value="">كل المشاريع</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+        )}
+
         <div style={{ marginRight: 'auto', fontSize: 11, color: C.textDim }}>
           {filtered.length} سجل
-          {(filterMonth || filterCat) && (
+          {anyFilter && (
             <span style={{ marginRight: 6, color: C.accent }}>
               · ₪{fmt(filtered.reduce((s, e) => s + Number(e.amount), 0))}
             </span>
@@ -557,25 +560,34 @@ export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
         </div>
       </div>
 
-      {/* ─── List ──────────────────────────────────────────────────────── */}
+      {/* ─── List ───────────────────────────────────────────────────────────── */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>تحميل...</div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
           <TrendingDown size={32} color={C.textDim} style={{ marginBottom: 12, opacity: 0.4 }} />
           <div style={{ fontSize: 13, color: C.textDim, fontWeight: 600 }}>
-            {filterMonth || filterCat ? 'لا توجد مصاريف لهذا الفلتر' : 'لا توجد مصاريف بعد'}
+            {anyFilter ? 'لا توجد مصاريف لهذا الفلتر' : 'لا توجد مصاريف بعد'}
           </div>
+          {!anyFilter && (
+            <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, opacity: 0.7 }}>اضغط + لتسجيل أول مصروف</div>
+          )}
         </div>
       ) : (
         <AnimatePresence>
           {filtered.map(entry => (
-            <EntryRow key={entry.id} entry={entry} showVat={showVat} onDelete={handleDelete} />
+            <EntryRow
+              key={entry.id}
+              entry={entry}
+              showVat={showVat}
+              projectName={projectMap[entry.project_id]}
+              onDelete={handleDelete}
+            />
           ))}
         </AnimatePresence>
       )}
 
-      {/* ─── FAB ───────────────────────────────────────────────────────── */}
+      {/* ─── FAB ────────────────────────────────────────────────────────────── */}
       <div style={{ position: 'sticky', bottom: 'max(80px, calc(70px + env(safe-area-inset-bottom,0px)))', display: 'flex', justifyContent: 'flex-end', marginTop: 16, pointerEvents: 'none' }}>
         <motion.button
           whileTap={{ scale: 0.92 }}
@@ -594,13 +606,13 @@ export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
         </motion.button>
       </div>
 
-      {/* ─── Add Sheet ─────────────────────────────────────────────────── */}
+      {/* ─── Add Sheet ──────────────────────────────────────────────────────── */}
       <AddExpenseSheet
         open={addOpen}
         onClose={() => setAddOpen(false)}
         onSave={handleSave}
         businessType={bizType}
-        projects={projects}
+        allProjects={projects}
         userId={userId}
       />
     </div>
