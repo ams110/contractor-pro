@@ -49,7 +49,14 @@ function EntryRow({ entry, projectName, onDelete }) {
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.success, marginTop: 5, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <div style={{ fontSize: 14, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>₪{fmt(entry.amount)}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <div style={{ fontSize: 14, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>₪{fmt(entry.amount)}</div>
+              {entry.ref_number && (
+                <span style={{ fontSize: 9, fontWeight: 800, color: C.primary, background: `${C.primary}18`, border: `1px solid ${C.primary}30`, padding: '2px 7px', borderRadius: 8, letterSpacing: '0.05em', fontFamily: 'monospace' }}>
+                  {entry.ref_number}
+                </span>
+              )}
+            </div>
             <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(entry.date)}</div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>

@@ -96,10 +96,15 @@ function EntryRow({ entry, showVat, projectName, onDelete }) {
         {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
-              ₪{fmt(entry.amount)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>₪{fmt(entry.amount)}</div>
+              {entry.ref_number && (
+                <span style={{ fontSize: 9, fontWeight: 800, color: C.accent, background: `${C.accent}15`, border: `1px solid ${C.accent}25`, padding: '2px 7px', borderRadius: 8, letterSpacing: '0.05em', fontFamily: 'monospace' }}>
+                  {entry.ref_number}
+                </span>
+              )}
               {showVat && deductible > 0 && (
-                <span style={{ fontSize: 10, color: '#22C55E', fontWeight: 600, marginRight: 6 }}>
+                <span style={{ fontSize: 10, color: '#22C55E', fontWeight: 600 }}>
                   خصم {'מע"מ'} ₪{fmt(deductible)}
                 </span>
               )}
