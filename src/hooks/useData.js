@@ -46,9 +46,14 @@ export function useProjects(userId) {
   const { data, loading, error, refetch } = useTable('projects', userId)
 
   async function addProject(form) {
-    const { error } = await supabase.from('projects').insert({ ...form, user_id: userId })
+    const { data, error } = await supabase
+      .from('projects')
+      .insert({ ...form, user_id: userId })
+      .select()
+      .single()
     if (error) throw error
     await refetch()
+    return data  // يُرجع المشروع المُنشأ (مع الـ ID) لمن يحتاجه
   }
 
   async function updateProject(id, form) {
