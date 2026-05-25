@@ -8,6 +8,7 @@ import {
   Lock, CalendarOff, Eye,
 } from 'lucide-react'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
+import { supabase } from '../../lib/supabase.js'
 import BusinessSetup    from './BusinessSetup.jsx'
 import BusinessSwitcher from './BusinessSwitcher.jsx'
 import IncomeTab        from './IncomeTab.jsx'
@@ -48,11 +49,37 @@ function SubTab({ active, label, icon: Icon, onClick }) {
 
 // ─── AccountingModuleTab ───────────────────────────────────────────────────────
 // يحتوي على BusinessSwitcher + الـ 5 تابات الجديدة للمحاسبة
+// يُفلتر المشاريع بناءً على المصلحة النشطة عبر project_businesses
 function AccountingModuleTab({ projects, employees, userId }) {
-  const { businesses, initialized, load } = useBusinessStore()
-  const [subTab, setSubTab] = useState('income')
+  const { businesses, activeBusiness, initialized, load } = useBusinessStore()
+  const [subTab,         setSubTab]         = useState('income')
+  const [bizProjectIds,  setBizProjectIds]  = useState(null)  // null = جاري التحميل
+  const [linksLoading,   setLinksLoading]   = useState(false)
 
   useEffect(() => { load() }, [])
+
+  // ── جلب المشاريع المربوطة بالمصلحة النشطة ─────────────────────────────
+  useEffect(() => {
+    const bizId = activeBusiness?.id
+    if (!bizId) { setBizProjectIds([]); return }
+
+    setLinksLoading(true)
+    supabase
+      .from('project_businesses')
+      .select('project_id')
+      .eq('business_id', bizId)
+      .then(({ data, error }) => {
+        if (error) console.error('project_businesses fetch:', error)
+        setBizProjectIds(data ? data.map(l => l.project_id) : [])
+        setLinksLoading(false)
+      })
+  }, [activeBusiness?.id])
+
+  // ── مشاريع مفلترة للمصلحة النشطة ──────────────────────────────────────
+  const filteredProjects = useMemo(() => {
+    if (!bizProjectIds) return []
+    return projects.filter(p => bizProjectIds.includes(p.id))
+  }, [projects, bizProjectIds])
 
   if (!initialized) return (
     <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>تحميل...</div>
@@ -68,10 +95,33 @@ function AccountingModuleTab({ projects, employees, userId }) {
     { id: 'taxsummary', icon: BarChart3,    label: 'ملخص'    },
   ]
 
+  // badge: عدد المشاريع المربوطة
+  const projBadge = bizProjectIds ? bizProjectIds.length : null
+
   return (
     <div>
       {/* Business switcher */}
       <BusinessSwitcher />
+
+      {/* إشارة المشاريع المربوطة */}
+      {bizProjectIds !== null && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '7px 12px', marginBottom: 10,
+          background: `${C.primary}0A`, border: `1px solid ${C.primary}20`,
+          borderRadius: 10,
+        }}>
+          <FolderOpen size={11} color={C.primary} />
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.primary }}>
+            {projBadge} {projBadge === 1 ? 'مشروع مربوط' : 'مشروع مربوط'} بهذه المصلحة
+          </span>
+          {projBadge === 0 && (
+            <span style={{ fontSize: 10, color: C.textDim, marginRight: 4 }}>
+              — اذهب لشاشة المشاريع لإضافة الربط
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Sub-tabs — قابلة للتمرير */}
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, marginBottom: 12, scrollbarWidth: 'none' }}>
@@ -81,10 +131,10 @@ function AccountingModuleTab({ projects, employees, userId }) {
       </div>
 
       {/* Sub-tab content */}
-      {subTab === 'income'     && <IncomeTab projects={projects} userId={userId} />}
-      {subTab === 'bizexp'     && <ExpenseTab projects={projects} userId={userId} />}
-      {subTab === 'archive'    && <InvoiceArchiveTab projects={projects} userId={userId} />}
-      {subTab === 'payroll'    && <PayrollTab employees={employees} userId={userId} />}
+      {subTab === 'income'     && <IncomeTab     projects={filteredProjects} userId={userId} />}
+      {subTab === 'bizexp'     && <ExpenseTab    projects={filteredProjects} userId={userId} />}
+      {subTab === 'archive'    && <InvoiceArchiveTab projects={filteredProjects} userId={userId} />}
+      {subTab === 'payroll'    && <PayrollTab    employees={employees} userId={userId} />}
       {subTab === 'taxsummary' && <TaxSummaryTab />}
     </div>
   )

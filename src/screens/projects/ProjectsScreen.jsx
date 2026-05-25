@@ -15,6 +15,8 @@ import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
+import { useBusinessStore } from '../../store/useBusinessStore.js'
+import { useProjectBusinessLinks } from '../../hooks/useProjectBusinessLinks.js'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function statusColor(s) {
@@ -53,12 +55,14 @@ function Row({ label, value, color, bold }) {
 }
 
 // ─── Add/Edit Project Modal ───────────────────────────────────────────────────
-function ProjectFormModal({ open, onClose, onSave, language, initialData = null }) {
+function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
+  businesses = [], currentBizIds = [], onBizLinksChange }) {
   const empty = { name: '', type: PROJECT_TYPES[0], status: 'نشط', price: '', notes: '', locations: [] }
   const [form, setForm] = useState(empty)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [locInput, setLocInput] = useState('')
+  const [selectedBizIds, setSelectedBizIds] = useState([])
   const isEdit = !!initialData
   const { confirm: bioConfirm } = useBiometricConfirm()
 
@@ -69,8 +73,15 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
         : empty)
       setError('')
       setLocInput('')
+      setSelectedBizIds(currentBizIds)
     }
-  }, [open, initialData])
+  }, [open, initialData, JSON.stringify(currentBizIds)])
+
+  function toggleBiz(bizId) {
+    setSelectedBizIds(prev =>
+      prev.includes(bizId) ? prev.filter(id => id !== bizId) : [...prev, bizId]
+    )
+  }
 
   function addLocation() {
     const v = locInput.trim()
@@ -93,7 +104,12 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
     setSaving(true)
     setError('')
     try {
-      await onSave({ ...form, price: Number(form.price) || 0 })
+      const result = await onSave({ ...form, price: Number(form.price) || 0 })
+      // ربط المصالح — للمشروع الجديد نحتاج الـ ID من result، للتعديل من initialData
+      const projectId = initialData?.id ?? result?.id
+      if (projectId && onBizLinksChange) {
+        await onBizLinksChange(projectId, selectedBizIds)
+      }
       onClose()
     } catch (e) {
       setError(e.message)
@@ -152,6 +168,36 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
         </div>
       )}
 
+      {/* ── ربط بمصالح ── */}
+      {businesses.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            <Building2 size={11} strokeWidth={2} /> ربط بمصلحة / مصالح
+          </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {businesses.map(biz => {
+              const active = selectedBizIds.includes(biz.id)
+              return (
+                <button key={biz.id} onClick={() => toggleBiz(biz.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', borderRadius: 12, background: active ? `${C.primary}12` : 'rgba(255,255,255,0.04)', border: `1.5px solid ${active ? C.primary : C.border}`, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'right', transition: 'all .15s' }}>
+                  {/* Checkbox */}
+                  <div style={{ width: 18, height: 18, borderRadius: 5, background: active ? C.primary : 'transparent', border: `2px solid ${active ? C.primary : C.textDim}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
+                    {active && <Check size={11} color="#fff" strokeWidth={3} />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: active ? C.text : C.textDim }}>{biz.name}</div>
+                    {biz.tax_id && <div style={{ fontSize: 10, color: C.textDim }}>{biz.tax_id}</div>}
+                  </div>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: active ? C.primary : C.textDim, background: active ? `${C.primary}18` : 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>
+                    {biz.business_type === 'osek_patur' ? 'פטור' : biz.business_type === 'osek_moreh' ? 'מורשה' : 'חברה'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {error && (
         <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
           ⚠ {error}
@@ -162,7 +208,8 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
 }
 
 // ─── Project Detail ───────────────────────────────────────────────────────────
-function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId }) {
+function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
+  businesses = [], linkedBizIds = [], onUpdateBizLinks }) {
   const [tab, setTab] = useState('overview')
   const [showEdit, setShowEdit] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
@@ -295,9 +342,14 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
         )}
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit Modal — مع دعم ربط المصالح */}
       <ProjectFormModal open={showEdit} onClose={() => setShowEdit(false)}
-        onSave={form => onUpdate(project.id, form)} language={language} initialData={project} />
+        onSave={form => onUpdate(project.id, form)}
+        language={language} initialData={project}
+        businesses={businesses}
+        currentBizIds={linkedBizIds}
+        onBizLinksChange={onUpdateBizLinks}
+      />
 
       {/* Delete Confirm */}
       <AnimatePresence>
@@ -336,6 +388,29 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
       <div style={{ padding: '14px 16px' }}>
         {tab === 'overview' && (
           <div>
+            {/* ── المصالح المرتبطة ── */}
+            {businesses.length > 0 && (() => {
+              const linked = businesses.filter(b => linkedBizIds.includes(b.id))
+              return (
+                <div style={{ background: `${C.primary}08`, border: `1px solid ${C.primary}20`, borderRadius: 14, padding: '10px 13px', marginBottom: 12 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: C.primary, letterSpacing: '0.05em', marginBottom: linked.length ? 8 : 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Building2 size={10} strokeWidth={2} /> المصالح المرتبطة
+                  </div>
+                  {linked.length === 0 ? (
+                    <div style={{ fontSize: 10, color: C.textDim }}>لم يُربط بأي مصلحة بعد — عدّل المشروع لإضافة الربط</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {linked.map(b => (
+                        <span key={b.id} style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 20, padding: '3px 10px' }}>
+                          {b.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
             {project.type === 'مقاولة مغلقة' && project.price > 0 && (() => {
               const remaining = project.price - stats.revenue
               return (
@@ -800,6 +875,10 @@ export default function ProjectsScreen({
   const { language } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
+  // ── ربط المصالح بالمشاريع ───────────────────────────────────────────────
+  const { businesses } = useBusinessStore()
+  const { getBusinessesForProject, setProjectLinks } = useProjectBusinessLinks(userId)
+
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showAdd, setShowAdd] = useState(false)
@@ -829,6 +908,9 @@ export default function ProjectsScreen({
         approveWorkDay={approveWorkDay} rejectWorkDay={rejectWorkDay}
         expCats={expCats} payMethods={payMethods} permissions={permissions}
         holidays={holidays} language={language} userId={userId}
+        businesses={businesses}
+        linkedBizIds={getBusinessesForProject(selected.id)}
+        onUpdateBizLinks={setProjectLinks}
       />
     )
   }
@@ -970,6 +1052,22 @@ export default function ProjectsScreen({
                       <span style={{ fontSize: 10, color: C.warning, fontWeight: 700 }}>{stats.pending} {language === 'he' ? 'ממתינים' : language === 'en' ? 'pending' : 'بانتظار الموافقة'}</span>
                     </div>
                   )}
+
+                  {/* شارات المصالح */}
+                  {(() => {
+                    const bids  = getBusinessesForProject(project.id)
+                    const bizList = businesses.filter(b => bids.includes(b.id))
+                    if (!bizList.length) return null
+                    return (
+                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                        {bizList.map(b => (
+                          <span key={b.id} style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 20, padding: '2px 8px', display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <Building2 size={8} strokeWidth={2} /> {b.name}
+                          </span>
+                        ))}
+                      </div>
+                    )
+                  })()}
                 </div>
               </motion.div>
             )
@@ -977,7 +1075,15 @@ export default function ProjectsScreen({
         </div>
       )}
 
-      <ProjectFormModal open={showAdd} onClose={() => setShowAdd(false)} onSave={addProject} language={language} />
+      <ProjectFormModal
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        onSave={addProject}
+        language={language}
+        businesses={businesses}
+        currentBizIds={[]}
+        onBizLinksChange={setProjectLinks}
+      />
     </div>
   )
 }
