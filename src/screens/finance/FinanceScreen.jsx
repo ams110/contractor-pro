@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react'
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   CreditCard, Banknote, Calculator, TrendingUp, TrendingDown, FolderOpen, BarChart3,
-  Plus, Search, X, Trash2, Check, CheckCircle2,
+  Plus, Search, X, Trash2, Check, CheckCircle2, RefreshCw,
   XCircle, Paperclip, ChevronDown, Receipt, AlertTriangle,
   Lock, CalendarOff, Eye,
 } from 'lucide-react'
@@ -59,21 +59,38 @@ function AccountingModuleTab({ projects, employees, userId }) {
   useEffect(() => { load() }, [])
 
   // ── جلب المشاريع المربوطة بالمصلحة النشطة ─────────────────────────────
-  useEffect(() => {
-    const bizId = activeBusiness?.id
-    if (!bizId) { setBizProjectIds([]); return }
-
+  const fetchLinks = useCallback(async (bizId, uid) => {
+    if (!bizId || !uid) { setBizProjectIds([]); return }
     setLinksLoading(true)
-    supabase
+    const { data, error } = await supabase
       .from('project_businesses')
       .select('project_id')
       .eq('business_id', bizId)
-      .then(({ data, error }) => {
-        if (error) console.error('project_businesses fetch:', error)
-        setBizProjectIds(data ? data.map(l => l.project_id) : [])
-        setLinksLoading(false)
+      .eq('user_id', uid)          // explicit — لا نعتمد على RLS فقط
+    if (error) console.error('project_businesses fetch:', error)
+    setBizProjectIds(data ? data.map(l => l.project_id) : [])
+    setLinksLoading(false)
+  }, [])
+
+  useEffect(() => {
+    fetchLinks(activeBusiness?.id, userId)
+  }, [activeBusiness?.id, userId, fetchLinks])
+
+  // ── real-time: نستمع لأي تغيير في project_businesses ──────────────────
+  useEffect(() => {
+    if (!userId) return
+    const channel = supabase
+      .channel(`pb_finance_${userId}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'project_businesses',
+        filter: `user_id=eq.${userId}`,
+      }, () => {
+        // عند أي تغيير (إضافة/حذف) أعد الجلب بالمصلحة الحالية
+        if (activeBusiness?.id) fetchLinks(activeBusiness.id, userId)
       })
-  }, [activeBusiness?.id])
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [userId, activeBusiness?.id, fetchLinks])
 
   // ── مشاريع مفلترة للمصلحة النشطة ──────────────────────────────────────
   const filteredProjects = useMemo(() => {
@@ -112,14 +129,22 @@ function AccountingModuleTab({ projects, employees, userId }) {
           borderRadius: 10,
         }}>
           <FolderOpen size={11} color={C.primary} />
-          <span style={{ fontSize: 10, fontWeight: 700, color: C.primary }}>
-            {projBadge} {projBadge === 1 ? 'مشروع مربوط' : 'مشروع مربوط'} بهذه المصلحة
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, flex: 1 }}>
+            {linksLoading ? '...' : `${projBadge} مشروع مربوط بهذه المصلحة`}
           </span>
-          {projBadge === 0 && (
-            <span style={{ fontSize: 10, color: C.textDim, marginRight: 4 }}>
-              — اذهب لشاشة المشاريع لإضافة الربط
+          {projBadge === 0 && !linksLoading && (
+            <span style={{ fontSize: 10, color: C.textDim }}>
+              اذهب لشاشة المشاريع لإضافة الربط
             </span>
           )}
+          {/* زر تحديث يدوي */}
+          <button
+            onClick={() => fetchLinks(activeBusiness?.id, userId)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex', padding: 2 }}
+            title="تحديث"
+          >
+            <RefreshCw size={11} style={{ animation: linksLoading ? 'spin 1s linear infinite' : 'none' }} />
+          </button>
         </div>
       )}
 
