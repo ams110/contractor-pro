@@ -2,11 +2,19 @@ import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
-  CreditCard, Banknote, Calculator,
+  CreditCard, Banknote, Calculator, TrendingUp, TrendingDown, FolderOpen, BarChart3,
   Plus, Search, X, Trash2, Check, CheckCircle2,
   XCircle, Paperclip, ChevronDown, Receipt, AlertTriangle,
   Lock, CalendarOff, Eye,
 } from 'lucide-react'
+import { useBusinessStore } from '../../store/useBusinessStore.js'
+import BusinessSetup    from './BusinessSetup.jsx'
+import BusinessSwitcher from './BusinessSwitcher.jsx'
+import IncomeTab        from './IncomeTab.jsx'
+import ExpenseTab          from './ExpenseTab.jsx'
+import InvoiceArchiveTab   from './InvoiceArchiveTab.jsx'
+import PayrollTab          from './PayrollTab.jsx'
+import TaxSummaryTab       from './TaxSummaryTab.jsx'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense, validatePayment } from '../../lib/helpers.js'
@@ -928,6 +936,17 @@ export default function FinanceScreen({
   const { t } = useTranslation()
   const { language, isReadOnly } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
+
+  // ─── Business store ───────────────────────────────────────────────────────
+  const { businesses, initialized, load } = useBusinessStore()
+
+  useEffect(() => { load() }, [])
+
+  // أول مرة — لا يوجد مصلحة
+  if (initialized && businesses.length === 0) {
+    return <BusinessSetup onDone={() => load()} />
+  }
+
   const [tab, setTab] = useState('accounting')
   const [lockedPeriods, setLockedPeriods] = useState([])
   const [periodLockOpen, setPeriodLockOpen] = useState(false)
@@ -957,13 +976,21 @@ export default function FinanceScreen({
   const pendingPayments = payments.filter(p => p.status === 'pending').length
 
   const TABS = [
+    { id: 'income',   icon: TrendingUp,   label: lbl('مدخولات', 'הכנסות',  'Income',   language) },
+    { id: 'bizexp',   icon: TrendingDown, label: lbl('مصاريف',  'הוצאות',  'Expenses', language) },
+    { id: 'archive',  icon: FolderOpen,   label: lbl('أرشيف',   'ארכיון',  'Archive',  language) },
+    { id: 'payroll',  icon: Banknote,     label: lbl('قسائم',   'תלושים',  'Payroll',  language) },
+    { id: 'payments', icon: Banknote,     label: lbl('رواتب',   'שכר',     'Salaries', language), badge: pendingPayments },
+    { id: 'taxsummary', icon: BarChart3,  label: lbl('ملخص',    'סיכום',   'Summary',   language) },
     { id: 'accounting', icon: Calculator, label: lbl('محاسبة',  'חשבונות', 'Accounting', language) },
-    { id: 'expenses',   icon: CreditCard, label: lbl('مصاريف',  'הוצאות',  'Expenses',   language), badge: pendingExpenses },
-    { id: 'payments',   icon: Banknote,   label: lbl('رواتب',   'שכר',     'Salaries',   language), badge: pendingPayments },
   ]
 
   return (
     <div dir={dir} style={{ padding: '16px 16px 8px' }}>
+
+      {/* Business Switcher */}
+      <BusinessSwitcher />
+
       {/* Read-only banner */}
       {isReadOnly && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: `${C.accent}15`, border: `1px solid ${C.accent}30`, borderRadius: 14, marginBottom: 14 }}>
@@ -995,6 +1022,21 @@ export default function FinanceScreen({
         ))}
       </div>
 
+      {tab === 'income' && (
+        <IncomeTab projects={projects} userId={userId} />
+      )}
+      {tab === 'bizexp' && (
+        <ExpenseTab projects={projects} userId={userId} />
+      )}
+      {tab === 'archive' && (
+        <InvoiceArchiveTab projects={projects} userId={userId} />
+      )}
+      {tab === 'payroll' && (
+        <PayrollTab employees={employees} userId={userId} />
+      )}
+      {tab === 'taxsummary' && (
+        <TaxSummaryTab />
+      )}
       {tab === 'accounting' && (
         <AccountingScreen expenses={expenses} payments={payments} clientReceipts={clientReceipts}
           employees={employees} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance}

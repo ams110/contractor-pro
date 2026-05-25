@@ -488,7 +488,9 @@ export default function SettingsScreen({
               <RefreshCw size={18} color={C.primary} strokeWidth={2} />
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Contractor Pro v2.0</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                Contractor Pro v{__APP_VERSION__}
+              </div>
               <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
                 {updateStatus === 'upToDate'
                   ? (language === 'he' ? 'האפליקציה מעודכנת' : language === 'en' ? 'App is up to date' : 'التطبيق محدّث')
@@ -820,7 +822,9 @@ export default function SettingsScreen({
 
       {/* App version */}
       <div style={{ textAlign: 'center', padding: '20px 0 8px', fontSize: 10, color: C.textDim }}>
-        Contractor Pro v2.0 · {language === 'he' ? 'כל הזכויות שמורות' : language === 'en' ? 'All rights reserved' : 'جميع الحقوق محفوظة'}
+        Contractor Pro v{__APP_VERSION__} · {__BUILD_DATE__}
+        <br />
+        {language === 'he' ? 'כל הזכויות שמורות' : language === 'en' ? 'All rights reserved' : 'جميع الحقوق محفوظة'}
       </div>
     </div>
   )
