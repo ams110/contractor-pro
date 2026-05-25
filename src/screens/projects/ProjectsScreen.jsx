@@ -7,14 +7,15 @@ import {
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
   ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users,
-  Calculator,
+  Wallet,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { uploadReceipt } from '../../lib/storage.js'
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
-import ProjectFinanceTab from './ProjectFinanceTab.jsx'
+import { supabase } from '../../lib/supabase.js'
+import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
 
@@ -163,6 +164,144 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null 
   )
 }
 
+// ─── ProjectAccountingCard — بطاقة سريعة من Finance module ──────────────────
+function ProjectAccountingCard({ projectId, projectName, onNav }) {
+  const [income, setIncome]   = useState(null)
+  const [expense, setExpense] = useState(null)
+  const [addType, setAddType] = useState(null) // 'income' | 'expense' | null
+  const [form, setForm]       = useState({ amount: '', date: todayStr(), note: '' })
+  const [saving, setSaving]   = useState(false)
+  const { activeBusiness }    = useBusinessStore()
+  const { showToast }         = useAppStore()
+
+  useEffect(() => {
+    async function load() {
+      if (!projectId) return
+      const [{ data: inc }, { data: exp }] = await Promise.all([
+        supabase.from('income_entries').select('amount').eq('project_id', projectId),
+        supabase.from('expense_entries').select('amount').eq('project_id', projectId),
+      ])
+      setIncome((inc ?? []).reduce((s, e) => s + Number(e.amount), 0))
+      setExpense((exp ?? []).reduce((s, e) => s + Number(e.amount), 0))
+    }
+    load()
+  }, [projectId])
+
+  async function handleQuickSave() {
+    if (!form.amount || !activeBusiness?.id) return
+    setSaving(true)
+    try {
+      const table = addType === 'income' ? 'income_entries' : 'expense_entries'
+      const payload = addType === 'income'
+        ? { business_id: activeBusiness.id, project_id: projectId, amount: Number(form.amount), date: form.date, source: 'project_payment', method: 'cash', note: form.note || null }
+        : { business_id: activeBusiness.id, project_id: projectId, amount: Number(form.amount), date: form.date, category: 'مواد وأدوات', method: 'cash', vat_amount: 0, note: form.note || null }
+      await supabase.from(table).insert(payload)
+      showToast?.({ message: addType === 'income' ? 'تم تسجيل المدخول ✓' : 'تم تسجيل المصروف ✓', type: 'success' })
+      setAddType(null)
+      setForm({ amount: '', date: todayStr(), note: '' })
+      // تحديث الأرقام
+      const [{ data: inc }, { data: exp }] = await Promise.all([
+        supabase.from('income_entries').select('amount').eq('project_id', projectId),
+        supabase.from('expense_entries').select('amount').eq('project_id', projectId),
+      ])
+      setIncome((inc ?? []).reduce((s, e) => s + Number(e.amount), 0))
+      setExpense((exp ?? []).reduce((s, e) => s + Number(e.amount), 0))
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const net = (income ?? 0) - (expense ?? 0)
+  const loaded = income !== null
+
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.borderMid}`, borderRadius: 16, padding: '14px', marginBottom: 12 }}>
+      {/* عنوان */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Wallet size={14} color={C.primary} strokeWidth={2} />
+          <span style={{ fontSize: 12, fontWeight: 800, color: C.text }}>المحاسبة</span>
+        </div>
+        {loaded && net !== 0 && (
+          <span style={{ fontSize: 13, fontWeight: 900, color: net >= 0 ? C.success : C.accent, fontFamily: 'monospace' }}>
+            {net >= 0 ? '+' : ''}₪{fmt(Math.abs(net))}
+          </span>
+        )}
+      </div>
+
+      {/* أرقام */}
+      {loaded ? (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <div style={{ flex: 1, background: `${C.success}0C`, border: `1px solid ${C.success}20`, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>₪{fmt(income)}</div>
+            <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>مدخولات</div>
+          </div>
+          <div style={{ flex: 1, background: `${C.accent}0C`, border: `1px solid ${C.accent}20`, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: C.accent, fontFamily: 'monospace' }}>₪{fmt(expense)}</div>
+            <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>مصاريف</div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ textAlign: 'center', padding: '10px 0', color: C.textDim, fontSize: 11, marginBottom: 12 }}>جاري التحميل...</div>
+      )}
+
+      {/* أزرار الإضافة السريعة */}
+      {!addType ? (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setAddType('income')} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '9px', background: `${C.success}12`, border: `1px solid ${C.success}30`, borderRadius: 12, color: C.success, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <TrendingUp size={12} strokeWidth={2} /> + مدخول
+          </button>
+          <button onClick={() => setAddType('expense')} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '9px', background: `${C.accent}12`, border: `1px solid ${C.accent}30`, borderRadius: 12, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <TrendingDown size={12} strokeWidth={2} /> + مصروف
+          </button>
+        </div>
+      ) : (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden' }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: addType === 'income' ? C.success : C.accent, marginBottom: 8 }}>
+              {addType === 'income' ? '+ تسجيل مدخول' : '+ تسجيل مصروف'} — {projectName}
+            </div>
+            <input
+              type="number" inputMode="decimal" placeholder="المبلغ ₪"
+              value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+              style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.05)', border: `1px solid ${addType === 'income' ? C.success : C.accent}40`, borderRadius: 10, color: C.text, fontSize: 16, fontWeight: 900, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', marginBottom: 8, direction: 'ltr', textAlign: 'left' }}
+            />
+            <input
+              type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+              style={{ width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', marginBottom: 8, direction: 'ltr' }}
+            />
+            <input
+              placeholder="ملاحظة (اختياري)" value={form.note}
+              onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+              style={{ width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => { setAddType(null); setForm({ amount: '', date: todayStr(), note: '' }) }}
+                style={{ flex: 1, padding: '9px', background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                إلغاء
+              </button>
+              <button onClick={handleQuickSave} disabled={!form.amount || saving}
+                style={{ flex: 2, padding: '9px', background: addType === 'income' ? C.success : C.accent, border: 'none', borderRadius: 10, color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', opacity: (!form.amount || saving) ? 0.5 : 1 }}>
+                {saving ? 'جاري الحفظ...' : 'حفظ في المحاسبة'}
+              </button>
+            </div>
+            {!activeBusiness && (
+              <div style={{ marginTop: 8, fontSize: 10, color: C.warning, textAlign: 'center' }}>
+                ⚠ يجب إعداد السجل التجاري في تاب المحاسبة أولاً
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      )}
+    </div>
+  )
+}
+
 // ─── Project Detail ───────────────────────────────────────────────────────────
 function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId }) {
   const [tab, setTab] = useState('overview')
@@ -196,7 +335,6 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
     { id: 'workers',   icon: Users,        label: language === 'he' ? 'עובדים' : language === 'en' ? 'Workers' : 'عمال' },
     { id: 'expenses',  icon: CreditCard,   label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'مصاريف' },
     { id: 'receipts',  icon: ReceiptText,  label: language === 'he' ? 'קבלות' : language === 'en' ? 'Receipts' : 'قبضات' },
-    { id: 'finance',   icon: Calculator,   label: language === 'he' ? 'חשבונות' : language === 'en' ? 'Finance' : 'محاسبة' },
   ]
 
   async function handleDelete() {
@@ -279,10 +417,6 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 10, color: statusColor(project.status), fontWeight: 700 }}>{project.status}</span>
             {project.ref_number && <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.04em' }}>{project.ref_number}</span>}
-            {/* رمز الربط المالي */}
-            <span style={{ fontSize: 8, color: C.success, fontFamily: 'monospace', background: `${C.success}12`, border: `1px solid ${C.success}28`, borderRadius: 8, padding: '1px 5px', letterSpacing: '0.04em' }}>
-              {project.id?.replace(/-/g, '').substring(0, 8).toUpperCase()}
-            </span>
           </div>
         </div>
         <div style={{ fontSize: 13, fontWeight: 900, color: stats.profit >= 0 ? C.success : C.accent, marginInlineEnd: 4 }}>
@@ -400,6 +534,9 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
                 </div>
               </div>
             )}
+
+            {/* ── بطاقة المحاسبة السريعة ── */}
+            <ProjectAccountingCard projectId={pid} projectName={project.name} />
 
             {/* Worker payment breakdown */}
             {(stats.wdCost > 0 || paidToWorkers > 0) && (() => {
@@ -788,10 +925,6 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
           </div>
         )}
 
-        {/* ── تاب المحاسبة — ربط مع Finance Module ── */}
-        {tab === 'finance' && (
-          <ProjectFinanceTab project={project} />
-        )}
       </div>
     </div>
   )
