@@ -254,40 +254,51 @@ function AddIncomeSheet({ open, onClose, onSave, allProjects, userId }) {
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
-export default function IncomeTab({ projects = [], userId }) {
+export default function IncomeTab({ userId }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
 
   const [entries,     setEntries]     = useState([])
+  const [allProjects, setAllProjects] = useState([])   // مشاريع المستخدم — مجلوبة مباشرة
   const [loading,     setLoading]     = useState(true)
   const [addOpen,     setAddOpen]     = useState(false)
   const [filterMonth, setFilterMonth] = useState('')
-  const [filterProj,  setFilterProj]  = useState('')  // فلتر مشروع اختياري
+  const [filterProj,  setFilterProj]  = useState('')
 
+  // projectMap للعرض السريع
   const projectMap = useMemo(() => {
     const m = {}
-    projects.forEach(p => { m[p.id] = p.name })
+    allProjects.forEach(p => { m[p.id] = p.name })
     return m
-  }, [projects])
+  }, [allProjects])
 
-  // ─── جلب كل client_receipts للمستخدم ────────────────────────────────────
+  // ─── جلب كل client_receipts + مشاريع المستخدم مباشرة ────────────────────
   async function load() {
     if (!userId) return
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('client_receipts')
-        .select('*')
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      setEntries(data ?? [])
+      const [receiptsRes, projectsRes] = await Promise.all([
+        supabase
+          .from('client_receipts')
+          .select('*')
+          .eq('user_id', userId)
+          .order('date', { ascending: false })
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('projects')
+          .select('id, name, status')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false }),
+      ])
+      if (receiptsRes.error) throw receiptsRes.error
+      if (projectsRes.error) throw projectsRes.error
+      setEntries(receiptsRes.data ?? [])
+      setAllProjects(projectsRes.data ?? [])
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [userId])
+  useEffect(() => { load() }, [userId]) // eslint-disable-line
 
   // ─── Stats ────────────────────────────────────────────────────────────────
   const now = new Date()
@@ -375,13 +386,13 @@ export default function IncomeTab({ projects = [], userId }) {
           </select>
         </div>
 
-        {projects.length > 0 && (
+        {allProjects.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <FolderOpen size={11} color={C.textDim} />
             <select value={filterProj} onChange={e => setFilterProj(e.target.value)}
               style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterProj ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', maxWidth: 140 }}>
               <option value="">كل المشاريع</option>
-              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {allProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
         )}
@@ -426,7 +437,7 @@ export default function IncomeTab({ projects = [], userId }) {
         </motion.button>
       </div>
 
-      <AddIncomeSheet open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSave} allProjects={projects} userId={userId} />
+      <AddIncomeSheet open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSave} allProjects={allProjects} userId={userId} />
     </div>
   )
 }

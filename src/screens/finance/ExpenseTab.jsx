@@ -384,11 +384,12 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, allProjects, use
 }
 
 // ─── MAIN: ExpenseTab ─────────────────────────────────────────────────────────
-export default function ExpenseTab({ projects = [], userId }) {
+export default function ExpenseTab({ userId }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
 
   const [entries,     setEntries]     = useState([])
+  const [allProjects, setAllProjects] = useState([])   // مشاريع المستخدم — مجلوبة مباشرة
   const [loading,     setLoading]     = useState(true)
   const [addOpen,     setAddOpen]     = useState(false)
   const [filterMonth, setFilterMonth] = useState('')
@@ -400,23 +401,32 @@ export default function ExpenseTab({ projects = [], userId }) {
 
   const projectMap = useMemo(() => {
     const m = {}
-    projects.forEach(p => { m[p.id] = p.name })
+    allProjects.forEach(p => { m[p.id] = p.name })
     return m
-  }, [projects])
+  }, [allProjects])
 
-  // ─── جلب كل expenses للمستخدم ────────────────────────────────────────────
+  // ─── جلب كل expenses + مشاريع المستخدم مباشرة ───────────────────────────
   async function load() {
     if (!userId) return
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      setEntries(data ?? [])
+      const [expRes, projRes] = await Promise.all([
+        supabase
+          .from('expenses')
+          .select('*')
+          .eq('user_id', userId)
+          .order('date', { ascending: false })
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('projects')
+          .select('id, name, status')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false }),
+      ])
+      if (expRes.error) throw expRes.error
+      if (projRes.error) throw projRes.error
+      setEntries(expRes.data ?? [])
+      setAllProjects(projRes.data ?? [])
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
@@ -544,13 +554,13 @@ export default function ExpenseTab({ projects = [], userId }) {
           {usedCats.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
 
-        {projects.length > 0 && (
+        {allProjects.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <FolderOpen size={11} color={C.textDim} />
             <select value={filterProj} onChange={e => setFilterProj(e.target.value)}
               style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterProj ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', maxWidth: 140 }}>
               <option value="">كل المشاريع</option>
-              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {allProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
         )}
@@ -617,7 +627,7 @@ export default function ExpenseTab({ projects = [], userId }) {
         onClose={() => setAddOpen(false)}
         onSave={handleSave}
         businessType={bizType}
-        allProjects={projects}
+        allProjects={allProjects}
         userId={userId}
       />
     </div>
