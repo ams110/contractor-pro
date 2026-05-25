@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, X, TrendingUp, TrendingDown, AlertTriangle,
+  Plus, X, TrendingUp, AlertTriangle,
   Banknote, Smartphone, CreditCard, Building,
-  ChevronDown, Trash2, Image, Check, Calendar,
+  Trash2, Image, Calendar, FolderOpen,
 } from 'lucide-react'
 import { C, GRAD, OSEK_PATUR_THRESHOLD } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
@@ -13,22 +13,12 @@ import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const SOURCES = [
-  { id: 'client_payment',  label: 'دفعة من عميل',     color: '#22C55E' },
-  { id: 'project_payment', label: 'دفعة على مشروع',   color: '#3B82F6' },
-  { id: 'advance',         label: 'دفعة مقدمة',        color: '#F59E0B' },
-  { id: 'other',           label: 'أخرى',              color: '#94A3B8' },
-]
-
 const METHODS = [
-  { id: 'cash',     label: 'كاش',          Icon: Banknote   },
-  { id: 'transfer', label: 'تحويل بنكي',   Icon: Building   },
-  { id: 'check',    label: 'شيك',           Icon: CreditCard },
+  { id: 'cash',     label: 'كاش',            Icon: Banknote   },
+  { id: 'transfer', label: 'تحويل بنكي',     Icon: Building   },
+  { id: 'check',    label: 'شيك',             Icon: CreditCard },
   { id: 'app',      label: 'בנקאות סלולרית', Icon: Smartphone },
 ]
-
-function srcColor(src) { return SOURCES.find(s => s.id === src)?.color ?? C.textDim }
-function srcLabel(src) { return SOURCES.find(s => s.id === src)?.label ?? src }
 function methodLabel(m) { return METHODS.find(x => x.id === m)?.label ?? m }
 
 // ─── Shared input style ───────────────────────────────────────────────────────
@@ -56,9 +46,8 @@ function StatCard({ label, value, color, sub, icon: Icon }) {
 }
 
 // ─── Entry row ────────────────────────────────────────────────────────────────
-function EntryRow({ entry, onDelete }) {
+function EntryRow({ entry, projectName, onDelete }) {
   const [delConfirm, setDelConfirm] = useState(false)
-  const color = srcColor(entry.source)
 
   return (
     <motion.div
@@ -69,40 +58,50 @@ function EntryRow({ entry, onDelete }) {
       style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '12px 14px', marginBottom: 8 }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        {/* Color dot */}
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, marginTop: 5, flexShrink: 0 }} />
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.success, marginTop: 5, flexShrink: 0 }} />
 
-        {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>₪{fmt(entry.amount)}</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>
+              ₪{fmt(entry.amount)}
+            </div>
             <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(entry.date)}</div>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: entry.note ? 5 : 0 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color, background: `${color}15`, padding: '2px 7px', borderRadius: 20 }}>
-              {srcLabel(entry.source)}
-            </span>
-            <span style={{ fontSize: 10, color: C.textDim, background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>
-              {methodLabel(entry.method)}
-            </span>
-            {entry.client_name && (
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
+            {projectName && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}15`, padding: '2px 7px', borderRadius: 20 }}>
+                {projectName}
+              </span>
+            )}
+            {entry.payment_method && (
               <span style={{ fontSize: 10, color: C.textDim, background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>
-                {entry.client_name}
+                {methodLabel(entry.payment_method)}
+              </span>
+            )}
+            {entry.payer_name && (
+              <span style={{ fontSize: 10, color: C.textDim, background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>
+                {entry.payer_name}
+              </span>
+            )}
+            {entry.ref_number && (
+              <span style={{ fontSize: 10, color: C.textDim, background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>
+                # {entry.ref_number}
               </span>
             )}
           </div>
-          {entry.note && (
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>{entry.note}</div>
+
+          {entry.notes && (
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, fontStyle: 'italic' }}>{entry.notes}</div>
           )}
-          {entry.proof_url && (
-            <a href={entry.proof_url} target="_blank" rel="noreferrer"
+          {entry.receipt_url && (
+            <a href={entry.receipt_url} target="_blank" rel="noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: 10, color: C.primary, textDecoration: 'none' }}>
-              <Image size={10} /> عرض الإثبات
+              <Image size={10} /> عرض الإيصال
             </a>
           )}
         </div>
 
-        {/* Delete */}
         <div>
           {!delConfirm ? (
             <button onClick={() => setDelConfirm(true)}
@@ -128,20 +127,19 @@ function EntryRow({ entry, onDelete }) {
 }
 
 // ─── Add Sheet ────────────────────────────────────────────────────────────────
-function AddIncomeSheet({ open, onClose, onSave, businessId, projects, userId }) {
-  const now = new Date()
+function AddIncomeSheet({ open, onClose, onSave, projects, userId }) {
   const [form, setForm] = useState({
-    amount: '', date: todayStr(), source: 'client_payment',
-    method: 'cash', client_name: '', project_id: '', note: '',
+    amount: '', date: todayStr(), payment_method: 'cash',
+    payer_name: '', project_id: '', notes: '', ref_number: '',
   })
   const [proofFile, setProofFile] = useState(null)
   const [proofPreview, setProofPreview] = useState(null)
   const [saving, setSaving] = useState(false)
-  const [focus,  setFocus]  = useState('')
+  const [focus, setFocus] = useState('')
   const fileRef = useRef()
 
   function reset() {
-    setForm({ amount: '', date: todayStr(), source: 'client_payment', method: 'cash', client_name: '', project_id: '', note: '' })
+    setForm({ amount: '', date: todayStr(), payment_method: 'cash', payer_name: '', project_id: '', notes: '', ref_number: '' })
     setProofFile(null); setProofPreview(null); setSaving(false)
   }
 
@@ -158,23 +156,23 @@ function AddIncomeSheet({ open, onClose, onSave, businessId, projects, userId })
 
   async function handleSave() {
     if (!form.amount || isNaN(Number(form.amount)) || Number(form.amount) <= 0) return
+    if (!form.project_id) return
     setSaving(true)
     try {
-      let proof_url = null
+      let receipt_url = null
       if (proofFile && userId) {
-        proof_url = await uploadReceipt(userId, proofFile)
+        receipt_url = await uploadReceipt(userId, proofFile)
       }
       await onSave({
-        business_id:  businessId,
-        user_id:      userId,
-        amount:       Number(form.amount),
-        date:         form.date,
-        source:       form.source,
-        method:       form.method,
-        client_name:  form.client_name.trim() || null,
-        project_id:   form.project_id || null,
-        note:         form.note.trim() || null,
-        proof_url,
+        user_id:        userId,
+        project_id:     form.project_id,
+        amount:         Number(form.amount),
+        date:           form.date,
+        payment_method: form.payment_method,
+        payer_name:     form.payer_name.trim() || null,
+        notes:          form.notes.trim() || null,
+        ref_number:     form.ref_number.trim() || null,
+        receipt_url,
       })
       handleClose()
     } catch (e) {
@@ -183,7 +181,7 @@ function AddIncomeSheet({ open, onClose, onSave, businessId, projects, userId })
     }
   }
 
-  const canSave = form.amount && Number(form.amount) > 0 && !saving
+  const canSave = form.amount && Number(form.amount) > 0 && form.project_id && !saving
 
   return (
     <AnimatePresence>
@@ -196,28 +194,37 @@ function AddIncomeSheet({ open, onClose, onSave, businessId, projects, userId })
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
             onClick={e => e.stopPropagation()}
             style={{
-              position: 'absolute', bottom: 'max(72px, calc(66px + env(safe-area-inset-bottom,0px)))',
-              left: 0, right: 0, maxWidth: 480, margin: '0 auto',
-              background: C.surface, border: `1px solid ${C.borderMid}`,
-              borderRadius: 24, maxHeight: 'calc(90dvh - 80px)',
+              position: 'absolute',
+              bottom: 0, left: 0, right: 0,
+              maxWidth: 480, margin: '0 auto',
+              background: C.card, borderRadius: '20px 20px 0 0',
+              border: `1px solid ${C.border}`,
               display: 'flex', flexDirection: 'column',
+              maxHeight: '92dvh',
             }}>
 
-            {/* Handle */}
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, flexShrink: 0 }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
-            </div>
-
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تسجيل مدخول جديد</div>
-              <button onClick={handleClose} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
+            <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تسجيل قبضة</div>
+              <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex' }}>
                 <X size={18} />
               </button>
             </div>
 
             {/* Body */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
+            <div style={{ overflowY: 'auto', flex: 1, padding: '16px 18px' }}>
+
+              {/* المشروع — مطلوب */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
+                  المشروع <span style={{ color: C.accent }}>*</span>
+                </div>
+                <select value={form.project_id} onChange={e => set('project_id', e.target.value)}
+                  style={{ ...inp(focus, 'proj'), cursor: 'pointer' }}>
+                  <option value="">— اختر مشروع —</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
 
               {/* المبلغ */}
               <div style={{ marginBottom: 14 }}>
@@ -225,36 +232,19 @@ function AddIncomeSheet({ open, onClose, onSave, businessId, projects, userId })
                   المبلغ (₪) <span style={{ color: C.accent }}>*</span>
                 </div>
                 <input
-                  type="number" inputMode="decimal" placeholder="0.00"
-                  value={form.amount} onChange={e => set('amount', e.target.value)}
+                  type="number" inputMode="decimal" value={form.amount}
+                  onChange={e => set('amount', e.target.value)}
+                  placeholder="0.00"
                   onFocus={() => setFocus('amount')} onBlur={() => setFocus('')}
-                  style={{ ...inp(focus, 'amount'), fontSize: 20, fontWeight: 900, direction: 'ltr', textAlign: 'left', color: C.success }}
+                  style={{ ...inp(focus, 'amount'), direction: 'ltr', textAlign: 'right' }}
                 />
               </div>
 
               {/* التاريخ */}
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>التاريخ</div>
-                <input
-                  type="date" value={form.date} onChange={e => set('date', e.target.value)}
-                  style={{ ...inp(focus, 'date'), direction: 'ltr' }}
-                />
-              </div>
-
-              {/* المصدر */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>نوع المدخول</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {SOURCES.map(s => {
-                    const active = form.source === s.id
-                    return (
-                      <button key={s.id} onClick={() => set('source', s.id)}
-                        style={{ padding: '7px 12px', background: active ? `${s.color}20` : 'rgba(255,255,255,0.04)', border: `1.5px solid ${active ? s.color : C.border}`, borderRadius: 10, color: active ? s.color : C.textDim, fontSize: 11, fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-                        {s.label}
-                      </button>
-                    )
-                  })}
-                </div>
+                <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
+                  style={{ ...inp(focus, 'date'), direction: 'ltr' }} />
               </div>
 
               {/* طريقة الدفع */}
@@ -262,62 +252,52 @@ function AddIncomeSheet({ open, onClose, onSave, businessId, projects, userId })
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>طريقة الدفع</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {METHODS.map(m => {
-                    const active = form.method === m.id
+                    const active = form.payment_method === m.id
                     return (
-                      <button key={m.id} onClick={() => set('method', m.id)}
-                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', background: active ? `${C.primary}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${active ? C.primary : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-                        <m.Icon size={14} color={active ? C.primary : C.textDim} />
-                        <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? C.primary : C.textDim }}>{m.label}</span>
+                      <button key={m.id} onClick={() => set('payment_method', m.id)}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', background: active ? `${C.success}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${active ? C.success : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+                        <m.Icon size={14} color={active ? C.success : C.textDim} />
+                        <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? C.success : C.textDim }}>{m.label}</span>
                       </button>
                     )
                   })}
                 </div>
               </div>
 
-              {/* اسم العميل */}
+              {/* اسم الدافع */}
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم العميل (اختياري)</div>
-                <input
-                  value={form.client_name} onChange={e => set('client_name', e.target.value)}
-                  placeholder="اسم العميل أو الجهة"
-                  onFocus={() => setFocus('client')} onBlur={() => setFocus('')}
-                  style={inp(focus, 'client')}
-                />
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم الدافع (اختياري)</div>
+                <input value={form.payer_name} onChange={e => set('payer_name', e.target.value)}
+                  placeholder="اسم العميل / الجهة الدافعة"
+                  onFocus={() => setFocus('payer')} onBlur={() => setFocus('')}
+                  style={inp(focus, 'payer')} />
               </div>
 
-              {/* المشروع */}
-              {projects.length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ربط بمشروع (اختياري)</div>
-                  <select
-                    value={form.project_id} onChange={e => set('project_id', e.target.value)}
-                    style={{ ...inp(focus, 'proj'), cursor: 'pointer' }}>
-                    <option value="">— بدون مشروع —</option>
-                    {projects.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {/* رقم مرجعي */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>رقم مرجعي / شيك (اختياري)</div>
+                <input value={form.ref_number} onChange={e => set('ref_number', e.target.value)}
+                  placeholder="رقم الشيك أو المرجع"
+                  onFocus={() => setFocus('ref')} onBlur={() => setFocus('')}
+                  style={{ ...inp(focus, 'ref'), direction: 'ltr' }} />
+              </div>
 
               {/* ملاحظة */}
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ملاحظة (اختياري)</div>
-                <input
-                  value={form.note} onChange={e => set('note', e.target.value)}
+                <input value={form.notes} onChange={e => set('notes', e.target.value)}
                   placeholder="أي تفاصيل إضافية..."
-                  onFocus={() => setFocus('note')} onBlur={() => setFocus('')}
-                  style={inp(focus, 'note')}
-                />
+                  onFocus={() => setFocus('notes')} onBlur={() => setFocus('')}
+                  style={inp(focus, 'notes')} />
               </div>
 
-              {/* صورة إثبات */}
+              {/* صورة الإيصال */}
               <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>صورة إثبات الدفع (اختياري)</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>صورة الإيصال (اختياري)</div>
                 <input ref={fileRef} type="file" accept="image/*" onChange={pickFile} style={{ display: 'none' }} />
                 {proofPreview ? (
                   <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <img src={proofPreview} alt="proof" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, border: `1px solid ${C.border}` }} />
+                    <img src={proofPreview} alt="receipt" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, border: `1px solid ${C.border}` }} />
                     <button onClick={() => { setProofFile(null); setProofPreview(null) }}
                       style={{ position: 'absolute', top: -6, insetInlineEnd: -6, background: C.accent, border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <X size={10} color="#fff" />
@@ -326,7 +306,7 @@ function AddIncomeSheet({ open, onClose, onSave, businessId, projects, userId })
                 ) : (
                   <button onClick={() => fileRef.current?.click()}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: `1.5px dashed ${C.border}`, borderRadius: 12, color: C.textDim, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    <Image size={14} /> رفع صورة
+                    <Image size={14} /> رفع صورة إيصال
                   </button>
                 )}
               </div>
@@ -336,7 +316,7 @@ function AddIncomeSheet({ open, onClose, onSave, businessId, projects, userId })
             <div style={{ padding: '12px 18px 16px', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
               <button onClick={handleSave} disabled={!canSave}
                 style={{ width: '100%', padding: '13px', background: canSave ? GRAD.success : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 14, color: canSave ? '#fff' : C.textDim, fontSize: 14, fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
-                {saving ? 'جاري الحفظ...' : '+ تسجيل المدخول'}
+                {saving ? 'جاري الحفظ...' : '+ تسجيل القبضة'}
               </button>
             </div>
           </motion.div>
@@ -347,26 +327,35 @@ function AddIncomeSheet({ open, onClose, onSave, businessId, projects, userId })
 }
 
 // ─── MAIN: IncomeTab ──────────────────────────────────────────────────────────
-export default function IncomeTab({ projects = [], userId }) {
+export default function IncomeTab({ projects = [], projectIds = [], userId }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
 
-  const [entries,   setEntries]   = useState([])
-  const [loading,   setLoading]   = useState(true)
-  const [addOpen,   setAddOpen]   = useState(false)
-  const [filterMonth, setFilterMonth] = useState('')  // '' = all
+  const [entries,     setEntries]     = useState([])
+  const [loading,     setLoading]     = useState(true)
+  const [addOpen,     setAddOpen]     = useState(false)
+  const [filterMonth, setFilterMonth] = useState('')
 
-  const bizId = activeBusiness?.id
+  // map projectId → name for display
+  const projectMap = useMemo(() => {
+    const m = {}
+    projects.forEach(p => { m[p.id] = p.name })
+    return m
+  }, [projects])
 
-  // ─── Load ──────────────────────────────────────────────────────────────
+  // ─── Load from client_receipts ─────────────────────────────────────────
   async function load() {
-    if (!bizId) return
+    if (!projectIds || projectIds.length === 0) {
+      setEntries([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     try {
       const { data, error } = await supabase
-        .from('income_entries')
+        .from('client_receipts')
         .select('*')
-        .eq('business_id', bizId)
+        .in('project_id', projectIds)
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -378,7 +367,7 @@ export default function IncomeTab({ projects = [], userId }) {
     }
   }
 
-  useEffect(() => { load() }, [bizId])
+  useEffect(() => { load() }, [JSON.stringify(projectIds)])  // eslint-disable-line
 
   // ─── Calculations ──────────────────────────────────────────────────────
   const now = new Date()
@@ -406,35 +395,43 @@ export default function IncomeTab({ projects = [], userId }) {
     return entries.filter(e => e.date?.startsWith(filterMonth))
   }, [entries, filterMonth])
 
-  // قائمة الأشهر للفلترة
   const months = useMemo(() => {
     const seen = new Set()
-    entries.forEach(e => {
-      if (e.date) seen.add(e.date.slice(0, 7))
-    })
+    entries.forEach(e => { if (e.date) seen.add(e.date.slice(0, 7)) })
     return Array.from(seen).sort().reverse()
   }, [entries])
 
   // ─── Actions ───────────────────────────────────────────────────────────
   async function handleSave(fields) {
     const { data, error } = await supabase
-      .from('income_entries')
+      .from('client_receipts')
       .insert(fields)
       .select()
       .single()
     if (error) throw error
     setEntries(prev => [data, ...prev])
-    showToast('✅ تم تسجيل المدخول')
+    showToast('✅ تم تسجيل القبضة')
   }
 
   async function handleDelete(id) {
-    await supabase.from('income_entries').delete().eq('id', id)
+    await supabase.from('client_receipts').delete().eq('id', id)
     setEntries(prev => prev.filter(e => e.id !== id))
     showToast('تم الحذف')
   }
 
   // ─── Render ────────────────────────────────────────────────────────────
   if (!activeBusiness) return null
+
+  // لا يوجد مشاريع مربوطة
+  if (projectIds.length === 0) return (
+    <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+      <FolderOpen size={32} color={C.textDim} style={{ marginBottom: 12, opacity: 0.4 }} />
+      <div style={{ fontSize: 13, color: C.textDim, fontWeight: 600 }}>لا توجد مشاريع مربوطة بهذه المصلحة</div>
+      <div style={{ fontSize: 11, color: C.textDim, marginTop: 6, opacity: 0.7, lineHeight: 1.6 }}>
+        اذهب لشاشة المشاريع → افتح المشروع → عدّل → اختر هذه المصلحة
+      </div>
+    </div>
+  )
 
   return (
     <div>
@@ -452,7 +449,7 @@ export default function IncomeTab({ projects = [], userId }) {
         )}
       </div>
 
-      {/* ─── تحذير عوסק פטור ──────────────────────────────────────────── */}
+      {/* ─── تحذير עוסק פטור ──────────────────────────────────────────── */}
       <AnimatePresence>
         {showPaturWarning && (
           <motion.div
@@ -461,7 +458,7 @@ export default function IncomeTab({ projects = [], userId }) {
             <AlertTriangle size={14} color={paturPct >= 90 ? C.accent : C.warning} style={{ flexShrink: 0, marginTop: 1 }} />
             <div>
               <div style={{ fontSize: 11, fontWeight: 800, color: paturPct >= 90 ? C.accent : C.warning }}>
-                {paturPct >= 90 ? '⚠️ تجاوزت 90% من سقف עוסק פטור' : 'تنبيه: وصلت 70% من سقف עוסק פטור'}
+                {paturPct >= 90 ? 'تجاوزت 90% من سقف עוסק פטור' : 'تنبيه: وصلت 70% من سقف עוסק פטור'}
               </div>
               <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>
                 ₪{fmt(totalYear)} من أصل ₪{fmt(OSEK_PATUR_THRESHOLD)} ({paturPct.toFixed(0)}%) — تبقّى ₪{fmt(OSEK_PATUR_THRESHOLD - totalYear)}
@@ -481,9 +478,7 @@ export default function IncomeTab({ projects = [], userId }) {
             style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterMonth ? C.text : C.textDim, fontSize: 11, fontWeight: 600, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
           >
             <option value="">كل الفترات</option>
-            {months.map(m => (
-              <option key={m} value={m}>{m}</option>
-            ))}
+            {months.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
         <div style={{ fontSize: 11, color: C.textDim }}>
@@ -503,24 +498,29 @@ export default function IncomeTab({ projects = [], userId }) {
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
           <TrendingUp size={32} color={C.textDim} style={{ marginBottom: 12, opacity: 0.4 }} />
           <div style={{ fontSize: 13, color: C.textDim, fontWeight: 600 }}>
-            {filterMonth ? 'لا توجد مدخولات في هذه الفترة' : 'لا توجد مدخولات بعد'}
+            {filterMonth ? 'لا توجد قبضات في هذه الفترة' : 'لا توجد قبضات بعد'}
           </div>
           {!filterMonth && (
             <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, opacity: 0.7 }}>
-              اضغط + لتسجيل أول مدخول
+              اضغط + لتسجيل أول قبضة
             </div>
           )}
         </div>
       ) : (
         <AnimatePresence>
           {filtered.map(entry => (
-            <EntryRow key={entry.id} entry={entry} onDelete={handleDelete} />
+            <EntryRow
+              key={entry.id}
+              entry={entry}
+              projectName={projectMap[entry.project_id]}
+              onDelete={handleDelete}
+            />
           ))}
         </AnimatePresence>
       )}
 
       {/* ─── FAB ───────────────────────────────────────────────────────── */}
-      <div style={{ position: 'sticky', bottom: 16, display: 'flex', justifyContent: 'flex-end', marginTop: 16, pointerEvents: 'none' }}>
+      <div style={{ position: 'sticky', bottom: 'max(80px, calc(70px + env(safe-area-inset-bottom,0px)))', display: 'flex', justifyContent: 'flex-end', marginTop: 16, pointerEvents: 'none' }}>
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => setAddOpen(true)}
@@ -536,7 +536,7 @@ export default function IncomeTab({ projects = [], userId }) {
           }}
         >
           <Plus size={16} strokeWidth={2.5} />
-          تسجيل مدخول
+          تسجيل قبضة
         </motion.button>
       </div>
 
@@ -545,7 +545,6 @@ export default function IncomeTab({ projects = [], userId }) {
         open={addOpen}
         onClose={() => setAddOpen(false)}
         onSave={handleSave}
-        businessId={bizId}
         projects={projects}
         userId={userId}
       />

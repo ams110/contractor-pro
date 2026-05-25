@@ -124,8 +124,8 @@ function EntryRow({ entry, showVat, onDelete }) {
             )}
           </div>
 
-          {entry.vendor_name && (
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{entry.vendor_name}</div>
+          {(entry.vendor_name || entry.vendor) && (
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{entry.vendor_name || entry.vendor}</div>
           )}
           {entry.note && (
             <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, fontStyle: 'italic' }}>{entry.note}</div>
@@ -164,12 +164,10 @@ function EntryRow({ entry, showVat, onDelete }) {
 }
 
 // ─── Add Sheet ────────────────────────────────────────────────────────────────
-function AddExpenseSheet({ open, onClose, onSave, businessType, businessId, projects, userId }) {
-  const showVat = businessType === 'osek_moreh' || businessType === 'hevra'
-
+function AddExpenseSheet({ open, onClose, onSave, businessType, projects, userId }) {
   const [form, setForm] = useState({
-    amount: '', vat_amount: '', date: todayStr(),
-    category: EXP_CATS[0], vendor_name: '', method: 'cash',
+    amount: '', date: todayStr(),
+    category: EXP_CATS[0], vendor: '', payment_method: 'cash',
     project_id: '', note: '',
   })
   const [proofFile,    setProofFile]    = useState(null)
@@ -180,17 +178,8 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, businessId, proj
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  // حساب مع"מ تلقائي لما يدخل المبلغ
-  function handleAmountChange(v) {
-    set('amount', v)
-    if (showVat && v && !isNaN(Number(v))) {
-      const vatAmt = (Number(v) * VAT).toFixed(2)
-      set('vat_amount', vatAmt)
-    }
-  }
-
   function reset() {
-    setForm({ amount: '', vat_amount: '', date: todayStr(), category: EXP_CATS[0], vendor_name: '', method: 'cash', project_id: '', note: '' })
+    setForm({ amount: '', date: todayStr(), category: EXP_CATS[0], vendor: '', payment_method: 'cash', project_id: '', note: '' })
     setProofFile(null); setProofPreview(null); setSaving(false)
   }
 
@@ -205,22 +194,21 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, businessId, proj
 
   async function handleSave() {
     if (!form.amount || isNaN(Number(form.amount)) || Number(form.amount) <= 0) return
+    if (!form.project_id) return
     setSaving(true)
     try {
       let receipt_url = null
       if (proofFile && userId) receipt_url = await uploadReceipt(userId, proofFile)
       await onSave({
-        business_id:  businessId,
-        user_id:      userId,
-        amount:       Number(form.amount),
-        vat_amount:   Number(form.vat_amount) || 0,
-        date:         form.date,
-        category:     form.category,
-        vendor_name:  form.vendor_name.trim() || null,
-        method:       form.method,
-        project_id:   form.project_id || null,
-        note:         form.note.trim() || null,
+        user_id:        userId,
+        amount:         Number(form.amount),
+        date:           form.date,
+        category:       form.category,
+        vendor:         form.vendor.trim() || null,
+        payment_method: form.payment_method,
+        project_id:     form.project_id,
         receipt_url,
+        status:         'approved',
       })
       handleClose()
     } catch (e) {
@@ -229,10 +217,8 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, businessId, proj
     }
   }
 
-  const canSave = form.amount && Number(form.amount) > 0 && !saving
-  const deductibleVat = showVat && form.vat_amount
-    ? (Number(form.vat_amount) * vatDeductRate(form.category)).toFixed(2)
-    : 0
+  const canSave = form.amount && Number(form.amount) > 0 && form.project_id && !saving
+  const deductibleVat = 0
 
   return (
     <AnimatePresence>
@@ -272,38 +258,26 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, businessId, proj
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
                   المبلغ (₪) <span style={{ color: C.accent }}>*</span>
-                  {showVat && <span style={{ fontWeight: 400, marginRight: 6 }}>بدون מע"מ</span>}
                 </div>
                 <input
                   type="number" inputMode="decimal" placeholder="0.00"
-                  value={form.amount} onChange={e => handleAmountChange(e.target.value)}
+                  value={form.amount} onChange={e => set('amount', e.target.value)}
                   onFocus={() => setFocus('amount')} onBlur={() => setFocus('')}
                   style={{ ...inp(focus, 'amount'), fontSize: 20, fontWeight: 900, direction: 'ltr', textAlign: 'left', color: C.accent }}
                 />
               </div>
 
-              {/* מע"מ — فقط لعוסק מורשה وחברה */}
-              {showVat && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>
-                      מע"מ (₪) <span style={{ fontWeight: 400 }}>18%</span>
-                    </div>
-                    <VatHint category={form.category} />
-                  </div>
-                  <input
-                    type="number" inputMode="decimal" placeholder="0.00"
-                    value={form.vat_amount} onChange={e => set('vat_amount', e.target.value)}
-                    onFocus={() => setFocus('vat')} onBlur={() => setFocus('')}
-                    style={{ ...inp(focus, 'vat'), direction: 'ltr', textAlign: 'left', color: '#22C55E' }}
-                  />
-                  {deductibleVat > 0 && (
-                    <div style={{ fontSize: 10, color: '#22C55E', marginTop: 4 }}>
-                      ✓ ₪{fmt(deductibleVat)} قابل للخصم من مصلحة الضرائب
-                    </div>
-                  )}
+              {/* المشروع — مطلوب */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
+                  المشروع <span style={{ color: C.accent }}>*</span>
                 </div>
-              )}
+                <select value={form.project_id} onChange={e => set('project_id', e.target.value)}
+                  style={{ ...inp(focus, 'proj'), cursor: 'pointer' }}>
+                  <option value="">— اختر مشروع —</option>
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
 
               {/* الفئة */}
               <div style={{ marginBottom: 14 }}>
@@ -313,13 +287,7 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, businessId, proj
                     const active = form.category === cat
                     const color = catColor(cat)
                     return (
-                      <button key={cat} onClick={() => {
-                        set('category', cat)
-                        // أعد حساب خصم مع"מ عند تغيير الفئة
-                        if (showVat && form.vat_amount) {
-                          // keep vat_amount as-is, deductible will recalculate
-                        }
-                      }}
+                      <button key={cat} onClick={() => set('category', cat)}
                         style={{ padding: '6px 10px', background: active ? `${color}20` : 'rgba(255,255,255,0.04)', border: `1.5px solid ${active ? color : C.border}`, borderRadius: 10, color: active ? color : C.textDim, fontSize: 10, fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
                         {cat}
                       </button>
@@ -340,9 +308,9 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, businessId, proj
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>طريقة الدفع</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {METHODS.map(m => {
-                    const active = form.method === m.id
+                    const active = form.payment_method === m.id
                     return (
-                      <button key={m.id} onClick={() => set('method', m.id)}
+                      <button key={m.id} onClick={() => set('payment_method', m.id)}
                         style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', background: active ? `${C.primary}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${active ? C.primary : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
                         <m.Icon size={14} color={active ? C.primary : C.textDim} />
                         <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? C.primary : C.textDim }}>{m.label}</span>
@@ -355,23 +323,11 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, businessId, proj
               {/* اسم المورّد */}
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم المورّد / الجهة (اختياري)</div>
-                <input value={form.vendor_name} onChange={e => set('vendor_name', e.target.value)}
+                <input value={form.vendor} onChange={e => set('vendor', e.target.value)}
                   placeholder="مثال: חומרי בניין X"
                   onFocus={() => setFocus('vendor')} onBlur={() => setFocus('')}
                   style={inp(focus, 'vendor')} />
               </div>
-
-              {/* المشروع */}
-              {projects.length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ربط بمشروع (اختياري)</div>
-                  <select value={form.project_id} onChange={e => set('project_id', e.target.value)}
-                    style={{ ...inp(focus, 'proj'), cursor: 'pointer' }}>
-                    <option value="">— بدون مشروع —</option>
-                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
-              )}
 
               {/* ملاحظة */}
               <div style={{ marginBottom: 14 }}>
@@ -418,7 +374,7 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, businessId, proj
 }
 
 // ─── MAIN: ExpenseTab ─────────────────────────────────────────────────────────
-export default function ExpenseTab({ projects = [], userId }) {
+export default function ExpenseTab({ projects = [], projectIds = [], userId }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
 
@@ -432,15 +388,26 @@ export default function ExpenseTab({ projects = [], userId }) {
   const bizType     = activeBusiness?.business_type ?? 'osek_patur'
   const showVat     = bizType === 'osek_moreh' || bizType === 'hevra'
 
-  // ─── Load ──────────────────────────────────────────────────────────────
+  // map projectId → name
+  const projectMap = useMemo(() => {
+    const m = {}
+    projects.forEach(p => { m[p.id] = p.name })
+    return m
+  }, [projects])
+
+  // ─── Load from expenses ────────────────────────────────────────────────
   async function load() {
-    if (!bizId) return
+    if (!projectIds || projectIds.length === 0) {
+      setEntries([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     try {
       const { data, error } = await supabase
-        .from('expense_entries')
+        .from('expenses')
         .select('*')
-        .eq('business_id', bizId)
+        .in('project_id', projectIds)
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -449,7 +416,7 @@ export default function ExpenseTab({ projects = [], userId }) {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [bizId])
+  useEffect(() => { load() }, [JSON.stringify(projectIds)])  // eslint-disable-line
 
   // ─── Calculations ──────────────────────────────────────────────────────
   const now = new Date()
@@ -506,19 +473,30 @@ export default function ExpenseTab({ projects = [], userId }) {
   // ─── Actions ───────────────────────────────────────────────────────────
   async function handleSave(fields) {
     const { data, error } = await supabase
-      .from('expense_entries').insert(fields).select().single()
+      .from('expenses').insert(fields).select().single()
     if (error) throw error
     setEntries(prev => [data, ...prev])
     showToast('✅ تم تسجيل المصروف')
   }
 
   async function handleDelete(id) {
-    await supabase.from('expense_entries').delete().eq('id', id)
+    await supabase.from('expenses').delete().eq('id', id)
     setEntries(prev => prev.filter(e => e.id !== id))
     showToast('تم الحذف')
   }
 
   if (!activeBusiness) return null
+
+  // لا يوجد مشاريع مربوطة
+  if (projectIds.length === 0) return (
+    <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+      <TrendingDown size={32} color={C.textDim} style={{ marginBottom: 12, opacity: 0.4 }} />
+      <div style={{ fontSize: 13, color: C.textDim, fontWeight: 600 }}>لا توجد مشاريع مربوطة بهذه المصلحة</div>
+      <div style={{ fontSize: 11, color: C.textDim, marginTop: 6, opacity: 0.7, lineHeight: 1.6 }}>
+        اذهب لشاشة المشاريع → افتح المشروع → عدّل → اختر هذه المصلحة
+      </div>
+    </div>
+  )
 
   return (
     <div>
@@ -598,7 +576,7 @@ export default function ExpenseTab({ projects = [], userId }) {
       )}
 
       {/* ─── FAB ───────────────────────────────────────────────────────── */}
-      <div style={{ position: 'sticky', bottom: 16, display: 'flex', justifyContent: 'flex-end', marginTop: 16, pointerEvents: 'none' }}>
+      <div style={{ position: 'sticky', bottom: 'max(80px, calc(70px + env(safe-area-inset-bottom,0px)))', display: 'flex', justifyContent: 'flex-end', marginTop: 16, pointerEvents: 'none' }}>
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => setAddOpen(true)}
@@ -622,7 +600,6 @@ export default function ExpenseTab({ projects = [], userId }) {
         onClose={() => setAddOpen(false)}
         onSave={handleSave}
         businessType={bizType}
-        businessId={bizId}
         projects={projects}
         userId={userId}
       />

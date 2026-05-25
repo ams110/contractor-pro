@@ -131,8 +131,8 @@ function AccountingModuleTab({ projects, employees, userId }) {
       </div>
 
       {/* Sub-tab content */}
-      {subTab === 'income'     && <IncomeTab     projects={filteredProjects} userId={userId} />}
-      {subTab === 'bizexp'     && <ExpenseTab    projects={filteredProjects} userId={userId} />}
+      {subTab === 'income'     && <IncomeTab     projects={filteredProjects} projectIds={bizProjectIds ?? []} userId={userId} />}
+      {subTab === 'bizexp'     && <ExpenseTab    projects={filteredProjects} projectIds={bizProjectIds ?? []} userId={userId} />}
       {subTab === 'archive'    && <InvoiceArchiveTab projects={filteredProjects} userId={userId} />}
       {subTab === 'payroll'    && <PayrollTab    employees={employees} userId={userId} />}
       {subTab === 'taxsummary' && <TaxSummaryTab />}
