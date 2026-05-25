@@ -56,9 +56,17 @@ function StatCard({ label, value, color, sub, icon: Icon }) {
 }
 
 // ─── Entry row ────────────────────────────────────────────────────────────────
-function EntryRow({ entry, onDelete }) {
+// رمز التوقيع الرقمي للمشروع
+function projSig(projectId) {
+  if (!projectId) return null
+  return projectId.replace(/-/g, '').substring(0, 8).toUpperCase()
+}
+
+function EntryRow({ entry, onDelete, projects = [] }) {
   const [delConfirm, setDelConfirm] = useState(false)
   const color = srcColor(entry.source)
+  const linkedProject = entry.project_id ? projects.find(p => p.id === entry.project_id) : null
+  const sig = projSig(entry.project_id)
 
   return (
     <motion.div
@@ -88,6 +96,17 @@ function EntryRow({ entry, onDelete }) {
             {entry.client_name && (
               <span style={{ fontSize: 10, color: C.textDim, background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>
                 {entry.client_name}
+              </span>
+            )}
+            {/* اسم المشروع + توقيع الربط */}
+            {linkedProject && (
+              <span style={{ fontSize: 9, color: '#22C55E', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', padding: '2px 7px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 3 }}>
+                🏗 {linkedProject.name}
+              </span>
+            )}
+            {sig && (
+              <span style={{ fontSize: 8, color: '#22C55E', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.22)', padding: '1px 6px', borderRadius: 20, fontFamily: 'monospace', letterSpacing: '0.04em' }}>
+                ✓ {sig}
               </span>
             )}
           </div>
@@ -514,7 +533,7 @@ export default function IncomeTab({ projects = [], userId }) {
       ) : (
         <AnimatePresence>
           {filtered.map(entry => (
-            <EntryRow key={entry.id} entry={entry} onDelete={handleDelete} />
+            <EntryRow key={entry.id} entry={entry} onDelete={handleDelete} projects={projects} />
           ))}
         </AnimatePresence>
       )}

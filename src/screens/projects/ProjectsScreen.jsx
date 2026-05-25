@@ -7,12 +7,14 @@ import {
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
   ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users,
+  Calculator,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { uploadReceipt } from '../../lib/storage.js'
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import ProjectFinanceTab from './ProjectFinanceTab.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
 
@@ -194,6 +196,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
     { id: 'workers',   icon: Users,        label: language === 'he' ? 'עובדים' : language === 'en' ? 'Workers' : 'عمال' },
     { id: 'expenses',  icon: CreditCard,   label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'مصاريف' },
     { id: 'receipts',  icon: ReceiptText,  label: language === 'he' ? 'קבלות' : language === 'en' ? 'Receipts' : 'قبضات' },
+    { id: 'finance',   icon: Calculator,   label: language === 'he' ? 'חשבונות' : language === 'en' ? 'Finance' : 'محاسبة' },
   ]
 
   async function handleDelete() {
@@ -273,9 +276,13 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 10, color: statusColor(project.status), fontWeight: 700 }}>{project.status}</span>
             {project.ref_number && <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.04em' }}>{project.ref_number}</span>}
+            {/* رمز الربط المالي */}
+            <span style={{ fontSize: 8, color: C.success, fontFamily: 'monospace', background: `${C.success}12`, border: `1px solid ${C.success}28`, borderRadius: 8, padding: '1px 5px', letterSpacing: '0.04em' }}>
+              {project.id?.replace(/-/g, '').substring(0, 8).toUpperCase()}
+            </span>
           </div>
         </div>
         <div style={{ fontSize: 13, fontWeight: 900, color: stats.profit >= 0 ? C.success : C.accent, marginInlineEnd: 4 }}>
@@ -779,6 +786,11 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
               )
             })}
           </div>
+        )}
+
+        {/* ── تاب المحاسبة — ربط مع Finance Module ── */}
+        {tab === 'finance' && (
+          <ProjectFinanceTab project={project} />
         )}
       </div>
     </div>

@@ -78,11 +78,19 @@ function VatHint({ category }) {
   )
 }
 
+// رمز التوقيع الرقمي للمشروع
+function projSig(projectId) {
+  if (!projectId) return null
+  return projectId.replace(/-/g, '').substring(0, 8).toUpperCase()
+}
+
 // ─── Entry Row ────────────────────────────────────────────────────────────────
-function EntryRow({ entry, showVat, onDelete }) {
+function EntryRow({ entry, showVat, onDelete, projects = [] }) {
   const [delConfirm, setDelConfirm] = useState(false)
   const color = catColor(entry.category)
   const deductible = Number(entry.vat_amount) * vatDeductRate(entry.category)
+  const linkedProject = entry.project_id ? projects.find(p => p.id === entry.project_id) : null
+  const sig = projSig(entry.project_id)
 
   return (
     <motion.div
@@ -126,6 +134,21 @@ function EntryRow({ entry, showVat, onDelete }) {
 
           {entry.vendor_name && (
             <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{entry.vendor_name}</div>
+          )}
+          {/* اسم المشروع + توقيع الربط */}
+          {(linkedProject || sig) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 4 }}>
+              {linkedProject && (
+                <span style={{ fontSize: 9, color: '#22C55E', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', padding: '2px 7px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 3 }}>
+                  🏗 {linkedProject.name}
+                </span>
+              )}
+              {sig && (
+                <span style={{ fontSize: 8, color: '#22C55E', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.22)', padding: '1px 6px', borderRadius: 20, fontFamily: 'monospace', letterSpacing: '0.04em' }}>
+                  ✓ {sig}
+                </span>
+              )}
+            </div>
           )}
           {entry.note && (
             <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, fontStyle: 'italic' }}>{entry.note}</div>
@@ -592,7 +615,7 @@ export default function ExpenseTab({ projects = [], userId }) {
       ) : (
         <AnimatePresence>
           {filtered.map(entry => (
-            <EntryRow key={entry.id} entry={entry} showVat={showVat} onDelete={handleDelete} />
+            <EntryRow key={entry.id} entry={entry} showVat={showVat} onDelete={handleDelete} projects={projects} />
           ))}
         </AnimatePresence>
       )}
