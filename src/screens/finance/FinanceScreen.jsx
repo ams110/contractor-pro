@@ -947,7 +947,7 @@ export default function FinanceScreen({
     return <BusinessSetup onDone={() => load()} />
   }
 
-  const [tab, setTab] = useState('accounting')
+  const [tab, setTab] = useState('income')
   const [lockedPeriods, setLockedPeriods] = useState([])
   const [periodLockOpen, setPeriodLockOpen] = useState(false)
 
@@ -976,13 +976,11 @@ export default function FinanceScreen({
   const pendingPayments = payments.filter(p => p.status === 'pending').length
 
   const TABS = [
-    { id: 'income',   icon: TrendingUp,   label: lbl('مدخولات', 'הכנסות',  'Income',   language) },
-    { id: 'bizexp',   icon: TrendingDown, label: lbl('مصاريف',  'הוצאות',  'Expenses', language) },
-    { id: 'archive',  icon: FolderOpen,   label: lbl('أرشيف',   'ארכיון',  'Archive',  language) },
-    { id: 'payroll',  icon: Banknote,     label: lbl('قسائم',   'תלושים',  'Payroll',  language) },
-    { id: 'payments', icon: Banknote,     label: lbl('رواتب',   'שכר',     'Salaries', language), badge: pendingPayments },
-    { id: 'taxsummary', icon: BarChart3,  label: lbl('ملخص',    'סיכום',   'Summary',   language) },
-    { id: 'accounting', icon: Calculator, label: lbl('محاسبة',  'חשבונות', 'Accounting', language) },
+    { id: 'income',     icon: TrendingUp,   label: lbl('مدخولات', 'הכנסות', 'Income',   language) },
+    { id: 'bizexp',     icon: TrendingDown, label: lbl('مصاريف',  'הוצאות', 'Expenses', language) },
+    { id: 'archive',    icon: FolderOpen,   label: lbl('فواتير',  'חשבוניות','Invoices', language) },
+    { id: 'payroll',    icon: Banknote,     label: lbl('رواتب',   'שכר',    'Payroll',  language) },
+    { id: 'taxsummary', icon: BarChart3,    label: lbl('ملخص',    'סיכום',  'Summary',  language) },
   ]
 
   return (
