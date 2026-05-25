@@ -384,7 +384,8 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, allProjects, use
 }
 
 // ─── MAIN: ExpenseTab ─────────────────────────────────────────────────────────
-export default function ExpenseTab({ userId }) {
+// linkedProjects: المشاريع المربوطة بالمصلحة النشطة (من FinanceScreen)
+export default function ExpenseTab({ userId, linkedProjects = [] }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
 
@@ -396,8 +397,13 @@ export default function ExpenseTab({ userId }) {
   const [filterCat,   setFilterCat]   = useState('')
   const [filterProj,  setFilterProj]  = useState('')
 
+  const bizId   = activeBusiness?.id
   const bizType = activeBusiness?.business_type ?? 'osek_patur'
   const showVat = bizType === 'osek_moreh' || bizType === 'hevra'
+
+  // قائمة المشاريع المعروضة في النموذج:
+  // إذا في مشاريع مربوطة بالمصلحة → استخدمها، وإلا اعرض كل المشاريع
+  const formProjects = linkedProjects.length > 0 ? linkedProjects : allProjects
 
   const projectMap = useMemo(() => {
     const m = {}
@@ -405,9 +411,9 @@ export default function ExpenseTab({ userId }) {
     return m
   }, [allProjects])
 
-  // ─── جلب كل expenses + مشاريع المستخدم مباشرة ───────────────────────────
+  // ─── جلب expenses الخاصة بالمصلحة النشطة + مشاريع المستخدم ─────────────
   async function load() {
-    if (!userId) return
+    if (!userId || !bizId) return
     setLoading(true)
     try {
       const [expRes, projRes] = await Promise.all([
@@ -415,6 +421,7 @@ export default function ExpenseTab({ userId }) {
           .from('expenses')
           .select('*')
           .eq('user_id', userId)
+          .eq('business_id', bizId)
           .order('date', { ascending: false })
           .order('created_at', { ascending: false }),
         supabase
@@ -431,7 +438,7 @@ export default function ExpenseTab({ userId }) {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [userId]) // eslint-disable-line
+  useEffect(() => { load() }, [userId, bizId]) // eslint-disable-line
 
   // ─── Stats ────────────────────────────────────────────────────────────────
   const now = new Date()
@@ -487,8 +494,14 @@ export default function ExpenseTab({ userId }) {
 
   // ─── Actions ──────────────────────────────────────────────────────────────
   async function handleSave(fields) {
+    // حساب مع"מ المضمّن في المصروف (المبلغ شامل مع"מ)
+    const vat_amount = showVat
+      ? Number(fields.amount) * VAT / (1 + VAT)
+      : 0
     const { data, error } = await supabase
-      .from('expenses').insert(fields).select().single()
+      .from('expenses')
+      .insert({ ...fields, business_id: bizId, vat_amount })
+      .select().single()
     if (error) throw error
     setEntries(prev => [data, ...prev])
     showToast('✅ تم تسجيل المصروف')
@@ -627,7 +640,7 @@ export default function ExpenseTab({ userId }) {
         onClose={() => setAddOpen(false)}
         onSave={handleSave}
         businessType={bizType}
-        allProjects={allProjects}
+        allProjects={formProjects}
         userId={userId}
       />
     </div>

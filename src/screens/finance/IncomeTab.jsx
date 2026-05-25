@@ -254,7 +254,8 @@ function AddIncomeSheet({ open, onClose, onSave, allProjects, userId }) {
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
-export default function IncomeTab({ userId }) {
+// linkedProjects: المشاريع المربوطة بالمصلحة النشطة (من FinanceScreen)
+export default function IncomeTab({ userId, linkedProjects = [] }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
 
@@ -265,6 +266,10 @@ export default function IncomeTab({ userId }) {
   const [filterMonth, setFilterMonth] = useState('')
   const [filterProj,  setFilterProj]  = useState('')
 
+  // قائمة المشاريع المعروضة في النموذج:
+  // إذا في مشاريع مربوطة بالمصلحة → استخدمها، وإلا اعرض كل المشاريع
+  const formProjects = linkedProjects.length > 0 ? linkedProjects : allProjects
+
   // projectMap للعرض السريع
   const projectMap = useMemo(() => {
     const m = {}
@@ -272,9 +277,11 @@ export default function IncomeTab({ userId }) {
     return m
   }, [allProjects])
 
-  // ─── جلب كل client_receipts + مشاريع المستخدم مباشرة ────────────────────
+  const bizId = activeBusiness?.id
+
+  // ─── جلب client_receipts الخاصة بالمصلحة النشطة + مشاريع المستخدم ───────
   async function load() {
-    if (!userId) return
+    if (!userId || !bizId) return
     setLoading(true)
     try {
       const [receiptsRes, projectsRes] = await Promise.all([
@@ -282,6 +289,7 @@ export default function IncomeTab({ userId }) {
           .from('client_receipts')
           .select('*')
           .eq('user_id', userId)
+          .eq('business_id', bizId)
           .order('date', { ascending: false })
           .order('created_at', { ascending: false }),
         supabase
@@ -298,7 +306,7 @@ export default function IncomeTab({ userId }) {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [userId]) // eslint-disable-line
+  useEffect(() => { load() }, [userId, bizId]) // eslint-disable-line
 
   // ─── Stats ────────────────────────────────────────────────────────────────
   const now = new Date()
@@ -333,7 +341,10 @@ export default function IncomeTab({ userId }) {
 
   // ─── Actions ──────────────────────────────────────────────────────────────
   async function handleSave(fields) {
-    const { data, error } = await supabase.from('client_receipts').insert(fields).select().single()
+    const { data, error } = await supabase
+      .from('client_receipts')
+      .insert({ ...fields, business_id: bizId })
+      .select().single()
     if (error) throw error
     setEntries(prev => [data, ...prev])
     showToast('✅ تم تسجيل القبضة')
@@ -437,7 +448,7 @@ export default function IncomeTab({ userId }) {
         </motion.button>
       </div>
 
-      <AddIncomeSheet open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSave} allProjects={allProjects} userId={userId} />
+      <AddIncomeSheet open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSave} allProjects={formProjects} userId={userId} />
     </div>
   )
 }
