@@ -16,6 +16,7 @@ import ExpenseTab          from './ExpenseTab.jsx'
 import InvoiceArchiveTab   from './InvoiceArchiveTab.jsx'
 import PayrollTab          from './PayrollTab.jsx'
 import TaxSummaryTab       from './TaxSummaryTab.jsx'
+import ProjectFinanceTab   from './ProjectFinanceTab.jsx'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense, validatePayment } from '../../lib/helpers.js'
@@ -105,11 +106,12 @@ function AccountingModuleTab({ projects, employees, userId }) {
   if (businesses.length === 0) return <BusinessSetup onDone={() => load()} />
 
   const SUB_TABS = [
-    { id: 'income',     icon: TrendingUp,   label: 'مدخولات' },
-    { id: 'bizexp',     icon: TrendingDown, label: 'مصاريف'  },
-    { id: 'archive',    icon: FolderOpen,   label: 'فواتير'  },
-    { id: 'payroll',    icon: Banknote,     label: 'رواتب'   },
-    { id: 'taxsummary', icon: BarChart3,    label: 'ملخص'    },
+    { id: 'project',    icon: FolderOpen,   label: 'بالمشروع' },
+    { id: 'income',     icon: TrendingUp,   label: 'مدخولات'  },
+    { id: 'bizexp',     icon: TrendingDown, label: 'مصاريف'   },
+    { id: 'archive',    icon: FolderOpen,   label: 'فواتير'   },
+    { id: 'payroll',    icon: Banknote,     label: 'رواتب'    },
+    { id: 'taxsummary', icon: BarChart3,    label: 'ملخص'     },
   ]
 
   // badge: عدد المشاريع المربوطة
@@ -156,6 +158,7 @@ function AccountingModuleTab({ projects, employees, userId }) {
       </div>
 
       {/* Sub-tab content */}
+      {subTab === 'project'    && <ProjectFinanceTab userId={userId} />}
       {subTab === 'income'     && <IncomeTab     projects={projects} userId={userId} />}
       {subTab === 'bizexp'     && <ExpenseTab    projects={projects} userId={userId} />}
       {subTab === 'archive'    && <InvoiceArchiveTab projects={filteredProjects} userId={userId} />}

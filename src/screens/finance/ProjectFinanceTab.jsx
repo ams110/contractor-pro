@@ -1,0 +1,553 @@
+import React, { useState, useEffect, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  ChevronRight, TrendingUp, TrendingDown, Banknote,
+  Plus, Trash2, FolderOpen, X,
+} from 'lucide-react'
+import { C, GRAD, EXP_CATS } from '../../constants/index.js'
+import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
+import { supabase } from '../../lib/supabase.js'
+import { useAppStore } from '../../store/useAppStore.js'
+
+const STATUS_COLOR = {
+  'نشط':        C.success,
+  'مكتمل':      '#3B82F6',
+  'عرض سعر':   '#F59E0B',
+  'موافق عليه': '#06B6D4',
+  'ملغي':       C.accent,
+}
+
+const PMETHODS = [
+  { id: 'cash',     label: 'كاش'     },
+  { id: 'transfer', label: 'تحويل'   },
+  { id: 'check',    label: 'شيك'     },
+  { id: 'app',      label: 'אפליקציה'},
+]
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+const sheetInp = (focus, key) => ({
+  width: '100%', padding: '10px 12px',
+  background: 'rgba(255,255,255,0.05)',
+  border: `1px solid ${focus === key ? C.primary : C.border}`,
+  borderRadius: 12, color: C.text, fontSize: 13,
+  fontFamily: 'inherit', outline: 'none',
+  boxSizing: 'border-box', transition: 'border-color .2s',
+})
+
+// ─── EmptyState ───────────────────────────────────────────────────────────────
+function EmptyState({ icon: Icon, msg }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+      <Icon size={32} color={C.textDim} style={{ marginBottom: 12, opacity: 0.4 }} />
+      <div style={{ fontSize: 13, color: C.textDim, fontWeight: 600 }}>{msg}</div>
+    </div>
+  )
+}
+
+// ─── SimpleRow ────────────────────────────────────────────────────────────────
+function SimpleRow({ amount, date, refNum, label, sub, color, onDelete }) {
+  const [delConfirm, setDelConfirm] = useState(false)
+  return (
+    <motion.div layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 30 }}
+      style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '10px 12px', marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 900, color, fontFamily: 'monospace' }}>₪{fmt(amount)}</span>
+            {refNum && (
+              <span style={{ fontSize: 9, fontWeight: 800, color: C.primary, background: `${C.primary}15`, padding: '1px 6px', borderRadius: 6, fontFamily: 'monospace' }}>
+                {refNum}
+              </span>
+            )}
+          </div>
+          {label && <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{label}</div>}
+          {sub   && <div style={{ fontSize: 9,  color: C.textDim, opacity: 0.7, marginTop: 1 }}>{sub}</div>}
+        </div>
+        <div style={{ fontSize: 10, color: C.textDim, flexShrink: 0 }}>{fmtDate(date)}</div>
+        {onDelete && (
+          !delConfirm
+            ? <button onClick={() => setDelConfirm(true)}
+                style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 4, display: 'flex' }}>
+                <Trash2 size={12} />
+              </button>
+            : <div style={{ display: 'flex', gap: 3 }}>
+                <button onClick={() => setDelConfirm(false)}
+                  style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 5, color: C.textDim, cursor: 'pointer', padding: '2px 6px', fontSize: 9 }}>لا</button>
+                <button onClick={() => { onDelete(); setDelConfirm(false) }}
+                  style={{ background: C.accent, border: 'none', borderRadius: 5, color: '#fff', cursor: 'pointer', padding: '2px 6px', fontSize: 9, fontWeight: 700 }}>احذف</button>
+              </div>
+        )}
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── AddReceiptSheet ──────────────────────────────────────────────────────────
+function AddReceiptSheet({ open, onClose, onSave, projectId, userId }) {
+  const [form, setF] = useState({ amount: '', date: todayStr(), payment_method: 'cash', payer_name: '', notes: '' })
+  const [saving, setSaving] = useState(false)
+  const [focus, setFocus] = useState('')
+  function set(k, v) { setF(f => ({ ...f, [k]: v })) }
+  function reset() { setF({ amount: '', date: todayStr(), payment_method: 'cash', payer_name: '', notes: '' }); setSaving(false) }
+  function handleClose() { reset(); onClose() }
+  const canSave = form.amount && Number(form.amount) > 0 && !saving
+
+  async function save() {
+    if (!canSave) return
+    setSaving(true)
+    try {
+      await onSave({ user_id: userId, project_id: projectId, amount: Number(form.amount), date: form.date, payment_method: form.payment_method, payer_name: form.payer_name.trim() || null, notes: form.notes.trim() || null })
+      handleClose()
+    } catch (e) { console.error(e); setSaving(false) }
+  }
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          onClick={handleClose}
+          style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
+          <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+            onClick={e => e.stopPropagation()}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: C.card, borderRadius: '20px 20px 0 0', border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', maxHeight: '92dvh' }}>
+            <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تسجيل قبضة</div>
+              <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex' }}><X size={18} /></button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>المبلغ (₪) <span style={{ color: C.accent }}>*</span></div>
+                <input type="number" inputMode="decimal" value={form.amount} onChange={e => set('amount', e.target.value)}
+                  onFocus={() => setFocus('amount')} onBlur={() => setFocus('')}
+                  style={{ ...sheetInp(focus, 'amount'), fontSize: 22, fontWeight: 900, direction: 'ltr', color: C.success }} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>التاريخ</div>
+                <input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={{ ...sheetInp(focus, 'date'), direction: 'ltr' }} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>طريقة الدفع</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {PMETHODS.map(m => (
+                    <button key={m.id} onClick={() => set('payment_method', m.id)}
+                      style={{ flex: 1, padding: '8px 4px', background: form.payment_method === m.id ? `${C.success}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${form.payment_method === m.id ? C.success : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 9, fontWeight: form.payment_method === m.id ? 700 : 500, color: form.payment_method === m.id ? C.success : C.textDim }}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم الدافع (اختياري)</div>
+                <input value={form.payer_name} onChange={e => set('payer_name', e.target.value)}
+                  placeholder="اسم العميل أو الجهة"
+                  onFocus={() => setFocus('payer')} onBlur={() => setFocus('')} style={sheetInp(focus, 'payer')} />
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ملاحظة (اختياري)</div>
+                <input value={form.notes} onChange={e => set('notes', e.target.value)}
+                  onFocus={() => setFocus('notes')} onBlur={() => setFocus('')} style={sheetInp(focus, 'notes')} />
+              </div>
+            </div>
+            <div style={{ padding: '12px 18px 16px', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+              <button onClick={save} disabled={!canSave}
+                style={{ width: '100%', padding: '13px', background: canSave ? GRAD.success : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 14, color: canSave ? '#fff' : C.textDim, fontSize: 14, fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
+                {saving ? 'جاري الحفظ...' : '+ تسجيل القبضة'}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ─── AddExpenseSheet ──────────────────────────────────────────────────────────
+function AddExpenseSheet({ open, onClose, onSave, projectId, userId }) {
+  const [form, setF] = useState({ amount: '', date: todayStr(), category: EXP_CATS[0] ?? '', vendor: '', payment_method: 'cash', note: '' })
+  const [saving, setSaving] = useState(false)
+  const [focus, setFocus] = useState('')
+  function set(k, v) { setF(f => ({ ...f, [k]: v })) }
+  function reset() { setF({ amount: '', date: todayStr(), category: EXP_CATS[0] ?? '', vendor: '', payment_method: 'cash', note: '' }); setSaving(false) }
+  function handleClose() { reset(); onClose() }
+  const canSave = form.amount && Number(form.amount) > 0 && !saving
+
+  async function save() {
+    if (!canSave) return
+    setSaving(true)
+    try {
+      await onSave({ user_id: userId, project_id: projectId, amount: Number(form.amount), date: form.date, category: form.category, vendor: form.vendor.trim() || null, payment_method: form.payment_method, note: form.note.trim() || null, status: 'approved' })
+      handleClose()
+    } catch (e) { console.error(e); setSaving(false) }
+  }
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          onClick={handleClose}
+          style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
+          <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+            onClick={e => e.stopPropagation()}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: C.card, borderRadius: '20px 20px 0 0', border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', maxHeight: '92dvh' }}>
+            <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تسجيل مصروف</div>
+              <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex' }}><X size={18} /></button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>المبلغ (₪) <span style={{ color: C.accent }}>*</span></div>
+                <input type="number" inputMode="decimal" value={form.amount} onChange={e => set('amount', e.target.value)}
+                  onFocus={() => setFocus('amount')} onBlur={() => setFocus('')}
+                  style={{ ...sheetInp(focus, 'amount'), fontSize: 22, fontWeight: 900, direction: 'ltr', color: C.accent }} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>الفئة</div>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {EXP_CATS.map(cat => (
+                    <button key={cat} onClick={() => set('category', cat)}
+                      style={{ padding: '5px 9px', background: form.category === cat ? `${C.accent}20` : 'rgba(255,255,255,0.04)', border: `1.5px solid ${form.category === cat ? C.accent : C.border}`, borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: form.category === cat ? 700 : 500, color: form.category === cat ? C.accent : C.textDim }}>
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>التاريخ</div>
+                <input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={{ ...sheetInp(focus, 'date'), direction: 'ltr' }} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>طريقة الدفع</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {PMETHODS.map(m => (
+                    <button key={m.id} onClick={() => set('payment_method', m.id)}
+                      style={{ flex: 1, padding: '8px 4px', background: form.payment_method === m.id ? `${C.accent}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${form.payment_method === m.id ? C.accent : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 9, fontWeight: form.payment_method === m.id ? 700 : 500, color: form.payment_method === m.id ? C.accent : C.textDim }}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم المورد (اختياري)</div>
+                <input value={form.vendor} onChange={e => set('vendor', e.target.value)}
+                  onFocus={() => setFocus('vendor')} onBlur={() => setFocus('')} style={sheetInp(focus, 'vendor')} />
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ملاحظة (اختياري)</div>
+                <input value={form.note} onChange={e => set('note', e.target.value)}
+                  onFocus={() => setFocus('note')} onBlur={() => setFocus('')} style={sheetInp(focus, 'note')} />
+              </div>
+            </div>
+            <div style={{ padding: '12px 18px 16px', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+              <button onClick={save} disabled={!canSave}
+                style={{ width: '100%', padding: '13px', background: canSave ? GRAD.danger : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 14, color: canSave ? '#fff' : C.textDim, fontSize: 14, fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
+                {saving ? 'جاري الحفظ...' : '+ تسجيل المصروف'}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
+export default function ProjectFinanceTab({ userId }) {
+  const { showToast } = useAppStore()
+
+  const [projects,  setProjects]  = useState([])
+  const [receipts,  setReceipts]  = useState([])
+  const [expenses,  setExpenses]  = useState([])
+  const [payments,  setPayments]  = useState([])
+  const [loading,   setLoading]   = useState(true)
+  const [selected,  setSelected]  = useState(null)   // project id
+  const [subTab,    setSubTab]    = useState('income')
+  const [addOpen,   setAddOpen]   = useState(false)
+
+  // ── جلب كل البيانات دفعة واحدة ─────────────────────────────────────────
+  async function load() {
+    if (!userId) return
+    setLoading(true)
+    try {
+      const [pr, rc, ex, py] = await Promise.all([
+        supabase.from('projects').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+        supabase.from('client_receipts').select('*').eq('user_id', userId),
+        supabase.from('expenses').select('*').eq('user_id', userId),
+        supabase.from('payments').select('*').eq('user_id', userId),
+      ])
+      setProjects(pr.data ?? [])
+      setReceipts(rc.data ?? [])
+      setExpenses(ex.data ?? [])
+      setPayments(py.data ?? [])
+    } catch (e) { console.error(e) }
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { load() }, [userId]) // eslint-disable-line
+
+  // ── ملخص مالي لكل مشروع ────────────────────────────────────────────────
+  const summaries = useMemo(() => {
+    return projects.map(p => {
+      const pRcp = receipts.filter(r => r.project_id === p.id)
+      const pExp = expenses.filter(e => e.project_id === p.id)
+      const pPay = payments.filter(py => py.project_id === p.id)
+      const income   = pRcp.reduce((s, r) => s + Number(r.amount), 0)
+      const expense  = pExp.reduce((s, e) => s + Number(e.amount), 0)
+      const payTotal = pPay.reduce((s, py) => s + Number(py.amount), 0)
+      return {
+        ...p,
+        income, expense, payTotal,
+        profit:   income - expense - payTotal,
+        rcpCount: pRcp.length,
+        expCount: pExp.length,
+        payCount: pPay.length,
+      }
+    })
+  }, [projects, receipts, expenses, payments])
+
+  // ── بيانات المشروع المختار ──────────────────────────────────────────────
+  const selProject  = useMemo(() => summaries.find(p => p.id === selected), [summaries, selected])
+  const selReceipts = useMemo(() => receipts.filter(r => r.project_id === selected).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')), [receipts, selected])
+  const selExpenses = useMemo(() => expenses.filter(e => e.project_id === selected).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')), [expenses, selected])
+  const selPayments = useMemo(() => payments.filter(p => p.project_id === selected).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '')), [payments, selected])
+
+  // ── إجماليات كلية ──────────────────────────────────────────────────────
+  const grandIncome  = useMemo(() => summaries.reduce((s, p) => s + p.income, 0), [summaries])
+  const grandExpense = useMemo(() => summaries.reduce((s, p) => s + p.expense + p.payTotal, 0), [summaries])
+  const grandProfit  = grandIncome - grandExpense
+
+  // ── actions ─────────────────────────────────────────────────────────────
+  async function addReceipt(fields) {
+    const { data, error } = await supabase.from('client_receipts').insert(fields).select().single()
+    if (error) throw error
+    setReceipts(prev => [data, ...prev])
+    showToast('✅ تم تسجيل القبضة')
+  }
+
+  async function addExpense(fields) {
+    const { data, error } = await supabase.from('expenses').insert(fields).select().single()
+    if (error) throw error
+    setExpenses(prev => [data, ...prev])
+    showToast('✅ تم تسجيل المصروف')
+  }
+
+  async function deleteReceipt(id) {
+    await supabase.from('client_receipts').delete().eq('id', id)
+    setReceipts(prev => prev.filter(r => r.id !== id))
+    showToast('تم الحذف')
+  }
+
+  async function deleteExpense(id) {
+    await supabase.from('expenses').delete().eq('id', id)
+    setExpenses(prev => prev.filter(e => e.id !== id))
+    showToast('تم الحذف')
+  }
+
+  if (loading) return (
+    <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>تحميل...</div>
+  )
+
+  // ════════════════════════════════════════════════════════════════════════
+  // ── عرض تفاصيل مشروع مختار ─────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════
+  if (selected && selProject) {
+    const sc = STATUS_COLOR[selProject.status] ?? C.textDim
+
+    const SUBS = [
+      { id: 'income',  label: 'قبضات',  icon: TrendingUp,   color: C.success, total: selProject.income,   count: selProject.rcpCount },
+      { id: 'expense', label: 'مصاريف', icon: TrendingDown, color: C.accent,  total: selProject.expense,  count: selProject.expCount },
+      { id: 'payment', label: 'رواتب',  icon: Banknote,     color: '#8B5CF6', total: selProject.payTotal, count: selProject.payCount },
+    ]
+
+    return (
+      <div>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <button onClick={() => { setSelected(null); setAddOpen(false) }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex', padding: 4 }}>
+            <ChevronRight size={20} />
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 900, color: C.text, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+              {selProject.name}
+            </div>
+            {selProject.ref_number && (
+              <div style={{ fontSize: 10, color: C.primary, fontFamily: 'monospace', fontWeight: 700 }}>{selProject.ref_number}</div>
+            )}
+          </div>
+          <span style={{ fontSize: 10, fontWeight: 700, color: sc, background: `${sc}18`, padding: '3px 10px', borderRadius: 10, flexShrink: 0 }}>
+            {selProject.status}
+          </span>
+        </div>
+
+        {/* Summary cards */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+          {[
+            { label: 'إجمالي القبضات',  val: selProject.income,              color: C.success },
+            { label: 'إجمالي المصاريف', val: selProject.expense + selProject.payTotal, color: C.accent  },
+            { label: 'صافي الربح',      val: selProject.profit,              color: selProject.profit >= 0 ? C.success : C.accent, sign: true },
+          ].map(({ label, val, color, sign }) => (
+            <div key={label} style={{ flex: 1, background: `${color}0E`, border: `1px solid ${color}22`, borderRadius: 14, padding: '10px 6px', textAlign: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color, fontFamily: 'monospace' }}>
+                {sign && val > 0 ? '+' : ''}₪{fmt(val)}
+              </div>
+              <div style={{ fontSize: 8, color: C.textDim, marginTop: 2 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sub-tabs */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+          {SUBS.map(s => (
+            <button key={s.id} onClick={() => { setSubTab(s.id); setAddOpen(false) }}
+              style={{ flex: 1, padding: '8px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: subTab === s.id ? `${s.color}18` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${subTab === s.id ? s.color : C.border}`, borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
+              <s.icon size={13} color={subTab === s.id ? s.color : C.textDim} />
+              <span style={{ fontSize: 9, fontWeight: 800, color: subTab === s.id ? s.color : C.textDim }}>{s.label}</span>
+              <span style={{ fontSize: 10, fontWeight: 900, color: subTab === s.id ? s.color : C.textDim, fontFamily: 'monospace' }}>₪{fmt(s.total)}</span>
+              <span style={{ fontSize: 8, color: C.textDim }}>({s.count})</span>
+            </button>
+          ))}
+        </div>
+
+        {/* List */}
+        <AnimatePresence mode="wait">
+          <div key={subTab}>
+            {subTab === 'income' && (
+              <>
+                {selReceipts.length === 0
+                  ? <EmptyState icon={TrendingUp} msg="لا توجد قبضات لهذا المشروع" />
+                  : selReceipts.map(r => (
+                      <SimpleRow key={r.id} amount={r.amount} date={r.date} refNum={r.ref_number}
+                        label={r.payer_name} sub={r.notes} color={C.success}
+                        onDelete={() => deleteReceipt(r.id)} />
+                    ))
+                }
+              </>
+            )}
+
+            {subTab === 'expense' && (
+              <>
+                {selExpenses.length === 0
+                  ? <EmptyState icon={TrendingDown} msg="لا توجد مصاريف لهذا المشروع" />
+                  : selExpenses.map(e => (
+                      <SimpleRow key={e.id} amount={e.amount} date={e.date} refNum={e.ref_number}
+                        label={e.category} sub={e.vendor || e.note} color={C.accent}
+                        onDelete={() => deleteExpense(e.id)} />
+                    ))
+                }
+              </>
+            )}
+
+            {subTab === 'payment' && (
+              <>
+                {selPayments.length === 0
+                  ? <EmptyState icon={Banknote} msg="لا توجد رواتب مرتبطة بهذا المشروع" />
+                  : selPayments.map(p => (
+                      <SimpleRow key={p.id} amount={p.amount} date={p.date} refNum={p.ref_number}
+                        label={p.method} sub={null} color="#8B5CF6"
+                        onDelete={null} />
+                    ))
+                }
+              </>
+            )}
+          </div>
+        </AnimatePresence>
+
+        {/* FAB للقبضات والمصاريف فقط */}
+        {(subTab === 'income' || subTab === 'expense') && (
+          <div style={{ position: 'sticky', bottom: 'max(80px, calc(70px + env(safe-area-inset-bottom,0px)))', display: 'flex', justifyContent: 'flex-end', marginTop: 16, pointerEvents: 'none' }}>
+            <motion.button whileTap={{ scale: 0.92 }} onClick={() => setAddOpen(true)}
+              style={{ pointerEvents: 'all', display: 'flex', alignItems: 'center', gap: 7, padding: '12px 20px', background: subTab === 'income' ? GRAD.success : GRAD.danger, border: 'none', borderRadius: 50, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 4px 20px ${subTab === 'income' ? C.success : C.accent}44` }}>
+              <Plus size={16} strokeWidth={2.5} />
+              {subTab === 'income' ? 'تسجيل قبضة' : 'تسجيل مصروف'}
+            </motion.button>
+          </div>
+        )}
+
+        {subTab === 'income' && (
+          <AddReceiptSheet open={addOpen} onClose={() => setAddOpen(false)} onSave={addReceipt} projectId={selected} userId={userId} />
+        )}
+        {subTab === 'expense' && (
+          <AddExpenseSheet open={addOpen} onClose={() => setAddOpen(false)} onSave={addExpense} projectId={selected} userId={userId} />
+        )}
+      </div>
+    )
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // ── قائمة المشاريع ──────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════
+  return (
+    <div>
+      {/* إجماليات كلية */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+        {[
+          { label: 'إجمالي الدخل',    val: grandIncome,  color: C.success },
+          { label: 'إجمالي المصاريف', val: grandExpense, color: C.accent  },
+          { label: 'صافي الكل',       val: grandProfit,  color: grandProfit >= 0 ? C.success : C.accent, sign: true },
+        ].map(({ label, val, color, sign }) => (
+          <div key={label} style={{ flex: 1, background: `${color}0E`, border: `1px solid ${color}22`, borderRadius: 14, padding: '10px 6px', textAlign: 'center' }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color, fontFamily: 'monospace' }}>
+              {sign && val > 0 ? '+' : ''}₪{fmt(val)}
+            </div>
+            <div style={{ fontSize: 8, color: C.textDim, marginTop: 2 }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* بطاقة لكل مشروع */}
+      {summaries.length === 0
+        ? <EmptyState icon={FolderOpen} msg="لا توجد مشاريع" />
+        : summaries.map(p => {
+            const sc  = STATUS_COLOR[p.status] ?? C.textDim
+            const pct = p.income > 0 ? Math.max(0, Math.min(100, (p.profit / p.income) * 100)) : 0
+            return (
+              <motion.button key={p.id} whileTap={{ scale: 0.98 }}
+                onClick={() => { setSelected(p.id); setSubTab('income'); setAddOpen(false) }}
+                style={{ width: '100%', display: 'block', background: C.surface, border: `1px solid ${p.profit < 0 ? C.accent + '33' : C.border}`, borderRadius: 16, padding: '14px', marginBottom: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'right' }}>
+
+                {/* الاسم + الحالة */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {p.ref_number && (
+                      <span style={{ fontSize: 9, fontWeight: 800, color: C.primary, background: `${C.primary}18`, padding: '2px 7px', borderRadius: 8, fontFamily: 'monospace' }}>
+                        {p.ref_number}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 10, fontWeight: 700, color: sc, background: `${sc}18`, padding: '2px 7px', borderRadius: 8 }}>
+                      {p.status}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{p.name}</div>
+                </div>
+
+                {/* الأرقام */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>₪{fmt(p.income)}</div>
+                    <div style={{ fontSize: 8, color: C.textDim }}>قبضات ({p.rcpCount})</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: C.accent, fontFamily: 'monospace' }}>₪{fmt(p.expense + p.payTotal)}</div>
+                    <div style={{ fontSize: 8, color: C.textDim }}>مصاريف+رواتب ({p.expCount + p.payCount})</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: p.profit >= 0 ? C.success : C.accent, fontFamily: 'monospace' }}>
+                      {p.profit >= 0 ? '+' : ''}₪{fmt(p.profit)}
+                    </div>
+                    <div style={{ fontSize: 8, color: C.textDim }}>صافي</div>
+                  </div>
+                </div>
+
+                {/* شريط التقدم */}
+                <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                  <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: p.profit >= 0 ? C.success : C.accent, transition: 'width .4s ease' }} />
+                </div>
+              </motion.button>
+            )
+          })
+      }
+    </div>
+  )
+}
