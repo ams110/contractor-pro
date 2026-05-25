@@ -141,6 +141,7 @@ src/
 
 ## الحالة الحالية
 
-- Branch التطوير: `claude/finance-accounting-updates-P7s9n`
-- مُدمج في: `main`
-- آخر إنجاز: Finance Module كامل (Phase 0–5) ✅
+- Branch الرئيسي: `main`
+- آخر commit: `ac2bd64` — Finance Module (Phase 0–5) + Auto Version Bump ✅
+- Vercel: مُنشور تلقائياً عند كل push لـ main
+- الإصدار الحالي: يتزايد تلقائياً عند كل `npm run build` (prebuild hook)
