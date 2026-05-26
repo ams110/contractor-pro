@@ -267,45 +267,33 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
   const { showToast } = useAppStore()
 
   const [entries,     setEntries]     = useState([])
-  const [allProjects, setAllProjects] = useState([])
   const [loading,     setLoading]     = useState(false)   // false — لا نبدأ بـ "تحميل"
   const [addOpen,     setAddOpen]     = useState(false)
   const [filterMonth, setFilterMonth] = useState('')
   const [filterProj,  setFilterProj]  = useState('')
 
-  const formProjects = linkedProjects.length > 0 ? linkedProjects : allProjects
-
   const projectMap = useMemo(() => {
     const m = {}
-    allProjects.forEach(p => { m[p.id] = p.name })
+    linkedProjects.forEach(p => { m[p.id] = p.name })
     return m
-  }, [allProjects])
+  }, [linkedProjects])
 
   const bizId = activeBusiness?.id
 
-  // ─── جلب client_receipts الخاصة بالمصلحة النشطة + مشاريع المستخدم ───────
+  // ─── جلب client_receipts الخاصة بالمصلحة النشطة ──────────────────────────
   async function load() {
     if (!userId || !bizId) { setLoading(false); return }
     setLoading(true)
     try {
-      const [receiptsRes, projectsRes] = await Promise.all([
-        supabase
-          .from('client_receipts')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('business_id', bizId)
-          .order('date', { ascending: false })
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('projects')
-          .select('id, name, status')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false }),
-      ])
-      if (receiptsRes.error) throw receiptsRes.error
-      if (projectsRes.error) throw projectsRes.error
-      setEntries(receiptsRes.data ?? [])
-      setAllProjects(projectsRes.data ?? [])
+      const { data, error } = await supabase
+        .from('client_receipts')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('business_id', bizId)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setEntries(data ?? [])
     } catch (e) {
       console.error('IncomeTab load error:', e)
       setEntries([])
@@ -365,11 +353,6 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
 
   return (
     <div>
-      {/* DEBUG — سيُحذف لاحقاً */}
-      <div style={{ fontSize: 9, color: C.textDim, marginBottom: 8, padding: '4px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 6, direction: 'ltr', wordBreak: 'break-all' }}>
-        uid:{userId?.slice(0,8)} biz:{bizId?.slice(0,8)} rows:{entries.length} load:{String(loading)}
-      </div>
-
       {/* Stats */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <StatCard label="هذا الشهر" value={totalMonth} color={C.success} icon={TrendingUp} />
@@ -409,13 +392,13 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
           </select>
         </div>
 
-        {allProjects.length > 0 && (
+        {linkedProjects.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <FolderOpen size={11} color={C.textDim} />
             <select value={filterProj} onChange={e => setFilterProj(e.target.value)}
               style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterProj ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', maxWidth: 140 }}>
               <option value="">كل المشاريع</option>
-              {allProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {linkedProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
         )}
@@ -460,7 +443,7 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
         </motion.button>
       </div>
 
-      <AddIncomeSheet open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSave} allProjects={formProjects} userId={userId} />
+      <AddIncomeSheet open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSave} allProjects={linkedProjects} userId={userId} />
     </div>
   )
 }

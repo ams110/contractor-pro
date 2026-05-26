@@ -396,7 +396,6 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
   const { showToast } = useAppStore()
 
   const [entries,     setEntries]     = useState([])
-  const [allProjects, setAllProjects] = useState([])
   const [loading,     setLoading]     = useState(false)   // false — لا نبدأ بـ "تحميل"
   const [addOpen,     setAddOpen]     = useState(false)
   const [filterMonth, setFilterMonth] = useState('')
@@ -407,39 +406,26 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
   const bizType = activeBusiness?.business_type ?? 'osek_patur'
   const showVat = bizType === 'osek_moreh' || bizType === 'hevra'
 
-  // قائمة المشاريع المعروضة في النموذج:
-  // إذا في مشاريع مربوطة بالمصلحة → استخدمها، وإلا اعرض كل المشاريع
-  const formProjects = linkedProjects.length > 0 ? linkedProjects : allProjects
-
   const projectMap = useMemo(() => {
     const m = {}
-    allProjects.forEach(p => { m[p.id] = p.name })
+    linkedProjects.forEach(p => { m[p.id] = p.name })
     return m
-  }, [allProjects])
+  }, [linkedProjects])
 
-  // ─── جلب expenses الخاصة بالمصلحة النشطة + مشاريع المستخدم ─────────────
+  // ─── جلب expenses الخاصة بالمصلحة النشطة ────────────────────────────────
   async function load() {
     if (!userId || !bizId) { setLoading(false); return }
     setLoading(true)
     try {
-      const [expRes, projRes] = await Promise.all([
-        supabase
-          .from('expenses')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('business_id', bizId)
-          .order('date', { ascending: false })
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('projects')
-          .select('id, name, status')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false }),
-      ])
-      if (expRes.error) throw expRes.error
-      if (projRes.error) throw projRes.error
-      setEntries(expRes.data ?? [])
-      setAllProjects(projRes.data ?? [])
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('business_id', bizId)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setEntries(data ?? [])
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
@@ -573,13 +559,13 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
           {usedCats.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
 
-        {allProjects.length > 0 && (
+        {linkedProjects.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <FolderOpen size={11} color={C.textDim} />
             <select value={filterProj} onChange={e => setFilterProj(e.target.value)}
               style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterProj ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', maxWidth: 140 }}>
               <option value="">كل المشاريع</option>
-              {allProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {linkedProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
         )}
@@ -646,7 +632,7 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
         onClose={() => setAddOpen(false)}
         onSave={handleSave}
         businessType={bizType}
-        allProjects={formProjects}
+        allProjects={linkedProjects}
         userId={userId}
       />
     </div>
