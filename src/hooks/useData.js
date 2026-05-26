@@ -59,6 +59,15 @@ export function useProjects(userId) {
   async function updateProject(id, form) {
     const { error } = await supabase.from('projects').update(form).eq('id', id).eq('user_id', userId)
     if (error) throw error
+
+    // Cascade: لما تتغير المصلحة → انقل كل مدخولاتها ومصاريفها للمصلحة الجديدة
+    if (form.business_id !== undefined) {
+      await Promise.allSettled([
+        supabase.from('client_receipts').update({ business_id: form.business_id }).eq('project_id', id).eq('user_id', userId),
+        supabase.from('expenses').update({ business_id: form.business_id }).eq('project_id', id).eq('user_id', userId),
+      ])
+    }
+
     await refetch()
   }
 
