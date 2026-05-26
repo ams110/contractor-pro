@@ -413,7 +413,7 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
 
   // ─── جلب expenses الخاصة بالمصلحة النشطة + مشاريع المستخدم ─────────────
   async function load() {
-    if (!userId || !bizId) return
+    if (!userId || !bizId) { setLoading(false); return }
     setLoading(true)
     try {
       const [expRes, projRes] = await Promise.all([

@@ -281,7 +281,7 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
 
   // ─── جلب client_receipts الخاصة بالمصلحة النشطة + مشاريع المستخدم ───────
   async function load() {
-    if (!userId || !bizId) return
+    if (!userId || !bizId) { setLoading(false); return }
     setLoading(true)
     try {
       const [receiptsRes, projectsRes] = await Promise.all([

@@ -8,20 +8,20 @@ export const BUSINESS_TYPES = [
   { id: 'hevra',      label: 'חברה בע"מ',  desc: 'شركة — ضريبة شركات 23%' },
 ]
 
+// ─── Helper: compute activeBusiness from businesses + activeBusinessId ─────────
+function computeActive(businesses, activeBusinessId) {
+  return businesses.find(b => b.id === activeBusinessId) ?? businesses[0] ?? null
+}
+
 export const useBusinessStore = create(
   persist(
     (set, get) => ({
       // ─── State ───────────────────────────────────────────────────────────
       businesses:       [],
       activeBusinessId: null,
+      activeBusiness:   null,   // ← state حقيقي (مش getter) يُحدَّث صراحةً
       loading:          false,
       initialized:      false,
-
-      // ─── Derived ─────────────────────────────────────────────────────────
-      get activeBusiness() {
-        const { businesses, activeBusinessId } = get()
-        return businesses.find(b => b.id === activeBusinessId) ?? businesses[0] ?? null
-      },
 
       // ─── Load all businesses for current user ─────────────────────────
       async load() {
@@ -36,15 +36,19 @@ export const useBusinessStore = create(
           if (error) throw error
 
           const { activeBusinessId } = get()
-          // اختر أول مصلحة إذا ما في مختارة
-          const firstId = data?.[0]?.id ?? null
           const validId = data?.find(b => b.id === activeBusinessId)
             ? activeBusinessId
-            : firstId
+            : (data?.[0]?.id ?? null)
 
-          set({ businesses: data ?? [], activeBusinessId: validId, initialized: true })
+          set({
+            businesses:       data ?? [],
+            activeBusinessId: validId,
+            activeBusiness:   computeActive(data ?? [], validId),
+            initialized:      true,
+          })
         } catch (e) {
           console.error('useBusinessStore.load:', e)
+          set({ initialized: true })
         } finally {
           set({ loading: false })
         }
@@ -52,7 +56,11 @@ export const useBusinessStore = create(
 
       // ─── Switch active business ────────────────────────────────────────
       setActiveBusiness(id) {
-        set({ activeBusinessId: id })
+        const { businesses } = get()
+        set({
+          activeBusinessId: id,
+          activeBusiness:   businesses.find(b => b.id === id) ?? null,
+        })
       },
 
       // ─── Create ────────────────────────────────────────────────────────
@@ -68,10 +76,14 @@ export const useBusinessStore = create(
 
         if (error) throw error
 
-        set(s => ({
-          businesses: [...s.businesses, data],
-          activeBusinessId: s.activeBusinessId ?? data.id,
-        }))
+        set(s => {
+          const newActiveId = s.activeBusinessId ?? data.id
+          return {
+            businesses:       [...s.businesses, data],
+            activeBusinessId: newActiveId,
+            activeBusiness:   s.activeBusiness ?? data,
+          }
+        })
         return data
       },
 
@@ -85,7 +97,10 @@ export const useBusinessStore = create(
         if (error) throw error
 
         set(s => ({
-          businesses: s.businesses.map(b => b.id === id ? { ...b, ...fields } : b),
+          businesses:     s.businesses.map(b => b.id === id ? { ...b, ...fields } : b),
+          activeBusiness: s.activeBusiness?.id === id
+            ? { ...s.activeBusiness, ...fields }
+            : s.activeBusiness,
         }))
       },
 
@@ -99,11 +114,15 @@ export const useBusinessStore = create(
         if (error) throw error
 
         set(s => {
-          const remaining = s.businesses.filter(b => b.id !== id)
-          const newActive = s.activeBusinessId === id
+          const remaining  = s.businesses.filter(b => b.id !== id)
+          const newActiveId = s.activeBusinessId === id
             ? (remaining[0]?.id ?? null)
             : s.activeBusinessId
-          return { businesses: remaining, activeBusinessId: newActive }
+          return {
+            businesses:       remaining,
+            activeBusinessId: newActiveId,
+            activeBusiness:   computeActive(remaining, newActiveId),
+          }
         })
       },
     }),
