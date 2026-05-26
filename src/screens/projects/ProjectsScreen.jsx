@@ -6,7 +6,7 @@ import {
   ChevronRight, X, Calendar, CreditCard, ReceiptText, Package,
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
-  ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users,
+  ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users, Archive,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { uploadReceipt } from '../../lib/storage.js'
@@ -17,6 +17,7 @@ import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useProjectBusinessLinks } from '../../hooks/useProjectBusinessLinks.js'
+import DeleteProjectModal from './DeleteProjectModal.jsx'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function statusColor(s) {
@@ -208,11 +209,11 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
 }
 
 // ─── Project Detail ───────────────────────────────────────────────────────────
-function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
+function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, onArchive, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
   businesses = [], linkedBizIds = [], onUpdateBizLinks }) {
   const [tab, setTab] = useState('overview')
   const [showEdit, setShowEdit] = useState(false)
-  const [confirmDel, setConfirmDel] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showReceiptForm, setShowReceiptForm] = useState(false)
   const [editingReceiptId, setEditingReceiptId] = useState(null)
@@ -233,7 +234,6 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   const pPayments = (payments || []).filter(p => p.project_id === pid)
   const paidToWorkers = pPayments.reduce((s, p) => s + (p.amount || 0), 0)
   const stats = calcProjectStats(project, workDays, expenses, clientReceipts, employees, payments)
-  const { confirm: bioConfirm } = useBiometricConfirm()
 
   const TABS = [
     { id: 'overview',  icon: BarChart3,    label: language === 'he' ? 'סיכום' : language === 'en' ? 'Overview' : 'نظرة عامة' },
@@ -243,19 +243,14 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
     { id: 'receipts',  icon: ReceiptText,  label: language === 'he' ? 'קבלות' : language === 'en' ? 'Receipts' : 'قبضات' },
   ]
 
-  async function handleDelete() {
-    const sig = await bioConfirm(`حذف المشروع: ${project.name}`, 'projects')
-    if (!sig) return
-    setDeleting(true)
-    try { await onDelete(project.id); onClose() }
-    catch { setDeleting(false) }
+  async function handleArchiveDone(id) {
+    try { await onArchive(id); onClose() } catch {}
   }
 
-  // fallback للـ confirm dialog اليدوي (يُستخدم من زر الحذف مباشرة)
-  async function handleDeleteConfirmed() {
+  async function handleDeleteDone(id) {
     setDeleting(true)
-    try { await onDelete(project.id); onClose() }
-    catch { setDeleting(false); setConfirmDel(false) }
+    try { await onDelete(id); onClose() }
+    catch { setDeleting(false) }
   }
 
   function closeReceiptForm() {
@@ -335,7 +330,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
           </button>
         )}
         {permissions?.canDelete !== false && (
-          <button onClick={() => setConfirmDel(true)}
+          <button onClick={() => setShowDeleteModal(true)}
             style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
             <Trash2 size={14} color='#EF4444' strokeWidth={2} />
           </button>
@@ -351,33 +346,17 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
         onBizLinksChange={onUpdateBizLinks}
       />
 
-      {/* Delete Confirm */}
-      <AnimatePresence>
-        {confirmDel && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-              style={{ width: '100%', maxWidth: 300, background: C.surface, border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: '24px 20px' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 8, textAlign: 'center' }}>
-                {language === 'en' ? 'Delete Project?' : 'حذف المشروع؟'}
-              </div>
-              <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
-                {language === 'en' ? 'This cannot be undone.' : 'لا يمكن التراجع عن هذا الإجراء.'}
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setConfirmDel(false)}
-                  style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {language === 'en' ? 'Cancel' : 'إلغاء'}
-                </button>
-                <button onClick={handleDeleteConfirmed} disabled={deleting}
-                  style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(239,68,68,0.9)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', opacity: deleting ? 0.7 : 1 }}>
-                  {deleting ? '...' : (language === 'en' ? 'Delete' : 'حذف')}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Delete / Archive Modal */}
+      {showDeleteModal && (
+        <DeleteProjectModal
+          project={project}
+          userId={userId}
+          onArchive={handleArchiveDone}
+          onDelete={handleDeleteDone}
+          onClose={() => setShowDeleteModal(false)}
+          language={language}
+        />
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, padding: '10px 12px', background: C.surface, borderBottom: `1px solid ${C.border}` }}>
@@ -864,7 +843,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 export default function ProjectsScreen({
   projects = [], workDays = [], expenses = [], clientReceipts = [],
   employees = [], payments = [], advances = [],
-  addProject, updateProject, deleteProject,
+  addProject, updateProject, deleteProject, archiveProject,
   addReceipt, updateReceipt, deleteReceipt,
   addWorkDay, bulkAddWorkDays, updateWorkDay, deleteWorkDay,
   approveWorkDay, rejectWorkDay,
@@ -883,16 +862,21 @@ export default function ProjectsScreen({
   const [statusFilter, setStatusFilter] = useState('all')
   const [showAdd, setShowAdd] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [showArchived, setShowArchived] = useState(false)
 
   const statusFilters = ['all', 'نشط', 'مكتمل', 'عرض سعر', 'ملغي']
   const statusLabel = s => ({ all: language === 'he' ? 'הכל' : language === 'en' ? 'All' : 'الكل', 'نشط': language === 'he' ? 'פעיל' : language === 'en' ? 'Active' : 'نشط', 'مكتمل': language === 'he' ? 'הושלם' : language === 'en' ? 'Done' : 'مكتمل', 'عرض سعر': language === 'he' ? 'הצעת מחיר' : language === 'en' ? 'Quote' : 'عرض سعر', 'ملغي': language === 'he' ? 'בוטל' : language === 'en' ? 'Cancelled' : 'ملغي' })[s] || s
 
+  const archivedCount = useMemo(() => projects.filter(p => !!p.archived_at).length, [projects])
+
   const filtered = useMemo(() => {
-    let list = projects
+    let list = showArchived
+      ? projects.filter(p => !!p.archived_at)
+      : projects.filter(p => !p.archived_at)
     if (search) list = list.filter(p => p.name?.toLowerCase().includes(search.toLowerCase()))
-    if (statusFilter !== 'all') list = list.filter(p => p.status === statusFilter)
+    if (!showArchived && statusFilter !== 'all') list = list.filter(p => p.status === statusFilter)
     return list
-  }, [projects, search, statusFilter])
+  }, [projects, search, statusFilter, showArchived])
 
   if (selected) {
     return (
@@ -901,7 +885,7 @@ export default function ProjectsScreen({
         workDays={workDays} expenses={expenses} clientReceipts={clientReceipts}
         employees={employees} payments={payments}
         onClose={() => setSelected(null)}
-        onUpdate={updateProject} onDelete={deleteProject}
+        onUpdate={updateProject} onDelete={deleteProject} onArchive={archiveProject}
         addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt}
         addExpense={addExpense} deleteExpense={deleteExpense}
         addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay}
@@ -940,14 +924,25 @@ export default function ProjectsScreen({
           style={{ width: '100%', padding: '10px 12px 10px 36px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
       </div>
 
-      {/* Status filter */}
+      {/* Status filter + Archive toggle */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
-        {statusFilters.map(s => (
+        {!showArchived && statusFilters.map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
             style={{ padding: '5px 12px', borderRadius: 10, background: statusFilter === s ? GRAD.primary : 'rgba(255,255,255,0.05)', border: `1px solid ${statusFilter === s ? 'transparent' : C.border}`, color: statusFilter === s ? '#fff' : C.textDim, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .15s' }}>
             {statusLabel(s)}
           </button>
         ))}
+        {archivedCount > 0 && (
+          <button onClick={() => setShowArchived(v => !v)}
+            style={{ padding: '5px 12px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 5,
+              background: showArchived ? `${C.primary}20` : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${showArchived ? C.primary + '50' : C.border}`,
+              color: showArchived ? C.primary : C.textDim,
+              fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .15s' }}>
+            <Archive size={11} strokeWidth={2} />
+            {language === 'he' ? `ארכיון (${archivedCount})` : language === 'en' ? `Archive (${archivedCount})` : `المؤرشفة (${archivedCount})`}
+          </button>
+        )}
       </div>
 
       {/* Summary bar */}

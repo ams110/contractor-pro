@@ -68,7 +68,27 @@ export function useProjects(userId) {
     await refetch()
   }
 
-  return { projects: data, loading, error, addProject, updateProject, deleteProject, refetch }
+  async function archiveProject(id) {
+    const { error } = await supabase
+      .from('projects')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
+  async function restoreProject(id) {
+    const { error } = await supabase
+      .from('projects')
+      .update({ archived_at: null })
+      .eq('id', id)
+      .eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
+  return { projects: data, loading, error, addProject, updateProject, deleteProject, archiveProject, restoreProject, refetch }
 }
 
 /* ─── Employees ─── */
