@@ -306,7 +306,10 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
       if (projectsRes.error) throw projectsRes.error
       setEntries(receiptsRes.data ?? [])
       setAllProjects(projectsRes.data ?? [])
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      console.error('IncomeTab load error:', e)
+      setEntries([])
+    }
     finally { setLoading(false) }
   }
 
@@ -362,6 +365,11 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
 
   return (
     <div>
+      {/* DEBUG — سيُحذف لاحقاً */}
+      <div style={{ fontSize: 9, color: C.textDim, marginBottom: 8, padding: '4px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 6, direction: 'ltr', wordBreak: 'break-all' }}>
+        uid:{userId?.slice(0,8)} biz:{bizId?.slice(0,8)} rows:{entries.length} load:{String(loading)}
+      </div>
+
       {/* Stats */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <StatCard label="هذا الشهر" value={totalMonth} color={C.success} icon={TrendingUp} />
