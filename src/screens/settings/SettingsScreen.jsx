@@ -172,20 +172,29 @@ export default function SettingsScreen({
     try {
       const reg = await navigator.serviceWorker?.getRegistration()
       if (reg) {
+        // انتظر نهاية التحديث قبل الفحص
         await reg.update()
-        if (reg.waiting || reg.installing) {
+
+        const sw = reg.installing || reg.waiting
+        if (sw) {
+          // أرسل له skipWaiting مباشرةً ليتفعّل فوراً
+          sw.postMessage({ type: 'SKIP_WAITING' })
           setUpdateStatus('updating')
-          setTimeout(() => window.location.reload(), 800)
+          setTimeout(() => window.location.reload(), 1000)
         } else {
-          setUpdateStatus('upToDate')
-          setTimeout(() => setUpdateStatus('idle'), 3000)
+          // لا يوجد SW جديد — أعد التحميل مع تجاوز الـ cache
+          setUpdateStatus('updating')
+          setTimeout(() => window.location.reload(true), 500)
         }
       } else {
-        setUpdateStatus('upToDate')
-        setTimeout(() => setUpdateStatus('idle'), 3000)
+        // لا يوجد service worker — أعد تحميل عادي
+        setUpdateStatus('updating')
+        setTimeout(() => window.location.reload(true), 300)
       }
     } catch {
-      setUpdateStatus('idle')
+      // في حال أي خطأ — أعد تحميل قسري
+      setUpdateStatus('updating')
+      setTimeout(() => window.location.reload(true), 300)
     }
   }
 
