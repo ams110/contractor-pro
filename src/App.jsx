@@ -14,6 +14,8 @@ import { supabase }            from './lib/supabase.js'
 import { C, GRAD, NAV, MORE_SCREENS } from './constants/index.js'
 import { navigate }            from './Router.jsx'
 import { useAppStore }         from './store/useAppStore.js'
+import { useBusinessStore }    from './store/useBusinessStore.js'
+import FirstTimeSetup          from './screens/onboarding/FirstTimeSetup.jsx'
 import { useAuth }             from './hooks/useAuth.js'
 import { useOrganization }     from './hooks/useOrganization.js'
 import { useProjects, useEmployees, useWorkDays, useExpenses, usePayments, useClientReceipts, useHolidays, useAdvances, useTaxAdvances } from './hooks/useData.js'
@@ -307,6 +309,10 @@ export default function App() {
 
   const uid = user?.id
 
+  // ─── Business onboarding ──────────────────────────────────────────────────
+  const { businesses, initialized: bizInit, load: loadBiz } = useBusinessStore()
+  useEffect(() => { if (uid) loadBiz() }, [uid]) // eslint-disable-line
+
   const { teamMembers, permissions, effectiveOwnerId, allowedProjectIds, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
   const eid = effectiveOwnerId || uid
 
@@ -494,6 +500,16 @@ export default function App() {
   const activeNav = moreScreenIds.includes(screen) ? 'settings'
     : NAV.find(n => n.id === screen) ? screen
     : 'dashboard'
+
+  // ─── First-time setup: إذا المستخدم مسجّل دخول بس ما عنده مصالح → اعرض الإعداد الإجباري
+  if (uid && bizInit && businesses.length === 0 && permissions?.isOwner !== false) {
+    return (
+      <>
+        <style>{globalCSS}</style>
+        <FirstTimeSetup language={language} />
+      </>
+    )
+  }
 
   return (
     <div className="app-root" dir={dir} style={{ background: C.bg, position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingInlineEnd: isDesktop ? 240 : 0 }}>
