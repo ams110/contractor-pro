@@ -89,6 +89,7 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
 
   async function handleSave() {
     if (!form.name.trim()) return setError('اسم المشروع مطلوب')
+    if (businesses.length > 0 && !form.business_id) return setError('يجب اختيار المصلحة التجارية')
     if (!isEdit) {
       const sig = await bioConfirm(`إضافة مشروع: ${form.name}`, 'projects')
       if (!sig) return
@@ -171,18 +172,18 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
         </div>
       )}
 
-      {/* ── ربط بمصلحة ── */}
+      {/* ── ربط بمصلحة (إجباري) ── */}
       {businesses.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            <Building2 size={11} strokeWidth={2} /> المصلحة التجارية
+            <Building2 size={11} strokeWidth={2} /> المصلحة التجارية <span style={{ color: C.accent }}>*</span>
           </label>
           <select
             value={form.business_id || ''}
             onChange={e => setForm(p => ({ ...p, business_id: e.target.value }))}
-            style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${C.border}`, borderRadius: 12, color: form.business_id ? C.text : C.textDim, fontSize: 13, fontFamily: 'inherit', outline: 'none', direction: 'rtl', cursor: 'pointer' }}
+            style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${!form.business_id ? C.accent + '80' : C.border}`, borderRadius: 12, color: form.business_id ? C.text : C.textDim, fontSize: 13, fontFamily: 'inherit', outline: 'none', direction: 'rtl', cursor: 'pointer' }}
           >
-            <option value="">— بدون مصلحة —</option>
+            <option value="" disabled>— اختر المصلحة —</option>
             {businesses.map(biz => (
               <option key={biz.id} value={biz.id}>
                 {biz.name} ({biz.business_type === 'osek_patur' ? 'פטור' : biz.business_type === 'osek_moreh' ? 'מורשה' : 'חברה'})
