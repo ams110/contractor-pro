@@ -46,22 +46,15 @@ export default function BusinessSetup({ onDone }) {
         phone:         form.phone.trim() || null,
       })
 
-      // ── ربط كل المشاريع الموجودة بالمصلحة الجديدة تلقائياً ──────────────
+      // ── ربط البيانات القديمة (business_id = NULL) بالمصلحة الجديدة ──────
       if (biz?.id) {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          const { data: projects } = await supabase
-            .from('projects')
-            .select('id')
-            .eq('user_id', user.id)
-          if (projects?.length) {
-            await supabase.from('project_businesses').upsert(
-              projects.map(p => ({ project_id: p.id, business_id: biz.id, user_id: user.id })),
-              { onConflict: 'project_id,business_id' }
-            )
-          }
-          // ── ربط البيانات القديمة (business_id = NULL) بهذه المصلحة ────────
           await Promise.all([
+            supabase.from('projects')
+              .update({ business_id: biz.id })
+              .eq('user_id', user.id)
+              .is('business_id', null),
             supabase.from('client_receipts')
               .update({ business_id: biz.id })
               .eq('user_id', user.id)

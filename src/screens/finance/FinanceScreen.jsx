@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   CreditCard, Banknote, Calculator, TrendingUp, TrendingDown, FolderOpen, BarChart3,
-  Plus, Search, X, Trash2, Check, CheckCircle2, RefreshCw,
+  Plus, Search, X, Trash2, Check, CheckCircle2,
   XCircle, Paperclip, ChevronDown, Receipt, AlertTriangle,
   Lock, CalendarOff, Eye,
 } from 'lucide-react'
@@ -49,74 +49,19 @@ function SubTab({ active, label, icon: Icon, onClick }) {
 }
 
 // ─── AccountingModuleTab ───────────────────────────────────────────────────────
-// يحتوي على BusinessSwitcher + الـ 5 تابات الجديدة للمحاسبة
-// يُفلتر المشاريع بناءً على المصلحة النشطة عبر project_businesses
+// يحتوي على BusinessSwitcher + الـ 5 تابات للمحاسبة
+// يُفلتر المشاريع مباشرةً بـ project.business_id === activeBusiness.id
 function AccountingModuleTab({ projects, employees, userId }) {
   const { businesses, activeBusiness, initialized, load } = useBusinessStore()
-  const { setScreen } = useAppStore()
-  const [subTab,         setSubTab]         = useState('income')
-  const [bizProjectIds,  setBizProjectIds]  = useState(null)  // null = جاري التحميل
-  const [linksLoading,   setLinksLoading]   = useState(false)
-  const [autoLinking,    setAutoLinking]    = useState(false)
+  const [subTab, setSubTab] = useState('income')
 
   useEffect(() => { load() }, [])
 
-  // ── جلب المشاريع المربوطة بالمصلحة النشطة ─────────────────────────────
-  const fetchLinks = useCallback(async (bizId, uid) => {
-    if (!bizId || !uid) { setBizProjectIds([]); return }
-    setLinksLoading(true)
-    const { data, error } = await supabase
-      .from('project_businesses')
-      .select('project_id')
-      .eq('business_id', bizId)
-      .eq('user_id', uid)          // explicit — لا نعتمد على RLS فقط
-    if (error) console.error('project_businesses fetch:', error)
-    setBizProjectIds(data ? data.map(l => l.project_id) : [])
-    setLinksLoading(false)
-  }, [])
-
-  useEffect(() => {
-    fetchLinks(activeBusiness?.id, userId)
-  }, [activeBusiness?.id, userId, fetchLinks])
-
-  // ── real-time: نستمع لأي تغيير في project_businesses ──────────────────
-  useEffect(() => {
-    if (!userId) return
-    const channel = supabase
-      .channel(`pb_finance_${userId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'project_businesses',
-        filter: `user_id=eq.${userId}`,
-      }, () => {
-        // عند أي تغيير (إضافة/حذف) أعد الجلب بالمصلحة الحالية
-        if (activeBusiness?.id) fetchLinks(activeBusiness.id, userId)
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [userId, activeBusiness?.id, fetchLinks])
-
-  // ── ربط كل المشاريع بالمصلحة النشطة دفعةً واحدة ─────────────────────
-  async function autoLinkAllProjects() {
-    if (!activeBusiness?.id || !userId || autoLinking) return
-    setAutoLinking(true)
-    try {
-      const unlinked = projects.filter(p => !bizProjectIds?.includes(p.id))
-      if (unlinked.length === 0) { setAutoLinking(false); return }
-      await supabase.from('project_businesses').upsert(
-        unlinked.map(p => ({ project_id: p.id, business_id: activeBusiness.id, user_id: userId })),
-        { onConflict: 'project_id,business_id' }
-      )
-      // أعد جلب الروابط
-      await fetchLinks(activeBusiness.id, userId)
-    } catch (e) { console.error(e) }
-    finally { setAutoLinking(false) }
-  }
-
-  // ── مشاريع مفلترة للمصلحة النشطة ──────────────────────────────────────
+  // ── مشاريع مفلترة للمصلحة النشطة (مباشرةً من business_id) ────────────
   const filteredProjects = useMemo(() => {
-    if (!bizProjectIds) return []
-    return projects.filter(p => bizProjectIds.includes(p.id))
-  }, [projects, bizProjectIds])
+    if (!activeBusiness?.id) return []
+    return projects.filter(p => p.business_id === activeBusiness.id)
+  }, [projects, activeBusiness?.id])
 
   if (!initialized) return (
     <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>تحميل...</div>
@@ -133,44 +78,23 @@ function AccountingModuleTab({ projects, employees, userId }) {
     { id: 'taxsummary', icon: BarChart3,    label: 'ملخص'     },
   ]
 
-  // badge: عدد المشاريع المربوطة
-  const projBadge = bizProjectIds ? bizProjectIds.length : null
-
   return (
     <div>
       {/* Business switcher */}
       <BusinessSwitcher />
 
-      {/* إشارة المشاريع المربوطة */}
-      {bizProjectIds !== null && (
+      {/* شارة عدد مشاريع هذه المصلحة */}
+      {filteredProjects.length > 0 && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
-          padding: '7px 12px', marginBottom: 10,
+          padding: '6px 12px', marginBottom: 10,
           background: `${C.primary}0A`, border: `1px solid ${C.primary}20`,
           borderRadius: 10,
         }}>
           <FolderOpen size={11} color={C.primary} />
-          <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, flex: 1 }}>
-            {linksLoading ? '...' : `${projBadge} مشروع مربوط بهذه المصلحة`}
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.primary }}>
+            {filteredProjects.length} مشروع تابع لهذه المصلحة
           </span>
-          {/* زر ربط كل المشاريع دفعةً — يظهر لو في مشاريع غير مربوطة */}
-          {!linksLoading && projects.length > 0 && projects.some(p => !bizProjectIds?.includes(p.id)) && (
-            <button
-              onClick={autoLinkAllProjects}
-              disabled={autoLinking}
-              style={{ background: `${C.primary}18`, border: `1px solid ${C.primary}30`, borderRadius: 8, padding: '3px 8px', fontSize: 10, fontWeight: 700, color: C.primary, cursor: autoLinking ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: autoLinking ? 0.6 : 1 }}
-            >
-              {autoLinking ? '...' : 'ربط الكل ←'}
-            </button>
-          )}
-          {/* زر تحديث يدوي */}
-          <button
-            onClick={() => fetchLinks(activeBusiness?.id, userId)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex', padding: 2 }}
-            title="تحديث"
-          >
-            <RefreshCw size={11} style={{ animation: linksLoading ? 'spin 1s linear infinite' : 'none' }} />
-          </button>
         </div>
       )}
 

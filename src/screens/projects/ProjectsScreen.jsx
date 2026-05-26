@@ -16,7 +16,7 @@ import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
-import { useProjectBusinessLinks } from '../../hooks/useProjectBusinessLinks.js'
+// useProjectBusinessLinks removed — projects now use direct business_id FK
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function statusColor(s) {
@@ -56,32 +56,24 @@ function Row({ label, value, color, bold }) {
 
 // ─── Add/Edit Project Modal ───────────────────────────────────────────────────
 function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
-  businesses = [], currentBizIds = [], onBizLinksChange }) {
-  const empty = { name: '', type: PROJECT_TYPES[0], status: 'نشط', price: '', notes: '', locations: [] }
+  businesses = [], defaultBusinessId = '' }) {
+  const empty = { name: '', type: PROJECT_TYPES[0], status: 'نشط', price: '', notes: '', locations: [], business_id: '' }
   const [form, setForm] = useState(empty)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [locInput, setLocInput] = useState('')
-  const [selectedBizIds, setSelectedBizIds] = useState([])
   const isEdit = !!initialData
   const { confirm: bioConfirm } = useBiometricConfirm()
 
   useEffect(() => {
     if (open) {
       setForm(initialData
-        ? { ...empty, ...initialData, price: String(initialData.price || ''), locations: initialData.locations || [] }
-        : empty)
+        ? { ...empty, ...initialData, price: String(initialData.price || ''), locations: initialData.locations || [], business_id: initialData.business_id || '' }
+        : { ...empty, business_id: defaultBusinessId })
       setError('')
       setLocInput('')
-      setSelectedBizIds(currentBizIds)
     }
-  }, [open, initialData, JSON.stringify(currentBizIds)])
-
-  function toggleBiz(bizId) {
-    setSelectedBizIds(prev =>
-      prev.includes(bizId) ? prev.filter(id => id !== bizId) : [...prev, bizId]
-    )
-  }
+  }, [open, initialData?.id, defaultBusinessId])
 
   function addLocation() {
     const v = locInput.trim()
@@ -104,12 +96,7 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
     setSaving(true)
     setError('')
     try {
-      const result = await onSave({ ...form, price: Number(form.price) || 0 })
-      // ربط المصالح — للمشروع الجديد نحتاج الـ ID من result، للتعديل من initialData
-      const projectId = initialData?.id ?? result?.id
-      if (projectId && onBizLinksChange) {
-        await onBizLinksChange(projectId, selectedBizIds)
-      }
+      await onSave({ ...form, price: Number(form.price) || 0 })
       onClose()
     } catch (e) {
       setError(e.message)
@@ -168,33 +155,24 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
         </div>
       )}
 
-      {/* ── ربط بمصالح ── */}
+      {/* ── ربط بمصلحة ── */}
       {businesses.length > 0 && (
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            <Building2 size={11} strokeWidth={2} /> ربط بمصلحة / مصالح
+          <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            <Building2 size={11} strokeWidth={2} /> المصلحة التجارية
           </label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {businesses.map(biz => {
-              const active = selectedBizIds.includes(biz.id)
-              return (
-                <button key={biz.id} onClick={() => toggleBiz(biz.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', borderRadius: 12, background: active ? `${C.primary}12` : 'rgba(255,255,255,0.04)', border: `1.5px solid ${active ? C.primary : C.border}`, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'right', transition: 'all .15s' }}>
-                  {/* Checkbox */}
-                  <div style={{ width: 18, height: 18, borderRadius: 5, background: active ? C.primary : 'transparent', border: `2px solid ${active ? C.primary : C.textDim}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
-                    {active && <Check size={11} color="#fff" strokeWidth={3} />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: active ? C.text : C.textDim }}>{biz.name}</div>
-                    {biz.tax_id && <div style={{ fontSize: 10, color: C.textDim }}>{biz.tax_id}</div>}
-                  </div>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: active ? C.primary : C.textDim, background: active ? `${C.primary}18` : 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>
-                    {biz.business_type === 'osek_patur' ? 'פטור' : biz.business_type === 'osek_moreh' ? 'מורשה' : 'חברה'}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+          <select
+            value={form.business_id || ''}
+            onChange={e => setForm(p => ({ ...p, business_id: e.target.value }))}
+            style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${C.border}`, borderRadius: 12, color: form.business_id ? C.text : C.textDim, fontSize: 13, fontFamily: 'inherit', outline: 'none', direction: 'rtl', cursor: 'pointer' }}
+          >
+            <option value="">— بدون مصلحة —</option>
+            {businesses.map(biz => (
+              <option key={biz.id} value={biz.id}>
+                {biz.name} ({biz.business_type === 'osek_patur' ? 'פטור' : biz.business_type === 'osek_moreh' ? 'מורשה' : 'חברה'})
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -209,7 +187,7 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
 
 // ─── Project Detail ───────────────────────────────────────────────────────────
 function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
-  businesses = [], linkedBizIds = [], onUpdateBizLinks }) {
+  businesses = [] }) {
   const [tab, setTab] = useState('overview')
   const [showEdit, setShowEdit] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
@@ -342,13 +320,11 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
         )}
       </div>
 
-      {/* Edit Modal — مع دعم ربط المصالح */}
+      {/* Edit Modal */}
       <ProjectFormModal open={showEdit} onClose={() => setShowEdit(false)}
         onSave={form => onUpdate(project.id, form)}
         language={language} initialData={project}
         businesses={businesses}
-        currentBizIds={linkedBizIds}
-        onBizLinksChange={onUpdateBizLinks}
       />
 
       {/* Delete Confirm */}
@@ -388,25 +364,17 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
       <div style={{ padding: '14px 16px' }}>
         {tab === 'overview' && (
           <div>
-            {/* ── المصالح المرتبطة ── */}
-            {businesses.length > 0 && (() => {
-              const linked = businesses.filter(b => linkedBizIds.includes(b.id))
+            {/* ── المصلحة المرتبطة ── */}
+            {(() => {
+              const biz = businesses.find(b => b.id === project.business_id)
+              if (!biz) return null
               return (
-                <div style={{ background: `${C.primary}08`, border: `1px solid ${C.primary}20`, borderRadius: 14, padding: '10px 13px', marginBottom: 12 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: C.primary, letterSpacing: '0.05em', marginBottom: linked.length ? 8 : 0, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <Building2 size={10} strokeWidth={2} /> المصالح المرتبطة
-                  </div>
-                  {linked.length === 0 ? (
-                    <div style={{ fontSize: 10, color: C.textDim }}>لم يُربط بأي مصلحة بعد — عدّل المشروع لإضافة الربط</div>
-                  ) : (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {linked.map(b => (
-                        <span key={b.id} style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 20, padding: '3px 10px' }}>
-                          {b.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                <div style={{ background: `${C.primary}08`, border: `1px solid ${C.primary}20`, borderRadius: 14, padding: '10px 13px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Building2 size={12} strokeWidth={2} color={C.primary} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.primary }}>{biz.name}</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: C.textDim, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, borderRadius: 20, padding: '2px 7px' }}>
+                    {biz.business_type === 'osek_patur' ? 'פטור' : biz.business_type === 'osek_moreh' ? 'מורשה' : 'חברה'}
+                  </span>
                 </div>
               )
             })()}
@@ -875,9 +843,8 @@ export default function ProjectsScreen({
   const { language } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
-  // ── ربط المصالح بالمشاريع ───────────────────────────────────────────────
+  // ── المصالح ──────────────────────────────────────────────────────────────
   const { businesses, activeBusiness } = useBusinessStore()
-  const { getBusinessesForProject, setProjectLinks } = useProjectBusinessLinks(userId)
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -909,8 +876,6 @@ export default function ProjectsScreen({
         expCats={expCats} payMethods={payMethods} permissions={permissions}
         holidays={holidays} language={language} userId={userId}
         businesses={businesses}
-        linkedBizIds={getBusinessesForProject(selected.id)}
-        onUpdateBizLinks={setProjectLinks}
       />
     )
   }
@@ -1053,18 +1018,15 @@ export default function ProjectsScreen({
                     </div>
                   )}
 
-                  {/* شارات المصالح */}
+                  {/* شارة المصلحة */}
                   {(() => {
-                    const bids  = getBusinessesForProject(project.id)
-                    const bizList = businesses.filter(b => bids.includes(b.id))
-                    if (!bizList.length) return null
+                    const biz = businesses.find(b => b.id === project.business_id)
+                    if (!biz) return null
                     return (
-                      <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                        {bizList.map(b => (
-                          <span key={b.id} style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 20, padding: '2px 8px', display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <Building2 size={8} strokeWidth={2} /> {b.name}
-                          </span>
-                        ))}
+                      <div style={{ marginTop: 8 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 20, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <Building2 size={8} strokeWidth={2} /> {biz.name}
+                        </span>
                       </div>
                     )
                   })()}
@@ -1081,8 +1043,7 @@ export default function ProjectsScreen({
         onSave={addProject}
         language={language}
         businesses={businesses}
-        currentBizIds={activeBusiness ? [activeBusiness.id] : []}
-        onBizLinksChange={setProjectLinks}
+        defaultBusinessId={activeBusiness?.id || ''}
       />
     </div>
   )
