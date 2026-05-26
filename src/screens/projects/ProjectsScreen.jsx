@@ -96,7 +96,23 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
     setSaving(true)
     setError('')
     try {
-      await onSave({ ...form, price: Number(form.price) || 0 })
+      // فقط الحقول القابلة للتعديل — بدون id/user_id/created_at التي تأتي من initialData
+      const payload = {
+        name:           form.name.trim(),
+        type:           form.type,
+        status:         form.status,
+        price:          Number(form.price) || 0,
+        notes:          form.notes || null,
+        locations:      form.locations || [],
+        business_id:    form.business_id || null,
+        client_name:    form.client_name  || null,
+        client_phone:   form.client_phone || null,
+        start_date:     form.start_date   || null,
+        end_date:       form.end_date     || null,
+        specialization: form.specialization || null,
+        ref_number:     form.ref_number   || null,
+      }
+      await onSave(payload)
       onClose()
     } catch (e) {
       setError(e.message)
@@ -843,8 +859,9 @@ export default function ProjectsScreen({
   const { language } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
-  // ── المصالح ──────────────────────────────────────────────────────────────
-  const { businesses, activeBusiness } = useBusinessStore()
+  // ── المصالح — تأكد من تحميلها حتى لو لم يزر المستخدم شاشة المالية بعد ──
+  const { businesses, activeBusiness, load: loadBusinesses } = useBusinessStore()
+  useEffect(() => { loadBusinesses() }, []) // eslint-disable-line
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
