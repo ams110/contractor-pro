@@ -876,7 +876,7 @@ export default function ProjectsScreen({
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
   // ── ربط المصالح بالمشاريع ───────────────────────────────────────────────
-  const { businesses } = useBusinessStore()
+  const { businesses, activeBusiness } = useBusinessStore()
   const { getBusinessesForProject, setProjectLinks } = useProjectBusinessLinks(userId)
 
   const [search, setSearch] = useState('')
@@ -1081,7 +1081,7 @@ export default function ProjectsScreen({
         onSave={addProject}
         language={language}
         businesses={businesses}
-        currentBizIds={[]}
+        currentBizIds={activeBusiness ? [activeBusiness.id] : []}
         onBizLinksChange={setProjectLinks}
       />
     </div>

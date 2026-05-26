@@ -57,6 +57,7 @@ function AccountingModuleTab({ projects, employees, userId }) {
   const [subTab,         setSubTab]         = useState('income')
   const [bizProjectIds,  setBizProjectIds]  = useState(null)  // null = جاري التحميل
   const [linksLoading,   setLinksLoading]   = useState(false)
+  const [autoLinking,    setAutoLinking]    = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -93,6 +94,23 @@ function AccountingModuleTab({ projects, employees, userId }) {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [userId, activeBusiness?.id, fetchLinks])
+
+  // ── ربط كل المشاريع بالمصلحة النشطة دفعةً واحدة ─────────────────────
+  async function autoLinkAllProjects() {
+    if (!activeBusiness?.id || !userId || autoLinking) return
+    setAutoLinking(true)
+    try {
+      const unlinked = projects.filter(p => !bizProjectIds?.includes(p.id))
+      if (unlinked.length === 0) { setAutoLinking(false); return }
+      await supabase.from('project_businesses').upsert(
+        unlinked.map(p => ({ project_id: p.id, business_id: activeBusiness.id, user_id: userId })),
+        { onConflict: 'project_id,business_id' }
+      )
+      // أعد جلب الروابط
+      await fetchLinks(activeBusiness.id, userId)
+    } catch (e) { console.error(e) }
+    finally { setAutoLinking(false) }
+  }
 
   // ── مشاريع مفلترة للمصلحة النشطة ──────────────────────────────────────
   const filteredProjects = useMemo(() => {
@@ -135,12 +153,14 @@ function AccountingModuleTab({ projects, employees, userId }) {
           <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, flex: 1 }}>
             {linksLoading ? '...' : `${projBadge} مشروع مربوط بهذه المصلحة`}
           </span>
-          {projBadge === 0 && !linksLoading && (
+          {/* زر ربط كل المشاريع دفعةً — يظهر لو في مشاريع غير مربوطة */}
+          {!linksLoading && projects.length > 0 && projects.some(p => !bizProjectIds?.includes(p.id)) && (
             <button
-              onClick={() => setScreen('projects')}
-              style={{ background: `${C.primary}18`, border: `1px solid ${C.primary}30`, borderRadius: 8, padding: '3px 8px', fontSize: 10, fontWeight: 700, color: C.primary, cursor: 'pointer', fontFamily: 'inherit' }}
+              onClick={autoLinkAllProjects}
+              disabled={autoLinking}
+              style={{ background: `${C.primary}18`, border: `1px solid ${C.primary}30`, borderRadius: 8, padding: '3px 8px', fontSize: 10, fontWeight: 700, color: C.primary, cursor: autoLinking ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: autoLinking ? 0.6 : 1 }}
             >
-              ربط مشاريع ←
+              {autoLinking ? '...' : 'ربط الكل ←'}
             </button>
           )}
           {/* زر تحديث يدوي */}

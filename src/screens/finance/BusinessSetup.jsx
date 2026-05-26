@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Building2, ChevronLeft, Check } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { useBusinessStore, BUSINESS_TYPES } from '../../store/useBusinessStore.js'
+import { supabase } from '../../lib/supabase.js'
 
 const inp = {
   width: '100%',
@@ -38,12 +39,41 @@ export default function BusinessSetup({ onDone }) {
     setSaving(true)
     setError('')
     try {
-      await createBusiness({
+      const biz = await createBusiness({
         name:          form.name.trim(),
         business_type: form.business_type,
         reg_number:    form.reg_number.trim() || null,
         phone:         form.phone.trim() || null,
       })
+
+      // ── ربط كل المشاريع الموجودة بالمصلحة الجديدة تلقائياً ──────────────
+      if (biz?.id) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: projects } = await supabase
+            .from('projects')
+            .select('id')
+            .eq('user_id', user.id)
+          if (projects?.length) {
+            await supabase.from('project_businesses').upsert(
+              projects.map(p => ({ project_id: p.id, business_id: biz.id, user_id: user.id })),
+              { onConflict: 'project_id,business_id' }
+            )
+          }
+          // ── ربط البيانات القديمة (business_id = NULL) بهذه المصلحة ────────
+          await Promise.all([
+            supabase.from('client_receipts')
+              .update({ business_id: biz.id })
+              .eq('user_id', user.id)
+              .is('business_id', null),
+            supabase.from('expenses')
+              .update({ business_id: biz.id })
+              .eq('user_id', user.id)
+              .is('business_id', null),
+          ])
+        }
+      }
+
       onDone?.()
     } catch (e) {
       setError('حدث خطأ، حاول مرة أخرى')
