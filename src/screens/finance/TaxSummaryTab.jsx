@@ -124,11 +124,16 @@ function buildMonthlyChart(income, expenses, year) {
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function TaxSummaryTab() {
-  const { activeBusiness } = useBusinessStore()
+  const businesses  = useBusinessStore(s => s.businesses)
+  const activeBizId = useBusinessStore(s => s.activeBusinessId)
+  const activeBusiness = useMemo(
+    () => businesses.find(b => b.id === activeBizId) ?? businesses[0] ?? null,
+    [businesses, activeBizId]
+  )
 
   const [income,   setIncome]   = useState([])
   const [expenses, setExpenses] = useState([])
-  const [loading,  setLoading]  = useState(true)
+  const [loading,  setLoading]  = useState(false)
   const [period,   setPeriod]   = useState('year')
   const [chartTab, setChartTab] = useState('bar') // 'bar' | 'line'
 

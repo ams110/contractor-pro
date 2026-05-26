@@ -52,7 +52,12 @@ function SubTab({ active, label, icon: Icon, onClick }) {
 // يحتوي على BusinessSwitcher + الـ 5 تابات للمحاسبة
 // يُفلتر المشاريع مباشرةً بـ project.business_id === activeBusiness.id
 function AccountingModuleTab({ projects, employees, userId }) {
-  const { businesses, activeBusiness, initialized, load } = useBusinessStore()
+  const { businesses, initialized, load } = useBusinessStore()
+  const activeBizId    = useBusinessStore(s => s.activeBusinessId)
+  const activeBusiness = useMemo(
+    () => businesses.find(b => b.id === activeBizId) ?? businesses[0] ?? null,
+    [businesses, activeBizId]
+  )
   const [subTab, setSubTab] = useState('income')
 
   useEffect(() => { load() }, [])

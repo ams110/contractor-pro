@@ -386,12 +386,18 @@ function AddExpenseSheet({ open, onClose, onSave, businessType, allProjects, use
 // ─── MAIN: ExpenseTab ─────────────────────────────────────────────────────────
 // linkedProjects: المشاريع المربوطة بالمصلحة النشطة (من FinanceScreen)
 export default function ExpenseTab({ userId, linkedProjects = [] }) {
-  const { activeBusiness } = useBusinessStore()
+  // ─── اقرأ businesses و activeBusinessId مباشرةً من الـ store ───────────
+  const businesses    = useBusinessStore(s => s.businesses)
+  const activeBizId   = useBusinessStore(s => s.activeBusinessId)
+  const activeBusiness = useMemo(
+    () => businesses.find(b => b.id === activeBizId) ?? businesses[0] ?? null,
+    [businesses, activeBizId]
+  )
   const { showToast } = useAppStore()
 
   const [entries,     setEntries]     = useState([])
-  const [allProjects, setAllProjects] = useState([])   // مشاريع المستخدم — مجلوبة مباشرة
-  const [loading,     setLoading]     = useState(true)
+  const [allProjects, setAllProjects] = useState([])
+  const [loading,     setLoading]     = useState(false)   // false — لا نبدأ بـ "تحميل"
   const [addOpen,     setAddOpen]     = useState(false)
   const [filterMonth, setFilterMonth] = useState('')
   const [filterCat,   setFilterCat]   = useState('')

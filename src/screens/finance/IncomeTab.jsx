@@ -256,21 +256,25 @@ function AddIncomeSheet({ open, onClose, onSave, allProjects, userId }) {
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 // linkedProjects: المشاريع المربوطة بالمصلحة النشطة (من FinanceScreen)
 export default function IncomeTab({ userId, linkedProjects = [] }) {
-  const { activeBusiness } = useBusinessStore()
+  // ─── اقرأ businesses و activeBusinessId مباشرةً من الـ store ───────────
+  // (بدل الاعتماد على activeBusiness المحسوبة لتجنب مشاكل Zustand persist)
+  const businesses    = useBusinessStore(s => s.businesses)
+  const activeBizId   = useBusinessStore(s => s.activeBusinessId)
+  const activeBusiness = useMemo(
+    () => businesses.find(b => b.id === activeBizId) ?? businesses[0] ?? null,
+    [businesses, activeBizId]
+  )
   const { showToast } = useAppStore()
 
   const [entries,     setEntries]     = useState([])
-  const [allProjects, setAllProjects] = useState([])   // مشاريع المستخدم — مجلوبة مباشرة
-  const [loading,     setLoading]     = useState(true)
+  const [allProjects, setAllProjects] = useState([])
+  const [loading,     setLoading]     = useState(false)   // false — لا نبدأ بـ "تحميل"
   const [addOpen,     setAddOpen]     = useState(false)
   const [filterMonth, setFilterMonth] = useState('')
   const [filterProj,  setFilterProj]  = useState('')
 
-  // قائمة المشاريع المعروضة في النموذج:
-  // إذا في مشاريع مربوطة بالمصلحة → استخدمها، وإلا اعرض كل المشاريع
   const formProjects = linkedProjects.length > 0 ? linkedProjects : allProjects
 
-  // projectMap للعرض السريع
   const projectMap = useMemo(() => {
     const m = {}
     allProjects.forEach(p => { m[p.id] = p.name })
