@@ -8,6 +8,7 @@ import { C, GRAD, EXP_CATS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { supabase } from '../../lib/supabase.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { useBusinessStore } from '../../store/useBusinessStore.js'
 
 const STATUS_COLOR = {
   'نشط':        C.success,
@@ -256,35 +257,45 @@ function AddExpenseSheet({ open, onClose, onSave, projectId, userId }) {
 export default function ProjectFinanceTab({ userId }) {
   const { showToast } = useAppStore()
 
+  // ── مصلحة نشطة (نفس نمط IncomeTab) ──────────────────────────────────────
+  const businesses    = useBusinessStore(s => s.businesses)
+  const activeBizId   = useBusinessStore(s => s.activeBusinessId)
+  const activeBusiness = useMemo(
+    () => businesses.find(b => b.id === activeBizId) ?? businesses[0] ?? null,
+    [businesses, activeBizId]
+  )
+  const bizId = activeBusiness?.id
+
   const [projects,  setProjects]  = useState([])
   const [receipts,  setReceipts]  = useState([])
   const [expenses,  setExpenses]  = useState([])
   const [payments,  setPayments]  = useState([])
-  const [loading,   setLoading]   = useState(true)
+  const [loading,   setLoading]   = useState(false)
   const [selected,  setSelected]  = useState(null)   // project id
   const [subTab,    setSubTab]    = useState('income')
   const [addOpen,   setAddOpen]   = useState(false)
 
-  // ── جلب كل البيانات دفعة واحدة ─────────────────────────────────────────
+  // ── جلب بيانات المصلحة النشطة فقط ─────────────────────────────────────
   async function load() {
-    if (!userId) return
+    if (!userId || !bizId) { setLoading(false); return }
     setLoading(true)
     try {
       const [pr, rc, ex, py] = await Promise.all([
-        supabase.from('projects').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-        supabase.from('client_receipts').select('*').eq('user_id', userId),
-        supabase.from('expenses').select('*').eq('user_id', userId),
+        supabase.from('projects').select('*').eq('user_id', userId).eq('business_id', bizId).order('created_at', { ascending: false }),
+        supabase.from('client_receipts').select('*').eq('user_id', userId).eq('business_id', bizId),
+        supabase.from('expenses').select('*').eq('user_id', userId).eq('business_id', bizId),
         supabase.from('payments').select('*').eq('user_id', userId),
       ])
       setProjects(pr.data ?? [])
       setReceipts(rc.data ?? [])
       setExpenses(ex.data ?? [])
       setPayments(py.data ?? [])
+      setSelected(null)   // إعادة تعيين عند تغيير المصلحة
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [userId]) // eslint-disable-line
+  useEffect(() => { load() }, [userId, bizId]) // eslint-disable-line
 
   // ── ملخص مالي لكل مشروع ────────────────────────────────────────────────
   const summaries = useMemo(() => {
