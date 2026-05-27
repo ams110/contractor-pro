@@ -209,7 +209,7 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
 }
 
 // ─── Project Detail ───────────────────────────────────────────────────────────
-function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, onArchive, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
+function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, onArchive, onDeleteAll, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
   businesses = [], linkedBizIds = [], onUpdateBizLinks }) {
   const [tab, setTab] = useState('overview')
   const [showEdit, setShowEdit] = useState(false)
@@ -250,6 +250,12 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   async function handleDeleteDone(id) {
     setDeleting(true)
     try { await onDelete(id); onClose() }
+    catch { setDeleting(false) }
+  }
+
+  async function handleDeleteAllDone(id) {
+    setDeleting(true)
+    try { await onDeleteAll(id); onClose() }
     catch { setDeleting(false) }
   }
 
@@ -353,6 +359,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
           userId={userId}
           onArchive={handleArchiveDone}
           onDelete={handleDeleteDone}
+          onDeleteAll={handleDeleteAllDone}
           onClose={() => setShowDeleteModal(false)}
           language={language}
         />
@@ -843,7 +850,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 export default function ProjectsScreen({
   projects = [], workDays = [], expenses = [], clientReceipts = [],
   employees = [], payments = [], advances = [],
-  addProject, updateProject, deleteProject, archiveProject,
+  addProject, updateProject, deleteProject, archiveProject, deleteProjectWithAll,
   addReceipt, updateReceipt, deleteReceipt,
   addWorkDay, bulkAddWorkDays, updateWorkDay, deleteWorkDay,
   approveWorkDay, rejectWorkDay,
@@ -885,7 +892,7 @@ export default function ProjectsScreen({
         workDays={workDays} expenses={expenses} clientReceipts={clientReceipts}
         employees={employees} payments={payments}
         onClose={() => setSelected(null)}
-        onUpdate={updateProject} onDelete={deleteProject} onArchive={archiveProject}
+        onUpdate={updateProject} onDelete={deleteProject} onArchive={archiveProject} onDeleteAll={deleteProjectWithAll}
         addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt}
         addExpense={addExpense} deleteExpense={deleteExpense}
         addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay}

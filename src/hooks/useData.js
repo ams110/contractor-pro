@@ -88,7 +88,19 @@ export function useProjects(userId) {
     await refetch()
   }
 
-  return { projects: data, loading, error, addProject, updateProject, deleteProject, archiveProject, restoreProject, refetch }
+  async function deleteProjectWithAll(id) {
+    // حذف كل البيانات المرتبطة أولاً ثم المشروع نفسه
+    await Promise.allSettled([
+      supabase.from('client_receipts').delete().eq('project_id', id).eq('user_id', userId),
+      supabase.from('expenses').delete().eq('project_id', id).eq('user_id', userId),
+      supabase.from('work_days').delete().eq('project_id', id).eq('user_id', userId),
+    ])
+    const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
+  return { projects: data, loading, error, addProject, updateProject, deleteProject, archiveProject, restoreProject, deleteProjectWithAll, refetch }
 }
 
 /* ─── Employees ─── */
