@@ -473,11 +473,14 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
   }, [entries, thisMonthKey])
 
   // ─── Filtered ─────────────────────────────────────────────────────────────
+  const orphanedCount = useMemo(() => entries.filter(e => !e.project_id).length, [entries])
+
   const filtered = useMemo(() => {
     let res = entries
     if (filterMonth) res = res.filter(e => e.date?.startsWith(filterMonth))
     if (filterCat)   res = res.filter(e => e.category === filterCat)
-    if (filterProj)  res = res.filter(e => e.project_id === filterProj)
+    if (filterProj === '__none__') res = res.filter(e => !e.project_id)
+    else if (filterProj)           res = res.filter(e => e.project_id === filterProj)
     return res
   }, [entries, filterMonth, filterCat, filterProj])
 
@@ -550,6 +553,29 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
         </div>
       )}
 
+      {/* تحذير مصاريف بدون مشروع */}
+      {orphanedCount > 0 && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+          style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 14, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertTriangle size={14} color='#818CF8' style={{ flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#818CF8' }}>
+                {orphanedCount} مصروف بدون مشروع مرتبط
+              </div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
+                هذه المصاريف لن تظهر في إحصائيات أي مشروع
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setFilterProj(filterProj === '__none__' ? '' : '__none__')}
+            style={{ padding: '5px 10px', borderRadius: 10, background: filterProj === '__none__' ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+            {filterProj === '__none__' ? '✕ إلغاء' : 'عرضها'}
+          </button>
+        </motion.div>
+      )}
+
       {/* ─── Filters ────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -573,6 +599,7 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
             <select value={filterProj} onChange={e => setFilterProj(e.target.value)}
               style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterProj ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', maxWidth: 140 }}>
               <option value="">كل المشاريع</option>
+              {orphanedCount > 0 && <option value="__none__">⚠ بدون مشروع ({orphanedCount})</option>}
               {allProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
