@@ -389,21 +389,24 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
 
-  const [entries,     setEntries]     = useState([])
-  const [allProjects, setAllProjects] = useState([])   // مشاريع المستخدم — مجلوبة مباشرة
-  const [loading,     setLoading]     = useState(true)
-  const [addOpen,     setAddOpen]     = useState(false)
-  const [filterMonth, setFilterMonth] = useState('')
-  const [filterCat,   setFilterCat]   = useState('')
-  const [filterProj,  setFilterProj]  = useState('')
+  const [entries,      setEntries]      = useState([])
+  const [allProjects,  setAllProjects]  = useState([])
+  const [loading,      setLoading]      = useState(true)
+  const [addOpen,      setAddOpen]      = useState(false)
+  const [filterMonth,  setFilterMonth]  = useState('')
+  const [filterCat,    setFilterCat]    = useState('')
+  const [filterProj,   setFilterProj]   = useState('')
+  const [showArchived, setShowArchived] = useState(false)
 
   const bizId   = activeBusiness?.id
   const bizType = activeBusiness?.business_type ?? 'osek_patur'
   const showVat = bizType === 'osek_moreh' || bizType === 'hevra'
 
-  // قائمة المشاريع المعروضة في النموذج:
-  // إذا في مشاريع مربوطة بالمصلحة → استخدمها، وإلا اعرض كل المشاريع
-  const formProjects = linkedProjects.length > 0 ? linkedProjects : allProjects
+  // قائمة المشاريع النشطة فقط في النموذج
+  const activeProjects = useMemo(() => allProjects.filter(p => !p.archived_at), [allProjects])
+  const formProjects   = linkedProjects.length > 0
+    ? linkedProjects.filter(p => !p.archived_at)
+    : activeProjects
 
   const projectMap = useMemo(() => {
     const m = {}
@@ -426,7 +429,7 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
           .order('created_at', { ascending: false }),
         supabase
           .from('projects')
-          .select('id, name, status')
+          .select('id, name, status, archived_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false }),
       ])
@@ -473,16 +476,26 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
   }, [entries, thisMonthKey])
 
   // ─── Filtered ─────────────────────────────────────────────────────────────
+  const archivedProjectIds = useMemo(
+    () => new Set(allProjects.filter(p => !!p.archived_at).map(p => p.id)),
+    [allProjects]
+  )
+  const archivedLinkedCount = useMemo(
+    () => entries.filter(e => e.project_id && archivedProjectIds.has(e.project_id)).length,
+    [entries, archivedProjectIds]
+  )
+
   const orphanedCount = useMemo(() => entries.filter(e => !e.project_id).length, [entries])
 
   const filtered = useMemo(() => {
     let res = entries
+    if (!showArchived) res = res.filter(e => !e.project_id || !archivedProjectIds.has(e.project_id))
     if (filterMonth) res = res.filter(e => e.date?.startsWith(filterMonth))
     if (filterCat)   res = res.filter(e => e.category === filterCat)
     if (filterProj === '__none__') res = res.filter(e => !e.project_id)
     else if (filterProj)           res = res.filter(e => e.project_id === filterProj)
     return res
-  }, [entries, filterMonth, filterCat, filterProj])
+  }, [entries, filterMonth, filterCat, filterProj, showArchived, archivedProjectIds])
 
   const months = useMemo(() => {
     const seen = new Set()
@@ -574,6 +587,30 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
             {filterProj === '__none__' ? '✕ إلغاء' : 'عرضها'}
           </button>
         </motion.div>
+      )}
+
+      {/* تنبيه بيانات المشاريع المؤرشفة المخفية */}
+      {archivedLinkedCount > 0 && !showArchived && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 12, marginBottom: 10, background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}` }}>
+          <span style={{ fontSize: 11, color: C.textDim }}>
+            🗂 {archivedLinkedCount} مصروف من مشاريع مؤرشفة مخفي
+          </span>
+          <button onClick={() => setShowArchived(true)}
+            style={{ fontSize: 11, fontWeight: 700, color: C.primary, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+            إظهارها
+          </button>
+        </div>
+      )}
+      {showArchived && archivedLinkedCount > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 12, marginBottom: 10, background: `${C.primary}10`, border: `1px solid ${C.primary}30` }}>
+          <span style={{ fontSize: 11, color: C.primary, fontWeight: 700 }}>
+            🗂 تظهر بيانات المشاريع المؤرشفة
+          </span>
+          <button onClick={() => setShowArchived(false)}
+            style={{ fontSize: 11, fontWeight: 700, color: C.textDim, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+            إخفاءها
+          </button>
+        </div>
       )}
 
       {/* ─── Filters ────────────────────────────────────────────────────────── */}

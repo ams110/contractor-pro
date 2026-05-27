@@ -6,7 +6,7 @@ import {
   ChevronRight, X, Calendar, CreditCard, ReceiptText, Package,
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
-  ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users, Archive,
+  ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users, Archive, RotateCcw,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { uploadReceipt } from '../../lib/storage.js'
@@ -209,7 +209,7 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
 }
 
 // ─── Project Detail ───────────────────────────────────────────────────────────
-function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, onArchive, onDeleteAll, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
+function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, onArchive, onDeleteAll, onRestore, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
   businesses = [], linkedBizIds = [], onUpdateBizLinks }) {
   const [tab, setTab] = useState('overview')
   const [showEdit, setShowEdit] = useState(false)
@@ -314,6 +314,29 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 
   return (
     <div dir={dir} style={{ minHeight: '100vh', paddingBottom: 80 }}>
+
+      {/* بانر المشروع المؤرشف */}
+      {project.archived_at && (
+        <div style={{ background: `${C.primary}12`, borderBottom: `1px solid ${C.primary}30`, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <Archive size={13} color={C.primary} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.primary }}>
+              {language === 'he' ? 'פרויקט בארכיון' : language === 'en' ? 'Archived Project' : 'مشروع مؤرشف'}
+            </span>
+            <span style={{ fontSize: 10, color: C.textDim }}>
+              · {new Date(project.archived_at).toLocaleDateString('ar-SA')}
+            </span>
+          </div>
+          {onRestore && (
+            <motion.button whileTap={{ scale: 0.95 }} onClick={() => onRestore(project.id)}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 10, background: GRAD.primary, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <RotateCcw size={11} strokeWidth={2.5} />
+              {language === 'he' ? 'שחזר' : language === 'en' ? 'Restore' : 'استعادة'}
+            </motion.button>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${C.border}`, background: C.surface, position: 'sticky', top: 0, zIndex: 10 }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 11, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
@@ -850,7 +873,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 export default function ProjectsScreen({
   projects = [], workDays = [], expenses = [], clientReceipts = [],
   employees = [], payments = [], advances = [],
-  addProject, updateProject, deleteProject, archiveProject, deleteProjectWithAll,
+  addProject, updateProject, deleteProject, archiveProject, restoreProject, deleteProjectWithAll,
   addReceipt, updateReceipt, deleteReceipt,
   addWorkDay, bulkAddWorkDays, updateWorkDay, deleteWorkDay,
   approveWorkDay, rejectWorkDay,
@@ -892,7 +915,7 @@ export default function ProjectsScreen({
         workDays={workDays} expenses={expenses} clientReceipts={clientReceipts}
         employees={employees} payments={payments}
         onClose={() => setSelected(null)}
-        onUpdate={updateProject} onDelete={deleteProject} onArchive={archiveProject} onDeleteAll={deleteProjectWithAll}
+        onUpdate={updateProject} onDelete={deleteProject} onArchive={archiveProject} onDeleteAll={deleteProjectWithAll} onRestore={restoreProject}
         addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt}
         addExpense={addExpense} deleteExpense={deleteExpense}
         addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay}
@@ -989,10 +1012,18 @@ export default function ProjectsScreen({
                 transition={{ delay: i * 0.04 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setSelected(project)}
-                style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: '14px 14px', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+                style={{ background: C.surface, border: `1px solid ${project.archived_at ? C.primary + '30' : C.border}`, borderRadius: 18, padding: '14px 14px', cursor: 'pointer', position: 'relative', overflow: 'hidden', opacity: project.archived_at ? 0.75 : 1 }}>
+
+                {/* archived badge */}
+                {project.archived_at && (
+                  <div style={{ position: 'absolute', top: 8, insetInlineEnd: 8, display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 6, background: `${C.primary}18`, border: `1px solid ${C.primary}30` }}>
+                    <Archive size={9} color={C.primary} strokeWidth={2} />
+                    <span style={{ fontSize: 9, fontWeight: 700, color: C.primary }}>مؤرشف</span>
+                  </div>
+                )}
 
                 {/* Status indicator */}
-                <div style={{ position: 'absolute', top: 0, insetInlineStart: 0, width: 3, height: '100%', background: statusColor(project.status), borderRadius: '0 3px 3px 0' }} />
+                <div style={{ position: 'absolute', top: 0, insetInlineStart: 0, width: 3, height: '100%', background: project.archived_at ? C.primary : statusColor(project.status), borderRadius: '0 3px 3px 0' }} />
 
                 <div style={{ paddingInlineStart: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
