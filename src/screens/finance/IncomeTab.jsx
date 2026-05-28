@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, X, TrendingUp, AlertTriangle,
+  Plus, TrendingUp, AlertTriangle,
   Banknote, Smartphone, CreditCard, Building,
   Trash2, Image, Calendar, FolderOpen,
 } from 'lucide-react'
 import { C, GRAD, OSEK_PATUR_THRESHOLD } from '../../constants/index.js'
-import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
+import { fmt, fmtDate } from '../../lib/helpers.js'
 import { supabase } from '../../lib/supabase.js'
-import { uploadReceipt } from '../../lib/storage.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { AddReceiptSheet } from '../../components/sheets/index.js'
 
 const METHODS = [
   { id: 'cash',     label: 'كاش',            Icon: Banknote   },
@@ -19,15 +19,6 @@ const METHODS = [
   { id: 'app',      label: 'בנקאות סלולרית', Icon: Smartphone },
 ]
 function methodLabel(m) { return METHODS.find(x => x.id === m)?.label ?? m }
-
-const inp = (focus, key) => ({
-  width: '100%', padding: '11px 13px',
-  background: 'rgba(255,255,255,0.05)',
-  border: `1px solid ${focus === key ? C.primary : C.border}`,
-  borderRadius: 12, color: C.text, fontSize: 13,
-  fontFamily: 'inherit', outline: 'none',
-  boxSizing: 'border-box', transition: 'border-color .2s',
-})
 
 function StatCard({ label, value, color, sub, icon: Icon }) {
   return (
@@ -92,172 +83,16 @@ function EntryRow({ entry, projectName, onDelete }) {
   )
 }
 
-// ─── Add Sheet ────────────────────────────────────────────────────────────────
-function AddIncomeSheet({ open, onClose, onSave, allProjects, userId }) {
-  const [form, setForm] = useState({ amount: '', date: todayStr(), payment_method: 'cash', payer_name: '', project_id: '', notes: '', ref_number: '' })
-  const [proofFile, setProofFile] = useState(null)
-  const [proofPreview, setProofPreview] = useState(null)
-  const [saving, setSaving] = useState(false)
-  const [focus, setFocus] = useState('')
-  const fileRef = useRef()
-
-  function reset() {
-    setForm({ amount: '', date: todayStr(), payment_method: 'cash', payer_name: '', project_id: '', notes: '', ref_number: '' })
-    setProofFile(null); setProofPreview(null); setSaving(false)
-  }
-  function handleClose() { reset(); onClose() }
-  function pickFile(e) {
-    const f = e.target.files?.[0]; if (!f) return
-    setProofFile(f); setProofPreview(URL.createObjectURL(f))
-  }
-  function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
-
-  async function handleSave() {
-    if (!form.amount || Number(form.amount) <= 0) return
-    setSaving(true)
-    try {
-      let receipt_url = null
-      if (proofFile && userId) receipt_url = await uploadReceipt(userId, proofFile)
-      await onSave({
-        user_id: userId,
-        project_id: form.project_id || null,
-        amount: Number(form.amount),
-        date: form.date,
-        payment_method: form.payment_method,
-        payer_name: form.payer_name.trim() || null,
-        notes: form.notes.trim() || null,
-        ref_number: form.ref_number.trim() || null,
-        receipt_url,
-      })
-      handleClose()
-    } catch (e) { console.error(e); setSaving(false) }
-  }
-
-  const canSave = form.amount && Number(form.amount) > 0 && !saving
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          onClick={handleClose}
-          style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
-          <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-            onClick={e => e.stopPropagation()}
-            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: C.card, borderRadius: '20px 20px 0 0', border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', maxHeight: '92dvh' }}>
-
-            <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تسجيل قبضة</div>
-              <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex' }}><X size={18} /></button>
-            </div>
-
-            <div style={{ overflowY: 'auto', flex: 1, padding: '16px 18px' }}>
-              {/* المبلغ */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>المبلغ (₪) <span style={{ color: C.accent }}>*</span></div>
-                <input type="number" inputMode="decimal" value={form.amount} onChange={e => set('amount', e.target.value)}
-                  placeholder="0.00" onFocus={() => setFocus('amount')} onBlur={() => setFocus('')}
-                  style={{ ...inp(focus, 'amount'), direction: 'ltr', textAlign: 'right' }} />
-              </div>
-
-              {/* المشروع — اختياري */}
-              {allProjects.length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>المشروع (اختياري)</div>
-                  <select value={form.project_id} onChange={e => set('project_id', e.target.value)}
-                    style={{ ...inp(focus, 'proj'), cursor: 'pointer' }}>
-                    <option value="">— بدون مشروع —</option>
-                    {allProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
-              )}
-
-              {/* التاريخ */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>التاريخ</div>
-                <input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={{ ...inp(focus, 'date'), direction: 'ltr' }} />
-              </div>
-
-              {/* طريقة الدفع */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>طريقة الدفع</div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {METHODS.map(m => {
-                    const active = form.payment_method === m.id
-                    return (
-                      <button key={m.id} onClick={() => set('payment_method', m.id)}
-                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', background: active ? `${C.success}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${active ? C.success : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-                        <m.Icon size={14} color={active ? C.success : C.textDim} />
-                        <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? C.success : C.textDim }}>{m.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* اسم الدافع */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم الدافع (اختياري)</div>
-                <input value={form.payer_name} onChange={e => set('payer_name', e.target.value)}
-                  placeholder="اسم العميل / الجهة الدافعة"
-                  onFocus={() => setFocus('payer')} onBlur={() => setFocus('')} style={inp(focus, 'payer')} />
-              </div>
-
-              {/* رقم مرجعي */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>رقم مرجعي / شيك (اختياري)</div>
-                <input value={form.ref_number} onChange={e => set('ref_number', e.target.value)}
-                  placeholder="رقم الشيك أو المرجع"
-                  onFocus={() => setFocus('ref')} onBlur={() => setFocus('')} style={{ ...inp(focus, 'ref'), direction: 'ltr' }} />
-              </div>
-
-              {/* ملاحظة */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ملاحظة (اختياري)</div>
-                <input value={form.notes} onChange={e => set('notes', e.target.value)}
-                  placeholder="أي تفاصيل إضافية..."
-                  onFocus={() => setFocus('notes')} onBlur={() => setFocus('')} style={inp(focus, 'notes')} />
-              </div>
-
-              {/* صورة الإيصال */}
-              <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>صورة الإيصال (اختياري)</div>
-                <input ref={fileRef} type="file" accept="image/*" onChange={pickFile} style={{ display: 'none' }} />
-                {proofPreview ? (
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <img src={proofPreview} alt="receipt" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, border: `1px solid ${C.border}` }} />
-                    <button onClick={() => { setProofFile(null); setProofPreview(null) }}
-                      style={{ position: 'absolute', top: -6, insetInlineEnd: -6, background: C.accent, border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <X size={10} color="#fff" />
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={() => fileRef.current?.click()}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: `1.5px dashed ${C.border}`, borderRadius: 12, color: C.textDim, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    <Image size={14} /> رفع صورة إيصال
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div style={{ padding: '12px 18px 16px', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
-              <button onClick={handleSave} disabled={!canSave}
-                style={{ width: '100%', padding: '13px', background: canSave ? GRAD.success : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 14, color: canSave ? '#fff' : C.textDim, fontSize: 14, fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
-                {saving ? 'جاري الحفظ...' : '+ تسجيل القبضة'}
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
-}
-
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 // linkedProjects: المشاريع المربوطة بالمصلحة النشطة (من FinanceScreen)
-export default function IncomeTab({ userId, linkedProjects = [] }) {
-  // ─── اقرأ businesses و activeBusinessId مباشرةً من الـ store ───────────
-  // (بدل الاعتماد على activeBusiness المحسوبة لتجنب مشاكل Zustand persist)
+// onGoToProjects: callback لفتح صفحة المشاريع (يُمرَّر من FinanceScreen أو App)
+// autoOpen:       لما يكون true تُفتح الـ sheet تلقائياً (من pendingAction)
+// defaultProjectId: لقفل اختيار المشروع على مشروع محدد (لما نجي من ProjectDetail)
+// onSheetClose:   إشعار للأب أن الـ sheet أُغلقت (لإفراغ حالة pendingAction)
+export default function IncomeTab({
+  userId, linkedProjects = [], onGoToProjects,
+  autoOpen = false, defaultProjectId = null, onSheetClose,
+}) {
   const businesses    = useBusinessStore(s => s.businesses)
   const activeBizId   = useBusinessStore(s => s.activeBusinessId)
   const activeBusiness = useMemo(
@@ -267,7 +102,7 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
   const { showToast } = useAppStore()
 
   const [entries,     setEntries]     = useState([])
-  const [loading,     setLoading]     = useState(false)   // false — لا نبدأ بـ "تحميل"
+  const [loading,     setLoading]     = useState(false)
   const [addOpen,     setAddOpen]     = useState(false)
   const [filterMonth, setFilterMonth] = useState('')
   const [filterProj,  setFilterProj]  = useState('')
@@ -280,7 +115,6 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
 
   const bizId = activeBusiness?.id
 
-  // ─── جلب client_receipts الخاصة بالمصلحة النشطة ──────────────────────────
   async function load() {
     if (!userId || !bizId) { setLoading(false); return }
     setLoading(true)
@@ -303,7 +137,16 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
 
   useEffect(() => { load() }, [userId, bizId]) // eslint-disable-line
 
-  // ─── Stats ────────────────────────────────────────────────────────────────
+  // فتح تلقائي للـ sheet لما يجي pendingAction من شاشة أخرى
+  useEffect(() => {
+    if (autoOpen) setAddOpen(true)
+  }, [autoOpen])
+
+  function handleSheetClose() {
+    setAddOpen(false)
+    onSheetClose?.()
+  }
+
   const now = new Date()
   const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const thisYear = now.getFullYear()
@@ -320,7 +163,6 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
   const paturPct    = isOsekPatur ? (totalYear / OSEK_PATUR_THRESHOLD) * 100 : 0
   const showPaturWarning = isOsekPatur && paturPct >= 70
 
-  // ─── Filtered ─────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let res = entries
     if (filterMonth) res = res.filter(e => e.date?.startsWith(filterMonth))
@@ -334,12 +176,12 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
     return Array.from(seen).sort().reverse()
   }, [entries])
 
-  // ─── Actions ──────────────────────────────────────────────────────────────
-  async function handleSave(fields) {
-    const { data, error } = await supabase
+  async function handleSave(payload) {
+    const { error, data } = await supabase
       .from('client_receipts')
-      .insert({ ...fields, business_id: bizId })
-      .select().single()
+      .insert(payload)
+      .select()
+      .single()
     if (error) throw error
     setEntries(prev => [data, ...prev])
     showToast('✅ تم تسجيل القبضة')
@@ -443,7 +285,16 @@ export default function IncomeTab({ userId, linkedProjects = [] }) {
         </motion.button>
       </div>
 
-      <AddIncomeSheet open={addOpen} onClose={() => setAddOpen(false)} onSave={handleSave} allProjects={linkedProjects} userId={userId} />
+      <AddReceiptSheet
+        open={addOpen}
+        onClose={handleSheetClose}
+        onSave={handleSave}
+        userId={userId}
+        businessId={bizId}
+        projects={linkedProjects}
+        defaultProjectId={defaultProjectId}
+        onGoToProjects={onGoToProjects}
+      />
     </div>
   )
 }

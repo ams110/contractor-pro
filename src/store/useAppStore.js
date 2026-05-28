@@ -7,6 +7,13 @@ export const useAppStore = create((set, get) => ({
   prevScreen: null,
   setScreen:  (screen) => set(s => ({ screen, prevScreen: s.screen })),
 
+  // ─── Pending Action ───────────────────────────────────────────────────────
+  // طريقة لتمرير "نية" بين الشاشات: مثلاً من ProjectsScreen → FinanceScreen
+  // لفتح subTab محدد مع مشروع كفلتر مسبق + (اختياري) فتح فورم الإدخال.
+  pendingAction: null,   // { type, payload } | null
+  setPendingAction: (action) => set({ pendingAction: action }),
+  clearPendingAction: () => set({ pendingAction: null }),
+
   // ─── Overlays ─────────────────────────────────────────────────────────────
   showSearch:    false,
   showNotifs:    false,

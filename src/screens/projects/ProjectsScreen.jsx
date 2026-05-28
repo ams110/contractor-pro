@@ -202,9 +202,36 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
   )
 }
 
+// ─── Quick-action button (project detail header) ──────────────────────────────
+function QuickActionBtn({ icon: Icon, color, label, onClick }) {
+  return (
+    <motion.button whileTap={{ scale: 0.95 }} onClick={onClick}
+      style={{
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        padding: '9px 12px', borderRadius: 12,
+        background: `${color}14`, border: `1px solid ${color}35`,
+        color, fontSize: 12, fontWeight: 800,
+        cursor: 'pointer', fontFamily: 'inherit',
+      }}>
+      <Icon size={14} strokeWidth={2.2} />
+      {label}
+    </motion.button>
+  )
+}
+
 // ─── Project Detail ───────────────────────────────────────────────────────────
 function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
   businesses = [] }) {
+  const setPendingAction = useAppStore(s => s.setPendingAction)
+  const setScreen        = useAppStore(s => s.setScreen)
+
+  function goToFinanceAdd(type) {
+    setPendingAction({
+      type,                                  // 'add_receipt' | 'add_expense'
+      payload: { projectId: project.id, businessId: project.business_id || null },
+    })
+    setScreen('finance')
+  }
   const [tab, setTab] = useState('overview')
   const [showEdit, setShowEdit] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
@@ -371,6 +398,14 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Quick actions — تسجيل قبضة / مصروف على هذا المشروع */}
+      {permissions?.editProjects !== false && (
+        <div style={{ display: 'flex', gap: 8, padding: '10px 16px', background: C.surface, borderBottom: `1px solid ${C.border}` }}>
+          <QuickActionBtn icon={TrendingUp}   color={C.success} label="تسجيل قبضة"  onClick={() => goToFinanceAdd('add_receipt')} />
+          <QuickActionBtn icon={TrendingDown} color={C.accent}  label="تسجيل مصروف" onClick={() => goToFinanceAdd('add_expense')} />
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, padding: '10px 12px', background: C.surface, borderBottom: `1px solid ${C.border}` }}>
