@@ -686,18 +686,10 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 
         {tab === 'receipts' && (
           <div>
-            {/* Header row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div>
-                <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>إجمالي المقبوضات</div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>₪{fmt(stats.revenue)}</div>
-              </div>
-              {permissions?.editProjects !== false && (
-                <motion.button whileTap={{ scale: 0.93 }} onClick={() => setShowReceiptForm(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', borderRadius: 14, background: `${C.success}18`, border: `1px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <Plus size={14} strokeWidth={2.5} /> قبض جديد
-                </motion.button>
-              )}
+            {/* Header row — تسجيل قبضة جديدة من زر "تسجيل قبضة" بأعلى الشاشة (يوديك للمحاسبة) */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>إجمالي المقبوضات</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>₪{fmt(stats.revenue)}</div>
             </div>
 
             {/* Receipt form modal */}
