@@ -250,7 +250,8 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
 }
 
 export default function App() {
-  // Worker portal
+  // Worker portal — separate entry point that needs none of the main app hooks.
+  // Keeping it here (before any hook) is fine because App() itself calls no hooks.
   const params = new URLSearchParams(window.location.search)
   if (params.has('portal') || params.has('worker')) {
     return (
@@ -261,6 +262,10 @@ export default function App() {
     )
   }
 
+  return <MainApp />
+}
+
+function MainApp() {
   const { user, loading: authLoading } = useAuth()
   const isDesktop = useIsDesktop()
 
