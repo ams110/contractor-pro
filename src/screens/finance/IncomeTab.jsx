@@ -92,6 +92,7 @@ function EntryRow({ entry, projectName, onDelete }) {
 export default function IncomeTab({
   userId, linkedProjects = [], onGoToProjects,
   autoOpen = false, defaultProjectId = null, onSheetClose,
+  onMutate,
 }) {
   const businesses    = useBusinessStore(s => s.businesses)
   const activeBizId   = useBusinessStore(s => s.activeBusinessId)
@@ -184,12 +185,14 @@ export default function IncomeTab({
       .single()
     if (error) throw error
     setEntries(prev => [data, ...prev])
+    onMutate?.()
     showToast('✅ تم تسجيل القبضة')
   }
 
   async function handleDelete(id) {
     await supabase.from('client_receipts').delete().eq('id', id)
     setEntries(prev => prev.filter(e => e.id !== id))
+    onMutate?.()
     showToast('تم الحذف')
   }
 
