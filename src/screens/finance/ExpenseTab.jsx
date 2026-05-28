@@ -182,6 +182,7 @@ function EntryRow({ entry, showVat, projectName, onDelete }) {
 export default function ExpenseTab({
   userId, linkedProjects = [], onGoToProjects,
   autoOpen = false, defaultProjectId = null, onSheetClose,
+  onMutate,
 }) {
   // ─── اقرأ businesses و activeBusinessId مباشرةً من الـ store ───────────
   const businesses    = useBusinessStore(s => s.businesses)
@@ -300,12 +301,14 @@ export default function ExpenseTab({
       .select().single()
     if (error) throw error
     setEntries(prev => [data, ...prev])
+    onMutate?.()
     showToast('✅ تم تسجيل المصروف')
   }
 
   async function handleDelete(id) {
     await supabase.from('expenses').delete().eq('id', id)
     setEntries(prev => prev.filter(e => e.id !== id))
+    onMutate?.()
     showToast('تم الحذف')
   }
 

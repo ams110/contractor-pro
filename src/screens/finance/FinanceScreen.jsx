@@ -51,7 +51,7 @@ function SubTab({ active, label, icon: Icon, onClick }) {
 // ─── AccountingModuleTab ───────────────────────────────────────────────────────
 // يحتوي على BusinessSwitcher + الـ 5 تابات للمحاسبة
 // يُفلتر المشاريع مباشرةً بـ project.business_id === activeBusiness.id
-function AccountingModuleTab({ projects, employees, userId }) {
+function AccountingModuleTab({ projects, employees, userId, refetchReceipts, refetchExpenses }) {
   const { businesses, initialized, load } = useBusinessStore()
   const activeBizId    = useBusinessStore(s => s.activeBusinessId)
   const activeBusiness = useMemo(
@@ -140,9 +140,11 @@ function AccountingModuleTab({ projects, employees, userId }) {
       {/* Sub-tab content */}
       {subTab === 'project'    && <ProjectFinanceTab userId={userId} />}
       {subTab === 'income'     && <IncomeTab     linkedProjects={filteredProjects} userId={userId} onGoToProjects={() => useAppStore.getState().setScreen('projects')}
-                                                  autoOpen={autoOpenSheet} defaultProjectId={pendingProjectId} onSheetClose={clearAutoOpen} />}
+                                                  autoOpen={autoOpenSheet} defaultProjectId={pendingProjectId} onSheetClose={clearAutoOpen}
+                                                  onMutate={refetchReceipts} />}
       {subTab === 'bizexp'     && <ExpenseTab    linkedProjects={filteredProjects} userId={userId} onGoToProjects={() => useAppStore.getState().setScreen('projects')}
-                                                  autoOpen={autoOpenSheet} defaultProjectId={pendingProjectId} onSheetClose={clearAutoOpen} />}
+                                                  autoOpen={autoOpenSheet} defaultProjectId={pendingProjectId} onSheetClose={clearAutoOpen}
+                                                  onMutate={refetchExpenses} />}
       {subTab === 'archive'    && <InvoiceArchiveTab projects={filteredProjects} userId={userId} />}
       {subTab === 'payroll'    && <PayrollTab    employees={employees} userId={userId} />}
       {subTab === 'taxsummary' && <TaxSummaryTab />}
@@ -1055,6 +1057,7 @@ export default function FinanceScreen({
   taxAdvances = [], addTaxAdvance, deleteTaxAdvance,
   pensionMonthly, setPensionMonthly, businessType, setBusinessType,
   userId, permissions, payMethods = [], appCfg,
+  refetchReceipts, refetchExpenses,
 }) {
   const { t } = useTranslation()
   const { language, isReadOnly } = useAppStore()
@@ -1132,7 +1135,7 @@ export default function FinanceScreen({
       </div>
 
       {tab === 'accounting' && (
-        <AccountingModuleTab projects={projects} employees={employees} userId={userId} />
+        <AccountingModuleTab projects={projects} employees={employees} userId={userId} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} />
       )}
       {tab === 'expenses' && (
         <ExpensesTab expenses={expenses} projects={projects} employees={employees}
