@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, X, TrendingDown, AlertTriangle, Trash2,
-  Image, Calendar, FolderOpen, Receipt,
+  Plus, TrendingDown, Trash2,
+  Calendar, FolderOpen, Receipt,
   Banknote, Smartphone, CreditCard, Building,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts'
-import { C, GRAD, EXP_CATS, EXP_CAT_VAT, VAT } from '../../constants/index.js'
-import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
+import { C, GRAD, EXP_CATS, EXP_CAT_VAT } from '../../constants/index.js'
+import { fmt, fmtDate } from '../../lib/helpers.js'
 import { supabase } from '../../lib/supabase.js'
-import { uploadReceipt } from '../../lib/storage.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { AddExpenseSheet } from '../../components/sheets/index.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const METHODS = [
@@ -172,220 +172,10 @@ function EntryRow({ entry, showVat, projectName, onDelete }) {
   )
 }
 
-// ─── Add Sheet ────────────────────────────────────────────────────────────────
-function AddExpenseSheet({ open, onClose, onSave, businessType, allProjects, userId }) {
-  const [form, setForm] = useState({
-    amount: '', date: todayStr(),
-    category: EXP_CATS[0] ?? 'مواد بناء', vendor: '', payment_method: 'cash',
-    project_id: '', note: '',
-  })
-  const [proofFile,    setProofFile]    = useState(null)
-  const [proofPreview, setProofPreview] = useState(null)
-  const [saving,  setSaving]  = useState(false)
-  const [focus,   setFocus]   = useState('')
-  const fileRef = useRef()
-
-  function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
-
-  function reset() {
-    setForm({ amount: '', date: todayStr(), category: EXP_CATS[0] ?? 'مواد بناء', vendor: '', payment_method: 'cash', project_id: '', note: '' })
-    setProofFile(null); setProofPreview(null); setSaving(false)
-  }
-
-  function handleClose() { reset(); onClose() }
-
-  function pickFile(e) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    setProofFile(f)
-    setProofPreview(URL.createObjectURL(f))
-  }
-
-  async function handleSave() {
-    if (!form.amount || isNaN(Number(form.amount)) || Number(form.amount) <= 0) return
-    setSaving(true)
-    try {
-      let receipt_url = null
-      if (proofFile && userId) receipt_url = await uploadReceipt(userId, proofFile)
-      await onSave({
-        user_id:        userId,
-        amount:         Number(form.amount),
-        date:           form.date,
-        category:       form.category,
-        vendor:         form.vendor.trim() || null,
-        payment_method: form.payment_method,
-        project_id:     form.project_id || null,
-        note:           form.note.trim() || null,
-        receipt_url,
-        status:         'approved',
-      })
-      handleClose()
-    } catch (e) {
-      console.error(e)
-      setSaving(false)
-    }
-  }
-
-  const canSave = form.amount && Number(form.amount) > 0 && !saving
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          onClick={handleClose}
-          style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
-          <motion.div
-            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-            onClick={e => e.stopPropagation()}
-            style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              maxWidth: 480, margin: '0 auto',
-              background: C.card, borderRadius: '20px 20px 0 0',
-              border: `1px solid ${C.border}`,
-              display: 'flex', flexDirection: 'column', maxHeight: '92dvh',
-            }}>
-
-            {/* Handle */}
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, flexShrink: 0 }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
-            </div>
-
-            {/* Header */}
-            <div style={{ padding: '10px 18px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تسجيل مصروف جديد</div>
-              <button onClick={handleClose} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
-
-              {/* المبلغ */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
-                  المبلغ (₪) <span style={{ color: C.accent }}>*</span>
-                </div>
-                <input
-                  type="number" inputMode="decimal" placeholder="0.00"
-                  value={form.amount} onChange={e => set('amount', e.target.value)}
-                  onFocus={() => setFocus('amount')} onBlur={() => setFocus('')}
-                  style={{ ...inp(focus, 'amount'), fontSize: 20, fontWeight: 900, direction: 'ltr', textAlign: 'left', color: C.accent }}
-                />
-              </div>
-
-              {/* المشروع — اختياري */}
-              {allProjects.length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
-                    المشروع (اختياري)
-                  </div>
-                  <select value={form.project_id} onChange={e => set('project_id', e.target.value)}
-                    style={{ ...inp(focus, 'proj'), cursor: 'pointer' }}>
-                    <option value="">— بدون مشروع —</option>
-                    {allProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
-              )}
-
-              {/* الفئة */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>الفئة</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {EXP_CATS.map(cat => {
-                    const active = form.category === cat
-                    const color = catColor(cat)
-                    return (
-                      <button key={cat} onClick={() => set('category', cat)}
-                        style={{ padding: '6px 10px', background: active ? `${color}20` : 'rgba(255,255,255,0.04)', border: `1.5px solid ${active ? color : C.border}`, borderRadius: 10, color: active ? color : C.textDim, fontSize: 10, fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-                        {cat}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* التاريخ */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>التاريخ</div>
-                <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
-                  style={{ ...inp(focus, 'date'), direction: 'ltr' }} />
-              </div>
-
-              {/* طريقة الدفع */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>طريقة الدفع</div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {METHODS.map(m => {
-                    const active = form.payment_method === m.id
-                    return (
-                      <button key={m.id} onClick={() => set('payment_method', m.id)}
-                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', background: active ? `${C.accent}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${active ? C.accent : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-                        <m.Icon size={14} color={active ? C.accent : C.textDim} />
-                        <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? C.accent : C.textDim }}>{m.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* اسم المورّد */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم المورّد / الجهة (اختياري)</div>
-                <input value={form.vendor} onChange={e => set('vendor', e.target.value)}
-                  placeholder="مثال: חומרי בניין X"
-                  onFocus={() => setFocus('vendor')} onBlur={() => setFocus('')}
-                  style={inp(focus, 'vendor')} />
-              </div>
-
-              {/* ملاحظة */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ملاحظة (اختياري)</div>
-                <input value={form.note} onChange={e => set('note', e.target.value)}
-                  placeholder="أي تفاصيل إضافية..."
-                  onFocus={() => setFocus('note')} onBlur={() => setFocus('')}
-                  style={inp(focus, 'note')} />
-              </div>
-
-              {/* صورة الإيصال */}
-              <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>صورة الإيصال / الفاتورة (اختياري)</div>
-                <input ref={fileRef} type="file" accept="image/*" onChange={pickFile} style={{ display: 'none' }} />
-                {proofPreview ? (
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <img src={proofPreview} alt="receipt" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, border: `1px solid ${C.border}` }} />
-                    <button onClick={() => { setProofFile(null); setProofPreview(null) }}
-                      style={{ position: 'absolute', top: -6, insetInlineEnd: -6, background: C.accent, border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <X size={10} color="#fff" />
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={() => fileRef.current?.click()}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: `1.5px dashed ${C.border}`, borderRadius: 12, color: C.textDim, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    <Image size={14} /> رفع صورة إيصال
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div style={{ padding: '12px 18px 16px', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
-              <button onClick={handleSave} disabled={!canSave}
-                style={{ width: '100%', padding: '13px', background: canSave ? GRAD.danger : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 14, color: canSave ? '#fff' : C.textDim, fontSize: 14, fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
-                {saving ? 'جاري الحفظ...' : '+ تسجيل المصروف'}
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
-}
 
 // ─── MAIN: ExpenseTab ─────────────────────────────────────────────────────────
 // linkedProjects: المشاريع المربوطة بالمصلحة النشطة (من FinanceScreen)
-export default function ExpenseTab({ userId, linkedProjects = [] }) {
+export default function ExpenseTab({ userId, linkedProjects = [], onGoToProjects }) {
   // ─── اقرأ businesses و activeBusinessId مباشرةً من الـ store ───────────
   const businesses    = useBusinessStore(s => s.businesses)
   const activeBizId   = useBusinessStore(s => s.activeBusinessId)
@@ -485,14 +275,11 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
   }, [entries])
 
   // ─── Actions ──────────────────────────────────────────────────────────────
-  async function handleSave(fields) {
-    // حساب مع"מ المضمّن في المصروف (المبلغ شامل مع"מ)
-    const vat_amount = showVat
-      ? Number(fields.amount) * VAT / (1 + VAT)
-      : 0
+  // الـ shared AddExpenseSheet بترسل payload جاهز مع business_id و vat_amount و is_general
+  async function handleSave(payload) {
     const { data, error } = await supabase
       .from('expenses')
-      .insert({ ...fields, business_id: bizId, vat_amount })
+      .insert(payload)
       .select().single()
     if (error) throw error
     setEntries(prev => [data, ...prev])
@@ -631,9 +418,11 @@ export default function ExpenseTab({ userId, linkedProjects = [] }) {
         open={addOpen}
         onClose={() => setAddOpen(false)}
         onSave={handleSave}
-        businessType={bizType}
-        allProjects={linkedProjects}
         userId={userId}
+        businessId={bizId}
+        businessType={bizType}
+        projects={linkedProjects}
+        onGoToProjects={onGoToProjects}
       />
     </div>
   )

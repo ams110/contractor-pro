@@ -112,8 +112,8 @@ function AccountingModuleTab({ projects, employees, userId }) {
 
       {/* Sub-tab content */}
       {subTab === 'project'    && <ProjectFinanceTab userId={userId} />}
-      {subTab === 'income'     && <IncomeTab     linkedProjects={filteredProjects} userId={userId} />}
-      {subTab === 'bizexp'     && <ExpenseTab    linkedProjects={filteredProjects} userId={userId} />}
+      {subTab === 'income'     && <IncomeTab     linkedProjects={filteredProjects} userId={userId} onGoToProjects={() => useAppStore.getState().setScreen('projects')} />}
+      {subTab === 'bizexp'     && <ExpenseTab    linkedProjects={filteredProjects} userId={userId} onGoToProjects={() => useAppStore.getState().setScreen('projects')} />}
       {subTab === 'archive'    && <InvoiceArchiveTab projects={filteredProjects} userId={userId} />}
       {subTab === 'payroll'    && <PayrollTab    employees={employees} userId={userId} />}
       {subTab === 'taxsummary' && <TaxSummaryTab />}
