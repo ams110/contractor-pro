@@ -306,7 +306,7 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
     try {
       let receipt_url = editingReceiptId ? undefined : ''
       if (receiptFile) receipt_url = await uploadReceipt(userId, receiptFile)
-      const payload = { ...receiptForm, amount: parseFloat(receiptForm.amount), project_id: project.id }
+      const payload = { ...receiptForm, amount: parseFloat(receiptForm.amount), project_id: project.id, business_id: project.business_id || null }
       if (receipt_url !== undefined) payload.receipt_url = receipt_url
       if (editingReceiptId) {
         await updateReceipt(editingReceiptId, payload)
