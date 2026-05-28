@@ -512,7 +512,7 @@ export default function App() {
   }
 
   return (
-    <div className="app-root" dir={dir} style={{ background: C.bg, position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingInlineEnd: isDesktop ? 240 : 0 }}>
+    <div className="app-root" dir={dir} style={{ background: C.bg, position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingRight: isDesktop ? 240 : 0 }}>
       <style>{globalCSS}</style>
       {isDesktop && <DesktopSidebar screen={screen} setScreen={setScreen} permissions={p} pendingCount={pendingCount} dir={dir} />}
 
