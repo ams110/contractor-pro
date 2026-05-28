@@ -86,7 +86,13 @@ function EntryRow({ entry, projectName, onDelete }) {
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 // linkedProjects: المشاريع المربوطة بالمصلحة النشطة (من FinanceScreen)
 // onGoToProjects: callback لفتح صفحة المشاريع (يُمرَّر من FinanceScreen أو App)
-export default function IncomeTab({ userId, linkedProjects = [], onGoToProjects }) {
+// autoOpen:       لما يكون true تُفتح الـ sheet تلقائياً (من pendingAction)
+// defaultProjectId: لقفل اختيار المشروع على مشروع محدد (لما نجي من ProjectDetail)
+// onSheetClose:   إشعار للأب أن الـ sheet أُغلقت (لإفراغ حالة pendingAction)
+export default function IncomeTab({
+  userId, linkedProjects = [], onGoToProjects,
+  autoOpen = false, defaultProjectId = null, onSheetClose,
+}) {
   const businesses    = useBusinessStore(s => s.businesses)
   const activeBizId   = useBusinessStore(s => s.activeBusinessId)
   const activeBusiness = useMemo(
@@ -130,6 +136,16 @@ export default function IncomeTab({ userId, linkedProjects = [], onGoToProjects 
   }
 
   useEffect(() => { load() }, [userId, bizId]) // eslint-disable-line
+
+  // فتح تلقائي للـ sheet لما يجي pendingAction من شاشة أخرى
+  useEffect(() => {
+    if (autoOpen) setAddOpen(true)
+  }, [autoOpen])
+
+  function handleSheetClose() {
+    setAddOpen(false)
+    onSheetClose?.()
+  }
 
   const now = new Date()
   const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -271,11 +287,12 @@ export default function IncomeTab({ userId, linkedProjects = [], onGoToProjects 
 
       <AddReceiptSheet
         open={addOpen}
-        onClose={() => setAddOpen(false)}
+        onClose={handleSheetClose}
         onSave={handleSave}
         userId={userId}
         businessId={bizId}
         projects={linkedProjects}
+        defaultProjectId={defaultProjectId}
         onGoToProjects={onGoToProjects}
       />
     </div>

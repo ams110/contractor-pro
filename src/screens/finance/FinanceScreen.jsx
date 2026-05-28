@@ -63,17 +63,29 @@ function AccountingModuleTab({ projects, employees, userId }) {
   // ── pendingAction من شاشات أخرى (مثل ProjectsScreen → "تسجيل قبضة") ─────
   const pendingAction      = useAppStore(s => s.pendingAction)
   const clearPendingAction = useAppStore(s => s.clearPendingAction)
+  const setActiveBusiness  = useBusinessStore(s => s.setActiveBusiness)
   const [pendingProjectId, setPendingProjectId] = useState(null)
   const [autoOpenSheet,    setAutoOpenSheet]    = useState(false)
 
   useEffect(() => {
     if (pendingAction?.type === 'add_receipt' || pendingAction?.type === 'add_expense') {
+      // إذا المشروع تابع لمصلحة مختلفة عن النشطة — بدّل المصلحة أولاً
+      const targetBizId = pendingAction.payload?.businessId
+      if (targetBizId && targetBizId !== activeBizId) {
+        setActiveBusiness(targetBizId)
+      }
       setSubTab(pendingAction.type === 'add_receipt' ? 'income' : 'bizexp')
       setPendingProjectId(pendingAction.payload?.projectId ?? null)
       setAutoOpenSheet(true)
       clearPendingAction()
     }
-  }, [pendingAction, clearPendingAction])
+  }, [pendingAction, clearPendingAction, activeBizId, setActiveBusiness])
+
+  // يُستدعى من IncomeTab/ExpenseTab عند إغلاق الـ sheet — تنظيف حالة الـ pending
+  function clearAutoOpen() {
+    setAutoOpenSheet(false)
+    setPendingProjectId(null)
+  }
 
   useEffect(() => { load() }, [])
 
@@ -127,8 +139,10 @@ function AccountingModuleTab({ projects, employees, userId }) {
 
       {/* Sub-tab content */}
       {subTab === 'project'    && <ProjectFinanceTab userId={userId} />}
-      {subTab === 'income'     && <IncomeTab     linkedProjects={filteredProjects} userId={userId} onGoToProjects={() => useAppStore.getState().setScreen('projects')} />}
-      {subTab === 'bizexp'     && <ExpenseTab    linkedProjects={filteredProjects} userId={userId} onGoToProjects={() => useAppStore.getState().setScreen('projects')} />}
+      {subTab === 'income'     && <IncomeTab     linkedProjects={filteredProjects} userId={userId} onGoToProjects={() => useAppStore.getState().setScreen('projects')}
+                                                  autoOpen={autoOpenSheet} defaultProjectId={pendingProjectId} onSheetClose={clearAutoOpen} />}
+      {subTab === 'bizexp'     && <ExpenseTab    linkedProjects={filteredProjects} userId={userId} onGoToProjects={() => useAppStore.getState().setScreen('projects')}
+                                                  autoOpen={autoOpenSheet} defaultProjectId={pendingProjectId} onSheetClose={clearAutoOpen} />}
       {subTab === 'archive'    && <InvoiceArchiveTab projects={filteredProjects} userId={userId} />}
       {subTab === 'payroll'    && <PayrollTab    employees={employees} userId={userId} />}
       {subTab === 'taxsummary' && <TaxSummaryTab />}

@@ -174,8 +174,15 @@ function EntryRow({ entry, showVat, projectName, onDelete }) {
 
 
 // ─── MAIN: ExpenseTab ─────────────────────────────────────────────────────────
-// linkedProjects: المشاريع المربوطة بالمصلحة النشطة (من FinanceScreen)
-export default function ExpenseTab({ userId, linkedProjects = [], onGoToProjects }) {
+// linkedProjects:   المشاريع المربوطة بالمصلحة النشطة (من FinanceScreen)
+// onGoToProjects:   فتح صفحة المشاريع (لما ما في مشاريع بعد)
+// autoOpen:         لما يكون true تُفتح الـ sheet تلقائياً (من pendingAction)
+// defaultProjectId: لقفل المشروع على مشروع محدد (من ProjectDetail)
+// onSheetClose:     إشعار للأب لإفراغ حالة pendingAction
+export default function ExpenseTab({
+  userId, linkedProjects = [], onGoToProjects,
+  autoOpen = false, defaultProjectId = null, onSheetClose,
+}) {
   // ─── اقرأ businesses و activeBusinessId مباشرةً من الـ store ───────────
   const businesses    = useBusinessStore(s => s.businesses)
   const activeBizId   = useBusinessStore(s => s.activeBusinessId)
@@ -221,6 +228,16 @@ export default function ExpenseTab({ userId, linkedProjects = [], onGoToProjects
   }
 
   useEffect(() => { load() }, [userId, bizId]) // eslint-disable-line
+
+  // فتح تلقائي للـ sheet لما يجي pendingAction من شاشة أخرى
+  useEffect(() => {
+    if (autoOpen) setAddOpen(true)
+  }, [autoOpen])
+
+  function handleSheetClose() {
+    setAddOpen(false)
+    onSheetClose?.()
+  }
 
   // ─── Stats ────────────────────────────────────────────────────────────────
   const now = new Date()
@@ -416,12 +433,13 @@ export default function ExpenseTab({ userId, linkedProjects = [], onGoToProjects
       {/* ─── Add Sheet ──────────────────────────────────────────────────────── */}
       <AddExpenseSheet
         open={addOpen}
-        onClose={() => setAddOpen(false)}
+        onClose={handleSheetClose}
         onSave={handleSave}
         userId={userId}
         businessId={bizId}
         businessType={bizType}
         projects={linkedProjects}
+        defaultProjectId={defaultProjectId}
         onGoToProjects={onGoToProjects}
       />
     </div>
