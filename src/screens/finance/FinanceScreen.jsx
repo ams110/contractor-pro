@@ -60,6 +60,21 @@ function AccountingModuleTab({ projects, employees, userId }) {
   )
   const [subTab, setSubTab] = useState('income')
 
+  // ── pendingAction من شاشات أخرى (مثل ProjectsScreen → "تسجيل قبضة") ─────
+  const pendingAction      = useAppStore(s => s.pendingAction)
+  const clearPendingAction = useAppStore(s => s.clearPendingAction)
+  const [pendingProjectId, setPendingProjectId] = useState(null)
+  const [autoOpenSheet,    setAutoOpenSheet]    = useState(false)
+
+  useEffect(() => {
+    if (pendingAction?.type === 'add_receipt' || pendingAction?.type === 'add_expense') {
+      setSubTab(pendingAction.type === 'add_receipt' ? 'income' : 'bizexp')
+      setPendingProjectId(pendingAction.payload?.projectId ?? null)
+      setAutoOpenSheet(true)
+      clearPendingAction()
+    }
+  }, [pendingAction, clearPendingAction])
+
   useEffect(() => { load() }, [])
 
   // ── مشاريع مفلترة للمصلحة النشطة (مباشرةً من business_id) ────────────
