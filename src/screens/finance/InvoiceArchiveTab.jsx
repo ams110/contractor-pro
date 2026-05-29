@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, X, FolderOpen, FileText, Image as ImageIcon,
+  Plus, X, FolderOpen, FileText, Image as ImageIcon, Camera, Paperclip,
   Check, Send, Trash2, Calendar, Filter,
   ChevronDown, Eye, Download, Search,
 } from 'lucide-react'
@@ -20,6 +20,11 @@ const TYPES = [
 
 function typeColor(t) { return TYPES.find(x => x.id === t)?.color ?? C.textDim }
 function typeLabel(t) { return TYPES.find(x => x.id === t)?.label ?? t }
+
+function isPdf(url) {
+  if (!url) return false
+  return url.split('?')[0].toLowerCase().endsWith('.pdf')
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const inp = (focus, key) => ({
@@ -71,14 +76,17 @@ function InvoiceCard({ inv, onToggleSent, onDelete, onPreview }) {
             overflow: 'hidden',
           }}
         >
-          {inv.file_url ? (
+          {inv.file_url && !isPdf(inv.file_url) ? (
             <img
               src={inv.file_url} alt="invoice"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }}
             />
           ) : null}
-          <FileText size={20} color={color} style={{ display: inv.file_url ? 'none' : 'block' }} />
+          <div style={{ display: (inv.file_url && !isPdf(inv.file_url)) ? 'none' : 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+            {isPdf(inv.file_url) ? <Paperclip size={18} color={color} /> : <FileText size={20} color={color} />}
+            {isPdf(inv.file_url) && <span style={{ fontSize: 7, fontWeight: 800, color, letterSpacing: '0.05em' }}>PDF</span>}
+          </div>
         </div>
 
         {/* Info */}
@@ -198,18 +206,28 @@ function PreviewModal({ inv, onClose }) {
             style={{ position: 'absolute', top: -40, left: 0, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={16} />
           </button>
-          <img src={inv.file_url} alt="invoice preview"
-            style={{ width: '100%', borderRadius: 16, maxHeight: '75dvh', objectFit: 'contain' }}
-            onError={e => e.target.src = ''} />
-          <div style={{ background: 'rgba(0,0,0,0.6)', borderRadius: '0 0 16px 16px', padding: '10px 14px', marginTop: -4 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{inv.vendor_name || typeLabel(inv.type)}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>
-              {fmtDate(inv.date)} {inv.amount > 0 && `· ₪${fmt(inv.amount)}`}
+          {isPdf(inv.file_url) ? (
+            <div style={{ background: C.surface, borderRadius: 16, padding: '32px 20px', textAlign: 'center' }}>
+              <Paperclip size={48} color={C.primary} style={{ marginBottom: 12 }} />
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>{inv.vendor_name || typeLabel(inv.type)}</div>
+              <div style={{ fontSize: 11, color: C.textDim }}>{fmtDate(inv.date)} {inv.amount > 0 && `· ₪${fmt(inv.amount)}`}</div>
             </div>
-          </div>
-          <a href={inv.file_url} target="_blank" rel="noreferrer" download
+          ) : (
+            <>
+              <img src={inv.file_url} alt="invoice preview"
+                style={{ width: '100%', borderRadius: 16, maxHeight: '75dvh', objectFit: 'contain' }}
+                onError={e => e.target.src = ''} />
+              <div style={{ background: 'rgba(0,0,0,0.6)', borderRadius: '0 0 16px 16px', padding: '10px 14px', marginTop: -4 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{inv.vendor_name || typeLabel(inv.type)}</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>
+                  {fmtDate(inv.date)} {inv.amount > 0 && `· ₪${fmt(inv.amount)}`}
+                </div>
+              </div>
+            </>
+          )}
+          <a href={inv.file_url} target="_blank" rel="noreferrer"
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, padding: '10px', background: `${C.primary}20`, border: `1px solid ${C.primary}40`, borderRadius: 12, color: C.primary, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
-            <Download size={14} /> تحميل الملف
+            <Download size={14} /> {isPdf(inv.file_url) ? 'فتح ملف PDF' : 'تحميل الصورة'}
           </a>
         </motion.div>
       </motion.div>
@@ -224,17 +242,21 @@ function AddInvoiceSheet({ open, onClose, onSave, businessId, projects, userId }
     date: todayStr(), category: '', note: '',
     project_id: '', sent_to_accountant: false,
   })
-  const [file, setFile]       = useState(null)
-  const [preview, setPreview] = useState(null)
-  const [saving,  setSaving]  = useState(false)
-  const [focus,   setFocus]   = useState('')
-  const fileRef = useRef()
+  const [file,     setFile]     = useState(null)
+  const [preview,  setPreview]  = useState(null)
+  const [fileName, setFileName] = useState(null)
+  const [saving,   setSaving]   = useState(false)
+  const [focus,    setFocus]    = useState('')
+  const photoRef = useRef()
+  const fileRef  = useRef()
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   function reset() {
     setForm({ type: 'received', vendor_name: '', amount: '', vat_amount: '', date: todayStr(), category: '', note: '', project_id: '', sent_to_accountant: false })
-    setFile(null); setPreview(null); setSaving(false)
+    setFile(null); setPreview(null); setFileName(null); setSaving(false)
+    if (photoRef.current) photoRef.current.value = ''
+    if (fileRef.current)  fileRef.current.value  = ''
   }
   function handleClose() { reset(); onClose() }
 
@@ -242,7 +264,19 @@ function AddInvoiceSheet({ open, onClose, onSave, businessId, projects, userId }
     const f = e.target.files?.[0]
     if (!f) return
     setFile(f)
-    setPreview(URL.createObjectURL(f))
+    if (f.type.startsWith('image/')) {
+      setPreview(URL.createObjectURL(f))
+      setFileName(null)
+    } else {
+      setPreview(null)
+      setFileName(f.name)
+    }
+  }
+
+  function clearFile() {
+    setFile(null); setPreview(null); setFileName(null)
+    if (photoRef.current) photoRef.current.value = ''
+    if (fileRef.current)  fileRef.current.value  = ''
   }
 
   async function handleSave() {
@@ -322,30 +356,59 @@ function AddInvoiceSheet({ open, onClose, onSave, businessId, projects, userId }
                 </div>
               </div>
 
-              {/* رفع الملف — الأبرز */}
+              {/* رفع الملف — صورة أو PDF */}
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>
-                  صورة / PDF الفاتورة
+                  إرفاق إيصال / فاتورة
                 </div>
-                <input ref={fileRef} type="file" accept="image/*,application/pdf" onChange={pickFile} style={{ display: 'none' }} />
-                {preview ? (
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
+
+                <input ref={photoRef} type="file" accept="image/*" onChange={pickFile} style={{ display: 'none' }} />
+                <input ref={fileRef}  type="file" accept=".pdf,application/pdf" onChange={pickFile} style={{ display: 'none' }} />
+
+                {/* Preview: image */}
+                {preview && (
+                  <div style={{ position: 'relative' }}>
                     <img src={preview} alt="preview"
                       style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 12, border: `1px solid ${C.border}`, display: 'block' }} />
-                    <button onClick={() => { setFile(null); setPreview(null) }}
-                      style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={clearFile}
+                      style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <X size={12} color="#fff" />
                     </button>
                   </div>
-                ) : (
-                  <button onClick={() => fileRef.current?.click()}
-                    style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px 14px', background: 'rgba(255,255,255,0.03)', border: `2px dashed ${C.borderMid}`, borderRadius: 14, color: C.textDim, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    <ImageIcon size={24} color={C.textDim} />
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>اضغط لرفع صورة</div>
-                      <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>JPG, PNG, PDF</div>
-                    </div>
-                  </button>
+                )}
+
+                {/* Preview: PDF / file */}
+                {fileName && !preview && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: `${C.primary}10`, border: `1px solid ${C.primary}25`, borderRadius: 12 }}>
+                    <Paperclip size={20} color={C.primary} style={{ flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
+                    <button onClick={clearFile}
+                      style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 2 }}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Upload buttons — shown when no file selected */}
+                {!preview && !fileName && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => photoRef.current?.click()}
+                      style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '18px 10px', background: 'rgba(255,255,255,0.03)', border: `2px dashed ${C.borderMid}`, borderRadius: 14, color: C.textDim, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <Camera size={22} color={C.primary} />
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>صورة</div>
+                        <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>JPG · PNG · HEIC</div>
+                      </div>
+                    </button>
+                    <button onClick={() => fileRef.current?.click()}
+                      style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '18px 10px', background: 'rgba(255,255,255,0.03)', border: `2px dashed ${C.borderMid}`, borderRadius: 14, color: C.textDim, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <Paperclip size={22} color={C.secondary} />
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>ملف PDF</div>
+                        <div style={{ fontSize: 9, color: C.textDim, marginTop: 2 }}>PDF</div>
+                      </div>
+                    </button>
+                  </div>
                 )}
               </div>
 
