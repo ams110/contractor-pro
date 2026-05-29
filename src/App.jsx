@@ -15,6 +15,7 @@ import { C, GRAD, NAV, MORE_SCREENS } from './constants/index.js'
 import { navigate }            from './Router.jsx'
 import { useAppStore }         from './store/useAppStore.js'
 import { useBusinessStore }    from './store/useBusinessStore.js'
+import { useDataStore }        from './store/useDataStore.js'
 import FirstTimeSetup          from './screens/onboarding/FirstTimeSetup.jsx'
 import { useAuth }             from './hooks/useAuth.js'
 import { useOrganization }     from './hooks/useOrganization.js'
@@ -393,6 +394,16 @@ export default function App() {
   const visiblePayments       = useMemo(() => visibleEmployeeIds ? payments.filter(p => visibleEmployeeIds.has(p.employee_id)) : payments, [payments, visibleEmployeeIds])
   const visibleAdvances       = useMemo(() => visibleEmployeeIds ? advances.filter(a => visibleEmployeeIds.has(a.employee_id)) : advances, [advances, visibleEmployeeIds])
 
+  // مزامنة البيانات المفلترة إلى مخزن القراءة المشترك (يقرأ منه المكوّنات مباشرة
+  // بدل prop drilling). المصدر الموثوق يبقى الـ hooks أعلاه.
+  useEffect(() => {
+    useDataStore.getState().setData({
+      projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays,
+      expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts,
+      advances: visibleAdvances,
+    })
+  }, [visibleProjects, visibleEmployees, visibleWorkDays, visibleExpenses, visiblePayments, visibleClientReceipts, visibleAdvances])
+
   const _approveWorkDay = id      => approveWorkDay(id).then(() => showToast('تمت الموافقة على يوم العمل'))
   const _rejectWorkDay  = (id, r) => rejectWorkDay(id, r).then(() => showToast('رُفض يوم العمل', 'warning'))
   const _approveExpense = id      => approveExpense(id).then(() => showToast('تمت الموافقة على المصروف'))
@@ -477,7 +488,7 @@ export default function App() {
     switch (screen) {
       case 'dashboard':  content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} />; break
       case 'finance':    content = <FinanceScreen {...allData} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} businessType={businessType} setBusinessType={setBusinessType} userId={uid} permissions={p} payMethods={payMethods} appCfg={appCfg} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} />; break
-      case 'projects':   content = p?.viewProjects  ? <ProjectsScreen  {...allData} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addExpense={addExpense} deleteExpense={deleteExpense} expCats={expCats} userId={uid} permissions={p} payMethods={payMethods} holidays={holidays} /> : <NoAccess />; break
+      case 'projects':   content = p?.viewProjects  ? <ProjectsScreen  addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addExpense={addExpense} deleteExpense={deleteExpense} expCats={expCats} userId={uid} permissions={p} payMethods={payMethods} holidays={holidays} /> : <NoAccess />; break
       case 'workers':    content = p?.viewWorkers   ? <WorkersScreen   {...allData} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} payMethods={payMethods} profile={profile} appCfg={appCfg} /> : <NoAccess />; break
       case 'workdays':   setScreen('workers'); content = null; break
       case 'settings':   content = <SettingsScreen  {...allData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} businessType={businessType} setTaxEnabled={setTaxEnabled} setBusinessType={setBusinessType} taxModules={taxModules} setTaxModule={setTaxModule} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} saveContractorNumber={saveContractorNumber} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} onNav={setScreen} appCfg={appCfg} pushSubStatus={pushSubStatus} forceResubscribePush={forceResubscribePush} />; break
