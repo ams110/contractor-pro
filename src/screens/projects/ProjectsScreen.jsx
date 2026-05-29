@@ -220,7 +220,7 @@ function QuickActionBtn({ icon: Icon, color, label, onClick }) {
 }
 
 // ─── Project Detail ───────────────────────────────────────────────────────────
-function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
+function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, advances = [], onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
   businesses = [] }) {
   const setPendingAction = useAppStore(s => s.setPendingAction)
   const setScreen        = useAppStore(s => s.setScreen)
@@ -917,7 +917,7 @@ export default function ProjectsScreen({
       <ProjectDetail
         project={selected}
         workDays={workDays} expenses={expenses} clientReceipts={clientReceipts}
-        employees={employees} payments={payments}
+        employees={employees} payments={payments} advances={advances}
         onClose={() => setSelected(null)}
         onUpdate={updateProject} onDelete={deleteProject}
         addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt}
