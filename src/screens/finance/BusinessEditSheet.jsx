@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Trash2 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
@@ -70,7 +71,7 @@ export default function BusinessEditSheet({ business, onClose }) {
     }
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -210,6 +211,7 @@ export default function BusinessEditSheet({ business, onClose }) {
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }

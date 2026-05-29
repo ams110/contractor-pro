@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X, Image, Banknote, Smartphone, CreditCard, Building,
@@ -146,7 +147,7 @@ export default function AddExpenseSheet({
                   `${'מע"מ'} غير قابل للخصم`
   const vatColor = rate >= 1.0 ? '#22C55E' : rate >= 0.6 ? '#F59E0B' : '#EF4444'
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -355,6 +356,7 @@ export default function AddExpenseSheet({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }

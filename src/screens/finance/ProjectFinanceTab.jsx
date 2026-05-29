@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronRight, TrendingUp, TrendingDown, Banknote,
@@ -103,7 +104,7 @@ function AddReceiptSheet({ open, onClose, onSave, projectId, userId }) {
     } catch (e) { console.error(e); setSaving(false) }
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -160,7 +161,8 @@ function AddReceiptSheet({ open, onClose, onSave, projectId, userId }) {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
 
@@ -183,7 +185,7 @@ function AddExpenseSheet({ open, onClose, onSave, projectId, userId }) {
     } catch (e) { console.error(e); setSaving(false) }
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -250,7 +252,8 @@ function AddExpenseSheet({ open, onClose, onSave, projectId, userId }) {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
 
