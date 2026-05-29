@@ -105,19 +105,16 @@ export default function SettingsScreen({
   const PASSKEY_KEY = 'cpro_passkey_cred'
   const [hasPasskey, setHasPasskey] = useState(!!localStorage.getItem(PASSKEY_KEY))
   const [showRegisterBio, setShowRegisterBio] = useState(false)
-  const [bioPassword, setBioPassword]         = useState('')
   const [bioLoading, setBioLoading]           = useState(false)
   const [bioError, setBioError]               = useState('')
 
   async function handleRegisterBiometric() {
-    if (!bioPassword) { setBioError('أدخل كلمة المرور أولاً'); return }
     setBioLoading(true)
     setBioError('')
     try {
-      await registerPasskey(bioPassword)
+      await registerPasskey()
       setHasPasskey(true)
       setShowRegisterBio(false)
-      setBioPassword('')
     } catch (e) {
       setBioError(e.message || 'فشل تسجيل البصمة')
     } finally {
@@ -729,7 +726,7 @@ export default function SettingsScreen({
             ) : (
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                onClick={() => { setBioError(''); setBioPassword(''); setShowRegisterBio(true) }}
+                onClick={() => { setBioError(''); setShowRegisterBio(true) }}
                 style={{ padding: '8px 14px', borderRadius: 10, background: 'linear-gradient(135deg,#F97316,#DC2626)', border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}
               >
                 <Fingerprint size={13} />
@@ -759,18 +756,9 @@ export default function SettingsScreen({
                     </div>
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تفعيل التوقيع بالبصمة</div>
-                      <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>أدخل كلمة مرورك للتحقق أولاً</div>
+                      <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>سيطلب الجهاز تأكيد هويتك مرة واحدة</div>
                     </div>
                   </div>
-
-                  <input
-                    type="password"
-                    placeholder="كلمة المرور"
-                    value={bioPassword}
-                    onChange={e => setBioPassword(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleRegisterBiometric()}
-                    style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${bioError ? C.accent : C.border}`, borderRadius: 14, padding: '13px 16px', color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', marginBottom: 10, boxSizing: 'border-box', direction: 'ltr', textAlign: 'right' }}
-                  />
 
                   {bioError && (
                     <div style={{ fontSize: 12, color: C.accent, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
