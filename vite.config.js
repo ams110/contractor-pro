@@ -8,6 +8,10 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8'))
 
+// GitHub Pages يُخدَم من /contractor-pro/ — يُفعَّل عبر GITHUB_PAGES في الـ workflow.
+// أي نشر آخر (Vercel / محلي) يبقى على الجذر '/'.
+const base = process.env.GITHUB_PAGES === 'true' ? '/contractor-pro/' : '/'
+
 export default defineConfig({
   define: {
     __APP_VERSION__:   JSON.stringify(pkg.version),
@@ -29,7 +33,8 @@ export default defineConfig({
         background_color: '#0B1117',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        start_url: base,
+        scope: base,
         lang: 'ar',
         dir: 'rtl',
         icons: [
@@ -42,11 +47,11 @@ export default defineConfig({
       },
     }),
   ],
-  base: process.env.GITHUB_PAGES === 'true' ? '/contractor-pro/' : '/',
+  base,
   server: { port: 3000 },
   build: {
     // فصل المكتبات الكبيرة في chunks مستقلة → الصفحة الرئيسية تفتح أسرع،
-    // والمكتبات تُحمّل من الكاش بين الإصدارات (تتغيّر أقل من كود التطبيق).
+    // والمكتبات تُحمّل من الكاش بين الإصدارات.
     rollupOptions: {
       output: {
         manualChunks: {
