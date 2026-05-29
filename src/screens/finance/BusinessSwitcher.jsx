@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Building2, ChevronDown, Plus, Check, Settings } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
@@ -181,6 +182,7 @@ export default function BusinessSwitcher() {
       </div>
 
       {/* Add new business — reuse BusinessSetup as a sheet */}
+      {createPortal(
       <AnimatePresence>
         {addOpen && (
           <motion.div
@@ -204,7 +206,8 @@ export default function BusinessSwitcher() {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body)}
 
       {/* Edit business sheet */}
       {editBiz && (
