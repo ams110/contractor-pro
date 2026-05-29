@@ -1,10 +1,8 @@
 name: Deploy to GitHub Pages
 
 on:
-  # نشر تلقائي عند كل دمج/دفع على main
   push:
     branches: [main]
-  # تشغيل يدوي من تبويب Actions
   workflow_dispatch:
 
 permissions:
@@ -12,7 +10,6 @@ permissions:
   pages: write
   id-token: write
 
-# منع تداخل عمليات النشر — تُلغى القديمة لصالح الأحدث
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -21,33 +18,35 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
       - name: Build
         env:
-          GITHUB_PAGES: 'true'   # vite.config.js → base = /contractor-pro/
+          GITHUB_PAGES: 'true'
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_VAPID_PUBLIC_KEY: ${{ secrets.VITE_VAPID_PUBLIC_KEY }}
+          VITE_PADDLE_CLIENT_TOKEN: ${{ secrets.VITE_PADDLE_CLIENT_TOKEN }}
+          VITE_PADDLE_ENVIRONMENT: ${{ secrets.VITE_PADDLE_ENVIRONMENT }}
+          VITE_PADDLE_PRICE_STARTER: ${{ secrets.VITE_PADDLE_PRICE_STARTER }}
+          VITE_PADDLE_PRICE_PRO: ${{ secrets.VITE_PADDLE_PRICE_PRO }}
+          VITE_PADDLE_PRICE_BUSINESS: ${{ secrets.VITE_PADDLE_PRICE_BUSINESS }}
+          VITE_APP_URL: https://ams110.github.io/contractor-pro
         run: npm run build
 
       - name: SPA fallback (404 = index)
         run: cp dist/index.html dist/404.html
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: dist
 
   deploy:
     needs: build
@@ -56,6 +55,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
+      - uses: actions/deploy-pages@v4
         id: deployment
-        uses: actions/deploy-pages@v4
