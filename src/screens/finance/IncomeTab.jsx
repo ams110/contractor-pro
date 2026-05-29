@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { AddReceiptSheet } from '../../components/sheets/index.js'
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 
 const METHODS = [
   { id: 'cash',     label: 'كاش',            Icon: Banknote   },
@@ -101,6 +102,7 @@ export default function IncomeTab({
     [businesses, activeBizId]
   )
   const { showToast } = useAppStore()
+  const { confirm: bioConfirm } = useBiometricConfirm()
 
   const [entries,     setEntries]     = useState([])
   const [loading,     setLoading]     = useState(false)
@@ -190,6 +192,9 @@ export default function IncomeTab({
   }
 
   async function handleDelete(id) {
+    const entry = entries.find(e => e.id === id)
+    const sig = await bioConfirm(`حذف قبضة: ₪${Number(entry?.amount || 0).toLocaleString()}`, 'client_receipts')
+    if (!sig) return
     await supabase.from('client_receipts').delete().eq('id', id)
     setEntries(prev => prev.filter(e => e.id !== id))
     onMutate?.()

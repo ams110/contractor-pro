@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase.js'
 import { uploadReceipt } from '../../lib/storage.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 const TYPES = [
@@ -249,6 +250,7 @@ function AddInvoiceSheet({ open, onClose, onSave, businessId, projects, userId }
   const [focus,    setFocus]    = useState('')
   const photoRef = useRef()
   const fileRef  = useRef()
+  const { confirm: bioConfirm, hasAnyMethod } = useBiometricConfirm()
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -280,6 +282,10 @@ function AddInvoiceSheet({ open, onClose, onSave, businessId, projects, userId }
   }
 
   async function handleSave() {
+    if (hasAnyMethod()) {
+      const sig = await bioConfirm('أرشفة فاتورة / وثيقة', 'invoice_archive')
+      if (!sig) return
+    }
     setSaving(true)
     try {
       let file_url = null
@@ -512,6 +518,7 @@ function AddInvoiceSheet({ open, onClose, onSave, businessId, projects, userId }
 export default function InvoiceArchiveTab({ projects = [], userId }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
+  const { confirm: bioConfirm } = useBiometricConfirm()
 
   const [entries,     setEntries]     = useState([])
   const [loading,     setLoading]     = useState(true)
@@ -589,6 +596,9 @@ export default function InvoiceArchiveTab({ projects = [], userId }) {
   }
 
   async function handleDelete(id) {
+    const entry = entries.find(e => e.id === id)
+    const sig = await bioConfirm(`حذف فاتورة: ${entry?.vendor_name || typeLabel(entry?.type)}`, 'invoice_archive')
+    if (!sig) return
     await supabase.from('invoice_archive').delete().eq('id', id)
     setEntries(prev => prev.filter(e => e.id !== id))
     showToast('تم الحذف')
