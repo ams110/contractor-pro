@@ -47,7 +47,6 @@ const SettingsScreen  = lazy(() => import('./screens/settings/SettingsScreen.jsx
 const WorkDaysScreen    = lazy(() => import('./screens/WorkDaysScreen.jsx'))
 const ExpensesScreen    = lazy(() => import('./screens/ExpensesScreen.jsx'))
 const PaymentsScreen    = lazy(() => import('./screens/PaymentsScreen.jsx'))
-const AccountingScreen  = lazy(() => import('./screens/AccountingScreen.jsx'))
 const UnitTrackerScreen = lazy(() => import('./screens/UnitTrackerScreen.jsx'))
 const MaterialsScreen   = lazy(() => import('./screens/MaterialsScreen.jsx'))
 const ActivityScreen    = lazy(() => import('./screens/ActivityScreen.jsx'))

@@ -127,6 +127,7 @@ const PORTAL_URL = `${window.location.origin}${window.location.pathname}?portal`
 function WorkerDetail({ worker, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language, appCfg }) {
   const [tab, setTab] = useState('overview')
   const [advRequests, setAdvRequests] = useState([])
+  const [advProject, setAdvProject] = useState({})   // req.id → project_id (اختياري)
 
   useEffect(() => {
     if (!worker?.id || !permissions?.isOwner) return
@@ -143,7 +144,7 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
     await supabase.from('worker_advance_requests')
       .update({ status: 'approved', responded_at: new Date().toISOString() })
       .eq('id', req.id)
-    await addAdvance({ employee_id: req.employee_id, amount: req.amount, notes: req.notes || 'سلفة مطلوبة من العامل', date: new Date().toISOString().slice(0, 10) })
+    await addAdvance({ employee_id: req.employee_id, amount: req.amount, notes: req.notes || 'سلفة مطلوبة من العامل', date: new Date().toISOString().slice(0, 10), project_id: advProject[req.id] || null })
     setAdvRequests(r => r.filter(x => x.id !== req.id))
   }
 
@@ -309,18 +310,30 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
                   طلبات سلف معلّقة ({advRequests.length})
                 </div>
                 {advRequests.map(req => (
-                  <div key={req.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: `${C.warning}0A`, border: `1px solid ${C.warning}30`, borderRadius: 14, marginBottom: 8 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>₪{fmt(req.amount || 0)}</div>
-                      {req.notes && <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{req.notes}</div>}
-                      <div style={{ fontSize: 9, color: C.textDim }}>{req.requested_date || new Date(req.created_at).toLocaleDateString('ar-SA')}</div>
+                  <div key={req.id} style={{ background: `${C.warning}0A`, border: `1px solid ${C.warning}30`, borderRadius: 14, marginBottom: 8, padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>₪{fmt(req.amount || 0)}</div>
+                        {req.notes && <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{req.notes}</div>}
+                        <div style={{ fontSize: 9, color: C.textDim }}>{req.requested_date || new Date(req.created_at).toLocaleDateString('ar-SA')}</div>
+                      </div>
+                      <button onClick={() => approveAdvanceRequest(req)} style={{ padding: '6px 10px', borderRadius: 8, background: `${C.success}20`, border: `1px solid ${C.success}40`, color: C.success, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        موافقة
+                      </button>
+                      <button onClick={() => rejectAdvanceRequest(req)} style={{ padding: '6px 10px', borderRadius: 8, background: `${C.accent}15`, border: `1px solid ${C.accent}30`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        رفض
+                      </button>
                     </div>
-                    <button onClick={() => approveAdvanceRequest(req)} style={{ padding: '6px 10px', borderRadius: 8, background: `${C.success}20`, border: `1px solid ${C.success}40`, color: C.success, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                      موافقة
-                    </button>
-                    <button onClick={() => rejectAdvanceRequest(req)} style={{ padding: '6px 10px', borderRadius: 8, background: `${C.accent}15`, border: `1px solid ${C.accent}30`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                      رفض
-                    </button>
+                    {/* نسب السلفة لمشروع (اختياري) — يدخل في حساب "متبقي بيد المالك" */}
+                    <select
+                      value={advProject[req.id] || ''}
+                      onChange={e => setAdvProject(m => ({ ...m, [req.id]: e.target.value }))}
+                      style={{ marginTop: 8, width: '100%', padding: '7px 10px', borderRadius: 8, background: C.card, border: `1px solid ${C.border}`, color: C.text, fontSize: 11, fontFamily: 'inherit' }}>
+                      <option value="">سلفة عامة (بدون مشروع)</option>
+                      {(projects || []).map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
                   </div>
                 ))}
               </div>
