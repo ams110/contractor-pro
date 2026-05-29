@@ -5,13 +5,14 @@ import {
   Plus, Search, Users, ArrowLeft, Calendar, Banknote,
   TrendingUp, Phone, Star, BarChart3, CreditCard,
   Check, AlertTriangle, Trash2, ChevronRight, CalendarDays,
-  Link2, Copy, CheckCheck,
+  Link2, Copy, CheckCheck, UserPlus, UserMinus,
 } from 'lucide-react'
 import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi, calcEarned } from '../../lib/calculations.js'
 import WorkDaysScreen from '../WorkDaysScreen.jsx'
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 
 // ─── Worker avatar initials ───────────────────────────────────────────────────
 function Avatar({ name, size = 42, color = C.primary }) {
@@ -44,12 +45,15 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
   const [error, setError] = useState('')
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
   const dir = language === 'en' ? 'ltr' : 'rtl'
+  const { confirm: bioConfirm } = useBiometricConfirm()
 
   async function handleSave() {
     if (!form.name.trim()) return
     setSaving(true)
     setError('')
     try {
+      const sig = await bioConfirm(`إضافة عامل: ${form.name.trim()}`, 'employees')
+      if (!sig) { setSaving(false); return }
       await onSave({ ...form, daily_rate: Number(form.daily_rate) || 0 })
       setForm({ name: '', specialization: specs[0] || '', phone: '', daily_rate: '', notes: '' })
       onClose()
@@ -124,7 +128,7 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
 // ─── Worker Detail ────────────────────────────────────────────────────────────
 const PORTAL_URL = `${window.location.origin}${window.location.pathname}?portal`
 
-function WorkerDetail({ worker, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language, appCfg }) {
+function WorkerDetail({ worker, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language, appCfg, onDeleteWorker }) {
   const [tab, setTab] = useState('overview')
   const [advRequests, setAdvRequests] = useState([])
   const [advProject, setAdvProject] = useState({})   // req.id → project_id (اختياري)
@@ -204,6 +208,14 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
           </div>
           <div style={{ fontSize: 14, fontWeight: 900, color: balance >= 0 ? C.warning : C.success }}>₪{fmt(Math.abs(balance))}</div>
         </div>
+        {onDeleteWorker && permissions?.isOwner && (
+          <button
+            onClick={() => onDeleteWorker(worker)}
+            style={{ width: 36, height: 36, borderRadius: 11, background: `${C.accent}12`, border: `1px solid ${C.accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+          >
+            <UserMinus size={15} color={C.accent} />
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -379,12 +391,26 @@ export default function WorkersScreen({
   const { t } = useTranslation()
   const { language } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
+  const { confirm: bioConfirm } = useBiometricConfirm()
 
   const [mainTab, setMainTab] = useState('workers')
   const [search, setSearch] = useState('')
   const [specFilter, setSpecFilter] = useState('all')
   const [showAdd, setShowAdd] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null) // worker to delete
+
+  async function handleDeleteWorker(worker) {
+    const sig = await bioConfirm(`حذف العامل: ${worker.name}`, 'employees')
+    if (!sig) return
+    try {
+      await deleteEmployee(worker.id)
+      if (selected?.id === worker.id) setSelected(null)
+    } catch (e) {
+      console.error('حذف العامل فشل:', e.message)
+    }
+    setConfirmDelete(null)
+  }
 
   const allSpecs = useMemo(() => ['all', ...new Set(employees.map(e => e.specialty).filter(Boolean))], [employees])
 
@@ -423,6 +449,7 @@ export default function WorkersScreen({
         addAdvance={addAdvance} deleteAdvance={deleteAdvance}
         payMethods={payMethods} permissions={permissions} language={language}
         appCfg={appCfg}
+        onDeleteWorker={handleDeleteWorker}
       />
     )
   }

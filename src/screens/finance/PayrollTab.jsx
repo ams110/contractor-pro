@@ -10,6 +10,7 @@ import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { supabase } from '../../lib/supabase.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const inp = (focus, key) => ({
@@ -180,6 +181,7 @@ function SlipCard({ slip, onMarkPaid, onDelete, onPrint }) {
 
 // ─── Add Slip Sheet ───────────────────────────────────────────────────────────
 function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) {
+  const { confirm: bioConfirm } = useBiometricConfirm()
   const [step,         setStep]         = useState(1) // 1=select worker, 2=fill slip
   const [selectedEmp,  setSelectedEmp]  = useState(null)
   const [search,       setSearch]       = useState('')
@@ -261,6 +263,8 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
     if (!selectedEmp || !form.base_salary) return
     setSaving(true)
     try {
+      const sig = await bioConfirm(`قسيمة راتب: ${selectedEmp.name} — ₪${Number(form.base_salary).toLocaleString()}`, 'payroll')
+      if (!sig) { setSaving(false); return }
       await onSave({
         business_id:      businessId,
         user_id:          userId,
@@ -481,6 +485,7 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
 export default function PayrollTab({ employees = [], userId }) {
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
+  const { confirm: bioConfirm } = useBiometricConfirm()
 
   const [slips,       setSlips]       = useState([])
   const [loading,     setLoading]     = useState(true)
@@ -561,6 +566,9 @@ export default function PayrollTab({ employees = [], userId }) {
   }
 
   async function handleDelete(id) {
+    const slip = slips.find(s => s.id === id)
+    const sig  = await bioConfirm(`حذف قسيمة راتب: ${slip?.worker_name || ''} — ₪${slip?.net_pay || 0}`, 'payroll')
+    if (!sig) return
     await supabase.from('payroll_slips').delete().eq('id', id)
     setSlips(prev => prev.filter(s => s.id !== id))
     showToast('تم الحذف')
