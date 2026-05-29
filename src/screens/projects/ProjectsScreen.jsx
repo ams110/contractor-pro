@@ -16,6 +16,7 @@ import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { calcProjectStats as _calcStats, calcOwnerCash } from '../../lib/calculations.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
+import { useDataStore } from '../../store/useDataStore.js'
 // useProjectBusinessLinks removed — projects now use direct business_id FK
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -220,8 +221,10 @@ function QuickActionBtn({ icon: Icon, color, label, onClick }) {
 }
 
 // ─── Project Detail ───────────────────────────────────────────────────────────
-function ProjectDetail({ project, workDays, expenses, clientReceipts, employees, payments, advances = [], onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
+function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
   businesses = [] }) {
+  // البيانات المشتركة من المخزن مباشرة — لا تمرير يدوي من الشاشة الأم
+  const { workDays, expenses, clientReceipts, employees, payments, advances } = useDataStore()
   const setPendingAction = useAppStore(s => s.setPendingAction)
   const setScreen        = useAppStore(s => s.setScreen)
 
@@ -880,8 +883,6 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function ProjectsScreen({
-  projects = [], workDays = [], expenses = [], clientReceipts = [],
-  employees = [], payments = [], advances = [],
   addProject, updateProject, deleteProject,
   addReceipt, updateReceipt, deleteReceipt,
   addWorkDay, bulkAddWorkDays, updateWorkDay, deleteWorkDay,
@@ -889,6 +890,8 @@ export default function ProjectsScreen({
   addExpense, deleteExpense, expCats = [],
   userId, permissions, payMethods = [], holidays = [],
 }) {
+  // البيانات المشتركة تُقرأ من المخزن مباشرة (بدل prop drilling)
+  const { projects, workDays, expenses, clientReceipts, employees, payments, advances } = useDataStore()
   const { t } = useTranslation()
   const { language } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
@@ -916,8 +919,6 @@ export default function ProjectsScreen({
     return (
       <ProjectDetail
         project={selected}
-        workDays={workDays} expenses={expenses} clientReceipts={clientReceipts}
-        employees={employees} payments={payments} advances={advances}
         onClose={() => setSelected(null)}
         onUpdate={updateProject} onDelete={deleteProject}
         addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt}
