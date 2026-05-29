@@ -646,7 +646,7 @@ export default function PayrollTab({ employees = [], userId }) {
       )}
 
       {/* ─── FAB ───────────────────────────────────────────────────────── */}
-      <div style={{ position: 'sticky', bottom: 16, display: 'flex', justifyContent: 'flex-end', marginTop: 16, pointerEvents: 'none' }}>
+      <div style={{ position: 'sticky', bottom: 'max(80px, calc(70px + env(safe-area-inset-bottom, 0px)))', display: 'flex', justifyContent: 'flex-end', marginTop: 16, pointerEvents: 'none' }}>
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => setAddOpen(true)}

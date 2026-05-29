@@ -151,7 +151,7 @@ function AddReceiptSheet({ open, onClose, onSave, projectId, userId }) {
                   onFocus={() => setFocus('notes')} onBlur={() => setFocus('')} style={sheetInp(focus, 'notes')} />
               </div>
             </div>
-            <div style={{ padding: '12px 18px 16px', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <div style={{ padding: '12px 18px calc(16px + env(safe-area-inset-bottom, 0px))', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
               <button onClick={save} disabled={!canSave}
                 style={{ width: '100%', padding: '13px', background: canSave ? GRAD.success : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 14, color: canSave ? '#fff' : C.textDim, fontSize: 14, fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
                 {saving ? 'جاري الحفظ...' : '+ تسجيل القبضة'}
@@ -241,7 +241,7 @@ function AddExpenseSheet({ open, onClose, onSave, projectId, userId }) {
                   onFocus={() => setFocus('note')} onBlur={() => setFocus('')} style={sheetInp(focus, 'note')} />
               </div>
             </div>
-            <div style={{ padding: '12px 18px 16px', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <div style={{ padding: '12px 18px calc(16px + env(safe-area-inset-bottom, 0px))', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
               <button onClick={save} disabled={!canSave}
                 style={{ width: '100%', padding: '13px', background: canSave ? GRAD.danger : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 14, color: canSave ? '#fff' : C.textDim, fontSize: 14, fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
                 {saving ? 'جاري الحفظ...' : '+ تسجيل المصروف'}

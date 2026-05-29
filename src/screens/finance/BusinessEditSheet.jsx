@@ -202,7 +202,7 @@ export default function BusinessEditSheet({ business, onClose }) {
           </div>
 
           {/* Footer */}
-          <div style={{ padding: '12px 18px 20px', borderTop: `1px solid ${C.border}` }}>
+          <div style={{ padding: '12px 18px calc(20px + env(safe-area-inset-bottom, 0px))', borderTop: `1px solid ${C.border}` }}>
             <button onClick={handleSave} disabled={saving || !form.name.trim()}
               style={{ width: '100%', padding: '13px', background: saving || !form.name.trim() ? 'rgba(255,255,255,0.06)' : GRAD.warm, border: 'none', borderRadius: 14, color: saving || !form.name.trim() ? C.textDim : '#fff', fontSize: 14, fontWeight: 800, cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
               {saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
