@@ -77,7 +77,7 @@ export default function SettingsScreen({
   const { language, setLanguage } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
-  const { registerPasskey, isPasskeySupported } = useAuth()
+  const { registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey } = useAuth()
   const { supported: pushSupported, permission, requestPermission } = usePushNotifications(userId)
   const [notifLoading, setNotifLoading] = useState(false)
   const [testNotifLoading, setTestNotifLoading] = useState(false)
@@ -102,8 +102,7 @@ export default function SettingsScreen({
       .then(({ data }) => { setSigLog(data || []); setSigLogLoading(false) })
   }, [userId, permissions?.isOwner])
 
-  const PASSKEY_KEY = 'cpro_passkey_cred'
-  const [hasPasskey, setHasPasskey] = useState(!!localStorage.getItem(PASSKEY_KEY))
+  const [hasPasskey, setHasPasskey] = useState(() => hasPasskeyRegistered())
   const [showRegisterBio, setShowRegisterBio] = useState(false)
   const [bioLoading, setBioLoading]           = useState(false)
   const [bioError, setBioError]               = useState('')
@@ -720,7 +719,7 @@ export default function SettingsScreen({
             </div>
             {hasPasskey ? (
               <button
-                onClick={() => { localStorage.removeItem(PASSKEY_KEY); setHasPasskey(false) }}
+                onClick={() => { removePasskey(); setHasPasskey(false) }}
                 style={{ padding: '6px 12px', borderRadius: 9, background: `${C.accent}15`, border: `1px solid ${C.accent}30`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
               >إلغاء</button>
             ) : (

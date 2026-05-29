@@ -28,7 +28,7 @@ export default function LoginScreen({ teamMemberSignIn }) {
   const { t } = useTranslation()
   const { language, setLanguage } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
-  const { signInWithPasskey, signInWithPin } = useAuth()
+  const { signInWithPasskey, signInWithPin, hasPasskeyRegistered } = useAuth()
 
   const [mode, setMode] = useState('owner') // 'owner' | 'team'
   // ownerEntry: 'quick' (passkey/pin) | 'password' (email+pass form)
@@ -50,7 +50,7 @@ export default function LoginScreen({ teamMemberSignIn }) {
   const [pin, setPin] = useState('')
   const [pinPhase, setPinPhase] = useState('idle') // idle | checking | success | error
 
-  const hasPasskey = !!localStorage.getItem(PASSKEY_KEY)
+  const hasPasskey = hasPasskeyRegistered()
   const hasPin     = !!localStorage.getItem(PIN_HASH_KEY)
   const hasQuick   = hasPasskey || hasPin
 

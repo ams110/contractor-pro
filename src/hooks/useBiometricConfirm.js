@@ -1,4 +1,3 @@
-import { startAuthentication } from '@simplewebauthn/browser'
 import { supabase } from '../lib/supabase.js'
 import { useAppStore } from '../store/useAppStore.js'
 
@@ -42,20 +41,35 @@ export function useBiometricConfirm() {
 
 // دالة WebAuthn مستقلة للمودال
 export async function runBiometricAuth() {
-  const credId = localStorage.getItem(PASSKEY_KEY)
-  if (!credId) throw new Error('NO_PASSKEY')
+  const stored = localStorage.getItem(PASSKEY_KEY)
+  if (!stored) throw new Error('NO_PASSKEY')
 
-  const challenge = new Uint8Array(32)
-  crypto.getRandomValues(challenge)
-  const challengeB64 = btoa(String.fromCharCode(...challenge))
+  let credInfo
+  try { credInfo = JSON.parse(stored) } catch { throw new Error('NO_PASSKEY') }
 
-  await startAuthentication({
-    challenge:        challengeB64,
-    allowCredentials: [{ type: 'public-key', id: credId }],
-    userVerification: 'required',
-    timeout:          60000,
-    rpId:             window.location.hostname,
+  const { credentialId, rpId } = credInfo
+  if (!credentialId) throw new Error('NO_PASSKEY')
+
+  const credIdBytes = Uint8Array.from(
+    atob(credentialId.replace(/-/g, '+').replace(/_/g, '/')),
+    c => c.charCodeAt(0)
+  )
+
+  const assertion = await navigator.credentials.get({
+    publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rpId: rpId || window.location.hostname,
+      allowCredentials: [{ type: 'public-key', id: credIdBytes }],
+      userVerification: 'required',
+      timeout: 60000,
+    },
   })
+
+  if (!assertion) {
+    const e = new Error('تم إلغاء البصمة')
+    e.name = 'NotAllowedError'
+    throw e
+  }
 }
 
 // التحقق من PIN محلياً (بدون sign-in كامل)
