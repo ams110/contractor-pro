@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { C, GRAD, EXP_CATS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
+import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
 import { supabase } from '../../lib/supabase.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
@@ -270,6 +271,7 @@ export default function ProjectFinanceTab({ userId }) {
   const [receipts,  setReceipts]  = useState([])
   const [expenses,  setExpenses]  = useState([])
   const [payments,  setPayments]  = useState([])
+  const [workDays,  setWorkDays]  = useState([])
   const [loading,   setLoading]   = useState(false)
   const [selected,  setSelected]  = useState(null)   // project id
   const [subTab,    setSubTab]    = useState('income')
@@ -280,16 +282,20 @@ export default function ProjectFinanceTab({ userId }) {
     if (!userId || !bizId) { setLoading(false); return }
     setLoading(true)
     try {
-      const [pr, rc, ex, py] = await Promise.all([
+      // ملاحظة: payments و work_days لا تحملان business_id في المخطط،
+      // فنفلترها بـ user_id ثم بالـ project_id (المشاريع نفسها مفلترة بالمصلحة).
+      const [pr, rc, ex, py, wd] = await Promise.all([
         supabase.from('projects').select('*').eq('user_id', userId).eq('business_id', bizId).order('created_at', { ascending: false }),
         supabase.from('client_receipts').select('*').eq('user_id', userId).eq('business_id', bizId),
         supabase.from('expenses').select('*').eq('user_id', userId).eq('business_id', bizId),
         supabase.from('payments').select('*').eq('user_id', userId),
+        supabase.from('work_days').select('*').eq('user_id', userId),
       ])
       setProjects(pr.data ?? [])
       setReceipts(rc.data ?? [])
       setExpenses(ex.data ?? [])
       setPayments(py.data ?? [])
+      setWorkDays(wd.data ?? [])
       setSelected(null)   // إعادة تعيين عند تغيير المصلحة
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
@@ -303,19 +309,26 @@ export default function ProjectFinanceTab({ userId }) {
       const pRcp = receipts.filter(r => r.project_id === p.id)
       const pExp = expenses.filter(e => e.project_id === p.id)
       const pPay = payments.filter(py => py.project_id === p.id)
-      const income   = pRcp.reduce((s, r) => s + Number(r.amount), 0)
-      const expense  = pExp.reduce((s, e) => s + Number(e.amount), 0)
-      const payTotal = pPay.reduce((s, py) => s + Number(py.amount), 0)
+      // الربح/التكلفة من المصدر الموحّد (calculations.js) — نفس منطق شاشة المشاريع:
+      // ربح = إيرادات − (أيام عمل + مصاريف المشروع + مصاريف العمال) — بلا ازدواج.
+      const stats = _calcStats(p.id, workDays, expenses, receipts)
+      // إجماليات خام للتصفّح فقط (badges)
+      const expenseRaw = pExp.reduce((s, e) => s + Number(e.amount), 0)
+      const payTotal   = pPay.reduce((s, py) => s + Number(py.amount), 0)
       return {
         ...p,
-        income, expense, payTotal,
-        profit:   income - expense - payTotal,
+        income:   stats.revenue,
+        expense:  expenseRaw,   // كل المصاريف (للتصفّح) — قد تشمل غير المعتمدة
+        payTotal,
+        cost:     stats.cost,
+        profit:   stats.profit,
+        margin:   stats.margin,
         rcpCount: pRcp.length,
         expCount: pExp.length,
         payCount: pPay.length,
       }
     })
-  }, [projects, receipts, expenses, payments])
+  }, [projects, receipts, expenses, payments, workDays])
 
   // ── بيانات المشروع المختار ──────────────────────────────────────────────
   const selProject  = useMemo(() => summaries.find(p => p.id === selected), [summaries, selected])
@@ -325,8 +338,8 @@ export default function ProjectFinanceTab({ userId }) {
 
   // ── إجماليات كلية ──────────────────────────────────────────────────────
   const grandIncome  = useMemo(() => summaries.reduce((s, p) => s + p.income, 0), [summaries])
-  const grandExpense = useMemo(() => summaries.reduce((s, p) => s + p.expense + p.payTotal, 0), [summaries])
-  const grandProfit  = grandIncome - grandExpense
+  const grandExpense = useMemo(() => summaries.reduce((s, p) => s + p.cost, 0), [summaries])
+  const grandProfit  = useMemo(() => summaries.reduce((s, p) => s + p.profit, 0), [summaries])
 
   // ── actions ─────────────────────────────────────────────────────────────
   async function addReceipt(fields) {
@@ -395,9 +408,9 @@ export default function ProjectFinanceTab({ userId }) {
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
           {[
-            { label: 'إجمالي القبضات',  val: selProject.income,              color: C.success },
-            { label: 'إجمالي المصاريف', val: selProject.expense + selProject.payTotal, color: C.accent  },
-            { label: 'صافي الربح',      val: selProject.profit,              color: selProject.profit >= 0 ? C.success : C.accent, sign: true },
+            { label: 'إجمالي القبضات', val: selProject.income, color: C.success },
+            { label: 'إجمالي التكاليف', val: selProject.cost,  color: C.accent  },
+            { label: 'صافي الربح',      val: selProject.profit, color: selProject.profit >= 0 ? C.success : C.accent, sign: true },
           ].map(({ label, val, color, sign }) => (
             <div key={label} style={{ flex: 1, background: `${color}0E`, border: `1px solid ${color}22`, borderRadius: 14, padding: '10px 6px', textAlign: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 900, color, fontFamily: 'monospace' }}>
@@ -495,7 +508,7 @@ export default function ProjectFinanceTab({ userId }) {
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
         {[
           { label: 'إجمالي الدخل',    val: grandIncome,  color: C.success },
-          { label: 'إجمالي المصاريف', val: grandExpense, color: C.accent  },
+          { label: 'إجمالي التكاليف', val: grandExpense, color: C.accent  },
           { label: 'صافي الكل',       val: grandProfit,  color: grandProfit >= 0 ? C.success : C.accent, sign: true },
         ].map(({ label, val, color, sign }) => (
           <div key={label} style={{ flex: 1, background: `${color}0E`, border: `1px solid ${color}22`, borderRadius: 14, padding: '10px 6px', textAlign: 'center' }}>
@@ -512,7 +525,7 @@ export default function ProjectFinanceTab({ userId }) {
         ? <EmptyState icon={FolderOpen} msg="لا توجد مشاريع" />
         : summaries.map(p => {
             const sc  = STATUS_COLOR[p.status] ?? C.textDim
-            const pct = p.income > 0 ? Math.max(0, Math.min(100, (p.profit / p.income) * 100)) : 0
+            const pct = Math.max(0, Math.min(100, p.margin ?? 0))
             return (
               <motion.button key={p.id} whileTap={{ scale: 0.98 }}
                 onClick={() => { setSelected(p.id); setSubTab('income'); setAddOpen(false) }}
@@ -540,8 +553,8 @@ export default function ProjectFinanceTab({ userId }) {
                     <div style={{ fontSize: 8, color: C.textDim }}>قبضات ({p.rcpCount})</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: C.accent, fontFamily: 'monospace' }}>₪{fmt(p.expense + p.payTotal)}</div>
-                    <div style={{ fontSize: 8, color: C.textDim }}>مصاريف+رواتب ({p.expCount + p.payCount})</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: C.accent, fontFamily: 'monospace' }}>₪{fmt(p.cost)}</div>
+                    <div style={{ fontSize: 8, color: C.textDim }}>تكاليف ({p.expCount + p.payCount})</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 13, fontWeight: 900, color: p.profit >= 0 ? C.success : C.accent, fontFamily: 'monospace' }}>

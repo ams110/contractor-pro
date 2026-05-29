@@ -14,7 +14,7 @@ import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/i
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
-import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
+import { calcProjectStats as _calcStats, calcOwnerCash } from '../../lib/calculations.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 // useProjectBusinessLinks removed — projects now use direct business_id FK
 
@@ -254,6 +254,8 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
   const pReceipts = clientReceipts.filter(r => r.project_id === pid).slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))
   const pPayments = (payments || []).filter(p => p.project_id === pid)
   const paidToWorkers = pPayments.reduce((s, p) => s + (p.amount || 0), 0)
+  const pAdvances = (advances || []).filter(a => a.project_id === pid)
+  const advancesPaid = pAdvances.reduce((s, a) => s + (a.amount || 0), 0)
   const stats = calcProjectStats(project, workDays, expenses, clientReceipts, employees, payments)
   const { confirm: bioConfirm } = useBiometricConfirm()
 
@@ -490,20 +492,22 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
             )}
 
             {/* Worker payment breakdown */}
-            {(stats.wdCost > 0 || paidToWorkers > 0) && (() => {
-              const owedToWorkers = stats.wdCost - paidToWorkers
-              const ownerCash = stats.revenue - paidToWorkers - stats.expTotal
+            {(stats.wdCost > 0 || stats.workerExpTotal > 0 || paidToWorkers > 0 || advancesPaid > 0) && (() => {
+              // مستحق للعامل = أيام العمل + مصاريف العامل ، واصل = مدفوعات + سلف
+              const owedTotal     = stats.wdCost + stats.workerExpTotal
+              const receivedTotal = paidToWorkers + advancesPaid
+              const owedToWorkers = owedTotal - receivedTotal
               return (
                 <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '14px', marginBottom: 10 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10 }}>توزيع الأجور</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 12, color: C.textDim }}>أجور مستحقة للعمال</span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: C.secondary, fontFamily: 'monospace' }}>₪{fmt(stats.wdCost)}</span>
+                      <span style={{ fontSize: 12, color: C.textDim }}>مستحق للعمال (أجور + مصاريفهم)</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: C.secondary, fontFamily: 'monospace' }}>₪{fmt(owedTotal)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 12, color: C.textDim }}>دُفع للعمال</span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>-₪{fmt(paidToWorkers)}</span>
+                      <span style={{ fontSize: 12, color: C.textDim }}>واصل لهم (مدفوعات + سلف)</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>-₪{fmt(receivedTotal)}</span>
                     </div>
                     <div style={{ height: 1, background: C.border }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -521,12 +525,14 @@ function ProjectDetail({ project, workDays, expenses, clientReceipts, employees,
 
             {/* Owner's remaining cash */}
             {stats.revenue > 0 && (() => {
-              const ownerCash = stats.revenue - paidToWorkers - stats.expTotal
+              // نقد حقيقي: إيرادات − مصاريف المشروع − مدفوعات وسلف العمال
+              // (مصاريف العمال لا تُطرح هنا — تُسوّى ضمن المدفوعات/السلف)
+              const ownerCash = calcOwnerCash(stats.revenue, stats.projExpTotal, paidToWorkers, advancesPaid)
               return (
                 <div style={{ background: ownerCash >= 0 ? `${C.success}10` : `${C.accent}10`, border: `1px solid ${ownerCash >= 0 ? C.success : C.accent}28`, borderRadius: 14, padding: '14px 16px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 3 }}>متبقي بيد المالك</div>
-                    <div style={{ fontSize: 10, color: C.textDim }}>إيرادات − ما دُفع للعمال − المصاريف</div>
+                    <div style={{ fontSize: 10, color: C.textDim }}>إيرادات − مصاريف المشروع − مدفوعات وسلف العمال</div>
                   </div>
                   <span style={{ fontSize: 20, fontWeight: 900, color: ownerCash >= 0 ? C.success : C.accent, fontFamily: 'monospace' }}>
                     {ownerCash >= 0 ? '' : '-'}₪{fmt(Math.abs(ownerCash))}

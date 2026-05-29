@@ -24,7 +24,6 @@ import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../../lib/cal
 import { uploadReceipt } from '../../lib/storage.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
-import AccountingScreen from '../AccountingScreen.jsx'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function lbl(ar, he, en, lang) { return lang === 'he' ? he : lang === 'en' ? en : ar }

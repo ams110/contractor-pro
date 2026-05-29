@@ -56,6 +56,13 @@ export const calcProfit = (revenue, cost) => revenue - cost
 export const calcMargin = (revenue, profit) =>
   revenue > 0 ? parseFloat(((profit / revenue) * 100).toFixed(1)) : null
 
+// نقد المالك المتبقي للمشروع (تدفّق نقدي حقيقي)
+//   = إيرادات محصّلة − مصاريف المشروع المدفوعة − ما دُفع للعمال − سلف العمال
+//   ملاحظة: لا نطرح "مصاريف العامل" (workerExp) هنا لأنها جزء من المستحق
+//   للعامل، ويُسوّى نقداً عبر المدفوعات/السلف — طرحها مرة ثانية = ازدواج حسبة.
+export const calcOwnerCash = (revenue, projExpTotal, paidToWorkers, advancesPaid = 0) =>
+  revenue - projExpTotal - paidToWorkers - advancesPaid
+
 // إحصائيات مشروع كاملة من البيانات الخام
 export const calcProjectStats = (projectId, workDays = [], expenses = [], clientReceipts = []) => {
   const wdList    = workDays.filter(w => w.project_id === projectId && w.status === 'approved')
@@ -63,16 +70,20 @@ export const calcProjectStats = (projectId, workDays = [], expenses = [], client
   const projExp   = expenses.filter(e => e.project_id === projectId && !e.employee_id && e.status === 'approved')
   const workerExp = expenses.filter(e => e.project_id === projectId && e.employee_id && e.status === 'approved')
 
-  const revenue  = calcRevenue(receipts)
-  const wdCost   = calcEarned(wdList)
-  const expTotal = calcWorkerExpenses(projExp) + calcWorkerExpenses(workerExp)
-  const cost     = wdCost + expTotal
-  const profit   = calcProfit(revenue, cost)
-  const margin   = calcMargin(revenue, profit)
+  const revenue        = calcRevenue(receipts)
+  const wdCost         = calcEarned(wdList)
+  const projExpTotal   = calcWorkerExpenses(projExp)
+  const workerExpTotal = calcWorkerExpenses(workerExp)
+  const expTotal       = projExpTotal + workerExpTotal
+  const cost           = wdCost + expTotal
+  const profit         = calcProfit(revenue, cost)
+  const margin         = calcMargin(revenue, profit)
 
   return {
     revenue,
     wdCost,
+    projExpTotal,    // مصاريف المشروع البحتة (بدون مصاريف العمال)
+    workerExpTotal,  // مصاريف العمال (تدخل ضمن المستحق لهم)
     expTotal,
     cost,
     profit,
