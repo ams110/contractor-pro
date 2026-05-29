@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
-import {
-  startRegistration,
-  startAuthentication,
-} from '@simplewebauthn/browser'
 
-const PASSKEY_KEY  = 'cpro_passkey_cred'
-const SESSION_KEY  = 'cpro_passkey_sess'
-const PIN_HASH_KEY = 'cpro_pin_hash'
+// ── مفاتيح localStorage ───────────────────────────────────────────────────────
+const PASSKEY_KEY   = 'cpro_passkey_cred'     // علامة: البصمة مسجّلة على هذا الجهاز
+const PIN_HASH_KEY  = 'cpro_pin_hash'
 const PIN_CREDS_KEY = 'cpro_pin_creds'
-const PK_KEY_KEY   = 'cpro_pk_key'
-const PK_CREDS_KEY = 'cpro_pk_creds'
 
 async function sha256(text) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
@@ -41,13 +35,6 @@ export function useAuth() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      // بعد أي login ناجح: جدّد الجلسة المخزّنة إذا كان PIN أو بصمة مفعّلَين
-      if (session && (localStorage.getItem(PASSKEY_KEY) || localStorage.getItem(PIN_HASH_KEY))) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify({
-          access_token:  session.access_token,
-          refresh_token: session.refresh_token,
-        }))
-      }
     })
 
     return () => subscription.unsubscribe()
@@ -73,105 +60,42 @@ export function useAuth() {
     if (error) throw error
   }
 
-  // ─── WebAuthn / Passkeys (بدون Edge Functions) ────────────────────────────
+  // ─── Passkeys — Supabase Native ───────────────────────────────────────────
 
-  /** تفعيل البصمة على الجهاز الحالي */
-  async function registerPasskey(password) {
+  /**
+   * تسجيل passkey جديدة على الجهاز الحالي (يحتاج المستخدم مسجّل دخوله بالباسورد مرة واحدة)
+   * يستخدم supabase.auth.registerPasskey() — المفاتيح تُخزَّن في Supabase، لا على الجهاز
+   */
+  async function registerPasskey() {
     if (!user) throw new Error('يجب تسجيل الدخول أولاً')
-
-    // verify password first
-    const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: user.email, password })
-    if (verifyErr) throw new Error('كلمة المرور غير صحيحة')
-
-    // challenge عشوائي محلي (كافٍ لتطبيق شخصي)
-    const challenge = new Uint8Array(32)
-    crypto.getRandomValues(challenge)
-    const challengeB64 = btoa(String.fromCharCode(...challenge))
-
-    let credential
     try {
-      credential = await startRegistration({
-        challenge:       challengeB64,
-        rp:              { name: 'Contractor Pro', id: window.location.hostname },
-        user:            { id: user.id, name: user.email, displayName: user.email },
-        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
-        authenticatorSelection: {
-          authenticatorAttachment: 'platform',
-          userVerification:        'required',
-          residentKey:             'preferred',
-        },
-        timeout: 60000,
+      const { data, error } = await supabase.auth.registerPasskey({
+        friendlyName: `Contractor Pro — ${navigator.platform || 'Device'}`,
       })
+      if (error) throw error
+      // علّم الجهاز بأن البصمة مسجّلة
+      localStorage.setItem(PASSKEY_KEY, 'registered')
+      return data
     } catch (e) {
       if (e.name === 'NotAllowedError') throw new Error('تم إلغاء التسجيل')
-      throw new Error('خطأ في تسجيل البصمة: ' + e.message)
-    }
-
-    // احفظ معرّف البصمة
-    localStorage.setItem(PASSKEY_KEY, credential.id)
-
-    // شفّر الـ credentials بمفتاح عشوائي (دائمة — لا تعتمد على التوكنات)
-    const rawKey = crypto.getRandomValues(new Uint8Array(32))
-    const aesKey = await crypto.subtle.importKey('raw', rawKey, { name: 'AES-GCM' }, true, ['encrypt'])
-    const iv     = crypto.getRandomValues(new Uint8Array(12))
-    const data   = new TextEncoder().encode(JSON.stringify({ email: user.email, password }))
-    const enc    = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, data)
-    localStorage.setItem(PK_KEY_KEY,   JSON.stringify({ key: Array.from(rawKey), iv: Array.from(iv) }))
-    localStorage.setItem(PK_CREDS_KEY, JSON.stringify(Array.from(new Uint8Array(enc))))
-
-    // احتفظ بالجلسة أيضاً كـ fallback
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      localStorage.setItem(SESSION_KEY, JSON.stringify({
-        access_token:  session.access_token,
-        refresh_token: session.refresh_token,
-      }))
+      throw new Error('فشل تسجيل البصمة: ' + (e.message || ''))
     }
   }
 
-  /** تسجيل دخول بالبصمة */
+  /**
+   * تسجيل دخول مباشر بالبصمة — بدون باسورد
+   * يستخدم supabase.auth.signInWithPasskey() — Supabase يتحقق على السيرفر
+   */
   async function signInWithPasskey() {
-    const credId = localStorage.getItem(PASSKEY_KEY)
-    if (!credId) throw new Error('لا توجد بصمة مسجّلة على هذا الجهاز')
-
-    const challenge = new Uint8Array(32)
-    crypto.getRandomValues(challenge)
-    const challengeB64 = btoa(String.fromCharCode(...challenge))
-
     try {
-      await startAuthentication({
-        challenge:        challengeB64,
-        allowCredentials: [{ type: 'public-key', id: credId }],
-        userVerification: 'required',
-        timeout:          60000,
-        rpId:             window.location.hostname,
-      })
+      const { data, error } = await supabase.auth.signInWithPasskey()
+      if (error) throw error
+      // تأكد من تعليم الجهاز بعد نجاح الدخول
+      localStorage.setItem(PASSKEY_KEY, 'registered')
+      return data
     } catch (e) {
       if (e.name === 'NotAllowedError') throw new Error('تم إلغاء عملية البصمة')
-      throw new Error('فشلت البصمة: ' + e.message)
-    }
-
-    // البصمة نجحت — المسار الجديد: credentials مشفّرة → دخول مباشر
-    const keyStr = localStorage.getItem(PK_KEY_KEY)
-    const encStr = localStorage.getItem(PK_CREDS_KEY)
-    if (keyStr && encStr) {
-      const { key: rawKey, iv } = JSON.parse(keyStr)
-      const aesKey = await crypto.subtle.importKey('raw', new Uint8Array(rawKey), { name: 'AES-GCM' }, false, ['decrypt'])
-      const dec    = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(iv) }, aesKey, new Uint8Array(JSON.parse(encStr)))
-      const { email, password } = JSON.parse(new TextDecoder().decode(dec))
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw new Error('فشل تسجيل الدخول — أعد تفعيل البصمة من الإعدادات')
-      return
-    }
-
-    // fallback للأجهزة القديمة (قبل هذا التحديث)
-    const raw = localStorage.getItem(SESSION_KEY)
-    if (!raw) { const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e }
-    const { access_token, refresh_token } = JSON.parse(raw)
-    const { error } = await supabase.auth.setSession({ access_token, refresh_token })
-    if (error) {
-      localStorage.removeItem(SESSION_KEY)
-      const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e
+      throw new Error('فشلت البصمة — أعد التسجيل من الإعدادات: ' + (e.message || ''))
     }
   }
 
@@ -184,17 +108,14 @@ export function useAuth() {
     )
   }
 
-  /** هل البصمة مفعّلة على هذا الجهاز؟ */
+  /** هل البصمة مسجّلة على هذا الجهاز؟ */
   function hasPasskeyRegistered() {
     return !!localStorage.getItem(PASSKEY_KEY)
   }
 
-  /** حذف البصمة من الجهاز */
+  /** إلغاء البصمة من الجهاز (تمسح العلامة المحلية فقط — السجل في Supabase يُحذف من الإعدادات) */
   function removePasskey() {
     localStorage.removeItem(PASSKEY_KEY)
-    localStorage.removeItem(SESSION_KEY)
-    localStorage.removeItem(PK_KEY_KEY)
-    localStorage.removeItem(PK_CREDS_KEY)
   }
 
   // ─── PIN Login ────────────────────────────────────────────────────────────
