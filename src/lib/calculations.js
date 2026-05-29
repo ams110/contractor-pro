@@ -89,6 +89,6 @@ export const calcProjectStats = (projectId, workDays = [], expenses = [], client
     profit,
     margin,
     wdCount: wdList.length,
-    pending: wdList.filter(w => w.status === 'pending').length,
+    pending: workDays.filter(w => w.project_id === projectId && w.status === 'pending').length,
   }
 }

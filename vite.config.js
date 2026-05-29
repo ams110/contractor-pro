@@ -44,4 +44,18 @@ export default defineConfig({
   ],
   base: process.env.GITHUB_PAGES === 'true' ? '/contractor-pro/' : '/',
   server: { port: 3000 },
+  build: {
+    // فصل المكتبات الكبيرة في chunks مستقلة → الصفحة الرئيسية تفتح أسرع،
+    // والمكتبات تُحمّل من الكاش بين الإصدارات (تتغيّر أقل من كود التطبيق).
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react:  ['react', 'react-dom'],
+          charts: ['recharts'],
+          motion: ['framer-motion'],
+          icons:  ['lucide-react'],
+        },
+      },
+    },
+  },
 })
