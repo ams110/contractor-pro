@@ -41,6 +41,9 @@ jobs:
           VITE_APP_URL: https://ams110.github.io/contractor-pro
         run: npm run build
 
+      - name: SPA fallback (404 = index)
+        run: cp dist/index.html dist/404.html
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
