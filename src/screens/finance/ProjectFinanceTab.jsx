@@ -6,7 +6,7 @@ import {
   Plus, Trash2, FolderOpen, X,
 } from 'lucide-react'
 import { C, GRAD, EXP_CATS } from '../../constants/index.js'
-import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
+import { fmt, fmtDate, todayStr, isPaymentOverdue } from '../../lib/helpers.js'
 import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
 import { supabase } from '../../lib/supabase.js'
 import { useAppStore } from '../../store/useAppStore.js'
@@ -318,6 +318,11 @@ export default function ProjectFinanceTab({ userId }) {
       // إجماليات خام للتصفّح فقط (badges)
       const expenseRaw = pExp.reduce((s, e) => s + Number(e.amount), 0)
       const payTotal   = pPay.reduce((s, py) => s + Number(py.amount), 0)
+      // تحصيل العقد: قيمة العقد المتفق عليها (price) مقابل المقبوض فعلياً
+      const contractPrice = parseFloat(p.price) || 0
+      const remaining     = contractPrice > 0 ? Math.max(0, contractPrice - stats.revenue) : 0
+      const collectedPct  = contractPrice > 0 ? Math.min(100, Math.round((stats.revenue / contractPrice) * 100)) : 0
+      const overdue       = contractPrice > 0 ? isPaymentOverdue(p, receipts) : false
       return {
         ...p,
         income:   stats.revenue,
@@ -329,6 +334,10 @@ export default function ProjectFinanceTab({ userId }) {
         rcpCount: pRcp.length,
         expCount: pExp.length,
         payCount: pPay.length,
+        contractPrice,
+        remaining,
+        collectedPct,
+        overdue,
       }
     })
   }, [projects, receipts, expenses, payments, workDays])
@@ -423,6 +432,36 @@ export default function ProjectFinanceTab({ userId }) {
             </div>
           ))}
         </div>
+
+        {/* تحصيل العقد — قيمة العقد · مقبوض · باقي للقبض */}
+        {selProject.contractPrice > 0 && (
+          <div style={{ background: C.surface, border: `1px solid ${selProject.overdue ? C.accent + '40' : C.border}`, borderRadius: 16, padding: '12px 14px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: C.text }}>تحصيل العقد</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>قيمة العقد ₪{fmt(selProject.contractPrice)}</span>
+            </div>
+            {/* شريط التحصيل */}
+            <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
+              <div style={{ height: '100%', width: `${selProject.collectedPct}%`, borderRadius: 4, background: selProject.collectedPct >= 100 ? C.success : GRAD.warm, transition: 'width .4s ease' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>₪{fmt(selProject.income)}</div>
+                <div style={{ fontSize: 8, color: C.textDim }}>مقبوض ({selProject.collectedPct}%)</div>
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: 12, fontWeight: 900, color: selProject.remaining > 0 ? C.primary : C.textDim, fontFamily: 'monospace' }}>₪{fmt(selProject.remaining)}</div>
+                <div style={{ fontSize: 8, color: C.textDim }}>باقي للقبض</div>
+              </div>
+            </div>
+            {selProject.overdue && (
+              <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: C.accent, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.accent, display: 'inline-block' }} />
+                متأخّر {selProject.overdue.daysSince} يوم بدون قبضة جديدة
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Sub-tabs */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
@@ -571,6 +610,17 @@ export default function ProjectFinanceTab({ userId }) {
                 <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
                   <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: p.profit >= 0 ? C.success : C.accent, transition: 'width .4s ease' }} />
                 </div>
+
+                {/* باقي للقبض من العقد (إن وُجد سعر) */}
+                {p.contractPrice > 0 && p.remaining > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                    <span style={{ fontSize: 9, color: C.textDim }}>
+                      باقي للقبض من العقد
+                      {p.overdue && <span style={{ color: C.accent, fontWeight: 700 }}> · متأخّر {p.overdue.daysSince}ي</span>}
+                    </span>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>₪{fmt(p.remaining)}</span>
+                  </div>
+                )}
               </motion.button>
             )
           })

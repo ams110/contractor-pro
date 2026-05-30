@@ -8,9 +8,9 @@ import {
   DollarSign, CreditCard, BarChart3, Activity,
 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
-import { fmt } from '../../lib/helpers.js'
+import { fmt, isPaymentOverdue } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
-import { calcEarned, calcPaid, calcAdvances, calcRevenue, calcProjectStats } from '../../lib/calculations.js'
+import { calcEarned, calcPaid, calcAdvances, calcRevenue, calcProjectStats, calcMutabqi } from '../../lib/calculations.js'
 
 // ─── Bento Card ───────────────────────────────────────────────────────────────
 function BentoCard({ children, style = {}, gradient, onClick }) {
@@ -133,6 +133,33 @@ export default function DashboardScreen({
     const activeCount   = projects.filter(p => p.status === 'نشط').length
     const pendingWD     = workDays.filter(w => w.status === 'pending').length
 
+    // ── السيولة الحقيقية (تدفّق نقدي فعلي، مش ربح دفتري) ──────────────────────
+    // نقد بالجيب = كل المقبوض − كل المدفوع فعلياً (مصاريف مدفوعة + رواتب + سلف)
+    const cashIn      = totalRevenue
+    const cashOut     = totalExpenses + totalWasel
+    const cashOnHand  = cashIn - cashOut
+
+    // مستحق للعمال = مجموع المتبقّي لكل عامل (لا يقل عن صفر)
+    const owedToWorkers = employees.reduce((s, emp) => {
+      const wds  = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved')
+      const wExp = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved')
+      const pays = payments.filter(p => p.employee_id === emp.id)
+      const advs = advances.filter(a => a.employee_id === emp.id)
+      return s + Math.max(0, calcMutabqi(wds, wExp, pays, advs))
+    }, 0)
+
+    // باقي لك عند العملاء = مجموع (قيمة العقد − المقبوض) للمشاريع التي لها سعر
+    let owedByClients = 0
+    let overdueCount  = 0
+    projects.forEach(p => {
+      const price = parseFloat(p.price) || 0
+      if (price <= 0) return
+      const received = clientReceipts.filter(r => r.project_id === p.id).reduce((s, r) => s + (r.amount || 0), 0)
+      const balance  = price - received
+      if (balance > 0) owedByClients += balance
+      if (isPaymentOverdue(p, clientReceipts)) overdueCount += 1
+    })
+
     const now = new Date()
     const monthlyData = Array.from({ length: 6 }, (_, i) => {
       const d   = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
@@ -143,7 +170,7 @@ export default function DashboardScreen({
       return { month: key.slice(5), v: rev - exp - labor, rev, exp: exp + labor }
     })
 
-    return { totalRevenue, totalExpenses, totalPayments, totalAdvances, totalWasel, netProfit, activeCount, pendingWD, workerCosts, monthlyData }
+    return { totalRevenue, totalExpenses, totalPayments, totalAdvances, totalWasel, netProfit, activeCount, pendingWD, workerCosts, monthlyData, cashOnHand, owedToWorkers, owedByClients, overdueCount }
   }, [projects, employees, workDays, expenses, payments, advances, clientReceipts])
 
   // Top projects by profit
@@ -172,6 +199,55 @@ export default function DashboardScreen({
           {language === 'he' ? 'סיכום כל הפעילות שלך' : language === 'en' ? 'Overview of all your activity' : 'نظرة شاملة على نشاطك'}
         </div>
       </motion.div>
+
+      {/* ─── Cash on Hand (السيولة الحقيقية) ─── */}
+      <motion.div {...cardAnim} transition={{ delay: 0.04 }} style={{ marginBottom: 12 }}>
+        <BentoCard style={{ background: stats.cashOnHand >= 0 ? 'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(6,182,212,0.06))' : 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(249,115,22,0.06))', borderColor: stats.cashOnHand >= 0 ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)' }} onClick={() => onNav?.('finance')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <Wallet size={16} color={stats.cashOnHand >= 0 ? C.success : C.accent} strokeWidth={2} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.textDim }}>
+              {language === 'he' ? 'מזומן ביד עכשיו' : language === 'en' ? 'Cash on hand now' : 'نقد بالجيب الآن'}
+            </span>
+          </div>
+          <div style={{ fontSize: 30, fontWeight: 900, color: stats.cashOnHand >= 0 ? C.success : C.accent, letterSpacing: '-0.02em', lineHeight: 1 }}>
+            {stats.cashOnHand < 0 ? '−' : ''}₪{fmt(Math.abs(stats.cashOnHand))}
+          </div>
+          <div style={{ fontSize: 10, color: C.textDim, marginTop: 5 }}>
+            {language === 'he' ? 'כל מה שנכנס פחות כל מה ששולם בפועל' : language === 'en' ? 'All received minus all actually paid out' : 'كل المقبوض ناقص كل المدفوع فعلياً'}
+          </div>
+        </BentoCard>
+      </motion.div>
+
+      {/* ─── مستحق للعمال + باقي لك عند العملاء ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
+        <motion.div {...cardAnim} transition={{ delay: 0.06 }}>
+          <BentoCard onClick={() => onNav?.('payments')}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.warning}18`, border: `1px solid ${C.warning}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+              <Users size={15} color={C.warning} strokeWidth={2} />
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: stats.owedToWorkers > 0 ? C.warning : C.text, letterSpacing: '-0.02em' }}>₪{fmt(stats.owedToWorkers)}</div>
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>
+              {language === 'he' ? 'חוב לעובדים' : language === 'en' ? 'Owed to workers' : 'مستحق للعمال'}
+            </div>
+          </BentoCard>
+        </motion.div>
+        <motion.div {...cardAnim} transition={{ delay: 0.08 }}>
+          <BentoCard onClick={() => onNav?.('projects')}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.primary}18`, border: `1px solid ${C.primary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+              <DollarSign size={15} color={C.primary} strokeWidth={2} />
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: stats.owedByClients > 0 ? C.primary : C.text, letterSpacing: '-0.02em' }}>₪{fmt(stats.owedByClients)}</div>
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>
+              {language === 'he' ? 'נותר לגבות מלקוחות' : language === 'en' ? 'Owed by clients' : 'باقي لك عند العملاء'}
+            </div>
+            {stats.overdueCount > 0 && (
+              <div style={{ fontSize: 9, color: C.accent, fontWeight: 700, marginTop: 3 }}>
+                {stats.overdueCount} {language === 'he' ? 'באיחור' : language === 'en' ? 'overdue' : 'متأخّر'}
+              </div>
+            )}
+          </BentoCard>
+        </motion.div>
+      </div>
 
       {/* ─── Primary Stats Row ─── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
