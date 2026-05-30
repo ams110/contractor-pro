@@ -8,6 +8,7 @@ import {
 import { C, GRAD } from '../../constants/index.js'
 import { todayStr } from '../../lib/helpers.js'
 import { uploadReceipt } from '../../lib/storage.js'
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 
 const METHODS = [
   { id: 'cash',     label: 'كاش',            Icon: Banknote   },
@@ -57,6 +58,7 @@ export default function AddReceiptSheet({
   const [focus,  setFocus]  = useState('')
   const [err,    setErr]    = useState({})
   const fileRef = useRef()
+  const { confirm: bioConfirm, hasAnyMethod } = useBiometricConfirm()
 
   const lockedProject = !!defaultProjectId
   const noProjects    = projects.length === 0
@@ -95,6 +97,10 @@ export default function AddReceiptSheet({
 
   async function handleSave() {
     if (!validate()) return
+    if (hasAnyMethod()) {
+      const sig = await bioConfirm(`تسجيل قبضة: ₪${form.amount}`, 'client_receipts')
+      if (!sig) return
+    }
     setSaving(true)
     try {
       let receipt_url = null

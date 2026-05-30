@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Trash2 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { useBusinessStore, BUSINESS_TYPES } from '../../store/useBusinessStore.js'
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 
 const inp = {
   width: '100%',
@@ -21,6 +22,7 @@ const inp = {
 
 export default function BusinessEditSheet({ business, onClose }) {
   const { update, remove } = useBusinessStore()
+  const { confirm: bioConfirm, hasAnyMethod } = useBiometricConfirm()
 
   const [form, setForm] = useState({
     name:          business.name,
@@ -40,6 +42,10 @@ export default function BusinessEditSheet({ business, onClose }) {
 
   async function handleSave() {
     if (!form.name.trim()) return
+    if (hasAnyMethod()) {
+      const sig = await bioConfirm(`تعديل مصلحة: ${business.name}`, 'businesses')
+      if (!sig) return
+    }
     setSaving(true)
     try {
       await update(business.id, {
@@ -60,6 +66,10 @@ export default function BusinessEditSheet({ business, onClose }) {
   }
 
   async function handleDelete() {
+    if (hasAnyMethod()) {
+      const sig = await bioConfirm(`حذف مصلحة: ${business.name}`, 'businesses')
+      if (!sig) return
+    }
     setDeleting(true)
     try {
       await remove(business.id)

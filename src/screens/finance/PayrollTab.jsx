@@ -559,6 +559,9 @@ export default function PayrollTab({ employees = [], userId }) {
   }
 
   async function handleMarkPaid(id) {
+    const slip = slips.find(s => s.id === id)
+    const sig  = await bioConfirm(`تأكيد صرف: ${slip?.worker_name || ''} — ₪${slip?.net_pay || 0}`, 'payroll')
+    if (!sig) return
     const paid_at = todayStr()
     await supabase.from('payroll_slips').update({ paid_at }).eq('id', id)
     setSlips(prev => prev.map(s => s.id === id ? { ...s, paid_at } : s))

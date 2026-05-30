@@ -8,6 +8,7 @@ import {
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, VAT } from '../../constants/index.js'
 import { todayStr } from '../../lib/helpers.js'
 import { uploadReceipt } from '../../lib/storage.js'
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 
 const METHODS = [
   { id: 'cash',     label: 'كاش',            Icon: Banknote   },
@@ -68,6 +69,7 @@ export default function AddExpenseSheet({
   const [focus,  setFocus]  = useState('')
   const [err,    setErr]    = useState({})
   const fileRef = useRef()
+  const { confirm: bioConfirm, hasAnyMethod } = useBiometricConfirm()
 
   const lockedProject = !!defaultProjectId
   const noProjects    = projects.length === 0 && !lockedProject
@@ -106,6 +108,10 @@ export default function AddExpenseSheet({
 
   async function handleSave() {
     if (!validate()) return
+    if (hasAnyMethod()) {
+      const sig = await bioConfirm(`تسجيل مصروف: ₪${form.amount} — ${form.category}`, 'expenses')
+      if (!sig) return
+    }
     setSaving(true)
     try {
       let receipt_url = null
