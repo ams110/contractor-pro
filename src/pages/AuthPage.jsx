@@ -194,7 +194,7 @@ export default function AuthPage({ mode: initialMode = 'login' }) {
       sessionStorage.removeItem('pending_plan')
       navigate('/pricing')
     } else {
-      navigate('/app')
+      navigate('/welcome')
     }
   }, [user])
 

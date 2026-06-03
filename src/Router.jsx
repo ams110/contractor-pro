@@ -3,6 +3,7 @@ import App         from './App.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import PricingPage from './pages/PricingPage.jsx'
 import AuthPage    from './pages/AuthPage.jsx'
+import WelcomePage from './pages/WelcomePage.jsx'
 
 // ─── Client-side navigation (no full page reload) ─────────────────────────────
 export function navigate(path) {
@@ -27,5 +28,6 @@ export default function Router() {
   if (path === '/pricing')   return <PricingPage />
   if (path === '/login')     return <AuthPage mode="login" />
   if (path === '/register')  return <AuthPage mode="register" />
+  if (path === '/welcome')   return <WelcomePage />
   return <App />
 }
