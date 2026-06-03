@@ -7,6 +7,7 @@ import { C, GRAD } from '../../constants/index.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { teamMemberSignIn as _teamSignIn } from '../../hooks/useTeam.js'
 import { useAuth } from '../../hooks/useAuth.js'
+import { navigate } from '../../Router.jsx'
 
 const PASSKEY_KEY  = 'cpro_passkey_cred'
 const PIN_HASH_KEY = 'cpro_pin_hash'
@@ -65,6 +66,7 @@ export default function LoginScreen({ teamMemberSignIn }) {
     setLoading(true); setError('')
     try {
       await signInWithPasskey()
+      navigate('/welcome')
     } catch (e) {
       if (e.name === 'SessionExpiredError' || e.message?.includes('SESSION_EXPIRED')) {
         setError(language === 'en' ? 'Session expired — please sign in with password once.' : language === 'he' ? 'הפעלה פגה — היכנס עם סיסמה פעם אחת.' : 'انتهت الجلسة — سجّل الدخول بالباسورد مرة واحدة.')
@@ -89,6 +91,7 @@ export default function LoginScreen({ teamMemberSignIn }) {
     try {
       await signInWithPin(candidate)
       setPinPhase('success')
+      setTimeout(() => navigate('/welcome'), 350)
     } catch (e) {
       if (e.message?.includes('SESSION_EXPIRED')) {
         setError(language === 'en' ? 'Session expired — please sign in with password once.' : 'انتهت الجلسة — سجّل الدخول بالباسورد مرة واحدة.')
@@ -111,7 +114,11 @@ export default function LoginScreen({ teamMemberSignIn }) {
     if (!email || !password) return
     setLoading(true); setError('')
     const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-    if (err) setError(err.message || t('auth.wrongCredentials'))
+    if (err) {
+      setError(err.message || t('auth.wrongCredentials'))
+    } else {
+      navigate('/welcome')
+    }
     setLoading(false)
   }
 
@@ -121,6 +128,7 @@ export default function LoginScreen({ teamMemberSignIn }) {
     setLoading(true); setError('')
     try {
       await _teamSignIn(teamCode, teamPass)
+      navigate('/welcome')
     } catch (err) {
       setError(err.message || t('auth.wrongCredentials'))
     }
