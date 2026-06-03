@@ -64,6 +64,27 @@ function b64urlToBytes(b64url) {
   return Uint8Array.from(atob(b64), c => c.charCodeAt(0))
 }
 
+// Silently re-encrypts the latest refresh_token into PASSKEY_ENC so the
+// stored passkey credential never goes stale after a password login or an
+// automatic token rotation by Supabase.
+async function _silentlyUpdatePasskeyToken(refreshToken) {
+  try {
+    if (!localStorage.getItem(PASSKEY_KEY)) return
+    const aesKey = await idbGet('cpro_aes')
+    if (!aesKey) return
+    const iv  = crypto.getRandomValues(new Uint8Array(12))
+    const enc = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      aesKey,
+      new TextEncoder().encode(refreshToken)
+    )
+    localStorage.setItem(PASSKEY_ENC, JSON.stringify({
+      iv:  Array.from(iv),
+      enc: Array.from(new Uint8Array(enc)),
+    }))
+  } catch {}
+}
+
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useAuth() {
@@ -76,8 +97,12 @@ export function useAuth() {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
+      // Keep the stored passkey token fresh on every login and auto-refresh
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.refresh_token) {
+        _silentlyUpdatePasskeyToken(session.refresh_token)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -221,7 +246,7 @@ export function useAuth() {
 
     // Restore Supabase session via refresh_token
     const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken })
-    if (error) throw new Error('انتهت صلاحية الجلسة — سجّل الدخول بالباسورد مرة واحدة ثم أعد تسجيل البصمة')
+    if (error) { const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e }
 
     // Rotate: store new refresh_token (Supabase rotates on each use)
     try {
