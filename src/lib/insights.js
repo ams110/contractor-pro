@@ -277,3 +277,139 @@ function buildForecastInsights({ avgFlow, projected, cashOnHand, runway, horizon
 
   return out.slice(0, 2)
 }
+
+// ─── بصمة العامل — Worker DNA ─────────────────────────────────────────────────────
+// يحوّل تاريخ العامل (أيام، إنتاجية، سلف، استمرارية، انضباط) إلى مؤشّر موثوقية واحد
+// (0–100) + رادار 5 محاور + رؤى ذكية تقارنه بمتوسّط فريقك. دوال نقيّة قابلة للاختبار.
+
+/** الإنتاجية: أجر العامل اليومي مقابل متوسّط فريقك (مؤشّر قيمة/مهارة). */
+function productivityScore({ avgPerDay, fleetAvgPerDay }) {
+  if (!fleetAvgPerDay || fleetAvgPerDay <= 0 || !avgPerDay) return 60
+  const ratio = avgPerDay / fleetAvgPerDay
+  return clamp(65 + (ratio - 1) * 70, 0, 100)   // مساوٍ للمتوسّط = 65، أعلى 50% = 100
+}
+
+/** الانتظام: ثبات الحضور شهرياً — تذبذب أقل = درجة أعلى. */
+function regularityScore({ daysPerMonth }) {
+  const active = (daysPerMonth || []).filter(d => d > 0)
+  if (active.length < 2) return 55
+  const mean = active.reduce((s, d) => s + d, 0) / active.length
+  if (mean <= 0) return 55
+  const cv = stdDev(active) / mean                 // معامل الاختلاف
+  return clamp(100 - cv * 90, 0, 100)
+}
+
+/** الانضباط المالي: نسبة السلف من المستحق — كلّما قلّت كان أفضل. */
+function disciplineScore({ advances, earned }) {
+  if (earned <= 0) return advances > 0 ? 30 : 70
+  const ratio = advances / earned
+  return clamp(100 - ratio * 150, 0, 100)          // سلف = 66% من المستحق → 0
+}
+
+/** الاستمرارية: طول المدّة مع المصلحة (ولاء). */
+function tenureScore({ tenureMonths }) {
+  if (!tenureMonths || tenureMonths <= 0) return 45
+  return clamp(40 + tenureMonths * 10, 40, 100)    // 6 أشهر فأكثر → 100
+}
+
+/** الموثوقية: نسبة الأيام المعتمدة من إجمالي المُقدّمة − خصم على المرفوضة. */
+function approvalScore({ approvedDays, pendingDays, rejectedDays }) {
+  const total = approvedDays + pendingDays + rejectedDays
+  if (total <= 0) return 50
+  const rate = approvedDays / total
+  return clamp(rate * 100 - rejectedDays * 6, 0, 100)
+}
+
+const DNA_WEIGHTS = { productivity: 0.25, regularity: 0.25, approval: 0.20, discipline: 0.15, tenure: 0.15 }
+
+const DNA_LABELS = {
+  productivity: 'الإنتاجية',
+  regularity:   'الانتظام',
+  approval:     'الموثوقية',
+  discipline:   'الانضباط',
+  tenure:       'الاستمرارية',
+}
+
+/** تصنيف العامل حسب بصمته. */
+export function workerTier(score) {
+  if (score >= 80) return { tone: 'excellent', tier: 'نخبة',          star: true  }
+  if (score >= 65) return { tone: 'good',      tier: 'موثوق',         star: true  }
+  if (score >= 50) return { tone: 'fair',      tier: 'مقبول',         star: false }
+  if (score >= 35) return { tone: 'weak',      tier: 'يحتاج متابعة',  star: false }
+  return                  { tone: 'critical',  tier: 'تحت المراقبة',  star: false }
+}
+
+/**
+ * المحرّك الرئيسي — يحسب بصمة العامل الكاملة.
+ * @param {object} a - أرقام مجمّعة لعامل واحد + مرجع الفريق
+ * @returns {{ score, tier, tone, star, factors, insights, productivityPct }}
+ */
+export function computeWorkerDNA(a = {}) {
+  const {
+    name = '', earned = 0, advances = 0,
+    avgPerDay = 0, fleetAvgPerDay = 0,
+    approvedDays = 0, pendingDays = 0, rejectedDays = 0,
+    daysPerMonth = [], tenureMonths = 0,
+  } = a
+
+  const scores = {
+    productivity: Math.round(productivityScore({ avgPerDay, fleetAvgPerDay })),
+    regularity:   Math.round(regularityScore({ daysPerMonth })),
+    approval:     Math.round(approvalScore({ approvedDays, pendingDays, rejectedDays })),
+    discipline:   Math.round(disciplineScore({ advances, earned })),
+    tenure:       Math.round(tenureScore({ tenureMonths })),
+  }
+
+  const score = Math.round(
+    Object.entries(DNA_WEIGHTS).reduce((s, [k, w]) => s + scores[k] * w, 0)
+  )
+
+  const factors = Object.keys(DNA_WEIGHTS).map(k => ({
+    key: k, label: DNA_LABELS[k], score: scores[k], weight: DNA_WEIGHTS[k],
+  }))
+
+  const productivityPct = fleetAvgPerDay > 0 && avgPerDay > 0
+    ? Math.round((avgPerDay / fleetAvgPerDay - 1) * 100)
+    : 0
+
+  return {
+    score,
+    ...workerTier(score),
+    factors,
+    productivityPct,
+    insights: buildWorkerInsights({ name, earned, advances, productivityPct, pendingDays, tenureMonths, scores }),
+  }
+}
+
+// رؤى بصمة العامل — تحذيرات → نصائح → إيجابيات. أعلى 3.
+function buildWorkerInsights(a) {
+  const { name, earned, advances, productivityPct, pendingDays, tenureMonths, scores } = a
+  const advRatio = earned > 0 ? advances / earned : 0
+  const who = name ? name.split(' ')[0] : 'العامل'
+  const out = []
+
+  if (advRatio >= 0.5)
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `${who} سحب ${Math.round(advRatio * 100)}% من مستحقه سلفاً (₪${fmt(advances)}) — انتبه للتصفية النهائية.` })
+
+  if (scores.approval < 60 && pendingDays > 0)
+    out.push({ tone: 'warn', icon: 'Clock', text: `${pendingDays} يوم لـ${who} بانتظار موافقتك — راجِعها لتثبيت مستحقّه.` })
+  else if (pendingDays > 0)
+    out.push({ tone: 'tip', icon: 'Clock', text: `عند ${who} ${pendingDays} يوم بانتظار الموافقة.` })
+
+  if (productivityPct >= 25)
+    out.push({ tone: 'good', icon: 'TrendingUp', text: `${who} من نخبة عمّالك — أجره اليومي أعلى من متوسّط الفريق بـ ${productivityPct}%.` })
+  else if (productivityPct <= -25)
+    out.push({ tone: 'tip', icon: 'TrendingDown', text: `أجر ${who} اليومي أقل من متوسّط فريقك بـ ${Math.abs(productivityPct)}% — عامل اقتصادي.` })
+
+  if (scores.regularity >= 75 && tenureMonths >= 3)
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: `${who} ثابت ومنتظم — ${fmtMonths(tenureMonths)} معك بحضور متّسق.` })
+
+  if (advRatio === 0 && earned > 0 && out.every(i => i.tone !== 'good'))
+    out.push({ tone: 'good', icon: 'Sparkles', text: `${who} ما سحب أي سلفة — انضباط مالي ممتاز.` })
+
+  if (out.length === 0)
+    out.push({ tone: 'tip', icon: 'Activity', text: `سجّل أيام عمل ودفعات لـ${who} ليكتمل تحليل بصمته.` })
+
+  const order = { warn: 0, tip: 1, good: 2 }
+  return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
+}
