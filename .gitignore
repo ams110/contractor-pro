@@ -24,3 +24,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 supabase/.temp/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
