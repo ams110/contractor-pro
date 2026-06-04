@@ -413,3 +413,120 @@ function buildWorkerInsights(a) {
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
 }
+
+// ─── صحّة المشروع — Project Health Score ──────────────────────────────────────────
+// «الصندوق الأسود» للمشروع: يحوّل أرقامه (ربحية/تحصيل/ميزانية/سيولة) إلى مؤشّر صحّة
+// (0–100) + إنذار مبكّر بالهامش النهائي المتوقّع لو استمرّت التكلفة بنفس المعدّل.
+// دوال نقيّة قابلة للاختبار.
+
+/** الربحية: هامش ربح المشروع الفعلي. */
+function pjMarginScore({ margin, hasData }) {
+  if (!hasData) return 50
+  return clamp(45 + margin * 2.2, 0, 100)   // هامش 25% → 100، صفر → 45، سالب ينزل
+}
+
+/** التحصيل: نسبة المحصّل من قيمة العقد − خصم على التأخّر. */
+function pjCollectionScore({ price, revenue, overdue }) {
+  let base
+  if (price > 0) base = clamp((revenue / price) * 100, 0, 100)
+  else           base = revenue > 0 ? 65 : 45        // مشروع يومي/مفتوح بلا عقد محدّد
+  return clamp(base - (overdue ? 25 : 0), 0, 100)
+}
+
+/** الميزانية: التكلفة مقابل قيمة العقد (أو الإيراد إن لم يوجد عقد). */
+function pjBudgetScore({ price, revenue, cost }) {
+  const ref = price > 0 ? price : revenue
+  if (ref <= 0) return cost > 0 ? 25 : 55
+  const ratio = cost / ref
+  return clamp((1 - ratio) * 200, 0, 100)            // تكلفة 50% → 100، 100% → 0
+}
+
+/** السيولة: نقد المالك المتبقّي نسبةً لإيراد المشروع. */
+function pjCashScore({ ownerCash, revenue }) {
+  if (revenue <= 0) return ownerCash >= 0 ? 55 : 30
+  return clamp(55 + (ownerCash / revenue) * 90, 0, 100)
+}
+
+const PJ_WEIGHTS = { margin: 0.30, collection: 0.25, budget: 0.25, cash: 0.20 }
+const PJ_LABELS  = { margin: 'الربحية', collection: 'التحصيل', budget: 'الميزانية', cash: 'السيولة' }
+
+/**
+ * المحرّك الرئيسي — صحّة المشروع الكاملة.
+ * @returns {{ score, grade, tone, factors, insights, projectedMargin }}
+ */
+export function computeProjectHealth(a = {}) {
+  const {
+    name = '', price = 0, revenue = 0, cost = 0,
+    ownerCash = 0, profit = 0, margin = null, overdue = false,
+  } = a
+
+  const hasData = revenue > 0 || cost > 0 || price > 0
+  const effMargin = margin != null ? margin : (revenue > 0 ? (profit / revenue) * 100 : 0)
+
+  const scores = {
+    margin:     Math.round(pjMarginScore({ margin: effMargin, hasData })),
+    collection: Math.round(pjCollectionScore({ price, revenue, overdue })),
+    budget:     Math.round(pjBudgetScore({ price, revenue, cost })),
+    cash:       Math.round(pjCashScore({ ownerCash, revenue })),
+  }
+
+  const score = Math.round(
+    Object.entries(PJ_WEIGHTS).reduce((s, [k, w]) => s + scores[k] * w, 0)
+  )
+
+  const factors = Object.keys(PJ_WEIGHTS).map(k => ({
+    key: k, label: PJ_LABELS[k], score: scores[k], weight: PJ_WEIGHTS[k],
+  }))
+
+  // ── الإنذار المبكّر: الهامش النهائي المتوقّع ──
+  // نعتبر نسبة التحصيل من العقد تقديراً لنسبة الإنجاز، ونمدّ التكلفة على هذا الأساس.
+  let projectedMargin = null
+  if (price > 0 && revenue > 0 && revenue < price) {
+    const progress = revenue / price
+    if (progress >= 0.1 && progress <= 0.95) {
+      const projCost   = cost / progress
+      projectedMargin  = Math.round(((price - projCost) / price) * 100)
+    }
+  }
+
+  return {
+    score,
+    ...gradeFor(score),
+    factors,
+    projectedMargin,
+    insights: buildProjectInsights({ name, price, revenue, cost, ownerCash, margin: effMargin, profit, overdue, projectedMargin }),
+  }
+}
+
+// رؤى صحّة المشروع — تحذيرات → نصائح → إيجابيات. أعلى 3.
+function buildProjectInsights(a) {
+  const { name, price, revenue, cost, ownerCash, margin, profit, overdue, projectedMargin } = a
+  const out = []
+
+  if (profit < 0)
+    out.push({ tone: 'warn', icon: 'TrendingDown', text: `المشروع يخسر حالياً — الهامش ${Math.round(margin)}%. راجع المصاريف أو سعّر الإضافات.` })
+
+  if (price > 0 && cost > price)
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `التكلفة (₪${fmt(cost)}) تجاوزت قيمة العقد (₪${fmt(price)}) بـ ₪${fmt(cost - price)} — المشروع بالسالب.` })
+
+  if (overdue)
+    out.push({ tone: 'warn', icon: 'Clock', text: 'في مقبوضات متأخّرة على هذا المشروع — تابع التحصيل مع العميل.' })
+
+  if (projectedMargin != null && projectedMargin < 10 && profit >= 0)
+    out.push({ tone: 'warn', icon: 'Activity', text: `إنذار مبكّر: لو استمرّت التكلفة بنفس المعدّل، الهامش النهائي المتوقّع ~${projectedMargin}% فقط.` })
+
+  if (price > 0 && revenue > 0 && revenue / price < 0.5)
+    out.push({ tone: 'tip', icon: 'MessageCircle', text: `حصّلت ${Math.round((revenue / price) * 100)}% فقط من قيمة العقد — تابع باقي المستحقّ.` })
+
+  if (margin >= 25 && profit > 0)
+    out.push({ tone: 'good', icon: 'TrendingUp', text: `هامش ربح ممتاز ${Math.round(margin)}% — مشروع رابح بقوّة.` })
+
+  if (ownerCash > 0 && margin >= 12 && out.every(i => i.tone !== 'good'))
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: `مشروع صحّي — سيولة موجبة (₪${fmt(ownerCash)}) وربح جيّد.` })
+
+  if (out.length === 0)
+    out.push({ tone: 'tip', icon: 'Sparkles', text: 'سجّل المقبوضات والمصاريف ليتفعّل تحليل صحّة المشروع.' })
+
+  const order = { warn: 0, tip: 1, good: 2 }
+  return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
+}
