@@ -791,3 +791,98 @@ function buildAgingInsights({ totalOutstanding, overdueTotal, overdueCount, d90T
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
 }
+
+// ─── نبض الفريق — Team Productivity Pulse ──────────────────────────────────────────
+// يحوّل سجلّ نشاط الفريق (audit_log) إلى مؤشّر تفاعل (0–100) + ترتيب الأعضاء حسب
+// النشاط والحداثة + تنبيهات الخمول. للمالك فقط. دوال نقيّة قابلة للاختبار.
+
+function teamRecencyScore(d) {
+  if (d == null) return 10
+  if (d <= 1)  return 100
+  if (d <= 3)  return 85
+  if (d <= 7)  return 60
+  if (d <= 14) return 38
+  return 18
+}
+
+/**
+ * @param {object} a
+ * @param {Array}  a.members  - [{ id, display_name, username, auth_email, is_blocked }]
+ * @param {Array}  a.activity - [{ actor_email, action, tbl, created_at }]
+ * @param {number} [a.now=Date.now()]
+ * @param {number} [a.idleDays=12]
+ * @returns {{ score, grade, tone, rows, mostActive, totalActions, activeMembers, memberCount, insights, hasData }}
+ */
+export function computeTeamPulse(a = {}) {
+  const { members = [], activity = [], now = Date.now(), idleDays = 12 } = a
+  const active = members.filter(m => !m.is_blocked)
+
+  const byEmail = {}
+  for (const ev of activity) {
+    const k = ev.actor_email || ''
+    byEmail[k] = byEmail[k] || { count: 0, last: null, actions: {} }
+    byEmail[k].count++
+    const ts = new Date(ev.created_at).getTime()
+    if (!byEmail[k].last || ts > byEmail[k].last) byEmail[k].last = ts
+    byEmail[k].actions[ev.action] = (byEmail[k].actions[ev.action] || 0) + 1
+  }
+
+  const rows = active.map(m => {
+    const rec = byEmail[m.auth_email] || { count: 0, last: null, actions: {} }
+    const daysSince = rec.last != null ? Math.max(0, Math.floor((now - rec.last) / 86400000)) : null
+    return { id: m.id, name: m.display_name || m.username || 'عضو', count: rec.count, daysSince, actions: rec.actions }
+  })
+
+  const maxCount = Math.max(1, ...rows.map(r => r.count))
+  for (const r of rows) {
+    const rec = teamRecencyScore(r.daysSince)
+    const vol = (r.count / maxCount) * 100
+    r.score = Math.round(0.55 * rec + 0.45 * vol)
+    r.tier  = r.score >= 75 ? 'نشط جداً' : r.score >= 55 ? 'نشط' : r.score >= 35 ? 'معتدل' : 'خامل'
+    r.tone  = r.score >= 75 ? 'excellent' : r.score >= 55 ? 'good' : r.score >= 35 ? 'fair' : 'weak'
+  }
+  rows.sort((x, y) => y.count - x.count || (x.daysSince ?? 9999) - (y.daysSince ?? 9999))
+
+  const totalActions  = activity.length
+  const activeMembers = rows.filter(r => r.count > 0 && r.daysSince != null && r.daysSince <= 14).length
+  const engagement    = active.length > 0 ? activeMembers / active.length : 0
+  const avgRecency    = rows.length ? rows.reduce((s, r) => s + teamRecencyScore(r.daysSince), 0) / rows.length : 50
+  const score         = active.length === 0 ? 0 : Math.round(0.5 * engagement * 100 + 0.5 * avgRecency)
+
+  const mostActive = rows.find(r => r.count > 0) || null
+  const idle       = rows.filter(r => r.daysSince == null || r.daysSince >= idleDays)
+
+  return {
+    score, ...gradeFor(score),
+    rows, mostActive, totalActions, activeMembers, memberCount: active.length,
+    hasData: active.length > 0,
+    insights: buildTeamInsights({ rows, mostActive, idle, totalActions, idleDays }),
+  }
+}
+
+function buildTeamInsights({ rows, mostActive, idle, totalActions }) {
+  const out = []
+
+  const worstIdle = idle.find(r => r.daysSince != null) // خامل سجّل سابقاً ثم توقّف
+  if (worstIdle)
+    out.push({ tone: 'warn', icon: 'UserX', text: `${worstIdle.name} ما سجّل أي نشاط من ${worstIdle.daysSince} يوم — تأكّد إنه شغّال.` })
+
+  const neverActive = idle.find(r => r.daysSince == null)
+  if (neverActive && totalActions > 0)
+    out.push({ tone: 'tip', icon: 'UserMinus', text: `${neverActive.name} ما سجّل أي عملية بعد — لسّا ما بدأ يستخدم حسابه.` })
+
+  const deleter = rows.find(r => (r.actions?.delete || r.actions?.DELETE || 0) >= 5)
+  if (deleter) {
+    const dc = deleter.actions.delete || deleter.actions.DELETE
+    out.push({ tone: 'tip', icon: 'Trash2', text: `${deleter.name} نفّذ ${dc} عملية حذف — راجع سجلّ نشاطه للاطمئنان.` })
+  }
+
+  if (mostActive && mostActive.count > 0)
+    out.push({ tone: 'good', icon: 'Zap', text: `${mostActive.name} أنشط عضو في فريقك — ${mostActive.count} عملية مسجّلة.` })
+
+  if (totalActions === 0)
+    out.push({ tone: 'tip', icon: 'Activity', text: 'ما في نشاط مسجّل بعد — يظهر التحليل لما يبدأ فريقك العمل.' })
+
+  const order = { warn: 0, tip: 1, good: 2 }
+  return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
+}

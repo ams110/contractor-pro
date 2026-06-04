@@ -7,6 +7,7 @@ import {
   computeTaxRunway,
   detectExpenseAnomalies,
   computeCollectionAging,
+  computeTeamPulse,
 } from './insights.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -447,5 +448,65 @@ describe('computeCollectionAging', () => {
     expect(r.totalOutstanding).toBe(0)
     expect(r.tone).toBe('excellent')
     expect(r.insights[0].tone).toBe('good')
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// اختبارات نبض الفريق — مؤشّر التفاعل، ترتيب الأعضاء، وتنبيهات الخمول.
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('computeTeamPulse', () => {
+  const now = new Date('2026-06-15T12:00:00Z').getTime()
+  const day = (n) => new Date(now - n * 86400000).toISOString()
+
+  it('لا أعضاء = لا بيانات ودرجة صفر', () => {
+    const r = computeTeamPulse({ members: [], activity: [], now })
+    expect(r.hasData).toBe(false)
+    expect(r.score).toBe(0)
+  })
+
+  it('يرتّب الأعضاء حسب النشاط ويحدّد الأنشط', () => {
+    const members = [
+      { id: 'm1', display_name: 'سامي', auth_email: 's@x.co' },
+      { id: 'm2', display_name: 'رامي', auth_email: 'r@x.co' },
+    ]
+    const activity = [
+      { actor_email: 's@x.co', action: 'insert', tbl: 'work_days', created_at: day(0) },
+      { actor_email: 's@x.co', action: 'update', tbl: 'expenses',  created_at: day(1) },
+      { actor_email: 's@x.co', action: 'insert', tbl: 'payments',  created_at: day(0) },
+      { actor_email: 'r@x.co', action: 'insert', tbl: 'work_days', created_at: day(2) },
+    ]
+    const r = computeTeamPulse({ members, activity, now })
+    expect(r.totalActions).toBe(4)
+    expect(r.mostActive.name).toBe('سامي')
+    expect(r.rows[0].count).toBe(3)
+    expect(r.activeMembers).toBe(2)
+    expect(r.insights.some(i => i.tone === 'good')).toBe(true)
+  })
+
+  it('يحذّر من العضو الخامل', () => {
+    const members = [
+      { id: 'm1', display_name: 'نشيط', auth_email: 'a@x.co' },
+      { id: 'm2', display_name: 'خامل', auth_email: 'b@x.co' },
+    ]
+    const activity = [
+      { actor_email: 'a@x.co', action: 'insert', tbl: 'work_days', created_at: day(0) },
+      { actor_email: 'b@x.co', action: 'insert', tbl: 'work_days', created_at: day(30) },
+    ]
+    const r = computeTeamPulse({ members, activity, now })
+    const warn = r.insights.find(i => i.tone === 'warn')
+    expect(warn).toBeTruthy()
+    expect(warn.text).toContain('خامل')
+  })
+
+  it('يتجاهل الأعضاء المحجوبين', () => {
+    const members = [
+      { id: 'm1', display_name: 'نشيط', auth_email: 'a@x.co' },
+      { id: 'm2', display_name: 'محجوب', auth_email: 'c@x.co', is_blocked: true },
+    ]
+    const activity = [{ actor_email: 'a@x.co', action: 'insert', tbl: 'work_days', created_at: day(0) }]
+    const r = computeTeamPulse({ members, activity, now })
+    expect(r.memberCount).toBe(1)
+    expect(r.rows).toHaveLength(1)
   })
 })

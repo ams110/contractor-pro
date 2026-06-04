@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { KeyRound } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { Btn, GlassCard, EmptyState, ConfirmDialog } from '../../components/index.jsx'
@@ -6,13 +6,29 @@ import { useTeamManager } from './useTeamManager.js'
 import { MemberCard } from './MemberCard.jsx'
 import { AddMemberModal } from './AddMemberModal.jsx'
 import { EditPermsPanel } from './EditPermsPanel.jsx'
+import { computeTeamPulse } from '../../lib/insights.js'
+import TeamPulse from '../../components/TeamPulse.jsx'
 
 export default function TeamScreen({
   teamMembers = [], permissions, projects = [],
   addMember, updateMember, removeMember, blockMember, resetMemberPassword,
-  getActivity, teamLoadError, reloadTeam,
+  getActivity, getAllActivity, teamLoadError, reloadTeam,
 }) {
   const manager = useTeamManager()
+
+  // ── نبض الفريق: تحميل نشاط الفريق كاملاً مرّة + حساب المؤشّر ─────────────────
+  const [allActivity, setAllActivity] = useState([])
+  useEffect(() => {
+    let alive = true
+    if (getAllActivity && teamMembers.length > 0) {
+      getAllActivity().then(d => { if (alive) setAllActivity(d || []) }).catch(() => {})
+    }
+    return () => { alive = false }
+  }, [getAllActivity, teamMembers.length])
+
+  const teamPulse = useMemo(() =>
+    computeTeamPulse({ members: teamMembers, activity: allActivity })
+  , [teamMembers, allActivity])
 
   // Inject getActivity so MemberActivity can call it
   manager._getActivity = getActivity
@@ -114,6 +130,9 @@ export default function TeamScreen({
           {reloadTeam && <button onClick={reloadTeam} style={{ background: 'none', border: `1px solid ${C.accent}55`, borderRadius: 8, color: C.accent, fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>إعادة تحميل</button>}
         </div>
       )}
+
+      {/* ── نبض الفريق — تحليل ذكي لتفاعل الأعضاء ── */}
+      <TeamPulse pulse={teamPulse} />
 
       {/* ── Summary bar ── */}
       {teamMembers.length > 0 && (
