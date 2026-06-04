@@ -157,3 +157,123 @@ function buildInsights(a) {
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 4)
 }
+
+// ─── التوقّع الذكي للتدفّق النقدي — Cash Flow Forecast / Runway ───────────────────
+// يحلّل اتجاه السيولة الشهري ويتنبّأ بمسارها للأشهر القادمة، مع نطاق ثقة (cone)
+// و«عدّاد أمان» (runway) يقدّر كم تكفي السيولة لو استمر النزيف. دوال نقيّة قابلة للاختبار.
+
+/** متوسّط مرجّح للتدفّق الشهري — الأشهر الأحدث وزنها أعلى لالتقاط الزخم الحالي. */
+export function weightedAvg(values) {
+  if (!values.length) return 0
+  let num = 0, den = 0
+  values.forEach((v, i) => { const w = i + 1; num += v * w; den += w })
+  return num / den
+}
+
+/** الانحراف المعياري — يقيس تذبذب التدفّق، ويحدّد عرض نطاق الثقة. */
+export function stdDev(values) {
+  if (values.length < 2) return 0
+  const mean = values.reduce((s, v) => s + v, 0) / values.length
+  const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / values.length
+  return Math.sqrt(variance)
+}
+
+/** صياغة مدّة بالأشهر بصيغة عربية سليمة. */
+export function fmtMonths(m) {
+  if (m >= 12) return 'أكثر من سنة'
+  const r = Math.max(1, Math.round(m))
+  if (r === 1) return 'شهر واحد'
+  if (r === 2) return 'شهرين'
+  if (r <= 10) return `${r} أشهر`
+  return `${r} شهر`
+}
+
+/**
+ * يحسب توقّع التدفّق النقدي للأشهر القادمة.
+ * @param {object} a
+ * @param {number} a.cashOnHand   - النقد الحالي بالجيب
+ * @param {number} a.totalRevenue - إجمالي الإيراد (مرجع للحجم)
+ * @param {Array}  a.monthlyData  - [{ month, v }] صافي شهري (v)، الأقدم أولاً
+ * @param {number} [a.horizon=3]  - عدد الأشهر للتنبّؤ
+ * @returns {object|null} null إذا لم يتوفّر تاريخ كافٍ للتنبّؤ
+ */
+export function computeCashForecast(a = {}) {
+  const { cashOnHand = 0, totalRevenue = 0, monthlyData = [], horizon = 3 } = a
+
+  const flows  = monthlyData.map(m => m.v || 0)
+  const active = flows.filter(v => v !== 0)
+  if (active.length < 2) return null   // تاريخ غير كافٍ — لا تُظهر التوقّع
+
+  const avgFlow = Math.round(weightedAvg(flows))
+  const vol     = stdDev(flows)
+
+  // المسار التاريخي: نعيد بناء موضع السيولة بنهاية كل شهر بحيث ينتهي عند النقد الحالي
+  // (يربط الرسم بالواقع). نمشي للخلف: pos[i] = pos[i+1] − v[i+1]
+  const history = monthlyData.map(m => ({ label: m.month, actual: 0, forecast: null, kind: 'past' }))
+  let pos = cashOnHand
+  for (let i = monthlyData.length - 1; i >= 0; i--) {
+    history[i].actual = Math.round(pos)
+    pos -= flows[i]
+  }
+
+  // نقطة الوصل = الحاضر (لها actual + forecast لتتّصل الخطوط، ونطاق صفري للبداية)
+  const last = history.length - 1
+  if (last >= 0) {
+    history[last].forecast = Math.round(cashOnHand)
+    history[last].range    = [Math.round(cashOnHand), Math.round(cashOnHand)]
+  }
+
+  // المسار المتوقّع — النطاق يتّسع مع البُعد الزمني (√t)
+  const future = []
+  for (let j = 1; j <= horizon; j++) {
+    const mid  = cashOnHand + avgFlow * j
+    const band = vol * Math.sqrt(j)
+    future.push({
+      label: `+${j}`,
+      actual: null,
+      forecast: Math.round(mid),
+      range: [Math.round(mid - band), Math.round(mid + band)],
+      kind: 'future',
+    })
+  }
+
+  const series    = [...history, ...future]
+  const projected = cashOnHand + avgFlow * horizon
+
+  // «عدّاد الأمان»: كم شهر تكفي السيولة لو استمر النزيف بنفس المعدّل
+  let runway = null
+  if (avgFlow < 0 && cashOnHand > 0) runway = cashOnHand / -avgFlow
+
+  // النبرة اللونية
+  let tone
+  if (avgFlow > 0)      tone = (cashOnHand >= 0 && projected >= cashOnHand * 1.2) ? 'excellent' : 'good'
+  else if (avgFlow < 0) tone = runway == null ? 'critical' : runway <= 2 ? 'critical' : runway <= 4 ? 'weak' : 'fair'
+  else                  tone = 'fair'
+
+  return {
+    avgFlow, projected: Math.round(projected), runway, rising: avgFlow > 0, tone, horizon, series,
+    insights: buildForecastInsights({ avgFlow, projected, cashOnHand, runway, horizon }),
+  }
+}
+
+// رؤى التوقّع — جملة أو جملتان تختصران المسار والإجراء المقترح.
+function buildForecastInsights({ avgFlow, projected, cashOnHand, runway, horizon }) {
+  const span = horizon === 3 ? '٣ أشهر' : `${horizon} أشهر`
+  const out  = []
+
+  if (avgFlow < 0 && runway != null)
+    out.push({ tone: 'warn', icon: 'TrendingDown', text: `تدفّقك النقدي سالب بمعدّل ₪${fmt(-avgFlow)}/شهر — بهذا المعدّل سيولتك تكفي ${fmtMonths(runway)} فقط.` })
+  else if (avgFlow < 0)
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `تنزف نقداً بمعدّل ₪${fmt(-avgFlow)}/شهر وسيولتك سالبة — تحرّك بسرعة على التحصيل.` })
+  else if (avgFlow > 0)
+    out.push({ tone: 'good', icon: 'TrendingUp', text: `تدفّقك النقدي موجب بمعدّل ₪${fmt(avgFlow)}/شهر — مسارك تصاعدي.` })
+  else
+    out.push({ tone: 'tip', icon: 'Activity', text: 'تدفّقك النقدي شبه ثابت — لا نموّ ولا نزيف يُذكر.' })
+
+  if (avgFlow > 0 && projected > cashOnHand)
+    out.push({ tone: 'tip', icon: 'PiggyBank', text: `لو استمر الأداء، رح تضيف ~₪${fmt(Math.round(projected - cashOnHand))} لسيولتك خلال ${span}.` })
+  else if (projected < 0 && cashOnHand >= 0)
+    out.push({ tone: 'warn', icon: 'Wallet', text: `التوقّع يشير لعجز نقدي (₪${fmt(-Math.round(projected))}) قبل نهاية المدى — جدول مقبوضاتك مبكّراً.` })
+
+  return out.slice(0, 2)
+}
