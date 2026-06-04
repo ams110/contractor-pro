@@ -7,12 +7,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Deno-compatible base64 decoder (no Buffer)
+// Decode standard base64 to Uint8Array (for COSE public key)
 function decodeBase64(b64: string): Uint8Array {
   const binary = atob(b64)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
   return bytes
+}
+
+// Decode base64url to Uint8Array (for credentialID in v9 authenticator)
+function decodeBase64url(b64url: string): Uint8Array {
+  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/')
+  const pad = '='.repeat((4 - b64.length % 4) % 4)
+  return decodeBase64(b64 + pad)
 }
 
 serve(async (req) => {
@@ -31,7 +38,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    // Load stored credential
     const { data: storedCred } = await supabase
       .from('passkey_credentials')
       .select('*')
@@ -40,7 +46,6 @@ serve(async (req) => {
 
     if (!storedCred) return json({ error: 'بصمة غير معروفة' }, 400)
 
-    // Load challenge
     const { data: ch } = await supabase
       .from('passkey_challenges')
       .select('challenge')
@@ -50,34 +55,31 @@ serve(async (req) => {
 
     if (!ch) return json({ error: 'انتهت صلاحية التحقق، أعد المحاولة' }, 400)
 
-    // Verify assertion — v9 API uses 'credential' (not 'authenticator')
+    // v9 API: 'authenticator' with Uint8Array credentialID (not 'credential' with string id)
     const verification = await verifyAuthenticationResponse({
-      response:           credential,
-      expectedChallenge:  ch.challenge,
-      expectedOrigin:     origin,
-      expectedRPID:       rpID,
-      credential: {
-        id:        storedCred.credential_id,
-        publicKey: decodeBase64(storedCred.public_key),
-        counter:   storedCred.counter,
+      response:          credential,
+      expectedChallenge: ch.challenge,
+      expectedOrigin:    origin,
+      expectedRPID:      rpID,
+      authenticator: {
+        credentialID:        decodeBase64url(storedCred.credential_id),
+        credentialPublicKey: decodeBase64(storedCred.public_key),
+        counter:             storedCred.counter,
       },
       requireUserVerification: true,
     })
 
     if (!verification.verified) return json({ error: 'فشل التحقق من البصمة' }, 400)
 
-    // Update counter and timestamp
     await supabase.from('passkey_credentials').update({
       counter:      verification.authenticationInfo.newCounter,
       last_used_at: new Date().toISOString(),
     }).eq('credential_id', credentialId)
 
-    // Consume challenge
     await supabase.from('passkey_challenges').delete()
       .eq('user_id', storedCred.user_id)
       .eq('type', 'authentication')
 
-    // Issue a one-time login token (no email sent)
     const { data: userData } = await supabase.auth.admin.getUserById(storedCred.user_id)
     if (!userData?.user?.email) return json({ error: 'مستخدم غير موجود' }, 400)
 

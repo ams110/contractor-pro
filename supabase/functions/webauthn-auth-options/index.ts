@@ -7,6 +7,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// base64url -> Uint8Array (v9 allowCredentials expects a BufferSource id)
+function decodeBase64url(b64url: string): Uint8Array {
+  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/')
+  const pad = '='.repeat((4 - b64.length % 4) % 4)
+  const binary = atob(b64 + pad)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -45,7 +55,7 @@ serve(async (req) => {
 
     const options = await generateAuthenticationOptions({
       rpID,
-      allowCredentials: [{ id: credentialId, type: 'public-key' }],
+      allowCredentials: [{ id: decodeBase64url(credentialId), type: 'public-key' }],
       userVerification: 'required',
     })
 
