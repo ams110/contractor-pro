@@ -26,16 +26,14 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    // Verify JWT and get user
     const authHeader = req.headers.get('Authorization') || ''
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authErr || !user) return json({ error: 'Unauthorized' }, 401)
 
     const { credential } = await req.json()
     const origin = req.headers.get('origin') || 'https://localhost'
-    const rpID = origin.replace(/^https?:\/\//, '').split(':')[0]
+    const rpID   = origin.replace(/^https?:\/\//, '').split(':')[0]
 
-    // Get stored challenge
     const { data: ch } = await supabase
       .from('passkey_challenges')
       .select('challenge')
@@ -56,14 +54,12 @@ serve(async (req) => {
     if (!verification.verified) return json({ error: 'فشل التحقق من البصمة' }, 400)
 
     const { registrationInfo } = verification
-    // v9 API: binary data is nested under registrationInfo.credential
-    const credentialID   = registrationInfo!.credential.id
-    const publicKeyBytes = registrationInfo!.credential.publicKey
-    const counter        = registrationInfo!.credential.counter
+    // v9 flat API: credentialID (Base64URLString), credentialPublicKey (Uint8Array), counter
+    const credentialID   = registrationInfo!.credentialID
+    const publicKeyBytes = registrationInfo!.credentialPublicKey
+    const counter        = registrationInfo!.counter
 
-    // Replace any existing credential for this user (one passkey per user per device)
     await supabase.from('passkey_credentials').delete().eq('user_id', user.id)
-
     await supabase.from('passkey_credentials').insert({
       user_id:       user.id,
       credential_id: credentialID,
@@ -72,7 +68,6 @@ serve(async (req) => {
       device_type:   registrationInfo!.credentialDeviceType || 'platform',
     })
 
-    // Clean up challenge
     await supabase.from('passkey_challenges').delete()
       .eq('user_id', user.id)
       .eq('type', 'registration')
