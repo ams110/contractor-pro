@@ -18,6 +18,8 @@ import {
 import { fmt, fmtDate } from '../../lib/helpers.js'
 import { supabase } from '../../lib/supabase.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
+import { computeTaxRunway } from '../../lib/insights.js'
+import TaxRunway from '../../components/TaxRunway.jsx'
 
 // ─── Israeli income-tax brackets 2024 (individual / self-employed) ─────────────
 const IL_TAX_BRACKETS = [
@@ -213,7 +215,6 @@ export default function TaxSummaryTab() {
   const yearIncomeAllTime = useMemo(() =>
     income.filter(e => e.date?.startsWith(String(now.getFullYear()))).reduce((s, e) => s + Number(e.amount), 0)
   , [income])
-  const paturPct = (yearIncomeAllTime / OSEK_PATUR_THRESHOLD) * 100
 
   // ─── Chart data ────────────────────────────────────────────────────────
   const chartData = useMemo(() =>
@@ -222,6 +223,15 @@ export default function TaxSummaryTab() {
 
   // ─── Margin ────────────────────────────────────────────────────────────
   const margin = totalIncome > 0 ? (grossProfit / totalIncome) * 100 : 0
+
+  // ─── عدّاد الضريبة الحيّ — توقّع السقف + الفاتورة الضريبية ────────────────
+  const taxRunway = useMemo(() => computeTaxRunway({
+    isOsekPatur:   bizType === 'osek_patur',
+    cap:           OSEK_PATUR_THRESHOLD,
+    yearIncome:    yearIncomeAllTime,
+    monthsElapsed: now.getMonth() + 1,
+    annualTax:     Math.round(incomeTax + bituachLeumi),
+  }), [bizType, yearIncomeAllTime, incomeTax, bituachLeumi])
 
   if (!activeBusiness) return null
 
@@ -264,34 +274,8 @@ export default function TaxSummaryTab() {
             />
           </div>
 
-          {/* ─── Osek Patur threshold bar ─────────────────────────────── */}
-          {bizType === 'osek_patur' && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              style={{ background: paturPct >= 90 ? `${C.accent}10` : paturPct >= 70 ? `${C.warning}10` : `${C.primary}08`, border: `1px solid ${paturPct >= 90 ? C.accent : paturPct >= 70 ? C.warning : C.primary}30`, borderRadius: 16, padding: '14px', marginBottom: 14 }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: paturPct >= 90 ? C.accent : paturPct >= 70 ? C.warning : C.text }}>
-                  {paturPct >= 90 ? '🔴 تجاوزت 90% من السقف!' : paturPct >= 70 ? '⚠️ اقتربت من السقف' : '✓ عوסק פטור — ضمن الحد'}
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim }}>
-                  {paturPct.toFixed(1)}%
-                </div>
-              </div>
-              <div style={{ height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(100, paturPct)}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                  style={{ height: '100%', background: paturPct >= 90 ? C.accent : paturPct >= 70 ? C.warning : C.primary, borderRadius: 4 }}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.textDim }}>
-                <span>₪{fmt(yearIncomeAllTime)} مدخول</span>
-                <span>الحد ₪{fmt(OSEK_PATUR_THRESHOLD)}</span>
-              </div>
-            </motion.div>
-          )}
+          {/* ─── عدّاد الضريبة الحيّ — توقّع السقف + الفاتورة الضريبية ─── */}
+          <TaxRunway runway={taxRunway} />
 
           {/* ─── VAT section (osek_moreh / hevra) ────────────────────── */}
           {showVat && (

@@ -530,3 +530,92 @@ function buildProjectInsights(a) {
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
 }
+
+// ─── عدّاد الضريبة الحيّ — Tax Runway ──────────────────────────────────────────────
+// يتوقّع متى يتجاوز עוסק פטור سقفه السنوي (بمعدّل دخله الحالي)، ويقدّر الفاتورة
+// الضريبية القادمة + كم يحتاج أن يجنّب شهرياً ليكون جاهزاً. دوال نقيّة قابلة للاختبار.
+
+const MONTH_NAMES = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+
+/**
+ * @param {object} a
+ * @param {boolean} a.isOsekPatur
+ * @param {number} [a.cap=120000]      - سقف עוסק פטور السنوي
+ * @param {number} a.yearIncome        - المدخول المحصّل هذه السنة حتى الآن
+ * @param {number} a.monthsElapsed     - عدد الأشهر المنقضية من السنة (1–12)
+ * @param {number} [a.annualTax=0]     - الضريبة السنوية المقدّرة (دخل + ביטוח לאומי)
+ * @returns {object|null} null إذا لا يوجد دخل لحساب معدّل
+ */
+export function computeTaxRunway(a = {}) {
+  const {
+    isOsekPatur = false, cap = 120000,
+    yearIncome = 0, monthsElapsed = 1, annualTax = 0,
+  } = a
+
+  const months  = Math.max(1, Math.min(12, monthsElapsed))
+  const monthly = yearIncome / months
+  if (monthly <= 0 && annualTax <= 0) return null
+
+  const projectedAnnual = Math.round(monthly * 12)
+  const capPct       = cap > 0 ? Math.round((yearIncome / cap) * 100) : 0
+  const projectedPct = cap > 0 ? Math.round((projectedAnnual / cap) * 100) : 0
+
+  // متى يُتوقّع بلوغ السقف
+  let capMonth = null, willExceed = false, alreadyExceeded = false
+  if (isOsekPatur) {
+    if (yearIncome >= cap) {
+      alreadyExceeded = willExceed = true
+      capMonth = MONTH_NAMES[Math.min(11, months - 1)]
+    } else if (monthly > 0 && projectedAnnual > cap) {
+      willExceed = true
+      const monthsToCap = (cap - yearIncome) / monthly      // من الآن
+      const idx = (months - 1) + monthsToCap                 // فهرس الشهر داخل السنة (0-based)
+      if (idx < 12) capMonth = MONTH_NAMES[Math.floor(idx)]
+    }
+  }
+
+  // الفاتورة الضريبية + التجنيب الشهري المقترح
+  const monthlyProvision = annualTax > 0 ? Math.round(annualTax / 12) : 0
+
+  // النبرة اللونية
+  let tone
+  if (isOsekPatur) {
+    tone = projectedPct >= 100 ? 'critical' : projectedPct >= 85 ? 'weak' : projectedPct >= 70 ? 'fair' : 'good'
+  } else {
+    tone = 'good'
+  }
+
+  return {
+    isOsekPatur, cap, yearIncome,
+    capPct, projectedAnnual, projectedPct,
+    capMonth, willExceed, alreadyExceeded,
+    annualTax, monthlyProvision, tone,
+    insights: buildTaxRunwayInsights({ isOsekPatur, cap, yearIncome, projectedAnnual, projectedPct, capMonth, willExceed, alreadyExceeded, annualTax, monthlyProvision }),
+  }
+}
+
+// رؤى عدّاد الضريبة — تحذيرات → نصائح → إيجابيات. أعلى 3.
+function buildTaxRunwayInsights(a) {
+  const { isOsekPatur, cap, yearIncome, projectedAnnual, projectedPct, capMonth, willExceed, alreadyExceeded, annualTax, monthlyProvision } = a
+  const out = []
+
+  if (isOsekPatur && alreadyExceeded)
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `تجاوزت سقف עוסק פטור (₪${fmt(yearIncome)} من ₪${fmt(cap)}) — يجب الترقية لـעוסק מורשה فوراً وإصدار فواتير ضريبية.` })
+  else if (isOsekPatur && willExceed && capMonth)
+    out.push({ tone: 'warn', icon: 'CalendarClock', text: `بمعدّل دخلك الحالي رح توصل سقف الـ₪${fmt(cap)} في ${capMonth} — جهّز ترقية مصلحتك من الآن.` })
+  else if (isOsekPatur && projectedPct >= 70)
+    out.push({ tone: 'tip', icon: 'Activity', text: `توقّعك السنوي ${projectedPct}% من السقف — راقب دخلك في الأشهر القادمة.` })
+  else if (isOsekPatur)
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: `ضمن حدّ עוסק פטور بأريحية — التوقّع السنوي ${projectedPct}% فقط من السقف.` })
+
+  if (annualTax > 0 && monthlyProvision > 0)
+    out.push({ tone: 'tip', icon: 'PiggyBank', text: `فاتورتك الضريبية المتوقّعة ₪${fmt(annualTax)} — جنّب ₪${fmt(monthlyProvision)} شهرياً لتكون جاهزاً نهاية السنة.` })
+  else if (annualTax === 0 && yearIncome > 0)
+    out.push({ tone: 'good', icon: 'Sparkles', text: 'لا ضريبة دخل مقدّرة على أرباحك الحالية — وضعك مريح ضريبياً.' })
+
+  if (out.length === 0)
+    out.push({ tone: 'tip', icon: 'Activity', text: 'سجّل مدخولاتك ليتفعّل توقّع الضريبة والسقف السنوي.' })
+
+  const order = { warn: 0, tip: 1, good: 2 }
+  return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
+}
