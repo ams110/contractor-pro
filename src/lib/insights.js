@@ -1000,3 +1000,102 @@ export function computeCommandCenter(a = {}) {
     hasData: activeProjects.length > 0 || employees.length > 0,
   }
 }
+
+// ─── الذمّة الصافية — Net Worth / Equity Bridge ────────────────────────────────────
+// عدسة «الميزانية» المفقودة: كل المحرّكات الأخرى تنظر للربح/التدفّق/الصحّة، وهذا يجمع
+// كل المراكز المفتوحة في رقم مركزي واحد يجاوب السؤال الجوهري:
+//   «لو صفّيت كل حساباتي اليوم — قبضت كل مستحقاتي ودفعت كل ديوني — كم بضل ملكي فعلاً؟»
+//   صافي مركزك = نقد بالجيب + ذمم العملاء − مستحق العمّال − مصاريف معلّقة
+// يُخرِج شلالاً (waterfall) يبني الرقم خطوة بخطوة، كلٌّ بوجهة تنقّل. دوال نقيّة قابلة للاختبار.
+
+const NW_TONE_ORDER = { warn: 0, tip: 1, good: 2 }
+
+/** نبرة لونية لمركزك حسب الصافي والسيولة وتغطية الالتزامات. */
+function netWorthTone({ netWorth, cashOnHand, liabilities }) {
+  if (netWorth < 0)            return 'critical'   // مكشوف: التزاماتك أكبر من موجوداتك
+  if (cashOnHand < 0)          return 'weak'       // ذمّة موجبة لكن نقدك سالب — تعتمد على التحصيل
+  if (liabilities > cashOnHand) return 'fair'      // نقدك وحده لا يغطّي ديونك — تحتاج تحصيل
+  if (liabilities > 0)         return 'good'       // نقدك يغطّي كل ديونك
+  return 'excellent'                               // لا ديون مفتوحة — كل ذمّتك سائلة
+}
+
+/**
+ * المحرّك الرئيسي — يحسب الذمّة الصافية وشلالها.
+ * @param {object} a - أرقام مجمّعة من الداشبورد (نفس مدخلات «نبض المصلحة»)
+ * @param {number} a.cashOnHand      - النقد بالجيب الآن (قد يكون سالباً)
+ * @param {number} a.owedByClients   - باقي لك عند العملاء (ذمم مدينة)
+ * @param {number} a.owedToWorkers   - مستحق للعمّال (ذمم دائنة)
+ * @param {number} [a.pendingExpenses=0] - مصاريف معلّقة بانتظار الاعتماد (التزام مؤجّل)
+ * @returns {{ netWorth, assets, liabilities, cashOnHand, coverage, tone, segments, insights, hasData }}
+ */
+export function computeNetWorth(a = {}) {
+  const {
+    cashOnHand = 0, owedByClients = 0,
+    owedToWorkers = 0, pendingExpenses = 0,
+  } = a
+
+  const cash    = Math.round(cashOnHand)
+  const recv    = Math.round(Math.max(0, owedByClients))
+  const workers = Math.round(Math.max(0, owedToWorkers))
+  const pending = Math.round(Math.max(0, pendingExpenses))
+
+  const assets      = Math.max(0, cash) + recv
+  const liabilities = workers + pending
+  const netWorth    = cash + recv - workers - pending
+  // تغطية: كم مرّة تغطّي موجوداتك (نقد + ذمم) التزاماتك
+  const coverage    = liabilities > 0 ? (Math.max(0, cash) + recv) / liabilities : null
+
+  // ── شلال البناء: نمشي بالرصيد التراكمي من صفر ──
+  // نقد → +ذمم العملاء → −مستحق العمّال → −مصاريف معلّقة → صافي مركزك
+  const segments = []
+  let run = 0
+  const step = (key, label, delta, kind, screen, icon) => {
+    const start = run
+    run += delta
+    segments.push({ key, label, delta, start, end: run, kind, screen, icon })
+  }
+
+  step('cash', 'نقد بالجيب', cash, 'base', 'finance', 'Wallet')
+  if (recv > 0)    step('receivables', 'ذمم العملاء', recv,     'asset',     'projects', 'DollarSign')
+  if (workers > 0) step('workers',     'مستحق العمّال', -workers, 'liability', 'workers',  'Users')
+  if (pending > 0) step('pending',     'مصاريف معلّقة', -pending, 'liability', 'finance',  'Clock')
+  // البند الختامي — يُرسَم من صفر لإجمالي الصافي
+  segments.push({ key: 'net', label: 'صافي مركزك', delta: netWorth, start: 0, end: netWorth, kind: 'net', screen: null, icon: 'Landmark' })
+
+  const tone     = netWorthTone({ netWorth, cashOnHand: cash, liabilities })
+  const hasData  = !!(cash || recv || workers || pending)
+
+  return {
+    netWorth, assets, liabilities, cashOnHand: cash, coverage,
+    tone, segments, hasData,
+    insights: buildNetWorthInsights({ netWorth, cash, recv, workers, pending, liabilities, coverage }),
+  }
+}
+
+// رؤى الذمّة الصافية — تحذيرات → نصائح → إيجابيات. أعلى 3. (الأيقونات أسماء Lucide)
+function buildNetWorthInsights({ netWorth, cash, recv, workers, pending, liabilities, coverage }) {
+  const out = []
+
+  if (netWorth < 0)
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `مركزك سالب بـ ₪${fmt(-netWorth)} — التزاماتك أكبر من موجوداتك. ركّز على التحصيل وقلّل الصرف.` })
+  else if (cash < 0)
+    out.push({ tone: 'warn', icon: 'Wallet', text: `ذمّتك موجبة (₪${fmt(netWorth)}) لكن نقدك سالب — أنت مكشوف على تحصيل ₪${fmt(recv)}. سرّع القبض.` })
+  else if (workers > 0 && workers > cash)
+    out.push({ tone: 'warn', icon: 'Users', text: `مستحقّات العمّال ₪${fmt(workers)} أكبر من نقدك ₪${fmt(cash)} — حصّل قبل دورة الرواتب القادمة.` })
+
+  if (recv > 0)
+    out.push({ tone: 'tip', icon: 'DollarSign', text: `₪${fmt(recv)} محتجزة عند عملائك — تحصيلها يرفع نقدك مباشرة. ذكّرهم من رادار التحصيل.` })
+
+  if (pending > 0)
+    out.push({ tone: 'tip', icon: 'Clock', text: `₪${fmt(pending)} مصاريف معلّقة بانتظار اعتمادك — ستخصم من مركزك عند إقرارها.` })
+
+  if (netWorth > 0 && liabilities === 0)
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: `لا التزامات مفتوحة — كل ذمّتك (₪${fmt(netWorth)}) سائلة ومتاحة. وضع ممتاز.` })
+  else if (netWorth > 0 && coverage != null && coverage >= 1.5)
+    out.push({ tone: 'good', icon: 'ShieldCheck', text: `مركزك متين — موجوداتك تغطّي التزاماتك ${coverage >= 9.5 ? '+9' : coverage.toFixed(1)} مرّة، وصافي ذمّتك ₪${fmt(netWorth)}.` })
+
+  if (out.length === 0)
+    out.push({ tone: 'tip', icon: 'Landmark', text: 'سجّل مقبوضاتك ومصاريفك ليتفعّل حساب ذمّتك الصافية.' })
+
+  return out.sort((x, y) => NW_TONE_ORDER[x.tone] - NW_TONE_ORDER[y.tone]).slice(0, 3)
+}

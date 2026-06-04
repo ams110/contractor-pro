@@ -11,10 +11,11 @@ import { C, GRAD } from '../../constants/index.js'
 import { fmt, isPaymentOverdue } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { calcEarned, calcPaid, calcAdvances, calcRevenue, calcProjectStats, calcMutabqi } from '../../lib/calculations.js'
-import { computeBusinessPulse, computeCashForecast, computeCommandCenter } from '../../lib/insights.js'
+import { computeBusinessPulse, computeCashForecast, computeCommandCenter, computeNetWorth } from '../../lib/insights.js'
 import BusinessPulse from '../../components/BusinessPulse.jsx'
 import CashForecast from '../../components/CashForecast.jsx'
 import CommandCenter from '../../components/CommandCenter.jsx'
+import NetWorth from '../../components/NetWorth.jsx'
 
 // ─── Bento Card ───────────────────────────────────────────────────────────────
 function BentoCard({ children, style = {}, gradient, onClick }) {
@@ -143,6 +144,9 @@ export default function DashboardScreen({
     const cashOut     = totalExpenses + totalWasel
     const cashOnHand  = cashIn - cashOut
 
+    // مصاريف معلّقة (بانتظار الاعتماد) — التزام مؤجّل لم يدخل النقد بعد
+    const pendingExpenses = expenses.filter(e => e.status === 'pending').reduce((s, e) => s + (e.amount || 0), 0)
+
     // مستحق للعمال = مجموع المتبقّي لكل عامل (لا يقل عن صفر)
     const owedToWorkers = employees.reduce((s, emp) => {
       const wds  = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved')
@@ -174,7 +178,7 @@ export default function DashboardScreen({
       return { month: key.slice(5), v: rev - exp - labor, rev, exp: exp + labor }
     })
 
-    return { totalRevenue, totalExpenses, totalPayments, totalAdvances, totalWasel, netProfit, activeCount, pendingWD, workerCosts, monthlyData, cashOnHand, owedToWorkers, owedByClients, overdueCount }
+    return { totalRevenue, totalExpenses, totalPayments, totalAdvances, totalWasel, netProfit, activeCount, pendingWD, workerCosts, monthlyData, cashOnHand, owedToWorkers, owedByClients, overdueCount, pendingExpenses }
   }, [projects, employees, workDays, expenses, payments, advances, clientReceipts])
 
   // Top projects by profit
@@ -205,6 +209,14 @@ export default function DashboardScreen({
     cashOnHand:   stats.cashOnHand,
     totalRevenue: stats.totalRevenue,
     monthlyData:  stats.monthlyData,
+  }), [stats])
+
+  // الذمّة الصافية — عدسة الميزانية: «لو صفّيت كل حساباتك اليوم كم بضل ملكك؟»
+  const netWorth = useMemo(() => computeNetWorth({
+    cashOnHand:      stats.cashOnHand,
+    owedByClients:   stats.owedByClients,
+    owedToWorkers:   stats.owedToWorkers,
+    pendingExpenses: stats.pendingExpenses,
   }), [stats])
 
   // مركز القيادة الذكي — يجمّع إشارات كل المحرّكات (مشاريع/تحصيل/مصاريف/عمّال)
@@ -240,6 +252,9 @@ export default function DashboardScreen({
 
       {/* ─── التوقّع الذكي للسيولة (المسار + عدّاد الأمان) ─── */}
       {hasData && forecast && <CashForecast forecast={forecast} onNav={onNav} />}
+
+      {/* ─── الذمّة الصافية (عدسة الميزانية — صافي مركزك) ─── */}
+      {hasData && <NetWorth netWorth={netWorth} onNav={onNav} />}
 
       {/* ─── Cash on Hand (السيولة الحقيقية) ─── */}
       <motion.div {...cardAnim} transition={{ delay: 0.04 }} style={{ marginBottom: 12 }}>
