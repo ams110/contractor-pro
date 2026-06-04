@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   computeBusinessPulse, gradeFor, clamp,
   computeCashForecast, weightedAvg, stdDev, fmtMonths,
+  computeWorkerDNA, workerTier,
 } from './insights.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -177,5 +178,72 @@ describe('computeCashForecast', () => {
     // نقاط المستقبل تحمل نطاق ثقة [lo, hi]
     expect(f.series[6].range).toHaveLength(2)
     expect(f.series[8].forecast).toBe(40000 + f.avgFlow * 3)
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// اختبارات بصمة العامل — المؤشّر، الرادار، التصنيف، والرؤى المقارِنة.
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('workerTier', () => {
+  it('يصنّف العامل حسب درجته', () => {
+    expect(workerTier(85).tier).toBe('نخبة')
+    expect(workerTier(85).star).toBe(true)
+    expect(workerTier(70).tier).toBe('موثوق')
+    expect(workerTier(55).tier).toBe('مقبول')
+    expect(workerTier(55).star).toBe(false)
+    expect(workerTier(40).tone).toBe('weak')
+    expect(workerTier(10).tone).toBe('critical')
+  })
+})
+
+describe('computeWorkerDNA', () => {
+  it('يُرجع 5 محاور ودرجة ضمن المدى عند غياب البيانات', () => {
+    const d = computeWorkerDNA({})
+    expect(d.score).toBeGreaterThanOrEqual(0)
+    expect(d.score).toBeLessThanOrEqual(100)
+    expect(d.factors).toHaveLength(5)
+    expect(d.insights.length).toBeGreaterThan(0)
+  })
+
+  it('عامل نخبة: إنتاجية عالية، منتظم، بلا سلف، مستمرّ', () => {
+    const d = computeWorkerDNA({
+      name: 'أحمد علي', earned: 60000, advances: 0,
+      avgPerDay: 500, fleetAvgPerDay: 350,
+      approvedDays: 40, pendingDays: 0, rejectedDays: 0,
+      daysPerMonth: [20, 22, 21, 20], tenureMonths: 6,
+    })
+    expect(d.score).toBeGreaterThanOrEqual(80)
+    expect(d.tier).toBe('نخبة')
+    expect(d.star).toBe(true)
+    expect(d.productivityPct).toBeGreaterThan(0)
+    expect(d.insights.some(i => i.tone === 'good')).toBe(true)
+  })
+
+  it('عامل تحت المراقبة: سلف عالية ومرفوضات تُنتج تحذيراً', () => {
+    const d = computeWorkerDNA({
+      name: 'خالد', earned: 20000, advances: 14000,
+      avgPerDay: 250, fleetAvgPerDay: 350,
+      approvedDays: 5, pendingDays: 4, rejectedDays: 3,
+      daysPerMonth: [2, 8, 1], tenureMonths: 1,
+    })
+    expect(d.score).toBeLessThan(50)
+    expect(d.insights[0].tone).toBe('warn')
+    expect(d.insights.some(i => i.text.includes('سلف'))).toBe(true)
+  })
+
+  it('يحسب نسبة الإنتاجية مقابل متوسّط الفريق', () => {
+    const d = computeWorkerDNA({ earned: 30000, avgPerDay: 420, fleetAvgPerDay: 350, approvedDays: 10 })
+    expect(d.productivityPct).toBe(20)   // (420/350 − 1) = 20%
+  })
+
+  it('يحدّ الرؤى بثلاث كحدّ أقصى', () => {
+    const d = computeWorkerDNA({
+      name: 'سمير', earned: 10000, advances: 8000,
+      avgPerDay: 200, fleetAvgPerDay: 400,
+      approvedDays: 3, pendingDays: 5, rejectedDays: 2,
+      daysPerMonth: [1, 9], tenureMonths: 0,
+    })
+    expect(d.insights.length).toBeLessThanOrEqual(3)
   })
 })

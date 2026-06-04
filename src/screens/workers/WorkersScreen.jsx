@@ -12,8 +12,50 @@ import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi, calcEarned } from '../../lib/calculations.js'
+import { computeWorkerDNA } from '../../lib/insights.js'
 import WorkDaysScreen from '../WorkDaysScreen.jsx'
+import WorkerDNA, { WorkerDNABadge } from '../../components/WorkerDNA.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
+
+// ─── بصمة العامل: يبني مدخلات المحرّك من البيانات الخام ──────────────────────────
+function buildWorkerDNA(worker, { workDays, payments, advances, expenses, fleetAvgPerDay }) {
+  const eid = worker.id
+  const wds      = workDays.filter(w => w.employee_id === eid)
+  const wdsApp   = wds.filter(w => w.status === 'approved')
+  const expApp   = expenses.filter(e => e.employee_id === eid && e.status === 'approved')
+  const advTotal = advances.filter(a => a.employee_id === eid).reduce((s, a) => s + (a.amount || 0), 0)
+
+  const daysEarned = calcEarned(wdsApp)
+  const earned     = calcMustahaq(wdsApp, expApp)
+  const avgPerDay  = wdsApp.length > 0 ? daysEarned / wdsApp.length : 0
+
+  // أيام/شهر (للانتظام) + مدى الاستمرارية بالأشهر
+  const byMonth = {}
+  let minKey = null, maxKey = null
+  for (const w of wds) {
+    if (!w.date) continue
+    const key = w.date.slice(0, 7)
+    if (w.status === 'approved') byMonth[key] = (byMonth[key] || 0) + 1
+    if (!minKey || key < minKey) minKey = key
+    if (!maxKey || key > maxKey) maxKey = key
+  }
+  const daysPerMonth = Object.values(byMonth)
+  let tenureMonths = 0
+  if (minKey && maxKey) {
+    const [y1, m1] = minKey.split('-').map(Number)
+    const [y2, m2] = maxKey.split('-').map(Number)
+    tenureMonths = (y2 - y1) * 12 + (m2 - m1) + 1
+  }
+
+  return computeWorkerDNA({
+    name: worker.name, earned, advances: advTotal,
+    avgPerDay, fleetAvgPerDay,
+    approvedDays: wdsApp.length,
+    pendingDays:  wds.filter(w => w.status === 'pending').length,
+    rejectedDays: wds.filter(w => w.status === 'rejected').length,
+    daysPerMonth, tenureMonths,
+  })
+}
 
 // ─── Worker avatar initials ───────────────────────────────────────────────────
 function Avatar({ name, size = 42, color = C.primary }) {
@@ -129,7 +171,7 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
 // ─── Worker Detail ────────────────────────────────────────────────────────────
 const PORTAL_URL = `${window.location.origin}${window.location.pathname}?portal`
 
-function WorkerDetail({ worker, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language, appCfg, onDeleteWorker }) {
+function WorkerDetail({ worker, dna, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language, appCfg, onDeleteWorker }) {
   const [tab, setTab] = useState('overview')
   const [advRequests, setAdvRequests] = useState([])
   const [advProject, setAdvProject] = useState({})   // req.id → project_id (اختياري)
@@ -241,6 +283,9 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
       <div style={{ padding: '14px 16px' }}>
         {tab === 'overview' && (
           <div>
+            {/* بصمة العامل — تحليل ذكي */}
+            <WorkerDNA dna={dna} />
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               {[
                 { label: language === 'he' ? 'סה"כ הרוויח' : language === 'en' ? 'Total Earned' : 'إجمالي المستحق', value: `₪${fmt(totalEarned)}`, color: C.success },
@@ -460,10 +505,22 @@ export default function WorkersScreen({
     return map
   }, [employees, workDays, payments, advances])
 
+  // ── بصمة العامل: متوسّط الفريق (مرجع) + بصمة لكل عامل ──────────────────────────
+  const dnaMap = useMemo(() => {
+    const approvedWDs = workDays.filter(w => w.status === 'approved')
+    const totalDays   = approvedWDs.length
+    const fleetAvgPerDay = totalDays > 0 ? calcEarned(approvedWDs) / totalDays : 0
+    const ctx = { workDays, payments, advances, expenses, fleetAvgPerDay }
+    const map = {}
+    for (const e of employees) map[e.id] = buildWorkerDNA(e, ctx)
+    return map
+  }, [employees, workDays, payments, advances, expenses])
+
   if (selected) {
     return (
       <WorkerDetail
         worker={selected}
+        dna={dnaMap[selected.id]}
         workDays={workDays} payments={payments} advances={advances} projects={projects} expenses={expenses}
         onClose={() => setSelected(null)}
         addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay}
@@ -613,7 +670,10 @@ export default function WorkersScreen({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: ws.balance > 0 ? 10 : 0 }}>
                   <Avatar name={worker.name} size={44} color={C.secondary} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{worker.name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{worker.name}</div>
+                      {dnaMap[worker.id] && <WorkerDNABadge dna={dnaMap[worker.id]} />}
+                    </div>
                     <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{worker.specialty || ''} {worker.phone ? `· ${worker.phone}` : ''}</div>
                   </div>
                   <div style={{ textAlign: 'end' }}>
