@@ -35,17 +35,32 @@
 ### Security (موجودة)
 - crypto-js, tweetnacl, jose, bcryptjs
 
+### Testing
+- Vitest ✅ (`npm test` — unit)
+- Playwright ✅ (`npm run test:e2e` — E2E متصفح حقيقي)
+- Playwright MCP ✅ (مُعرّف في `.mcp.json` — كلود يقود متصفح حقيقي)
+
 ---
 
 ## هيكل المجلدات
 
 ```
 src/
+├── Router.jsx           ← توجيه client-side (/, /login, /register, /pricing, /welcome, /app)
+├── App.jsx              ← التطبيق بعد تسجيل الدخول (الـ 5 tabs)
 ├── ui/                  ← مكتبة التصميم الداخلية
+├── i18n/                ← الترجمة (ar / he / en) — افتراضي ar
+├── pages/               ← صفحات عامة قبل الدخول
+│   ├── LandingPage.jsx      ← صفحة الهبوط التسويقية
+│   ├── PricingPage.jsx      ← الأسعار (Paddle)
+│   └── WelcomePage.jsx      ← ترحيب بعد الدخول
 ├── store/
 │   ├── useAppStore.js       ← navigation, toasts, modals, language
-│   └── useBusinessStore.js  ← multi-business (load/create/update/remove)
+│   ├── useBusinessStore.js  ← multi-business (load/create/update/remove)
+│   └── useDataStore.js      ← بيانات التطبيق (projects, workers, ...)
 ├── screens/
+│   ├── auth/
+│   │   └── LoginScreen.jsx  ← دخول + تسجيل + passkey/PIN + عضو فريق
 │   ├── finance/
 │   │   ├── FinanceScreen.jsx      ← الشاشة الرئيسية + tabs
 │   │   ├── BusinessSetup.jsx      ← onboarding أول مرة
@@ -57,9 +72,12 @@ src/
 │   │   ├── PayrollTab.jsx         ← قسائم الرواتب
 │   │   └── TaxSummaryTab.jsx      ← ملخص الضرائب والأرباح
 │   └── ...
-├── hooks/
-├── lib/                 ← supabase, utils, calculations, storage
+├── hooks/               ← useAuth, useTeam, useOrganization, ...
+├── lib/                 ← supabase, utils, calculations, storage, paddle
 └── constants/           ← colors, gradients, nav, EXP_CATS, VAT, etc.
+
+tests/
+└── e2e/                 ← اختبارات Playwright (landing, navigation, auth-forms)
 ```
 
 ---
@@ -128,6 +146,35 @@ src/
 
 ---
 
+## الاختبارات — Testing ✅
+
+### Playwright MCP (تفاعلي — كلود يقود متصفح حقيقي)
+- مُعرّف في `.mcp.json` تحت اسم `playwright`.
+- لما تشغّل `npm run dev` (port 3000) وكلود كود على الجهاز، بيقدر يفتح متصفح حقيقي،
+  يضغط أزرار، يعبّي فورمات، يتنقّل بين الصفحات زي مستخدم بشري، ويعطيك تقرير بالأخطاء.
+
+### اختبارات E2E الجاهزة (`tests/e2e/`)
+- `@playwright/test` + `playwright.config.js` — يشغّل Vite dev server تلقائياً،
+  ويختبر على viewport موبايل (Pixel 7) + ديسكتوب، locale عربي RTL.
+- التغطية الحالية **client-side فقط** (تنقّل + تحقّق فورمات) — لا تلمس الباكند،
+  فتعمل بدون إعداد Supabase:
+  | الملف | التغطية |
+  |------|---------|
+  | `landing.spec.js`    | صفحة الهبوط: العنوان، الأزرار، الإحصائيات |
+  | `navigation.spec.js` | التنقّل: دخول / تسجيل / أسعار |
+  | `auth-forms.spec.js` | فورمات الدخول والتسجيل + تبديل اللغة + تحقّق |
+
+### الأوامر
+```bash
+npm test              # Vitest (unit)
+npm run test:e2e      # Playwright (كل الاختبارات)
+npm run test:e2e:ui   # واجهة تفاعلية
+```
+> أي فلو يلمس الباكند فعلياً (دخول حقيقي، إضافة عامل، حفظ مصروف) يحتاج مستخدم/بيئة تجريبية.
+> تفاصيل أكمل في `docs/TESTING.md`.
+
+---
+
 ## قواعد التطوير
 
 1. **لا prop drilling** — كل الـ state العام عبر Zustand
@@ -136,12 +183,17 @@ src/
 4. **Hebrew strings داخل JSX** تُكتب بـ `{'מע"מ'}` لتجنب كسر الـ JSX بسبب `"`
 5. **الـ commit** بعد كل phase أو task مكتمل
 6. **لا كسر** للـ screens القديمة قبل ما تُبنى البديل
+7. **الاختبارات** — حدّث/أضف اختبار E2E في `tests/e2e/` عند تغيير فلو واجهة مهم
 
 ---
 
 ## الحالة الحالية
 
 - Branch الرئيسي: `main`
-- آخر commit: `ac2bd64` — Finance Module (Phase 0–5) + Auto Version Bump ✅
+- آخر إنجاز: Playwright MCP + اختبارات E2E (PR #101 — مُدمج في main) ✅
+- المصادقة: WebAuthn passkey حقيقي server-side عبر Supabase edge functions + PIN + عضو فريق
 - Vercel: مُنشور تلقائياً عند كل push لـ main
 - الإصدار الحالي: يتزايد تلقائياً عند كل `npm run build` (prebuild hook)
+
+> ملاحظة CI: في تكامل **Cloudflare Workers** على الريبو بيفشل (ما في `wrangler` config —
+> المشروع بينشر على Vercel). الفشل خارجي ومش مرتبط بالكود.
