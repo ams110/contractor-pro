@@ -51,14 +51,44 @@ def make_svg(size):
 </svg>"""
     return svg
 
-def save(size, path):
-    svg = make_svg(size)
+def make_badge_svg(size):
+    # Notification badge (Android tints by alpha) → solid white HardHat
+    # silhouette on a transparent background. No gradient square.
+    r = size
+    scale = r / 24
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg"
+     width="{r}" height="{r}" viewBox="0 0 {r} {r}">
+  <g transform="translate({r*0.16:.1f},{r*0.16:.1f}) scale({r*0.68/24:.4f})"
+     fill="none" stroke="white" stroke-width="2.5"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2H2z"/>
+    <path d="M20 15a1 1 0 0 0 1-1v-4a8 8 0 1 0-16 0v4a1 1 0 0 0 1 1z"/>
+    <path d="M9 15v1"/>
+    <path d="M15 15v1"/>
+    <path d="M12 15v2"/>
+  </g>
+</svg>"""
+    return svg
+
+def save(size, path, svg_fn=make_svg):
+    svg = svg_fn(size)
     cairosvg.svg2png(bytestring=svg.encode(), write_to=path, output_width=size, output_height=size)
     print(f"Saved {path} ({size}x{size})")
+
+def save_favicon(path):
+    # Multi-resolution .ico (16/32/48) from the brand gradient logo.
+    from io import BytesIO
+    from PIL import Image
+    base = Image.open(BytesIO(cairosvg.svg2png(
+        bytestring=make_svg(256).encode(), output_width=256, output_height=256)))
+    base.save(path, format="ICO", sizes=[(16, 16), (32, 32), (48, 48)])
+    print(f"Saved {path} (16/32/48)")
 
 if __name__ == "__main__":
     out = "/home/user/contractor-pro/public"
     save(512, os.path.join(out, "pwa-512.png"))
     save(192, os.path.join(out, "pwa-192.png"))
     save(180, os.path.join(out, "apple-touch-icon.png"))
+    save(96,  os.path.join(out, "badge-96.png"), make_badge_svg)
+    save_favicon(os.path.join(out, "favicon.ico"))
     print("Done!")
