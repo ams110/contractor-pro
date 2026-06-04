@@ -1,4 +1,3 @@
-// Supabase Edge Function: التحقق من تسجيل البصمة وحفظها
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { verifyRegistrationResponse } from 'https://esm.sh/@simplewebauthn/server@9'
@@ -8,54 +7,77 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Deno-compatible base64 encoder (no Buffer)
+function encodeBase64(bytes: Uint8Array): string {
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  return btoa(binary)
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
-  try {
-    const { userId, credential } = await req.json()
-    const origin = req.headers.get('origin') || 'https://localhost'
-    const rpID   = origin.replace(/^https?:\/\//, '').split(':')[0]
+  const json = (body: object, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
+  try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    // جلب الـ challenge المحفوظ
+    // Verify JWT and get user
+    const authHeader = req.headers.get('Authorization') || ''
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
+    if (authErr || !user) return json({ error: 'Unauthorized' }, 401)
+
+    const { credential } = await req.json()
+    const origin = req.headers.get('origin') || 'https://localhost'
+    const rpID = origin.replace(/^https?:\/\//, '').split(':')[0]
+
+    // Get stored challenge
     const { data: ch } = await supabase
       .from('passkey_challenges')
       .select('challenge')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .eq('type', 'registration')
       .single()
 
-    if (!ch) throw new Error('Challenge منتهي أو غير موجود')
+    if (!ch) return json({ error: 'انتهت صلاحية التحقق، أعد المحاولة' }, 400)
 
     const verification = await verifyRegistrationResponse({
       response: credential,
       expectedChallenge: ch.challenge,
-      expectedOrigin:    origin,
-      expectedRPID:      rpID,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
       requireUserVerification: true,
     })
 
-    if (!verification.verified) throw new Error('فشل التحقق من البصمة')
+    if (!verification.verified) return json({ error: 'فشل التحقق من البصمة' }, 400)
 
     const { registrationInfo } = verification
+    // v9 API: binary data is nested under registrationInfo.credential
+    const credentialID   = registrationInfo!.credential.id
+    const publicKeyBytes = registrationInfo!.credential.publicKey
+    const counter        = registrationInfo!.credential.counter
+
+    // Replace any existing credential for this user (one passkey per user per device)
+    await supabase.from('passkey_credentials').delete().eq('user_id', user.id)
+
     await supabase.from('passkey_credentials').insert({
-      user_id:       userId,
-      credential_id: registrationInfo!.credentialID,
-      public_key:    Buffer.from(registrationInfo!.credentialPublicKey).toString('base64'),
-      counter:       registrationInfo!.counter,
-      device_type:   registrationInfo!.credentialDeviceType,
+      user_id:       user.id,
+      credential_id: credentialID,
+      public_key:    encodeBase64(publicKeyBytes),
+      counter,
+      device_type:   registrationInfo!.credentialDeviceType || 'platform',
     })
 
-    // حذف الـ challenge
-    await supabase.from('passkey_challenges').delete().eq('user_id', userId).eq('type', 'registration')
+    // Clean up challenge
+    await supabase.from('passkey_challenges').delete()
+      .eq('user_id', user.id)
+      .eq('type', 'registration')
 
-    return new Response(JSON.stringify({ verified: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return json({ verified: true, credentialId: credentialID })
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
       status: 400,
