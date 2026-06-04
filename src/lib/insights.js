@@ -705,3 +705,89 @@ export function detectExpenseAnomalies(a = {}) {
 
   return { anomalies: anomalies.slice(0, 4), leakTotal, leakCount, spikeCount, tone, hasData: true }
 }
+
+// ─── رادار التحصيل — Collection Aging ──────────────────────────────────────────────
+// يرتّب ذمم العملاء حسب العمر (0–30 / 31–60 / 61–90 / 90+) ويقترح أولوية الاتصال.
+// دوال نقيّة قابلة للاختبار.
+
+const AGING_BUCKETS = [
+  { key: 'current', label: 'جاري (0–30 يوم)', max: 30 },
+  { key: 'd30',     label: '31–60 يوم',       max: 60 },
+  { key: 'd60',     label: '61–90 يوم',       max: 90 },
+  { key: 'd90',     label: 'أكثر من 90 يوم',  max: Infinity },
+]
+
+/**
+ * @param {object} a
+ * @param {Array}  a.projects - [{ id, name, price, client_name, client_phone, created_at }]
+ * @param {Array}  a.receipts - [{ project_id, amount, date }]
+ * @param {number} [a.now=Date.now()]
+ * @returns {{ totalOutstanding, overdueTotal, buckets, items, worst, tone, insights, hasData }}
+ */
+export function computeCollectionAging(a = {}) {
+  const { projects = [], receipts = [], now = Date.now() } = a
+
+  const items = []
+  for (const p of projects) {
+    const price = parseFloat(p.price) || 0
+    if (price <= 0) continue
+    const projReceipts = receipts.filter(r => r.project_id === p.id)
+    const received = projReceipts.reduce((s, r) => s + Number(r.amount || 0), 0)
+    const outstanding = Math.round(price - received)
+    if (outstanding < 1) continue
+
+    const dates   = projReceipts.map(r => r.date || '').filter(Boolean).sort()
+    const refDate = dates.at(-1) || (p.created_at ? String(p.created_at).slice(0, 10) : null)
+    const daysSince = refDate ? Math.max(0, Math.floor((now - new Date(refDate).getTime()) / 86400000)) : 0
+    const bucket = AGING_BUCKETS.find(b => daysSince <= b.max).key
+
+    items.push({
+      id: p.id, name: p.name || 'مشروع', client: p.client_name || '', phone: p.client_phone || '',
+      outstanding, daysSince, bucket,
+    })
+  }
+
+  items.sort((x, y) => y.daysSince - x.daysSince || y.outstanding - x.outstanding)
+
+  const buckets = AGING_BUCKETS.map(b => {
+    const rows = items.filter(it => it.bucket === b.key)
+    return { key: b.key, label: b.label, amount: rows.reduce((s, it) => s + it.outstanding, 0), count: rows.length }
+  })
+
+  const totalOutstanding = items.reduce((s, it) => s + it.outstanding, 0)
+  const overdueTotal     = items.filter(it => it.bucket !== 'current').reduce((s, it) => s + it.outstanding, 0)
+  const overdueCount     = items.filter(it => it.bucket !== 'current').length
+  const d90Total         = buckets.find(b => b.key === 'd90').amount
+  const worst            = items[0] || null
+  const hasData          = projects.some(p => (parseFloat(p.price) || 0) > 0)
+
+  const tone = d90Total > 0 ? 'critical' : overdueTotal > 0 ? 'weak'
+             : totalOutstanding > 0 ? 'fair' : 'excellent'
+
+  return {
+    totalOutstanding, overdueTotal, overdueCount, d90Total,
+    buckets, items, worst, tone, hasData,
+    insights: buildAgingInsights({ totalOutstanding, overdueTotal, overdueCount, d90Total, worst }),
+  }
+}
+
+function buildAgingInsights({ totalOutstanding, overdueTotal, overdueCount, d90Total, worst }) {
+  const out = []
+
+  if (worst && worst.daysSince > 30)
+    out.push({ tone: 'warn', icon: 'PhoneCall', text: `اتّصل بـ${worst.client || worst.name} أولاً — ₪${fmt(worst.outstanding)} متأخّرة ${worst.daysSince} يوم.` })
+
+  if (d90Total > 0)
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `₪${fmt(d90Total)} متأخّرة أكثر من 90 يوم — ديون متعثّرة، تابعها بجدّية.` })
+
+  if (overdueTotal > 0 && overdueCount > 1)
+    out.push({ tone: 'tip', icon: 'Clock', text: `${overdueCount} مستحقّات متأخّرة بمجموع ₪${fmt(overdueTotal)} — رتّب جولة تحصيل.` })
+  else if (totalOutstanding > 0 && overdueTotal === 0)
+    out.push({ tone: 'tip', icon: 'CalendarClock', text: `₪${fmt(totalOutstanding)} مستحقّة لكن كلها ضمن المهلة الطبيعية (أقل من شهر).` })
+
+  if (totalOutstanding === 0)
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: 'ما في ذمم مفتوحة — كل عملائك سدّدوا. ممتاز!' })
+
+  const order = { warn: 0, tip: 1, good: 2 }
+  return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
+}

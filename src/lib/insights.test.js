@@ -6,6 +6,7 @@ import {
   computeProjectHealth,
   computeTaxRunway,
   detectExpenseAnomalies,
+  computeCollectionAging,
 } from './insights.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -395,5 +396,56 @@ describe('detectExpenseAnomalies', () => {
     expect(r.leakCount).toBe(0)
     expect(r.tone).toBe('excellent')
     expect(r.anomalies[0].tone).toBe('good')
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// اختبارات رادار التحصيل — أعمار الذمم، أولوية الاتصال، والرؤى.
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('computeCollectionAging', () => {
+  const now = new Date('2026-06-15').getTime()
+
+  it('لا مشاريع بأسعار = لا بيانات وذمم صفرية', () => {
+    const r = computeCollectionAging({ projects: [{ id: 'p1', price: 0 }], receipts: [], now })
+    expect(r.hasData).toBe(false)
+    expect(r.totalOutstanding).toBe(0)
+    expect(r.tone).toBe('excellent')
+  })
+
+  it('يصنّف الذمم في الدلاء الصحيحة حسب آخر قبضة', () => {
+    const projects = [
+      { id: 'p1', name: 'فيلا', price: 100000, client_name: 'سامي' },
+      { id: 'p2', name: 'مخزن', price: 50000, client_name: 'رامي' },
+    ]
+    const receipts = [
+      { project_id: 'p1', amount: 40000, date: '2026-06-10' },  // قبل 5 أيام → جاري، متبقي 60k
+      { project_id: 'p2', amount: 10000, date: '2026-02-01' },  // قبل ~134 يوم → 90+، متبقي 40k
+    ]
+    const r = computeCollectionAging({ projects, receipts, now })
+    expect(r.totalOutstanding).toBe(100000)
+    expect(r.buckets.find(b => b.key === 'current').amount).toBe(60000)
+    expect(r.buckets.find(b => b.key === 'd90').amount).toBe(40000)
+    expect(r.worst.id).toBe('p2')           // الأقدم أولاً
+    expect(r.tone).toBe('critical')
+    expect(r.insights[0].tone).toBe('warn')
+  })
+
+  it('ذمم ضمن المهلة = نبرة جيّدة بلا تحذير', () => {
+    const projects = [{ id: 'p1', name: 'شقة', price: 30000, client_name: 'ليلى' }]
+    const receipts = [{ project_id: 'p1', amount: 10000, date: '2026-06-01' }]  // قبل 14 يوم
+    const r = computeCollectionAging({ projects, receipts, now })
+    expect(r.overdueTotal).toBe(0)
+    expect(r.tone).toBe('fair')
+    expect(r.insights.some(i => i.tone === 'tip')).toBe(true)
+  })
+
+  it('كل العملاء سدّدوا = نبرة ممتازة', () => {
+    const projects = [{ id: 'p1', price: 20000 }]
+    const receipts = [{ project_id: 'p1', amount: 20000, date: '2026-05-01' }]
+    const r = computeCollectionAging({ projects, receipts, now })
+    expect(r.totalOutstanding).toBe(0)
+    expect(r.tone).toBe('excellent')
+    expect(r.insights[0].tone).toBe('good')
   })
 })
