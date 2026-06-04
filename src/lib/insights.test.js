@@ -4,6 +4,7 @@ import {
   computeCashForecast, weightedAvg, stdDev, fmtMonths,
   computeWorkerDNA, workerTier,
   computeProjectHealth,
+  computeTaxRunway,
 } from './insights.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -294,5 +295,45 @@ describe('computeProjectHealth', () => {
   it('لا يحسب إنذاراً مبكّراً للمشاريع المكتملة أو بلا عقد', () => {
     expect(computeProjectHealth({ price: 100000, revenue: 100000, cost: 60000 }).projectedMargin).toBeNull()
     expect(computeProjectHealth({ price: 0, revenue: 50000, cost: 30000 }).projectedMargin).toBeNull()
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// اختبارات عدّاد الضريبة — توقّع السقف، التجنيب الشهري، والرؤى.
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('computeTaxRunway', () => {
+  it('يُرجع null إذا لا دخل ولا ضريبة', () => {
+    expect(computeTaxRunway({ yearIncome: 0, annualTax: 0 })).toBeNull()
+  })
+
+  it('עוסק פטور سيتجاوز السقف: يحسب الشهر المتوقّع ويحذّر', () => {
+    // 6 أشهر × ₪12,000 = ₪72k، التوقّع السنوي ₪144k > 120k
+    const r = computeTaxRunway({ isOsekPatur: true, cap: 120000, yearIncome: 72000, monthsElapsed: 6 })
+    expect(r.willExceed).toBe(true)
+    expect(r.projectedAnnual).toBe(144000)
+    expect(r.capMonth).toBeTruthy()
+    expect(r.tone).toBe('critical')
+    expect(r.insights[0].tone).toBe('warn')
+  })
+
+  it('עוסק פטור ضمن الحد بأريحية = نبرة جيّدة', () => {
+    const r = computeTaxRunway({ isOsekPatur: true, cap: 120000, yearIncome: 20000, monthsElapsed: 6 })
+    expect(r.willExceed).toBe(false)
+    expect(r.projectedAnnual).toBe(40000)
+    expect(r.tone).toBe('good')
+    expect(r.insights.some(i => i.tone === 'good')).toBe(true)
+  })
+
+  it('يكتشف تجاوز السقف الواقع فعلاً', () => {
+    const r = computeTaxRunway({ isOsekPatur: true, cap: 120000, yearIncome: 130000, monthsElapsed: 8 })
+    expect(r.alreadyExceeded).toBe(true)
+    expect(r.insights[0].text).toContain('تجاوزت')
+  })
+
+  it('يحسب التجنيب الشهري للفاتورة الضريبية', () => {
+    const r = computeTaxRunway({ isOsekPatur: false, yearIncome: 200000, monthsElapsed: 6, annualTax: 36000 })
+    expect(r.monthlyProvision).toBe(3000)   // 36000 / 12
+    expect(r.insights.some(i => i.icon === 'PiggyBank')).toBe(true)
   })
 })
