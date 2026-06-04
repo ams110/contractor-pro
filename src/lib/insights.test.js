@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { computeBusinessPulse, gradeFor, clamp } from './insights.js'
+import {
+  computeBusinessPulse, gradeFor, clamp,
+  computeCashForecast, weightedAvg, stdDev, fmtMonths,
+} from './insights.js'
 
 // ════════════════════════════════════════════════════════════════════════════
 // اختبارات محرّك نبض المصلحة — التحقّق من حدود الدرجات والرؤى الذكية.
@@ -91,5 +94,88 @@ describe('computeBusinessPulse', () => {
       owedToWorkers: 30000, owedByClients: 20000, overdueCount: 2,
     })
     expect(p.insights.length).toBeLessThanOrEqual(4)
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// اختبارات محرّك التوقّع النقدي — المتوسّط المرجّح، النطاق، وعدّاد الأمان (runway).
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('weightedAvg', () => {
+  it('يعطي وزناً أعلى للقيم الأحدث', () => {
+    // [10, 20] بأوزان [1, 2] = (10·1 + 20·2) / 3 = 50/3 ≈ 16.67
+    expect(weightedAvg([10, 20])).toBeCloseTo(16.667, 2)
+    expect(weightedAvg([])).toBe(0)
+  })
+})
+
+describe('stdDev', () => {
+  it('صفر لقيم متطابقة، وموجب للمتذبذبة', () => {
+    expect(stdDev([5, 5, 5])).toBe(0)
+    expect(stdDev([0, 10])).toBeGreaterThan(0)
+    expect(stdDev([7])).toBe(0)
+  })
+})
+
+describe('fmtMonths', () => {
+  it('يصيغ المدّة بالعربي حسب العدد', () => {
+    expect(fmtMonths(1)).toBe('شهر واحد')
+    expect(fmtMonths(2)).toBe('شهرين')
+    expect(fmtMonths(5)).toBe('5 أشهر')
+    expect(fmtMonths(13)).toBe('أكثر من سنة')
+  })
+})
+
+describe('computeCashForecast', () => {
+  it('يُرجع null عند غياب تاريخ كافٍ', () => {
+    expect(computeCashForecast({})).toBeNull()
+    expect(computeCashForecast({ monthlyData: [{ v: 5000 }] })).toBeNull()
+    expect(computeCashForecast({ monthlyData: [{ v: 0 }, { v: 0 }, { v: 0 }] })).toBeNull()
+  })
+
+  it('اتجاه صاعد → نبرة إيجابية، بلا عدّاد أمان، ورؤية تصاعدية', () => {
+    const f = computeCashForecast({
+      cashOnHand: 50000, totalRevenue: 200000,
+      monthlyData: [
+        { month: '01', v: 4000 }, { month: '02', v: 5000 }, { month: '03', v: 6000 },
+        { month: '04', v: 7000 }, { month: '05', v: 8000 }, { month: '06', v: 9000 },
+      ],
+    })
+    expect(f.avgFlow).toBeGreaterThan(0)
+    expect(f.rising).toBe(true)
+    expect(f.runway).toBeNull()
+    expect(['good', 'excellent']).toContain(f.tone)
+    expect(f.projected).toBeGreaterThan(50000)
+    expect(f.insights.some(i => i.tone === 'good')).toBe(true)
+  })
+
+  it('اتجاه نازل بسيولة موجبة → يحسب عدّاد الأمان (runway) ويحذّر', () => {
+    const f = computeCashForecast({
+      cashOnHand: 30000, totalRevenue: 120000,
+      monthlyData: [
+        { month: '01', v: 2000 },  { month: '02', v: -1000 }, { month: '03', v: -3000 },
+        { month: '04', v: -5000 }, { month: '05', v: -6000 }, { month: '06', v: -8000 },
+      ],
+    })
+    expect(f.avgFlow).toBeLessThan(0)
+    expect(f.runway).toBeGreaterThan(0)
+    expect(['weak', 'critical', 'fair']).toContain(f.tone)
+    expect(f.insights[0].tone).toBe('warn')
+  })
+
+  it('يبني سلسلة بطول التاريخ + أفق التوقّع، وتنتهي عند النقد الحالي', () => {
+    const monthlyData = [
+      { month: '01', v: 1000 }, { month: '02', v: 1000 }, { month: '03', v: 1000 },
+      { month: '04', v: 1000 }, { month: '05', v: 1000 }, { month: '06', v: 1000 },
+    ]
+    const f = computeCashForecast({ cashOnHand: 40000, totalRevenue: 100000, monthlyData, horizon: 3 })
+    expect(f.series).toHaveLength(6 + 3)
+    // آخر نقطة تاريخية = النقد الحالي (نقطة الوصل)
+    const junction = f.series[5]
+    expect(junction.actual).toBe(40000)
+    expect(junction.forecast).toBe(40000)
+    // نقاط المستقبل تحمل نطاق ثقة [lo, hi]
+    expect(f.series[6].range).toHaveLength(2)
+    expect(f.series[8].forecast).toBe(40000 + f.avgFlow * 3)
   })
 })

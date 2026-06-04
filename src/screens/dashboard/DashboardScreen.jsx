@@ -11,8 +11,9 @@ import { C, GRAD } from '../../constants/index.js'
 import { fmt, isPaymentOverdue } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { calcEarned, calcPaid, calcAdvances, calcRevenue, calcProjectStats, calcMutabqi } from '../../lib/calculations.js'
-import { computeBusinessPulse } from '../../lib/insights.js'
+import { computeBusinessPulse, computeCashForecast } from '../../lib/insights.js'
 import BusinessPulse from '../../components/BusinessPulse.jsx'
+import CashForecast from '../../components/CashForecast.jsx'
 
 // ─── Bento Card ───────────────────────────────────────────────────────────────
 function BentoCard({ children, style = {}, gradient, onClick }) {
@@ -198,6 +199,13 @@ export default function DashboardScreen({
     monthlyData:   stats.monthlyData,
   }), [stats])
 
+  // التوقّع الذكي للسيولة — مسار النقد للأشهر القادمة + عدّاد الأمان
+  const forecast = useMemo(() => computeCashForecast({
+    cashOnHand:   stats.cashOnHand,
+    totalRevenue: stats.totalRevenue,
+    monthlyData:  stats.monthlyData,
+  }), [stats])
+
   const hasData = projects.length > 0 || employees.length > 0
 
   const cardAnim = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } }
@@ -217,6 +225,9 @@ export default function DashboardScreen({
 
       {/* ─── نبض المصلحة (مؤشّر الصحّة الذكي) ─── */}
       {hasData && <BusinessPulse pulse={pulse} onNav={onNav} />}
+
+      {/* ─── التوقّع الذكي للسيولة (المسار + عدّاد الأمان) ─── */}
+      {hasData && forecast && <CashForecast forecast={forecast} onNav={onNav} />}
 
       {/* ─── Cash on Hand (السيولة الحقيقية) ─── */}
       <motion.div {...cardAnim} transition={{ delay: 0.04 }} style={{ marginBottom: 12 }}>
