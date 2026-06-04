@@ -6,6 +6,8 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
   || 'sb_publishable_StYQEWIn705_V2lNNSITtg_ty04ZO5E'
 
+export const SUPABASE_URL = supabaseUrl
+
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     persistSession: true,

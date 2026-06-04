@@ -759,6 +759,10 @@ export default function SettingsScreen({
                     </div>
                   </div>
 
+                  <div style={{ fontSize: 12, color: C.textDim, marginBottom: 16, lineHeight: 1.6 }}>
+                    سيطلب الجهاز تأكيد بصمتك — يتم التحقق مباشرة مع السيرفر دون تخزين أي بيانات حساسة محلياً.
+                  </div>
+
                   {bioError && (
                     <div style={{ fontSize: 12, color: C.accent, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
                       <span>⚠</span> {bioError}
@@ -769,7 +773,7 @@ export default function SettingsScreen({
                     whileTap={{ scale: 0.97 }}
                     onClick={handleRegisterBiometric}
                     disabled={bioLoading}
-                    style={{ width: '100%', padding: '15px', borderRadius: 16, background: bioLoading ? `${C.primary}88` : 'linear-gradient(135deg,#F97316,#DC2626)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: bioLoading ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                    style={{ width: '100%', padding: '15px', borderRadius: 16, background: bioLoading ? `${C.primary}55` : 'linear-gradient(135deg,#F97316,#DC2626)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: bioLoading ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                   >
                     {bioLoading
                       ? <motion.div animate={{ opacity: [1, 0.4, 1] }} transition={{ repeat: Infinity, duration: 0.9 }}><Fingerprint size={18} /></motion.div>
