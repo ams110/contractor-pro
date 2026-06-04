@@ -106,14 +106,18 @@ export default function SettingsScreen({
   const [showRegisterBio, setShowRegisterBio] = useState(false)
   const [bioLoading, setBioLoading]           = useState(false)
   const [bioError, setBioError]               = useState('')
+  const [bioPassword, setBioPassword]         = useState('')
+  const [bioShowPass, setBioShowPass]         = useState(false)
 
   async function handleRegisterBiometric() {
+    if (!bioPassword) { setBioError('أدخل كلمة المرور أولاً'); return }
     setBioLoading(true)
     setBioError('')
     try {
-      await registerPasskey()
+      await registerPasskey(bioPassword)
       setHasPasskey(true)
       setShowRegisterBio(false)
+      setBioPassword('')
     } catch (e) {
       setBioError(e.message || 'فشل تسجيل البصمة')
     } finally {
@@ -759,6 +763,24 @@ export default function SettingsScreen({
                     </div>
                   </div>
 
+                  <div style={{ fontSize: 12, color: C.textDim, marginBottom: 12, lineHeight: 1.6 }}>
+                    أدخل كلمة مرورك لتأمين البصمة — تُستخدم للتحقق مع السيرفر عند كل دخول بالبصمة.
+                  </div>
+
+                  <div style={{ position: 'relative', marginBottom: 14 }}>
+                    <input
+                      type={bioShowPass ? 'text' : 'password'}
+                      value={bioPassword}
+                      onChange={e => { setBioPassword(e.target.value); setBioError('') }}
+                      placeholder="كلمة المرور"
+                      style={{ width: '100%', padding: '12px 40px 12px 14px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', direction: 'ltr', boxSizing: 'border-box' }}
+                    />
+                    <button type="button" onClick={() => setBioShowPass(v => !v)}
+                      style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex', alignItems: 'center' }}>
+                      {bioShowPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+
                   {bioError && (
                     <div style={{ fontSize: 12, color: C.accent, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
                       <span>⚠</span> {bioError}
@@ -768,8 +790,8 @@ export default function SettingsScreen({
                   <motion.button
                     whileTap={{ scale: 0.97 }}
                     onClick={handleRegisterBiometric}
-                    disabled={bioLoading}
-                    style={{ width: '100%', padding: '15px', borderRadius: 16, background: bioLoading ? `${C.primary}88` : 'linear-gradient(135deg,#F97316,#DC2626)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: bioLoading ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                    disabled={bioLoading || !bioPassword}
+                    style={{ width: '100%', padding: '15px', borderRadius: 16, background: bioLoading || !bioPassword ? `${C.primary}55` : 'linear-gradient(135deg,#F97316,#DC2626)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: bioLoading || !bioPassword ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                   >
                     {bioLoading
                       ? <motion.div animate={{ opacity: [1, 0.4, 1] }} transition={{ repeat: Infinity, duration: 0.9 }}><Fingerprint size={18} /></motion.div>

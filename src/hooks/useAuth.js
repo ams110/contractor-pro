@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 
-const PASSKEY_KEY  = 'cpro_passkey_cred'  // JSON { credentialId, rpId }
-const PASSKEY_ENC  = 'cpro_passkey_enc'   // JSON { iv, enc } — encrypted refresh_token
-const PIN_HASH_KEY = 'cpro_pin_hash'
+const PASSKEY_KEY   = 'cpro_passkey_cred'   // JSON { credentialId, rpId }
+const PASSKEY_ENC   = 'cpro_passkey_enc'    // legacy: encrypted refresh_token
+const PASSKEY_CREDS = 'cpro_passkey_creds'  // JSON { iv, enc } — encrypted { email, password }
+const PIN_HASH_KEY  = 'cpro_pin_hash'
 const PIN_CREDS_KEY = 'cpro_pin_creds'
 
 // ── Crypto helpers ────────────────────────────────────────────────────────────
@@ -130,12 +131,14 @@ export function useAuth() {
 
   // ─── Passkeys — raw WebAuthn + IndexedDB AES key + encrypted refresh_token ──
 
-  async function registerPasskey() {
+  // password is required — verified against Supabase before storing credentials.
+  async function registerPasskey(password) {
     if (!user) throw new Error('يجب تسجيل الدخول أولاً')
+    if (!password) throw new Error('كلمة المرور مطلوبة لتفعيل البصمة')
 
-    // Get current refresh_token from active session
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error('لا توجد جلسة نشطة')
+    // Verify the password is correct before storing it
+    const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: user.email, password })
+    if (verifyErr) throw new Error('كلمة المرور غير صحيحة')
 
     // Create platform WebAuthn credential — triggers Face ID / fingerprint
     let credential
@@ -174,17 +177,20 @@ export function useAuth() {
     )
     await idbPut('cpro_aes', aesKey)
 
-    // Encrypt refresh_token with AES key
+    // Encrypt { email, password } — used for direct server login on each biometric attempt
     const iv  = crypto.getRandomValues(new Uint8Array(12))
     const enc = await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv },
       aesKey,
-      new TextEncoder().encode(session.refresh_token)
+      new TextEncoder().encode(JSON.stringify({ email: user.email, password }))
     )
-    localStorage.setItem(PASSKEY_ENC, JSON.stringify({
+    localStorage.setItem(PASSKEY_CREDS, JSON.stringify({
       iv: Array.from(iv),
       enc: Array.from(new Uint8Array(enc)),
     }))
+
+    // Clear old refresh_token storage (migration)
+    localStorage.removeItem(PASSKEY_ENC)
 
     // Store credential ID (base64url) + rpId
     localStorage.setItem(PASSKEY_KEY, JSON.stringify({
@@ -225,11 +231,31 @@ export function useAuth() {
 
     // Retrieve AES key from IndexedDB
     const aesKey = await idbGet('cpro_aes')
-    if (!aesKey) throw new Error('مفتاح التشفير مفقود — أعد التسجيل من الإعدادات')
+    if (!aesKey) throw new Error('مفتاح التشفير مفقود — أعد تسجيل البصمة من الإعدادات')
 
-    // Decrypt refresh_token
+    // ── New path: server-verified login via stored credentials ────────────────
+    const credsStr = localStorage.getItem(PASSKEY_CREDS)
+    if (credsStr) {
+      let email, password
+      try {
+        const { iv, enc } = JSON.parse(credsStr)
+        const dec = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: new Uint8Array(iv) },
+          aesKey,
+          new Uint8Array(enc)
+        )
+        ;({ email, password } = JSON.parse(new TextDecoder().decode(dec)))
+      } catch {
+        throw new Error('فشل فك التشفير — أعد تسجيل البصمة من الإعدادات')
+      }
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw new Error('فشل التحقق مع السيرفر — أعد تسجيل البصمة من الإعدادات')
+      return data
+    }
+
+    // ── Legacy path: refresh_token (old registrations before this update) ─────
     const encStr = localStorage.getItem(PASSKEY_ENC)
-    if (!encStr) throw new Error('بيانات مشفرة مفقودة — أعد التسجيل من الإعدادات')
+    if (!encStr) throw new Error('لا توجد بيانات بصمة — أعد التسجيل من الإعدادات')
 
     let refreshToken
     try {
@@ -241,14 +267,13 @@ export function useAuth() {
       )
       refreshToken = new TextDecoder().decode(dec)
     } catch {
-      throw new Error('فشل فك التشفير — أعد التسجيل من الإعدادات')
+      throw new Error('فشل فك التشفير — أعد تسجيل البصمة من الإعدادات')
     }
 
-    // Restore Supabase session via refresh_token
     const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken })
     if (error) { const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e }
 
-    // Rotate: store new refresh_token (Supabase rotates on each use)
+    // Rotate stored token
     try {
       const iv2  = crypto.getRandomValues(new Uint8Array(12))
       const enc2 = await crypto.subtle.encrypt(
@@ -256,10 +281,7 @@ export function useAuth() {
         aesKey,
         new TextEncoder().encode(data.session.refresh_token)
       )
-      localStorage.setItem(PASSKEY_ENC, JSON.stringify({
-        iv: Array.from(iv2),
-        enc: Array.from(new Uint8Array(enc2)),
-      }))
+      localStorage.setItem(PASSKEY_ENC, JSON.stringify({ iv: Array.from(iv2), enc: Array.from(new Uint8Array(enc2)) }))
     } catch {}
 
     return data
@@ -287,6 +309,7 @@ export function useAuth() {
   function removePasskey() {
     localStorage.removeItem(PASSKEY_KEY)
     localStorage.removeItem(PASSKEY_ENC)
+    localStorage.removeItem(PASSKEY_CREDS)
     idbPut('cpro_aes', undefined).catch(() => {})
   }
 
