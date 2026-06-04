@@ -619,3 +619,89 @@ function buildTaxRunwayInsights(a) {
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
 }
+
+// ─── كاشف التسريب — Expense Anomaly Radar ─────────────────────────────────────────
+// يرصد المصاريف الشاذّة تلقائياً: قفزات الفئات مقابل المعدّل، المصاريف غير المنسوبة
+// لمشاريع (تسريب من تحليل الربحية)، والقيم المتطرّفة. دوال نقيّة قابلة للاختبار.
+
+/**
+ * @param {object} a
+ * @param {Array}  a.entries   - [{ amount, category, date 'YYYY-MM-DD', project_id }]
+ * @param {string} a.monthKey  - الشهر الحالي 'YYYY-MM'
+ * @param {number} [a.lookback=3] - عدد الأشهر السابقة لحساب المعدّل
+ * @returns {{ anomalies, leakTotal, leakCount, spikeCount, tone, hasData }}
+ */
+export function detectExpenseAnomalies(a = {}) {
+  const { entries = [], monthKey = '', lookback = 3 } = a
+
+  const cur = entries.filter(e => (e.date || '').startsWith(monthKey))
+  if (entries.length === 0 || !monthKey) {
+    return { anomalies: [], leakTotal: 0, leakCount: 0, spikeCount: 0, tone: 'fair', hasData: false }
+  }
+
+  // الأشهر السابقة الموجودة فعلاً في البيانات (أحدث lookback)
+  const prevMonths = [...new Set(entries.map(e => (e.date || '').slice(0, 7)).filter(m => m && m < monthKey))]
+    .sort().slice(-lookback)
+
+  // مجموع كل فئة لكل شهر
+  const byCatMonth = {}
+  for (const e of entries) {
+    const m = (e.date || '').slice(0, 7)
+    const c = e.category || 'أخرى'
+    byCatMonth[c] = byCatMonth[c] || {}
+    byCatMonth[c][m] = (byCatMonth[c][m] || 0) + Number(e.amount || 0)
+  }
+
+  const anomalies = []
+  let spikeCount = 0
+
+  // ① قفزات الفئات: الشهر الحالي مقابل معدّل الأشهر السابقة
+  for (const [cat, months] of Object.entries(byCatMonth)) {
+    const curTotal = months[monthKey] || 0
+    if (curTotal <= 0 || prevMonths.length === 0) continue
+    const prevVals = prevMonths.map(m => months[m] || 0).filter(v => v > 0)
+    if (prevVals.length === 0) continue
+    const baseline = prevVals.reduce((s, v) => s + v, 0) / prevVals.length
+    if (curTotal >= baseline * 1.4 && curTotal - baseline >= 300) {
+      const pct = Math.round((curTotal / baseline - 1) * 100)
+      anomalies.push({ tone: 'warn', icon: 'TrendingUp', amount: Math.round(curTotal),
+        text: `مصروف «${cat}» هذا الشهر ₪${fmt(Math.round(curTotal))} — أعلى ${pct}% من معدّلك (₪${fmt(Math.round(baseline))}).` })
+      spikeCount++
+    }
+  }
+
+  // ② تسريب: مصاريف غير منسوبة لأي مشروع هذا الشهر
+  const leakRows  = cur.filter(e => !e.project_id && !e.is_general)
+  const leakTotal = Math.round(leakRows.reduce((s, e) => s + Number(e.amount || 0), 0))
+  const leakCount = leakRows.length
+  if (leakCount > 0 && leakTotal >= 300) {
+    anomalies.push({ tone: 'tip', icon: 'FolderInput', amount: leakTotal,
+      text: `${leakCount} ${leakCount === 1 ? 'مصروف' : 'مصاريف'} بدون مشروع — ₪${fmt(leakTotal)} غير محسوبة في ربحية مشاريعك.` })
+  }
+
+  // ③ قيمة متطرّفة: أكبر مصروف مفرد هذا الشهر أعلى بكثير من المعتاد
+  if (cur.length >= 4) {
+    const vals = cur.map(e => Number(e.amount || 0))
+    const mean = vals.reduce((s, v) => s + v, 0) / vals.length
+    const sd   = stdDev(vals)
+    const top  = cur.reduce((mx, e) => (Number(e.amount || 0) > Number(mx.amount || 0) ? e : mx), cur[0])
+    const topAmt = Number(top.amount || 0)
+    if (sd > 0 && topAmt >= mean + 2 * sd && topAmt >= 1000) {
+      anomalies.push({ tone: 'tip', icon: 'AlertTriangle', amount: Math.round(topAmt),
+        text: `أكبر مصروف هذا الشهر ₪${fmt(Math.round(topAmt))}${top.category ? ` (${top.category})` : ''} — أعلى بكثير من معتاد مصاريفك.` })
+    }
+  }
+
+  // ترتيب: تحذيرات أولاً
+  const order = { warn: 0, tip: 1, good: 2 }
+  anomalies.sort((x, y) => (order[x.tone] - order[y.tone]) || (y.amount - x.amount))
+
+  // الحالة النظيفة
+  if (anomalies.length === 0)
+    anomalies.push({ tone: 'good', icon: 'ShieldCheck', amount: 0, text: 'ما في تسريب أو مصاريف شاذّة — صرفك منتظم هذا الشهر.' })
+
+  const tone = spikeCount >= 2 ? 'critical' : spikeCount === 1 ? 'weak'
+             : anomalies.some(an => an.tone === 'tip') ? 'fair' : 'excellent'
+
+  return { anomalies: anomalies.slice(0, 4), leakTotal, leakCount, spikeCount, tone, hasData: true }
+}

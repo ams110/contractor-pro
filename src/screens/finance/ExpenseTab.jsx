@@ -13,6 +13,8 @@ import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { AddExpenseSheet } from '../../components/sheets/index.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
+import { detectExpenseAnomalies } from '../../lib/insights.js'
+import ExpenseRadar from '../../components/ExpenseRadar.jsx'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const METHODS = [
@@ -261,6 +263,11 @@ export default function ExpenseTab({
       .reduce((s, e) => s + Number(e.vat_amount ?? 0) * vatDeductRate(e.category), 0)
   , [entries, thisMonthKey])
 
+  // كاشف التسريب — مسح ذكي للمصاريف الشاذّة هذا الشهر
+  const expenseRadar = useMemo(() =>
+    detectExpenseAnomalies({ entries, monthKey: thisMonthKey })
+  , [entries, thisMonthKey])
+
   // رسم بياني بالفئات (الشهر الحالي)
   const catChartData = useMemo(() => {
     const map = {}
@@ -329,6 +336,9 @@ export default function ExpenseTab({
           <StatCard label={'מע"מ مخصوم'} value={totalVatDeductible} color="#22C55E" sub="هذا الشهر" />
         )}
       </div>
+
+      {/* ─── كاشف التسريب — مسح ذكي للمصاريف الشاذّة ──────────────────────────── */}
+      <ExpenseRadar radar={expenseRadar} monthKey={thisMonthKey} />
 
       {/* ─── Chart ──────────────────────────────────────────────────────────── */}
       {catChartData.length > 0 && (
