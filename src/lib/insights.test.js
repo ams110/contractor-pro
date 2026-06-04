@@ -8,6 +8,7 @@ import {
   detectExpenseAnomalies,
   computeCollectionAging,
   computeTeamPulse,
+  computeCommandCenter,
 } from './insights.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -508,5 +509,50 @@ describe('computeTeamPulse', () => {
     const r = computeTeamPulse({ members, activity, now })
     expect(r.memberCount).toBe(1)
     expect(r.rows).toHaveLength(1)
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// اختبارات مركز القيادة الذكي — تجميع المحرّكات في بطاقات وموجز موحّد.
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('computeCommandCenter', () => {
+  const now = new Date('2026-06-15').getTime()
+
+  it('فارغ = لا بيانات', () => {
+    const r = computeCommandCenter({})
+    expect(r.hasData).toBe(false)
+    expect(r.feed).toHaveLength(0)
+  })
+
+  it('يبني 4 بطاقات بلا فريق، و5 مع فريق', () => {
+    const base = {
+      projects: [{ id: 'p1', name: 'فيلا', status: 'نشط', price: 100000 }],
+      clientReceipts: [{ project_id: 'p1', amount: 30000, date: '2026-01-01' }],
+      monthKey: '2026-06', now,
+    }
+    expect(computeCommandCenter(base).scorecards).toHaveLength(4)
+
+    const withTeam = computeCommandCenter({
+      ...base, isOwner: true,
+      teamMembers: [{ id: 'm1', display_name: 'سامي', auth_email: 's@x.co' }],
+      teamActivity: [{ actor_email: 's@x.co', action: 'insert', tbl: 'work_days', created_at: new Date(now).toISOString() }],
+    })
+    expect(withTeam.scorecards).toHaveLength(5)
+    expect(withTeam.scorecards.find(s => s.key === 'team').value).toBeGreaterThan(0)
+  })
+
+  it('يجمّع تنبيهات عبر المجالات في الموجز ويرتّبها', () => {
+    // مشروع متعثّر + ذمم متأخّرة جداً → تحذيرات في الموجز
+    const r = computeCommandCenter({
+      projects: [{ id: 'p1', name: 'متعثّر', status: 'نشط', price: 80000 }],
+      clientReceipts: [{ project_id: 'p1', amount: 20000, date: '2026-01-01' }],   // متأخّر >90 يوم
+      expenses: [{ amount: 95000, category: 'مواد', date: '2026-06-02', project_id: 'p1', status: 'approved' }],
+      monthKey: '2026-06', now,
+    })
+    expect(r.feed.length).toBeGreaterThan(0)
+    expect(r.feed[0].tone).toBe('warn')
+    expect(r.feed[0]).toHaveProperty('screen')
+    expect(r.alertCount).toBeGreaterThan(0)
   })
 })
