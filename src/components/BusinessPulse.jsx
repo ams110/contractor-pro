@@ -43,7 +43,7 @@ function useCountUp(target, duration = 1300, start = false) {
 }
 
 // ─── العدّاد الدائري ──────────────────────────────────────────────────────────────
-function Gauge({ score, tone, animate }) {
+function Gauge({ score, tone, grade, animate }) {
   const t = TONE[tone] || TONE.fair
   const R = 70, SW = 13, SIZE = 180, CX = SIZE / 2
   const display = useCountUp(score, 1300, animate)
@@ -77,12 +77,17 @@ function Gauge({ score, tone, animate }) {
           style={{ filter: `drop-shadow(0 0 6px ${t.glow})` }}
         />
       </svg>
-      {/* الرقم في المنتصف */}
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
-          <span style={{ fontSize: 46, fontWeight: 900, color: C.text, letterSpacing: '-0.03em', lineHeight: 1 }}>{display}</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: C.textDim }}>/100</span>
+      {/* المحتوى في المنتصف */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, direction: 'ltr' }}>
+          <span style={{ fontSize: 48, fontWeight: 900, color: C.text, letterSpacing: '-0.03em', lineHeight: 1 }}>{display}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.textDim }}>/100</span>
         </div>
+        {grade && (
+          <span style={{ display: 'inline-block', padding: '3px 14px', borderRadius: 20, background: t.soft, border: `1px solid ${t.main}55`, fontSize: 12, fontWeight: 800, color: t.main, lineHeight: 1.4 }}>
+            {grade}
+          </span>
+        )}
       </div>
     </div>
   )
@@ -148,15 +153,7 @@ export default function BusinessPulse({ pulse, onNav }) {
 
       {/* العدّاد + العوامل */}
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
-        <div style={{ position: 'relative', width: 180, height: 180, flexShrink: 0 }}>
-          <Gauge score={pulse.score} tone={pulse.tone} animate={inView} />
-          {/* الدرجة تحت الرقم */}
-          <div style={{ position: 'absolute', left: 0, right: 0, top: '58%', textAlign: 'center', pointerEvents: 'none' }}>
-            <span style={{ display: 'inline-block', padding: '3px 14px', borderRadius: 20, background: t.soft, border: `1px solid ${t.main}55`, fontSize: 12, fontWeight: 800, color: t.main }}>
-              {pulse.grade}
-            </span>
-          </div>
-        </div>
+        <Gauge score={pulse.score} tone={pulse.tone} grade={pulse.grade} animate={inView} />
 
         <div style={{ flex: 1, minWidth: 180 }}>
           {pulse.factors.map((f, i) => (
