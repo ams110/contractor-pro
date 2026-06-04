@@ -7,6 +7,7 @@ import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../lib/calcul
 import { GlassCard, Modal, Input, Btn, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { uploadReceipt } from '../lib/storage.js'
 import { exportPaymentsToExcel } from '../lib/export.js'
+import { openWhatsApp, waMessages } from '../lib/whatsapp.js'
 
 function fmtMonth(ym) {
   return new Date(ym + '-01').toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })
@@ -14,9 +15,7 @@ function fmtMonth(ym) {
 
 function sendWhatsApp(phone, name, amount, date) {
   if (!phone) return
-  const clean = phone.replace(/\D/g, '').replace(/^0/, '972')
-  const msg   = `السلام عليكم ${name}،\nتم صرف راتبك بمبلغ ${fmt(amount)}₪ بتاريخ ${fmtDate(date)}.\nشكراً 🏗️`
-  window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank')
+  openWhatsApp(phone, waMessages.salaryPaid({ workerName: name, amount, date }))
 }
 
 export default function PaymentsScreen({ payments, employees, workDays, expenses = [], advances = [], projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods }) {

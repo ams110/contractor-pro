@@ -11,6 +11,8 @@ import { C, GRAD } from '../../constants/index.js'
 import { fmt, isPaymentOverdue } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { calcEarned, calcPaid, calcAdvances, calcRevenue, calcProjectStats, calcMutabqi } from '../../lib/calculations.js'
+import { computeBusinessPulse } from '../../lib/insights.js'
+import BusinessPulse from '../../components/BusinessPulse.jsx'
 
 // ─── Bento Card ───────────────────────────────────────────────────────────────
 function BentoCard({ children, style = {}, gradient, onClick }) {
@@ -185,6 +187,19 @@ export default function DashboardScreen({
       .slice(0, 4)
   }, [projects, clientReceipts, expenses])
 
+  // نبض المصلحة — مؤشّر الصحّة المالية الذكي
+  const pulse = useMemo(() => computeBusinessPulse({
+    cashOnHand:    stats.cashOnHand,
+    netProfit:     stats.netProfit,
+    totalRevenue:  stats.totalRevenue,
+    owedToWorkers: stats.owedToWorkers,
+    owedByClients: stats.owedByClients,
+    overdueCount:  stats.overdueCount,
+    monthlyData:   stats.monthlyData,
+  }), [stats])
+
+  const hasData = projects.length > 0 || employees.length > 0
+
   const cardAnim = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } }
 
   return (
@@ -199,6 +214,9 @@ export default function DashboardScreen({
           {language === 'he' ? 'סיכום כל הפעילות שלך' : language === 'en' ? 'Overview of all your activity' : 'نظرة شاملة على نشاطك'}
         </div>
       </motion.div>
+
+      {/* ─── نبض المصلحة (مؤشّر الصحّة الذكي) ─── */}
+      {hasData && <BusinessPulse pulse={pulse} onNav={onNav} />}
 
       {/* ─── Cash on Hand (السيولة الحقيقية) ─── */}
       <motion.div {...cardAnim} transition={{ delay: 0.04 }} style={{ marginBottom: 12 }}>

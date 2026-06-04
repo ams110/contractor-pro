@@ -5,10 +5,11 @@ import {
   Plus, Search, Users, ArrowLeft, Calendar, Banknote,
   TrendingUp, Phone, Star, BarChart3, CreditCard,
   Check, AlertTriangle, Trash2, ChevronRight, CalendarDays,
-  Link2, Copy, CheckCheck, UserPlus, UserMinus,
+  Link2, Copy, CheckCheck, UserPlus, UserMinus, MessageCircle,
 } from 'lucide-react'
 import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
+import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi, calcEarned } from '../../lib/calculations.js'
 import WorkDaysScreen from '../WorkDaysScreen.jsx'
@@ -167,6 +168,20 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
       setTimeout(() => setCopied(false), 2000)
     })
   }
+
+  function sharePortalWhatsApp() {
+    openWhatsApp(worker.phone, waMessages.portalInvite({ workerName: worker.name, url: PORTAL_URL }))
+  }
+
+  function shareStatementWhatsApp() {
+    openWhatsApp(worker.phone, waMessages.workerStatement({
+      workerName: worker.name,
+      earned:     totalEarned,
+      paid:       totalPaid,
+      advances:   totalAdvances,
+      balance,
+    }))
+  }
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
   const eid = worker.id
@@ -243,7 +258,11 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
             {worker.phone && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 10 }}>
                 <Phone size={15} color={C.cyan} strokeWidth={2} />
-                <span style={{ fontSize: 13, color: C.text, direction: 'ltr' }}>{worker.phone}</span>
+                <span style={{ flex: 1, fontSize: 13, color: C.text, direction: 'ltr', textAlign: 'start' }}>{worker.phone}</span>
+                <button onClick={shareStatementWhatsApp} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                  <MessageCircle size={13} strokeWidth={2} />
+                  كشف حساب
+                </button>
               </div>
             )}
 
@@ -254,6 +273,10 @@ function WorkerDetail({ worker, workDays, payments, advances, projects, expenses
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ flex: 1, fontSize: 11, color: C.textDim, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr' }}>{PORTAL_URL}</span>
+                <button onClick={sharePortalWhatsApp} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .2s' }}>
+                  <MessageCircle size={13} strokeWidth={2} />
+                  واتساب
+                </button>
                 <button onClick={copyPortalLink} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10, background: copied ? `${C.success}22` : `${C.primary}18`, border: `1.5px solid ${copied ? C.success+'55' : C.primary+'44'}`, color: copied ? C.success : C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .2s' }}>
                   {copied ? <CheckCheck size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
                   {copied ? 'تم النسخ' : 'نسخ'}

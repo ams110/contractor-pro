@@ -6,12 +6,13 @@ import {
   ChevronRight, X, Calendar, CreditCard, ReceiptText, Package,
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
-  ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users,
+  ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users, MessageCircle,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { uploadReceipt } from '../../lib/storage.js'
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
+import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { calcProjectStats as _calcStats, calcOwnerCash } from '../../lib/calculations.js'
@@ -453,7 +454,16 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
                         <Clock size={14} color={C.warning} strokeWidth={2} />
                         <span style={{ fontSize: 12, fontWeight: 700, color: C.warning }}>متبقي للتحصيل</span>
                       </div>
-                      <span style={{ fontSize: 16, fontWeight: 900, color: C.warning, fontFamily: 'monospace' }}>₪{fmt(remaining)}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 16, fontWeight: 900, color: C.warning, fontFamily: 'monospace' }}>₪{fmt(remaining)}</span>
+                        <button
+                          onClick={() => openWhatsApp(project.client_phone, waMessages.paymentReminder({ clientName: project.client_name, projectName: project.name, amount: remaining }))}
+                          title="تذكير العميل عبر واتساب"
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 11px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                          <MessageCircle size={12} strokeWidth={2} />
+                          تذكير
+                        </button>
+                      </div>
                     </div>
                   )}
                   {remaining <= 0 && (
