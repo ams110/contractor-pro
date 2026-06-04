@@ -9,6 +9,7 @@ import {
   computeCollectionAging,
   computeTeamPulse,
   computeCommandCenter,
+  computeNetWorth,
 } from './insights.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -554,5 +555,98 @@ describe('computeCommandCenter', () => {
     expect(r.feed[0].tone).toBe('warn')
     expect(r.feed[0]).toHaveProperty('screen')
     expect(r.alertCount).toBeGreaterThan(0)
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// اختبارات الذمّة الصافية — صحّة المعادلة، شلال البناء، النبرة، والرؤى.
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('computeNetWorth', () => {
+  it('يطبّق المعادلة: نقد + ذمم − عمّال − معلّقة', () => {
+    const r = computeNetWorth({
+      cashOnHand: 20000, owedByClients: 50000,
+      owedToWorkers: 12000, pendingExpenses: 3000,
+    })
+    expect(r.netWorth).toBe(20000 + 50000 - 12000 - 3000) // 55000
+    expect(r.assets).toBe(70000)        // نقد موجب + ذمم
+    expect(r.liabilities).toBe(15000)   // عمّال + معلّقة
+    expect(r.hasData).toBe(true)
+  })
+
+  it('شلال متّصل: نهاية كل بند = بداية التالي، والصافي يُرسَم من صفر', () => {
+    const r = computeNetWorth({
+      cashOnHand: 10000, owedByClients: 20000,
+      owedToWorkers: 5000, pendingExpenses: 2000,
+    })
+    const flow = r.segments.filter(s => s.key !== 'net')
+    for (let i = 1; i < flow.length; i++) {
+      expect(flow[i].start).toBe(flow[i - 1].end)
+    }
+    expect(flow[0].start).toBe(0)
+    const net = r.segments.find(s => s.key === 'net')
+    expect(net.start).toBe(0)
+    expect(net.end).toBe(r.netWorth)
+    // آخر بند تدفّقي ينتهي عند الصافي
+    expect(flow.at(-1).end).toBe(r.netWorth)
+  })
+
+  it('يحذف الشرائح الصفرية ويُبقي النقد والصافي دائماً', () => {
+    const r = computeNetWorth({ cashOnHand: 8000 })
+    const keys = r.segments.map(s => s.key)
+    expect(keys).toContain('cash')
+    expect(keys).toContain('net')
+    expect(keys).not.toContain('receivables')
+    expect(keys).not.toContain('workers')
+    expect(keys).not.toContain('pending')
+    expect(r.liabilities).toBe(0)
+    expect(r.tone).toBe('excellent')   // لا ديون
+  })
+
+  it('نبرة حرجة عند المركز السالب + رؤية تحذير', () => {
+    const r = computeNetWorth({
+      cashOnHand: -5000, owedByClients: 4000,
+      owedToWorkers: 20000, pendingExpenses: 0,
+    })
+    expect(r.netWorth).toBeLessThan(0)
+    expect(r.tone).toBe('critical')
+    expect(r.insights[0].tone).toBe('warn')
+    expect(r.insights[0].icon).toBe('AlertTriangle')
+  })
+
+  it('نبرة ضعيفة: ذمّة موجبة لكن نقد سالب (مكشوف على التحصيل)', () => {
+    const r = computeNetWorth({
+      cashOnHand: -3000, owedByClients: 40000, owedToWorkers: 5000,
+    })
+    expect(r.netWorth).toBeGreaterThan(0)
+    expect(r.tone).toBe('weak')
+    expect(r.insights.some(i => i.icon === 'Wallet' && i.tone === 'warn')).toBe(true)
+  })
+
+  it('نبرة مقبولة: النقد وحده لا يغطّي الالتزامات', () => {
+    const r = computeNetWorth({
+      cashOnHand: 4000, owedByClients: 60000, owedToWorkers: 30000,
+    })
+    expect(r.tone).toBe('fair')      // liabilities(30k) > cash(4k)
+    expect(r.coverage).toBeGreaterThan(1)
+  })
+
+  it('coverage = null عند غياب الالتزامات، ورقم عند وجودها', () => {
+    expect(computeNetWorth({ cashOnHand: 5000 }).coverage).toBeNull()
+    const r = computeNetWorth({ cashOnHand: 10000, owedToWorkers: 5000 })
+    expect(r.coverage).toBeCloseTo(2, 5)
+  })
+
+  it('حالة فارغة: hasData=false ورؤية إرشادية', () => {
+    const r = computeNetWorth({})
+    expect(r.hasData).toBe(false)
+    expect(r.netWorth).toBe(0)
+    expect(r.insights[0].icon).toBe('Landmark')
+  })
+
+  it('يربط رؤية الذمم برادار التحصيل عند وجود مستحقّات', () => {
+    const r = computeNetWorth({ cashOnHand: 50000, owedByClients: 25000 })
+    expect(r.insights.some(i => i.text.includes('رادار التحصيل'))).toBe(true)
+    expect(r.tone).toBe('excellent') // لا التزامات
   })
 })
