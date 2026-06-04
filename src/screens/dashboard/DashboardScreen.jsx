@@ -11,9 +11,10 @@ import { C, GRAD } from '../../constants/index.js'
 import { fmt, isPaymentOverdue } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { calcEarned, calcPaid, calcAdvances, calcRevenue, calcProjectStats, calcMutabqi } from '../../lib/calculations.js'
-import { computeBusinessPulse, computeCashForecast } from '../../lib/insights.js'
+import { computeBusinessPulse, computeCashForecast, computeCommandCenter } from '../../lib/insights.js'
 import BusinessPulse from '../../components/BusinessPulse.jsx'
 import CashForecast from '../../components/CashForecast.jsx'
+import CommandCenter from '../../components/CommandCenter.jsx'
 
 // ─── Bento Card ───────────────────────────────────────────────────────────────
 function BentoCard({ children, style = {}, gradient, onClick }) {
@@ -206,6 +207,14 @@ export default function DashboardScreen({
     monthlyData:  stats.monthlyData,
   }), [stats])
 
+  // مركز القيادة الذكي — يجمّع إشارات كل المحرّكات (مشاريع/تحصيل/مصاريف/عمّال)
+  const now2 = new Date()
+  const monthKey = `${now2.getFullYear()}-${String(now2.getMonth() + 1).padStart(2, '0')}`
+  const commandCenter = useMemo(() => computeCommandCenter({
+    projects, employees, workDays, expenses, payments, advances, clientReceipts,
+    monthKey, isOwner: !!permissions?.isOwner,
+  }), [projects, employees, workDays, expenses, payments, advances, clientReceipts, monthKey, permissions?.isOwner])
+
   const hasData = projects.length > 0 || employees.length > 0
 
   const cardAnim = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } }
@@ -222,6 +231,9 @@ export default function DashboardScreen({
           {language === 'he' ? 'סיכום כל הפעילות שלך' : language === 'en' ? 'Overview of all your activity' : 'نظرة شاملة على نشاطك'}
         </div>
       </motion.div>
+
+      {/* ─── مركز القيادة الذكي (تجميع كل المؤشّرات) ─── */}
+      {hasData && <CommandCenter cc={commandCenter} onNav={onNav} />}
 
       {/* ─── نبض المصلحة (مؤشّر الصحّة الذكي) ─── */}
       {hasData && <BusinessPulse pulse={pulse} onNav={onNav} />}

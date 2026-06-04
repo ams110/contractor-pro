@@ -2,7 +2,8 @@
 // محرّك ذكاء مالي: يحوّل كل أرقام المصلحة إلى مؤشّر صحّة واحد (0–100)،
 // مع تفصيل العوامل ورؤى ذكية تلقائية بالعربي. دوال نقيّة بالكامل — لا DOM، قابلة للاختبار.
 
-import { fmt } from './helpers.js'
+import { fmt, isPaymentOverdue } from './helpers.js'
+import { calcProjectStats, calcOwnerCash, calcEarned, calcMustahaq } from './calculations.js'
 
 export const clamp = (n, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n))
 
@@ -885,4 +886,117 @@ function buildTeamInsights({ rows, mostActive, idle, totalActions }) {
 
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
+}
+
+// ─── مركز القيادة الذكي — Smart Command Center ─────────────────────────────────────
+// يركّب كل المحرّكات الذكية (صحّة المشاريع، بصمة العمّال، رادار التحصيل، كاشف
+// التسريب، نبض الفريق) في لوحة واحدة: بطاقات مؤشّرات + موجز موحّد لأهم التنبيهات
+// عبر التطبيق، كلٌّ مع وجهة تنقّل. دالة نقيّة تعيد استخدام المحرّكات أعلاه.
+
+/** يبني مدخلات بصمة العامل من البيانات الخام (مشترك بين الداشبورد وشاشة العمّال). */
+function workerDNAFromRaw(emp, { workDays, expenses, advances, fleetAvgPerDay }) {
+  const wds    = workDays.filter(w => w.employee_id === emp.id)
+  const wdsApp = wds.filter(w => w.status === 'approved')
+  const expApp = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved')
+  const advTot = advances.filter(a => a.employee_id === emp.id).reduce((s, a) => s + (a.amount || 0), 0)
+  const avgPerDay = wdsApp.length ? calcEarned(wdsApp) / wdsApp.length : 0
+
+  const byMonth = {}; let minK = null, maxK = null
+  for (const w of wds) {
+    if (!w.date) continue
+    const k = w.date.slice(0, 7)
+    if (w.status === 'approved') byMonth[k] = (byMonth[k] || 0) + 1
+    if (!minK || k < minK) minK = k
+    if (!maxK || k > maxK) maxK = k
+  }
+  let tenure = 0
+  if (minK && maxK) {
+    const [y1, m1] = minK.split('-').map(Number)
+    const [y2, m2] = maxK.split('-').map(Number)
+    tenure = (y2 - y1) * 12 + (m2 - m1) + 1
+  }
+
+  return computeWorkerDNA({
+    name: emp.name, earned: calcMustahaq(wdsApp, expApp), advances: advTot,
+    avgPerDay, fleetAvgPerDay,
+    approvedDays: wdsApp.length,
+    pendingDays:  wds.filter(w => w.status === 'pending').length,
+    rejectedDays: wds.filter(w => w.status === 'rejected').length,
+    daysPerMonth: Object.values(byMonth), tenureMonths: tenure,
+  })
+}
+
+/**
+ * @returns {{ scorecards, feed, alertCount, hasData }}
+ */
+export function computeCommandCenter(a = {}) {
+  const {
+    projects = [], employees = [], workDays = [], expenses = [],
+    payments = [], advances = [], clientReceipts = [],
+    monthKey = '', teamMembers = [], teamActivity = [], isOwner = true,
+    now = Date.now(),
+  } = a
+
+  // ① صحّة المشاريع — أسوأ مشروع + عدد المشاريع بخطر
+  const activeProjects = projects.filter(p => p.status === 'نشط' || p.status === 'مكتمل')
+  let worstProject = null, atRiskProjects = 0
+  for (const p of activeProjects) {
+    const stats = calcProjectStats(p.id, workDays, expenses, clientReceipts)
+    if (stats.revenue <= 0 && stats.cost <= 0) continue
+    const paidToWorkers = payments.filter(x => x.project_id === p.id).reduce((s, x) => s + (x.amount || 0), 0)
+    const advancesPaid  = advances.filter(x => x.project_id === p.id).reduce((s, x) => s + (x.amount || 0), 0)
+    const ownerCash = calcOwnerCash(stats.revenue, stats.projExpTotal, paidToWorkers, advancesPaid)
+    const health = computeProjectHealth({
+      name: p.name, price: parseFloat(p.price) || 0, revenue: stats.revenue, cost: stats.cost,
+      ownerCash, profit: stats.profit, margin: stats.margin, overdue: !!isPaymentOverdue(p, clientReceipts),
+    })
+    if (health.score < 50) atRiskProjects++
+    if (!worstProject || health.score < worstProject.score)
+      worstProject = { name: p.name, score: health.score, insight: health.insights[0] }
+  }
+
+  // ② بصمة العمّال — أسوأ عامل + عدد العمّال للمتابعة
+  const approvedWDs = workDays.filter(w => w.status === 'approved')
+  const fleetAvgPerDay = approvedWDs.length ? calcEarned(approvedWDs) / approvedWDs.length : 0
+  let worstWorker = null, watchWorkers = 0
+  for (const e of employees) {
+    if (workDays.every(w => w.employee_id !== e.id)) continue   // لا تاريخ بعد
+    const dna = workerDNAFromRaw(e, { workDays, expenses, advances, fleetAvgPerDay })
+    if (dna.score < 50) watchWorkers++
+    if (!worstWorker || dna.score < worstWorker.score)
+      worstWorker = { name: e.name, score: dna.score, insight: dna.insights[0] }
+  }
+
+  // ③④⑤ التحصيل + المصاريف + الفريق
+  const aging = computeCollectionAging({ projects, receipts: clientReceipts, now })
+  const radar = detectExpenseAnomalies({ entries: expenses, monthKey })
+  const team  = (isOwner && teamMembers.length) ? computeTeamPulse({ members: teamMembers, activity: teamActivity, now }) : null
+
+  // بطاقات المؤشّرات (قابلة للنقر)
+  const scorecards = [
+    { key: 'projects',   label: 'مشاريع بخطر',   value: atRiskProjects, tone: atRiskProjects > 0 ? 'weak' : 'excellent', screen: 'projects', icon: 'ShieldCheck' },
+    { key: 'collection', label: 'متأخّر تحصيله', value: aging.overdueTotal, money: true, tone: aging.tone, screen: 'finance', icon: 'Hourglass' },
+    { key: 'expenses',   label: 'تنبيهات صرف',   value: radar.anomalies.filter(x => x.tone !== 'good').length, tone: radar.tone, screen: 'finance', icon: 'Radar' },
+    { key: 'workers',    label: 'عمّال للمتابعة', value: watchWorkers, tone: watchWorkers > 0 ? 'fair' : 'excellent', screen: 'workers', icon: 'Fingerprint' },
+  ]
+  if (team) scorecards.push({ key: 'team', label: 'نبض الفريق', value: team.score, score: true, tone: team.tone, screen: 'team', icon: 'Users' })
+
+  // الموجز الموحّد — أهم إشارة من كل محرّك (نتجاهل الإيجابيات)
+  const feed = []
+  const push = (ins, screen) => { if (ins && ins.tone !== 'good') feed.push({ tone: ins.tone, icon: ins.icon, text: ins.text, screen }) }
+  if (worstProject && worstProject.score < 60) push(worstProject.insight, 'projects')
+  push(aging.insights[0], 'finance')
+  push(radar.anomalies[0], 'finance')
+  if (worstWorker && worstWorker.score < 50) push(worstWorker.insight, 'workers')
+  if (team) push(team.insights[0], 'team')
+
+  const order = { warn: 0, tip: 1, good: 2 }
+  feed.sort((x, y) => order[x.tone] - order[y.tone])
+
+  return {
+    scorecards,
+    feed: feed.slice(0, 5),
+    alertCount: feed.filter(f => f.tone === 'warn').length,
+    hasData: activeProjects.length > 0 || employees.length > 0,
+  }
 }
