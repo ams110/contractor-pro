@@ -1,199 +1,363 @@
 # CLAUDE.md — Contractor Pro
 
-تطبيق إدارة مقاولات، موبايل-فيرست (RTL عربي)، مبني على React + Vite + Supabase.
+تطبيق إدارة مقاولات إسرائيلي، **موبايل-فيرست (RTL عربي)**، مبني على **React 18 + Vite 5 + Supabase**.
+يغطّي: المشاريع، العمّال، أيام العمل، المصاريف، المقبوضات، الرواتب، الضرائب (מע"מ + ضريبة دخل + ביטוח לאומי)،
+فريق متعدّد الصلاحيات، بوّابة عامل ذاتية، اشتراكات Paddle، وتحليلات مالية ذكية.
+
+> هذا الملف هو المرجع الكامل لأي محادثة جديدة. اقرأه أولاً قبل أي تعديل.
 
 ---
 
-## الهوية البصرية
+## 1. الأوامر الأساسية
 
-**الثيم:** Amber Gold Dark
-- Background: `#07080C`
-- Primary: `#F59E0B` (amber)
-- Secondary: `#F97316` (orange)
-- Accent: `#EF4444` (red)
-- Success: `#22C55E`
-- Warning: `#F59E0B`
-- Brand Gradient: `linear-gradient(135deg, #FBBF24, #F59E0B, #EF4444)`
-- الأيقونات: Lucide React (لا إيموجي)
+```bash
+npm run dev           # Vite dev server على المنفذ 3000
+npm run build         # prebuild يرفع رقم الإصدار تلقائياً ثم vite build (PWA)
+npm run preview       # معاينة بناء الإنتاج
+npm test              # Vitest (اختبارات الوحدة) — ملاحظة: يلتقط ملفات e2e بالخطأ (انظر §18)
+npm run test:e2e      # Playwright E2E (يشغّل dev server تلقائياً)
+npm run test:e2e:ui   # واجهة Playwright التفاعلية
+```
 
----
-
-## المكتبات المستخدمة
-
-### UI / Styling
-- Tailwind CSS
-- Lucide React ✅
-- Framer Motion ✅
-- Recharts ✅
-
-### Data / State
-- Zustand ✅ (`useAppStore`, `useBusinessStore`)
-- Supabase ✅
-- Paddle ✅
-- PWA ✅
-
-### Security (موجودة)
-- crypto-js, tweetnacl, jose, bcryptjs
-
-### Testing
-- Vitest ✅ (`npm test` — unit)
-- Playwright ✅ (`npm run test:e2e` — E2E متصفح حقيقي)
-- Playwright MCP ✅ (مُعرّف في `.mcp.json` — كلود يقود متصفح حقيقي)
+- **Node**: 20 (في CI). **Package manager**: npm.
+- لا يوجد سكربت `lint` في `package.json` حالياً (كان هناك إعداد ESLint في PR قديم غير مدموج).
 
 ---
 
-## هيكل المجلدات
+## 2. الهوية البصرية — Amber/Orange Dark
+
+المصدر الموثوق: `src/constants/index.js` (كائن `C` للألوان و`GRAD` للتدرّجات). **استعملهم دائماً بدل قيم hard-coded.**
+
+| دور | المتغيّر | القيمة |
+|-----|----------|--------|
+| الخلفية | `C.bg` | `#07080F` |
+| سطح | `C.surface` | `#0D0F1C` |
+| بطاقة | `C.card` | `#12152A` |
+| Primary (برتقالي — طاقة) | `C.primary` | `#F97316` |
+| Secondary (بنفسجي — احترافية) | `C.secondary` | `#7C3AED` |
+| Gold | `C.gold` | `#D97706` |
+| Cyan (تقنية) | `C.cyan` | `#06B6D4` |
+| Success | `C.success` | `#22C55E` |
+| Warning | `C.warning` | `#EAB308` |
+| Accent (أحمر — خطر) | `C.accent` | `#EF4444` |
+| نص | `C.text` | `#F8FAFC` |
+| نص خافت | `C.textDim` | `#64748B` |
+| حدود (برتقالية شفّافة) | `C.border` / `C.borderMid` | `rgba(249,115,22,0.08)` / `0.18` |
+
+**التدرّجات** (`GRAD`): `primary`=برتقالي→أحمر · `premium`=بنفسجي→أزرق · `gold` · `success`=أخضر→سماوي · `danger` · `cyan` · `warm` · `purple` · `blue`.
+
+**قواعد التصميم**: أيقونات **Lucide React** فقط (ممنوع إيموجي في UI). أوزان خط ثقيلة (700–900)، `letter-spacing` ضيّق (-0.02em). طبقات ألوان: لون أساسي + `18` (خلفية ناعمة) + `28` (حدود) + `45` (توهّج). حركات **Framer Motion** بـ spring (stiffness 340/damping 30 للـ sheets، 400/20 للبطاقات، 400/17 للأزرار).
+
+---
+
+## 3. المكتبات
+
+- **UI/Styling**: Tailwind CSS 4 (`@tailwindcss/vite`)، Lucide React، Framer Motion، Recharts، vaul (drawers)، cmdk (command palette)، sonner (toasts)، Radix UI.
+- **State/Data**: Zustand 5، @supabase/supabase-js 2، @tanstack/react-query + react-table + react-virtual، react-hook-form + zod.
+- **Auth/Security**: @simplewebauthn/browser (WebAuthn passkeys)، crypto-js (AES تشفير محلي).
+- **Billing**: @paddle/paddle-js.
+- **Export/PDF**: jspdf + jspdf-autotable، xlsx (Excel).
+- **i18n**: i18next + react-i18next (ar/he/en).
+- **PWA**: vite-plugin-pwa (Workbox، استراتيجية injectManifest).
+- **Testing**: Vitest (unit)، @playwright/test (E2E).
+
+---
+
+## 4. المعمارية وتدفّق البيانات
+
+```
+main.jsx → Router.jsx → App.jsx (بعد الدخول) → الشاشات
+```
+
+**Router.jsx** (توجيه client-side يدوي عبر `history.pushState`):
+| المسار | الصفحة |
+|--------|--------|
+| `/` | `LandingPage` |
+| `/pricing` | `PricingPage` (Paddle) |
+| `/welcome` | `WelcomePage` |
+| `/login` `/register` | `LoginScreen` (lazy) |
+| `/app` أو أي شيء آخر | `App` |
+| `?portal` أو `?worker` | **بوّابة العامل** (`WorkerPortalScreen`) مباشرة بلا دخول مالك |
+
+**App.jsx** هو القلب — يدير:
+1. **المصادقة** عبر `useAuth` (مالك Supabase) أو `teamMemberSignIn` (عضو فريق).
+2. **تحميل البيانات** عبر hooks مركزية (`useProjects`, `useEmployees`, `useWorkDays`, ...) — كلها مفتاحها `eid` (`effectiveOwnerId || uid`)، أي عضو الفريق يقرأ بيانات المالك.
+3. **فلترة الصلاحيات**: `allowedProjectIds` من `useTeam` تُنتج `visibleProjects/visibleWorkDays/visibleExpenses/...` (memoized). العضو يرى فقط مشاريعه المسموحة + العمّال/المصاريف المرتبطة بها.
+4. **مزامنة للمخزن المشترك**: البيانات المفلترة تُكتب في `useDataStore` (مرآة قراءة فقط) لتجنّب prop-drilling.
+5. **Early returns** بالترتيب: `authLoading` → splash · لا user → `LoginScreen` · `isBlocked/isExpired` → شاشة منع · انتهاء التجربة + خطة غير نشطة → شاشة اشتراك · لا مصالح → `FirstTimeSetup`.
+6. **layout**: موبايل (≤768px) = bottom nav + more drawer · ديسكتوب = `DesktopSidebar`.
+
+> قاعدة ذهبية: **لا prop drilling للـ state العام** — استعمل Zustand. لكن دوال الـ CRUD والبيانات المفلترة تُمرّر props من App للشاشات (هذا النمط القائم).
+
+---
+
+## 5. هيكل المجلدات
 
 ```
 src/
-├── Router.jsx           ← توجيه client-side (/, /login, /register, /pricing, /welcome, /app)
-├── App.jsx              ← التطبيق بعد تسجيل الدخول (الـ 5 tabs)
-├── ui/                  ← مكتبة التصميم الداخلية
-├── i18n/                ← الترجمة (ar / he / en) — افتراضي ar
-├── pages/               ← صفحات عامة قبل الدخول
-│   ├── LandingPage.jsx      ← صفحة الهبوط التسويقية
-│   ├── PricingPage.jsx      ← الأسعار (Paddle)
-│   └── WelcomePage.jsx      ← ترحيب بعد الدخول
+├── main.jsx                 ← نقطة الدخول (StrictMode + i18n + Router)
+├── Router.jsx               ← توجيه client-side + navigate()
+├── App.jsx                  ← التطبيق بعد الدخول (auth, data hooks, perms, layout, 5 tabs)
+├── sw.js                    ← Service Worker (Workbox precache + Supabase NetworkFirst + web push)
+├── i18n/                    ← index.js + locales/{ar,he,en}.json (افتراضي ar، مفتاح cp_lang)
+├── constants/index.js       ← C, GRAD, SPECS, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, DAY_TYPES,
+│                              PROJECT_STATUS/TYPES, VAT, OSEK_PATUR_THRESHOLD, NAV, MORE_SCREENS, BP
+├── ui/                      ← مكتبة التصميم: Button, Card(+GlassCard), Input, Modal, Badge, StatCard
+├── pages/                   ← LandingPage, PricingPage, WelcomePage, AuthPage(قديم)
 ├── store/
-│   ├── useAppStore.js       ← navigation, toasts, modals, language
-│   ├── useBusinessStore.js  ← multi-business (load/create/update/remove)
-│   └── useDataStore.js      ← بيانات التطبيق (projects, workers, ...)
-├── screens/
-│   ├── auth/
-│   │   └── LoginScreen.jsx  ← دخول + تسجيل + passkey/PIN + عضو فريق
-│   ├── finance/
-│   │   ├── FinanceScreen.jsx      ← الشاشة الرئيسية + tabs
-│   │   ├── BusinessSetup.jsx      ← onboarding أول مرة
-│   │   ├── BusinessSwitcher.jsx   ← dropdown تبديل المصالح
-│   │   ├── BusinessEditSheet.jsx  ← تعديل / حذف مصلحة
-│   │   ├── IncomeTab.jsx          ← المدخولات
-│   │   ├── ExpenseTab.jsx         ← المصاريف + מע"מ
-│   │   ├── InvoiceArchiveTab.jsx  ← أرشيف الفواتير
-│   │   ├── PayrollTab.jsx         ← قسائم الرواتب
-│   │   └── TaxSummaryTab.jsx      ← ملخص الضرائب والأرباح
-│   └── ...
-├── hooks/               ← useAuth, useTeam, useOrganization, ...
-├── lib/                 ← supabase, utils, calculations, storage, paddle
-└── constants/           ← colors, gradients, nav, EXP_CATS, VAT, etc.
-
-tests/
-└── e2e/                 ← اختبارات Playwright (landing, navigation, auth-forms)
+│   ├── useAppStore.js       ← navigation, overlays, toast, signer, lock, readOnly, biometric promise
+│   ├── useBusinessStore.js  ← multi-business (load/create/update/remove) + BUSINESS_TYPES (persist)
+│   └── useDataStore.js      ← مرآة قراءة فقط للبيانات المفلترة
+├── hooks/                   ← انظر §10
+├── lib/                     ← انظر §11
+├── components/              ← انظر §9
+└── screens/                 ← انظر §7
+supabase/                    ← schema.sql, master.sql, migrations/, functions/ (edge) — انظر §12
+tests/e2e/                   ← Playwright specs (landing, navigation, auth-forms)
+.github/workflows/           ← pages.yml (GitHub Pages) + deploy.yml (Supabase edge functions)
+scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 ```
 
 ---
 
-## هيكل التنقل (5 tabs)
+## 6. التنقّل
 
+**5 tabs أساسية** (`NAV` في constants):
 | Tab | الأيقونة | الشاشة |
 |-----|----------|--------|
-| الرئيسية | LayoutDashboard | Dashboard |
-| المشاريع | Building2 | Projects |
-| العمال | Users | Workers |
-| المالية | Wallet | FinanceScreen |
-| المزيد | Grid3x3 | Settings |
+| الرئيسية | LayoutDashboard | `DashboardScreen` |
+| مشاريع | Building2 | `ProjectsScreen` |
+| عمال | Users | `WorkersScreen` (يدمج أيام العمل) |
+| المالية | Wallet | `FinanceScreen` |
+| الإعدادات | Settings | `SettingsScreen` |
+
+**شاشات "المزيد"** (`MORE_SCREENS` — drawer على الموبايل / قسم في السايدبار): `team` (إدارة الفريق) · `tracker` (تتبّع الوحدات) · `materials` (البضاعة) · `activity` (سجلّ النشاط).
+شاشات قديمة موصولة كذلك: `workdays` (يُحوّل لـ workers) · `expenses` · `payments` · `accounting` (يُحوّل لـ finance).
 
 ---
 
-## شاشة المالية — Finance Module ✅ مكتمل
+## 7. الشاشات (src/screens/)
 
-### Tabs داخل FinanceScreen
+| الملف | الغرض |
+|-------|-------|
+| `dashboard/DashboardScreen.jsx` | لوحة تنفيذية: **نبض المصلحة** + **التوقّع الذكي للسيولة** + نقد بالجيب + مستحق للعمال/العملاء + صافي الربح + مخطّط شهري + أفضل المشاريع |
+| `projects/ProjectsScreen.jsx` | CRUD مشاريع + لوحة تفصيل بتبويبات (نظرة/أيام عمل/عمّال/مصاريف/مقبوضات)، إدارة مواقع للمشاريع اليومية، تذكير واتساب، أرشفة/حذف ذكي |
+| `workers/WorkersScreen.jsx` | روستر العمّال + تبويب أيام العمل، لوحة تفصيل لكل عامل (إحصائيات/أيام/دفعات/سلف)، رابط بوّابة العامل، تأكيد بصمة للحذف |
+| `finance/FinanceScreen.jsx` | حاوية المالية + **BusinessSwitcher** + 6 تبويبات (انظر §8). يدعم `pendingAction` لفتح sheet مع مشروع مُمرّر من شاشة المشاريع |
+| `settings/SettingsScreen.jsx` | البروفايل، اللغة، التخصّصات/فئات المصاريف/طرق الدفع، الإشعارات، الاشتراك، تحديث التطبيق، **الأمان** (read-only، حدّ صرف يومي، مهلة الجلسة، سجلّ الدخول)، passkey/PIN، سجلّ التواقيع |
+| `team/TeamScreen.jsx` (+ `useTeamManager`, `teamConstants`, `AddMemberModal`, `EditPermsPanel`, `MemberCard`, `MemberActivity`) | إدارة أعضاء الفريق: إضافة/صلاحيات دقيقة/حظر/إعادة كلمة سر/انتهاء صلاحية/تقييد بمشاريع |
+| `onboarding/FirstTimeSetup.jsx` | شاشة أول مرة (لا مصالح): إعداد سريع (osek_patur عام) أو يدوي |
+| `auth/LoginScreen.jsx` | دخول متعدّد: **Passkey / PIN / كلمة سر** (مالك) + **عضو فريق** (username+password)، تسجيل، استعادة كلمة سر، مبدّل لغة |
+| `WorkDaysScreen.jsx` | تسجيل/موافقة أيام العمل: نمط مفرد/جماعي/مدى تواريخ (≤100 يوم)، أنواع يوم، عطل، معاينة راتب، Excel |
+| `PaymentsScreen.jsx` | دفعات الرواتب: نموذج، طابور موافقات، تأكيد بصمة، إشعار واتساب، Excel |
+| `ExpensesScreen.jsx` | مصاريف مستقلّة + **مسح إيصال OCR** (edge function `scan-receipt`)، فئات، מע"מ |
+| `MaterialsScreen.jsx` | عرض البضاعة المسجّلة من بوّابة العامل (قراءة فقط، جدول `material_logs`) |
+| `UnitTrackerScreen.jsx` | تتبّع إنشائي هرمي (قطع→بيوت→طوابق→مهام) + تبويب "إضافات" بموافقة، يُحفظ localStorage |
+| `ActivityScreen.jsx` | سجلّ تدقيق شامل لكل العمليات (insert/update/delete/view) حسب العضو، للمالك فقط، Excel |
+| `WorkerPortalScreen.jsx` | بوّابة العامل الذاتية (`?portal`/`?worker`): كشف حساب، طلب سلفة، تسجيل بضاعة، تقديم مصروف — كله عبر RPCs مع token |
 
-| Tab id | الأيقونة | المحتوى |
-|--------|----------|---------|
-| `income` | TrendingUp | مدخولات |
-| `bizexp` | TrendingDown | مصاريف + מע"מ |
-| `archive` | FolderOpen | أرشيف الفواتير |
-| `payroll` | Banknote | قسائم الرواتب |
-| `taxsummary` | BarChart3 | ملخص الضرائب والأرباح |
-| `payments` | Banknote | رواتب العمال (قديم) |
-| `accounting` | Calculator | محاسبة (قديم) |
+**finance/** التبويبات الفرعية مفصّلة في §8.
 
-### Supabase Tables المضافة
+---
 
-| الجدول | الوصف |
+## 8. وحدة المالية — Finance Module
+
+**Multi-business**: كل مصلحة (`businesses`) نوعها `osek_patur` / `osek_moreh` / `hevra`. `BusinessSwitcher` يبدّل المصلحة النشطة (`useBusinessStore`)، وكل بيانات المالية تُفلتر حسبها.
+
+**تبويبات FinanceScreen**:
+| التبويب | الملف | المحتوى |
+|---------|-------|---------|
+| Project Finance | `ProjectFinanceTab.jsx` | P&L مجمّع لكل مشروع (إيراد/مصاريف/عمالة/ربح/هامش) |
+| المدخولات | `IncomeTab.jsx` | مقبوضات العملاء + تحذير حدّ עוסק פטור |
+| المصاريف | `ExpenseTab.jsx` | مصاريف + حساب מע"מ تلقائي حسب الفئة + فحص ميزانية الإيصال |
+| الأرشيف | `InvoiceArchiveTab.jsx` | أرشيف الفواتير/الإيصالات + نسبة التخصيص + تصدير |
+| الرواتب | `PayrollTab.jsx` | توزيع الرواتب + طابور موافقات + Excel |
+| ملخص الضرائب | `TaxSummaryTab.jsx` | מע"מ داخل/خارج، اختيار فترة، قفل فترة، تصدير |
+
+**إعداد/تبديل المصالح**: `BusinessSetup.jsx`، `BusinessSwitcher.jsx`، `BusinessEditSheet.jsx`.
+
+### منطق الضرائب (إسرائيل) — `useTaxEngine.js` + `helpers.js`
+- **עוסק פטור**: لا מע"מ. حدّ سنوي `OSEK_PATUR_THRESHOLD = ₪120,000` — تحذير عند الاقتراب.
+- **עוסק מורשה / חברה**: מע"מ **18%** (`VAT`) على المدخولات، خصم على المصاريف حسب الفئة (`EXP_CAT_VAT`): مواد/بضاعة/أدوات/معدات/خدمات **100%** · وقود/صيانة مركبات **66.7%** · رواتب/تأمين **0%**.
+- **ضريبة دخل**: شرائح إسرائيلية تصاعدية (أفراد) أو نسبة شركات.
+- **ביטוח לאומי**: `BITUACH_LEUMI_RATE = 10.5%` للأفراد (متدرّج).
+- **خصومات العمّال** (`calcWorkerDeductions`): أنواع `israeli` / `foreign_res` / `foreign_non` (20% ثابت) / `palestinian` / `self`.
+
+---
+
+## 9. المكوّنات المشتركة (src/components/)
+
+| المكوّن | الغرض |
+|---------|-------|
+| `BusinessPulse.jsx` | **نبض المصلحة** — مؤشّر صحّة مالية (0–100): عدّاد دائري + 5 عوامل + رؤى ذكية. يقرأ من `computeBusinessPulse` |
+| `CashForecast.jsx` | **التوقّع الذكي للسيولة** — مسار نقدي (ماضٍ صلب→مستقبل متقطّع) + نطاق ثقة + عدّاد أمان (runway). يقرأ من `computeCashForecast` |
+| `BiometricConfirmModal.jsx` | نافذة تأكيد بصمة/PIN للعمليات الحسّاسة (تُستدعى عبر `useAppStore.requestBioConfirm`) |
+| `SessionLockScreen.jsx` | شاشة قفل الجلسة عند الخمول (بدل الخروج التلقائي) |
+| `NotificationsPanel.jsx` | مركز الإشعارات داخل التطبيق |
+| `SmartSearch.jsx` / `SearchOverlay.jsx` | بحث شامل (cmdk) عبر المشاريع/العمّال/المصاريف/الدفعات |
+| `SignaturePad.jsx` | لوحة توقيع canvas |
+| `TaxDashboard.jsx` | لوحة ضرائب (מע"מ، حدود، التزام) |
+| `WorkerStatsPanel.jsx` | ملخّص أداء/ساعات/رواتب العامل |
+| `ErrorBoundary.jsx` | حدّ خطأ React (يلفّ كل شاشة بمفتاح `screen`) |
+| `index.jsx` | مكوّنات مساعدة: `LoadingSpinner`, `GlassCard`, `Card`, `StatCard`, `Modal`, `Input`, `Btn`, `FilterChip`, `TabBar`, `Badge`, `EmptyState`, `ConfirmDialog`, `AnimatedNumber`, ... |
+| `sheets/AddExpenseSheet.jsx` | bottom-sheet إضافة مصروف (رفع إيصال، فئة، מע"מ، طريقة دفع) |
+| `sheets/AddReceiptSheet.jsx` | bottom-sheet إضافة مقبوض/فاتورة |
+
+**مكتبة UI** (`src/ui/`): `Button` (variants: brand/warm/ghost/danger/success · sizes: sm/md/lg/xl/icon) · `Card`+`GlassCard` · `Input` (label/error/hint/icon/suffix) · `Modal` (bottom-sheet، sizes sm/md/lg) · `Badge` (7 ألوان) · `StatCard`.
+
+---
+
+## 10. الـ Hooks (src/hooks/)
+
+| Hook | المسؤولية | الجدول/RPC |
+|------|-----------|------------|
+| `useAuth` | مصادقة Supabase + passkey + PIN (تشفير AES للإيميل/كلمة السر بمفتاح من PIN) | `passkey_credentials`، edge `webauthn-*` |
+| `useData` | **وحدة CRUD كبيرة** — تصدّر: `useProjects`, `useEmployees`, `useWorkDays`, `useExpenses`, `usePayments`, `useClientReceipts`, `useAdvances`, `useTaxAdvances`, `useHolidays`. كلها Realtime | core tables |
+| `useTeam` | الصلاحيات + CRUD أعضاء + سجلّ نشاط. يصدّر `teamMemberSignIn`، `OWNER_PERMS`، `effectiveOwnerId`، `allowedProjectIds` | `team_members`، edge `create-team-member`/`update-member-password`، RPCs |
+| `useOrganization` | الخطة + حالة التجربة (`isTrialActive`, `trialDaysLeft`, `isPlanActive`, `hasFeature`) | RPC `get_my_organization`، realtime `organizations` |
+| `useSubscription` | اشتراك Paddle النشط (`isActive`, `isCanceling`, `daysUntilPeriodEnd`) | RPC `get_my_subscription`، realtime `subscriptions` |
+| `useSettings` | تفضيلات localStorage: specs، expCats، payMethods، نوع المصلحة، وحدات الضرائب | localStorage `settings_${uid}` |
+| `useProfile` | اسم/أفاتار/رقم مقاول + رفع صورة | `profiles`، bucket `avatars` |
+| `useNotifications` | قائمة إشعارات + عدد غير مقروء (Realtime) | `notifications` |
+| `usePushNotifications` | Web Push (SW + VAPID) | `push_subscriptions`، `VITE_VAPID_PUBLIC_KEY` |
+| `useSalaryAlerts` | تنبيه رواتب متأخّرة (14+ يوم) مرّة/يوم | يكتب `notifications` |
+| `useTaxEngine` | حسابات ضريبية إسرائيلية (دوال نقيّة) | — |
+| `useBiometricConfirm` | تأكيد passkey/PIN + تسجيل توقيع | `signature_log` |
+| `useAppConfig` | إعداد التطبيق (read-only، حدّ صرف، مهلة جلسة) + سجلّ دخول + قفل فترات | `app_config`، `login_log`، `locked_periods`، RPC `upsert_app_config` |
+| `useMaterialLogs` | تسجيل بضاعة (من العامل) | RPC `worker_add_material_log` |
+| `useProjectBusinessLinks` | ربط مشروع بعدّة مصالح | `project_businesses` |
+| `useWorkerPortal` | بوّابة العامل: دخول/تقديم يوم/مصروف/طلب دفعة/سلفة/تغيير كلمة سر + كشف حساب محسوب | RPCs `worker_*`، session `worker_session` |
+
+**ملاحظة Realtime**: كل hook بيانات يشترك بقناة فريدة `${table}_rt_${uid}_${Date.now()}`.
+
+---
+
+## 11. الـ Lib (src/lib/)
+
+| الملف | الغرض / أهم الصادرات |
+|-------|----------------------|
+| `supabase.js` | عميل Supabase. env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` |
+| `helpers.js` | `fmt`، `fmtDate`، `fmtDateFull`، `uid`، `todayStr`، `calcSalary` (overtime)، `validate*`، `calcVATNet`، `calcBituachLeumi*`، `estimateIncomeTax`، `isPaymentOverdue` |
+| `calculations.js` | دوال نقيّة: `calcEarned`، `calcPaid`، `calcAdvances`، `calcWasel`، `calcMustahaq`، `calcMutabqi` (رصيد العامل)، `calcRevenue`، `calcProjectCost`، `calcProfit`، `calcMargin`، `calcOwnerCash`، `calcProjectStats` |
+| `insights.js` | `computeBusinessPulse` (صحّة 0–100) + `computeCashForecast` (توقّع سيولة) + `weightedAvg`/`stdDev`/`fmtMonths`/`gradeFor`/`clamp`. **مغطّى باختبارات** |
+| `crypto.js` | تشفير AES-256-GCM محلي (`secureSet/Get/Remove`)، مفتاح مشتقّ من بصمة المتصفح |
+| `storage.js` | `compressImage`، `uploadReceipt`، `uploadWorkerReceipt`، `refreshSignedUrl` (TTL سنة). buckets: `receipts`, `worker-receipts`, `avatars` |
+| `whatsapp.js` | `normalizePhone` (972)، `openWhatsApp`، قوالب `waMessages` (دعوة بوّابة/راتب مدفوع/كشف حساب/تذكير دفع). **مغطّى باختبارات** |
+| `export.js` | تصدير Excel (مصاريف/أيام/دفعات/تقرير كامل/ضرائب) + PDF (مشروع/راتب عامل/عقد عمل) |
+| `paddle.js` | تكامل Paddle: `getPaddle`، `PLAN_PRICES`، `PLAN_META`، `openCheckout`، `openCustomerPortal` |
+
+---
+
+## 12. الباكند — Supabase
+
+**رمز المشروع** (في `.mcp.json`): `rvhjrzbhugvytvktdhor`. تُدار عبر **Supabase MCP** + ملفات SQL في `supabase/` (schema.sql، master.sql، migrations/).
+
+### الجداول الرئيسية
+- **العمليات الأساسية**: `projects`، `employees` (+ بيانات بوّابة العامل: `worker_username/password_hash/session_token`)، `work_days`، `holidays`.
+- **المالية**: `expenses` (قيد: `project_id NOT NULL OR is_general`)، `payments`، `client_receipts`، `advances`، `tax_advances`، `businesses`، `project_businesses`، و(وحدة المحاسبة) `income_entries`، `expense_entries`، `invoice_archive`، `payroll_slips`.
+- **البضاعة**: `material_logs`.
+- **المؤسسة/الاشتراك**: `organizations` (plan: free/starter/pro/business، `trial_ends_at`)، `user_organizations`، `subscriptions` (Paddle).
+- **الفريق/التدقيق**: `team_members` (صلاحيات دقيقة `can_*` + `allowed_project_ids` + `expires_at` + `is_blocked`)، `audit_log`، `signature_log`، `login_log`، `locked_periods`، `app_config`.
+- **الإشعارات**: `notifications`، `push_subscriptions`.
+- **المصادقة**: `passkey_credentials`، `passkey_challenges`، `rate_limits`، `profiles`.
+- **مرجعية**: `ref_counters` (ترقيم تلقائي PAY-/ADV-/EXP-/RCP-/PRJ-/INV-/INC-/...).
+
+### نموذج الأمان (RLS)
+- الجداول الأساسية مُقيّدة بـ `user_id = auth.uid()` — كل مستخدم يرى صفوفه فقط.
+- **عضو الفريق** يقرأ بيانات المالك عبر RPCs/policies تستخدم `owner_id`؛ التطبيق يفلتر إضافياً بـ `allowedProjectIds`.
+- triggers: `audit_trigger_fn` (يسجّل تغييرات غير المالك)، `set_ref_number` (ترقيم)، `call_send_push` (push عند إشعار)، `handle_new_user` (إنشاء profile+org عند التسجيل).
+- **RPCs مهمّة**: `worker_login`، `worker_submit_day/expense`، `worker_request_payment/advance`، `approve_payment_request`، `get_my_organization/subscription`، `update_team_member_perms`، `set_member_blocked`، `get_member_activity`، `log_screen_view`، `upsert_app_config`، `next_ref_number`.
+
+### Edge Functions (`supabase/functions/`)
+| الدالة | الغرض |
 |--------|-------|
-| `businesses` | المصالح التجارية (osek_patur / osek_moreh / hevra) |
-| `income_entries` | المدخولات |
-| `expense_entries` | المصاريف + مبلغ مع"מ |
-| `invoice_archive` | أرشيف الفواتير / إثباتات الدفع |
-| `payroll_slips` | قسائم الرواتب |
+| `create-team-member` | إنشاء عضو فريق (auth user + صف صلاحيات) — للمالك |
+| `update-member-password` | إعادة تعيين كلمة سر عضو (admin API) |
+| `paddle-webhook` | استقبال أحداث Paddle (تحقّق HMAC) ومزامنة `subscriptions`+`organizations` |
+| `scan-receipt` | OCR للإيصالات عبر Claude Haiku vision (rate-limited) → {amount, vendor, date, category} |
+| `send-push` | إرسال Web Push عبر VAPID (يُستدعى من trigger أو client) |
+| `webauthn-register-options` / `-verify` | تسجيل passkey (challenge 5د) |
+| `webauthn-auth-options` / `-verify` | دخول passkey → magic link لجلسة Supabase. **credential_id يُخزّن base64url** |
 
-### منطق VAT / ضرائب
-- **עוסק פטור**: لا مع"מ — تحذير عند 70% و90% من حد ₪120,000
-- **עוסק מורשה / חברה**: مع"מ 18% على المدخولات، خصم جزئي على المصاريف حسب الفئة
-- خصومات مع"מ: مواد/أدوات 100% · وقود/مركبات 67% · رواتب/تأمين 0%
-- ضريبة الدخل: شرائح إسرائيلية 2024 (10%→47%) أو 23% ثابتة للشركات
-- ביטוח לאומי: 10.5% للأفراد
+**نشر الـ edge functions**: عبر `.github/workflows/deploy.yml` عند push لـ main (`create-team-member`, `update-member-password`, `send-push --no-verify-jwt`).
 
 ---
 
-## ما تم إنجازه (مُدمج في main)
+## 13. المصادقة والأمان
 
-### إعادة التصميم (Redesign)
-- [x] هوية بصرية Amber Gold Dark كاملة
-- [x] Nav 5 tabs
-- [x] Dashboard, Projects, Workers, Finance, Settings
-- [x] تنظيف إيموجي — Lucide في كل مكان
-- [x] تأمين: RLS, storage hardening, rate-limiting
-
-### Finance Module
-- [x] Phase 0 — businesses table + onboarding + switcher
-- [x] Phase 1 — income entries (مدخولات)
-- [x] Phase 2 — expense entries (مصاريف + مع"מ)
-- [x] Phase 3 — invoice archive (أرشيف الفواتير)
-- [x] Phase 4 — payroll slips (قسائم الرواتب + طباعة)
-- [x] Phase 5 — tax & profit summary (ملخص الضرائب والأرباح)
+- **مالك**: كلمة سر (Supabase) · **Passkey** WebAuthn حقيقي server-side · **PIN** (يشفّر الإيميل/كلمة السر محلياً بـ AES، المفتاح مشتقّ من PIN).
+- **عضو فريق**: username + password عبر `teamMemberSignIn` (edge function أنشأ له auth user).
+- **تأكيد بصمة** للعمليات الحسّاسة (حذف، دفعة كبيرة، إنشاء مشروع) عبر `useBiometricConfirm` + تسجيل في `signature_log`.
+- **قفل الجلسة** عند الخمول (`session_timeout` من `app_config`، افتراضي 30د) → `SessionLockScreen` بدل الخروج.
+- **read-only mode** و**حدّ صرف يومي** (`daily_spend_limit`) و**قفل فترات** (`locked_periods` — منع تعديل أشهر ماضية) — كلها للمالك.
 
 ---
 
-## الاختبارات — Testing ✅
+## 14. i18n / PWA / Push
 
-### Playwright MCP (تفاعلي — كلود يقود متصفح حقيقي)
-- مُعرّف في `.mcp.json` تحت اسم `playwright`.
-- لما تشغّل `npm run dev` (port 3000) وكلود كود على الجهاز، بيقدر يفتح متصفح حقيقي،
-  يضغط أزرار، يعبّي فورمات، يتنقّل بين الصفحات زي مستخدم بشري، ويعطيك تقرير بالأخطاء.
-
-### اختبارات E2E الجاهزة (`tests/e2e/`)
-- `@playwright/test` + `playwright.config.js` — يشغّل Vite dev server تلقائياً،
-  ويختبر على viewport موبايل (Pixel 7) + ديسكتوب، locale عربي RTL.
-- التغطية الحالية **client-side فقط** (تنقّل + تحقّق فورمات) — لا تلمس الباكند،
-  فتعمل بدون إعداد Supabase:
-  | الملف | التغطية |
-  |------|---------|
-  | `landing.spec.js`    | صفحة الهبوط: العنوان، الأزرار، الإحصائيات |
-  | `navigation.spec.js` | التنقّل: دخول / تسجيل / أسعار |
-  | `auth-forms.spec.js` | فورمات الدخول والتسجيل + تبديل اللغة + تحقّق |
-
-### الأوامر
-```bash
-npm test              # Vitest (unit)
-npm run test:e2e      # Playwright (كل الاختبارات)
-npm run test:e2e:ui   # واجهة تفاعلية
-```
-> أي فلو يلمس الباكند فعلياً (دخول حقيقي، إضافة عامل، حفظ مصروف) يحتاج مستخدم/بيئة تجريبية.
-> تفاصيل أكمل في `docs/TESTING.md`.
+- **i18n** (`src/i18n/index.js`): ar (افتراضي) / he / en، مخزّن في localStorage `cp_lang`. RTL تلقائي لـ ar/he. الترجمات في `locales/*.json`. **سلاسل عبرية داخل JSX تُكتب `{'מע"מ'}`** لتجنّب كسر JSX بسبب `"`.
+- **PWA**: `vite-plugin-pwa` بنمط `injectManifest` و`src/sw.js`. precache للأصول + Supabase API بـ NetworkFirst (مهلة 10s). تحديث تلقائي (`onNeedRefresh` → reload).
+- **Web Push**: SW يستقبل `push` → إشعار RTL. الاشتراكات في `push_subscriptions`، VAPID عبر `VITE_VAPID_PUBLIC_KEY`، الإرسال عبر edge `send-push`.
 
 ---
 
-## قواعد التطوير
+## 15. البناء والنشر
 
-1. **لا prop drilling** — كل الـ state العام عبر Zustand
-2. **الأيقونات** من Lucide فقط — ممنوع إيموجي في UI
-3. **الاتجاه** RTL دائماً، اللغة عربية
-4. **Hebrew strings داخل JSX** تُكتب بـ `{'מע"מ'}` لتجنب كسر الـ JSX بسبب `"`
-5. **الـ commit** بعد كل phase أو task مكتمل
-6. **لا كسر** للـ screens القديمة قبل ما تُبنى البديل
-7. **الاختبارات** — حدّث/أضف اختبار E2E في `tests/e2e/` عند تغيير فلو واجهة مهم
+| الهدف | الآلية |
+|-------|--------|
+| **Vercel** | النشر الأساسي التلقائي عند push لـ main (preview لكل PR). `vercel.json`: SPA rewrite → `/` |
+| **GitHub Pages** | `pages.yml` يبني (`GITHUB_PAGES=true`، base `/contractor-pro/`) وينشر مرآة حيّة |
+| **Supabase Edge** | `deploy.yml` ينشر edge functions عند push لـ main |
+| **رقم الإصدار** | `scripts/bump-version.mjs` يرفع patch تلقائياً قبل كل build (`prebuild` hook) |
+
+**vite.config.js**: منفذ 3000، code-splitting يدوي (react/recharts/framer-motion/lucide منفصلة)، حقن `__APP_VERSION__` و`__BUILD_DATE__`.
+
+> ⚠️ **CI خارجي**: تكامل **Cloudflare Workers** على الريبو **يفشل دائماً** (لا يوجد `wrangler` config — المشروع لا يُنشر على Cloudflare). الفشل **خارجي ومتوقّع، تجاهله**.
 
 ---
 
-## الحالة الحالية
+## 16. متغيّرات البيئة (Vite)
 
-- Branch الرئيسي: `main`
-- آخر إنجاز: Playwright MCP + اختبارات E2E (PR #101 — مُدمج في main) ✅
-- المصادقة: WebAuthn passkey حقيقي server-side عبر Supabase edge functions + PIN + عضو فريق
-- Vercel: مُنشور تلقائياً عند كل push لـ main
-- الإصدار الحالي: يتزايد تلقائياً عند كل `npm run build` (prebuild hook)
+تُحقن وقت البناء (GitHub Secrets في `pages.yml`؛ Vercel env):
+`VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY` · `VITE_VAPID_PUBLIC_KEY` · `VITE_PADDLE_CLIENT_TOKEN` · `VITE_PADDLE_ENVIRONMENT` · `VITE_PADDLE_PRICE_STARTER` · `VITE_PADDLE_PRICE_PRO` · `VITE_PADDLE_PRICE_BUSINESS`.
+(`supabase.js` فيه fallback defaults للساندبوكس).
 
-> ملاحظة CI: في تكامل **Cloudflare Workers** على الريبو بيفشل (ما في `wrangler` config —
-> المشروع بينشر على Vercel). الفشل خارجي ومش مرتبط بالكود.
+---
+
+## 17. MCP
+
+`.mcp.json` يعرّف خادمين:
+- **supabase** (HTTP): مشروع `rvhjrzbhugvytvktdhor` (docs/database/functions/storage/branching...).
+- **playwright** (`npx @playwright/mcp@latest`): كلود يقود متصفح حقيقي للتحقّق البصري.
+
+---
+
+## 18. الاختبارات
+
+- **Vitest (unit)**: `npm test`. الملفات: `src/lib/insights.test.js`، `calculations.test.js`، `whatsapp.test.js`.
+  > ⚠️ Vitest حالياً يلتقط `tests/e2e/*.spec.js` ويُظهرها "فشل suites" (نسختا Playwright) — اختبارات الوحدة نفسها كلها تمرّ. (إصلاح مستقبلي: استثناء `tests/e2e` في إعداد Vitest.)
+- **Playwright (E2E)**: `tests/e2e/` — تغطية **client-side فقط** (تنقّل + تحقّق فورمات، بلا باكند): `landing.spec.js`، `navigation.spec.js`، `auth-forms.spec.js`. على viewport موبايل (Pixel 7) + ديسكتوب، locale عربي. تفاصيل في `docs/TESTING.md`.
+- **Playwright MCP**: للتحقّق البصري التفاعلي (المتصفح يُثبّت بـ `npx playwright install chrome` عند الحاجة).
+
+---
+
+## 19. قواعد التطوير
+
+1. **لا prop drilling للـ state العام** — Zustand. (دوال CRUD والبيانات المفلترة تُمرّر props من App — نمط قائم.)
+2. **أيقونات Lucide فقط** — ممنوع إيموجي في UI.
+3. **RTL دائماً**، اللغة الافتراضية عربية.
+4. **سلاسل عبرية داخل JSX**: `{'מע"מ'}`.
+5. **ألوان/تدرّجات من `constants` (C/GRAD)** — لا hard-coding.
+6. **حسابات في دوال نقيّة** (`calculations.js`/`insights.js`/`helpers.js`) قابلة للاختبار، والـ UI يقرأ منها.
+7. **commit بعد كل مهمة مكتملة**. أضف/حدّث اختبار وحدة للدوال النقيّة الجديدة، واختبار E2E عند تغيير فلو واجهة مهم.
+8. **لا تكسر** الشاشات القديمة قبل بناء البديل.
+9. تأكّد `npm run build` ينجح قبل الدفع.
+
+---
+
+## 20. الحالة الحالية
+
+- Branch رئيسي: `main`. الإصدار يتزايد تلقائياً (حالياً ~2.0.5x).
+- وحدة المالية مكتملة (Phases 0→5)، المصادقة WebAuthn passkey حقيقية، الفريق متعدّد الصلاحيات، بوّابة العامل، اشتراكات Paddle، Push.
+- آخر الإنجازات المدموجة: **نبض المصلحة + مشاركة واتساب** (#104) · **التوقّع الذكي للسيولة** (#106).
+- النشر: Vercel (أساسي) + GitHub Pages (مرآة) + Supabase edge functions — كلها تلقائية عند push لـ main.
