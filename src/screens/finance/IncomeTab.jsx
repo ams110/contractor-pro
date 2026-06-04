@@ -12,6 +12,8 @@ import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { AddReceiptSheet } from '../../components/sheets/index.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
+import { computeCollectionAging } from '../../lib/insights.js'
+import CollectionAging from '../../components/CollectionAging.jsx'
 
 const METHODS = [
   { id: 'cash',     label: 'كاش',            Icon: Banknote   },
@@ -166,6 +168,11 @@ export default function IncomeTab({
   const paturPct    = isOsekPatur ? (totalYear / OSEK_PATUR_THRESHOLD) * 100 : 0
   const showPaturWarning = isOsekPatur && paturPct >= 70
 
+  // رادار التحصيل — أعمار ذمم العملاء + أولوية الاتصال
+  const aging = useMemo(() =>
+    computeCollectionAging({ projects: linkedProjects, receipts: entries })
+  , [linkedProjects, entries])
+
   const filtered = useMemo(() => {
     let res = entries
     if (filterMonth) res = res.filter(e => e.date?.startsWith(filterMonth))
@@ -230,6 +237,9 @@ export default function IncomeTab({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── رادار التحصيل — أعمار الذمم + أولوية الاتصال ─────────────────────── */}
+      <CollectionAging aging={aging} />
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
