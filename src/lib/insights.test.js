@@ -3,6 +3,7 @@ import {
   computeBusinessPulse, gradeFor, clamp,
   computeCashForecast, weightedAvg, stdDev, fmtMonths,
   computeWorkerDNA, workerTier,
+  computeProjectHealth,
 } from './insights.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -245,5 +246,53 @@ describe('computeWorkerDNA', () => {
       daysPerMonth: [1, 9], tenureMonths: 0,
     })
     expect(d.insights.length).toBeLessThanOrEqual(3)
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// اختبارات صحّة المشروع — المؤشّر، العوامل، الإنذار المبكّر، والرؤى.
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('computeProjectHealth', () => {
+  it('يُرجع 4 عوامل ودرجة ضمن المدى عند غياب البيانات', () => {
+    const h = computeProjectHealth({})
+    expect(h.score).toBeGreaterThanOrEqual(0)
+    expect(h.score).toBeLessThanOrEqual(100)
+    expect(h.factors).toHaveLength(4)
+    expect(h.insights.length).toBeGreaterThan(0)
+  })
+
+  it('مشروع رابح ومحصّل = درجة عالية ورؤية إيجابية', () => {
+    const h = computeProjectHealth({
+      name: 'فيلا الشمال', price: 100000, revenue: 100000,
+      cost: 70000, ownerCash: 30000, profit: 30000, margin: 30, overdue: false,
+    })
+    expect(h.score).toBeGreaterThanOrEqual(75)
+    expect(['good', 'excellent']).toContain(h.tone)
+    expect(h.insights.some(i => i.tone === 'good')).toBe(true)
+  })
+
+  it('مشروع خاسر (تكلفة تجاوزت العقد) = تحذيرات ودرجة منخفضة', () => {
+    const h = computeProjectHealth({
+      name: 'مشروع متعثّر', price: 80000, revenue: 40000,
+      cost: 95000, ownerCash: -20000, profit: -55000, margin: -137, overdue: true,
+    })
+    expect(h.score).toBeLessThan(45)
+    expect(h.insights[0].tone).toBe('warn')
+    expect(h.insights.some(i => i.text.includes('تجاوزت'))).toBe(true)
+  })
+
+  it('يحسب الهامش النهائي المتوقّع (إنذار مبكّر) عند الإنجاز الجزئي', () => {
+    // أُنجز 50% (حصّل نصف العقد) بتكلفة 40k → تكلفة نهائية متوقّعة 80k، هامش ~20%
+    const h = computeProjectHealth({
+      price: 100000, revenue: 50000, cost: 40000,
+      ownerCash: 10000, profit: 10000, margin: 20,
+    })
+    expect(h.projectedMargin).toBe(20)
+  })
+
+  it('لا يحسب إنذاراً مبكّراً للمشاريع المكتملة أو بلا عقد', () => {
+    expect(computeProjectHealth({ price: 100000, revenue: 100000, cost: 60000 }).projectedMargin).toBeNull()
+    expect(computeProjectHealth({ price: 0, revenue: 50000, cost: 30000 }).projectedMargin).toBeNull()
   })
 })

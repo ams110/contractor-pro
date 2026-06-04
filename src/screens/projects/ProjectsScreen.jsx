@@ -11,11 +11,13 @@ import {
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { uploadReceipt } from '../../lib/storage.js'
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
-import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
+import { fmt, fmtDate, todayStr, isPaymentOverdue } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { calcProjectStats as _calcStats, calcOwnerCash } from '../../lib/calculations.js'
+import { computeProjectHealth } from '../../lib/insights.js'
+import ProjectHealth from '../../components/ProjectHealth.jsx'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useDataStore } from '../../store/useDataStore.js'
 // useProjectBusinessLinks removed — projects now use direct business_id FK
@@ -263,6 +265,18 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
   const stats = calcProjectStats(project, workDays, expenses, clientReceipts, employees, payments)
   const { confirm: bioConfirm } = useBiometricConfirm()
 
+  // صحّة المشروع — مؤشّر ذكي + إنذار مبكّر بالهامش النهائي
+  const health = useMemo(() => computeProjectHealth({
+    name:      project.name,
+    price:     parseFloat(project.price) || 0,
+    revenue:   stats.revenue,
+    cost:      stats.cost,
+    ownerCash: calcOwnerCash(stats.revenue, stats.projExpTotal, paidToWorkers, advancesPaid),
+    profit:    stats.profit,
+    margin:    stats.margin,
+    overdue:   isPaymentOverdue(project, clientReceipts),
+  }), [project, stats.revenue, stats.cost, stats.profit, stats.margin, stats.projExpTotal, paidToWorkers, advancesPaid, clientReceipts])
+
   const TABS = [
     { id: 'overview',  icon: BarChart3,    label: language === 'he' ? 'סיכום' : language === 'en' ? 'Overview' : 'نظرة عامة' },
     { id: 'workdays',  icon: Calendar,     label: language === 'he' ? 'ימים' : language === 'en' ? 'Days' : 'أيام' },
@@ -422,6 +436,9 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
       <div style={{ padding: '14px 16px' }}>
         {tab === 'overview' && (
           <div>
+            {/* صحّة المشروع — تحليل ذكي */}
+            <ProjectHealth health={health} />
+
             {/* ── المصلحة المرتبطة ── */}
             {(() => {
               const biz = businesses.find(b => b.id === project.business_id)
