@@ -5,6 +5,7 @@ import {
   computeWorkerDNA, workerTier,
   computeProjectHealth,
   computeTaxRunway,
+  detectExpenseAnomalies,
 } from './insights.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -335,5 +336,64 @@ describe('computeTaxRunway', () => {
     const r = computeTaxRunway({ isOsekPatur: false, yearIncome: 200000, monthsElapsed: 6, annualTax: 36000 })
     expect(r.monthlyProvision).toBe(3000)   // 36000 / 12
     expect(r.insights.some(i => i.icon === 'PiggyBank')).toBe(true)
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// اختبارات كاشف التسريب — قفزات الفئات، المصاريف غير المنسوبة، والمتطرّفات.
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('detectExpenseAnomalies', () => {
+  it('حالة فارغة = لا بيانات', () => {
+    const r = detectExpenseAnomalies({ entries: [], monthKey: '2026-06' })
+    expect(r.hasData).toBe(false)
+    expect(r.anomalies).toHaveLength(0)
+  })
+
+  it('يرصد قفزة فئة مقابل معدّل الأشهر السابقة', () => {
+    const entries = [
+      { amount: 1000, category: 'وقود', date: '2026-03-10', project_id: 'p1' },
+      { amount: 1000, category: 'وقود', date: '2026-04-10', project_id: 'p1' },
+      { amount: 1000, category: 'وقود', date: '2026-05-10', project_id: 'p1' },
+      { amount: 2500, category: 'وقود', date: '2026-06-10', project_id: 'p1' },   // +150%
+    ]
+    const r = detectExpenseAnomalies({ entries, monthKey: '2026-06' })
+    expect(r.spikeCount).toBe(1)
+    expect(r.tone).toBe('weak')
+    expect(r.anomalies[0].tone).toBe('warn')
+    expect(r.anomalies[0].text).toContain('وقود')
+  })
+
+  it('يرصد المصاريف غير المنسوبة لمشروع (تسريب)', () => {
+    const entries = [
+      { amount: 2000, category: 'مواد', date: '2026-06-01' },               // بدون project_id
+      { amount: 1500, category: 'أدوات', date: '2026-06-05', project_id: '' },
+      { amount: 800,  category: 'بضاعة', date: '2026-06-08', project_id: 'p1' },
+    ]
+    const r = detectExpenseAnomalies({ entries, monthKey: '2026-06' })
+    expect(r.leakCount).toBe(2)
+    expect(r.leakTotal).toBe(3500)
+    expect(r.anomalies.some(an => an.icon === 'FolderInput')).toBe(true)
+  })
+
+  it('لا يعدّ المصاريف العامّة (is_general) تسريباً', () => {
+    const entries = [
+      { amount: 2000, category: 'إيجار', date: '2026-06-01', is_general: true },
+      { amount: 800,  category: 'بضاعة', date: '2026-06-08', project_id: 'p1' },
+    ]
+    const r = detectExpenseAnomalies({ entries, monthKey: '2026-06' })
+    expect(r.leakCount).toBe(0)
+  })
+
+  it('حالة نظيفة = نبرة ممتازة ورسالة إيجابية', () => {
+    const entries = [
+      { amount: 1000, category: 'مواد', date: '2026-05-10', project_id: 'p1' },
+      { amount: 1000, category: 'مواد', date: '2026-06-10', project_id: 'p1' },
+    ]
+    const r = detectExpenseAnomalies({ entries, monthKey: '2026-06' })
+    expect(r.spikeCount).toBe(0)
+    expect(r.leakCount).toBe(0)
+    expect(r.tone).toBe('excellent')
+    expect(r.anomalies[0].tone).toBe('good')
   })
 })
