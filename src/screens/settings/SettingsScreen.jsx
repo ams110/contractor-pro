@@ -65,8 +65,8 @@ export default function SettingsScreen({
   userId, profile, profSaving, uploading, saveName, uploadAvatar, saveContractorNumber,
   specs = [], expCats = [], payMethods = [],
   addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod,
-  pensionMonthly, setPensionMonthly, taxEnabled, businessType,
-  setTaxEnabled, setBusinessType, taxModules, setTaxModule,
+  pensionMonthly, setPensionMonthly, taxEnabled,
+  setTaxEnabled, taxModules, setTaxModule,
   holidays = [], addHoliday, deleteHoliday,
   permissions, teamMembers = [],
   addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, reloadTeam,
@@ -159,6 +159,13 @@ export default function SettingsScreen({
   const [editName, setEditName] = useState('')
   const [editingName, setEditingName] = useState(false)
   const [updateStatus, setUpdateStatus] = useState('idle') // idle | checking | upToDate | updating
+
+  // ── إعدادات الضرائب: پنسيה شهرية + رقم العوسيك ──
+  const [pensionInput, setPensionInput] = useState(String(pensionMonthly || ''))
+  const [taxNumInput,  setTaxNumInput]  = useState('')
+  const [taxNumSaved,  setTaxNumSaved]  = useState(false)
+  useEffect(() => { setPensionInput(String(pensionMonthly || '')) }, [pensionMonthly])
+  useEffect(() => { setTaxNumInput(profile?.contractor_number || '') }, [profile?.contractor_number])
 
   const MORE_WITH_ICONS = MORE_SCREENS.map(s => ({ ...s, IconComp: NAV_ICONS_MAP[s.id] || Settings }))
 
@@ -346,6 +353,53 @@ export default function SettingsScreen({
           </div>
         </div>
       </Section>
+
+      {/* ── الضرائب والمصلحة ── */}
+      {permissions?.isOwner && (
+        <Section title={language === 'he' ? 'מסים ועסק' : language === 'en' ? 'Tax & Business' : 'الضرائب والمصلحة'}>
+          {/* پنسيه شهرية — يُخصم من الوعاء الضريبي */}
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.blue}15`, border: `1px solid ${C.blue}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Banknote size={16} color={C.blue} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>قسط الپنسيה الشهري</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>يُخصم من الوعاء الضريبي ويظهر الوفر في ملخص الضرائب</div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                type="number" min="0" value={pensionInput}
+                onChange={e => setPensionInput(e.target.value)}
+                onBlur={() => setPensionMonthly?.(pensionInput)}
+                placeholder="0"
+                style={{ width: 72, padding: '6px 8px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
+              />
+              <span style={{ fontSize: 11, color: C.textDim }}>₪</span>
+            </div>
+          </div>
+
+          {/* رقم العوسيك / ח.פ — للفواتير الرسمية */}
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.gold}15`, border: `1px solid ${C.gold}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Tag size={16} color={C.gold} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{language === 'he' ? 'מספר עוסק / ח.פ' : 'رقم العوسيك / ח.פ'}</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>يظهر على الفواتير الرسمية وملخص الضرائب</div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                type="text" inputMode="numeric" value={taxNumInput}
+                onChange={e => { setTaxNumInput(e.target.value); setTaxNumSaved(false) }}
+                onBlur={() => { if (taxNumInput !== (profile?.contractor_number || '')) { saveContractorNumber?.(taxNumInput); setTaxNumSaved(true) } }}
+                placeholder="—"
+                style={{ width: 110, padding: '6px 8px', background: C.card, border: `1px solid ${taxNumSaved ? C.success+'55' : C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none', direction: 'ltr' }}
+              />
+              {taxNumSaved && <Check size={14} color={C.success} strokeWidth={2.5} />}
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* ── Notifications Permission ── */}
       {pushSupported && (

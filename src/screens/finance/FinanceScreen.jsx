@@ -50,7 +50,7 @@ function SubTab({ active, label, icon: Icon, onClick }) {
 // ─── AccountingModuleTab ───────────────────────────────────────────────────────
 // يحتوي على BusinessSwitcher + الـ 5 تابات للمحاسبة
 // يُفلتر المشاريع مباشرةً بـ project.business_id === activeBusiness.id
-function AccountingModuleTab({ projects, employees, userId, refetchReceipts, refetchExpenses }) {
+function AccountingModuleTab({ projects, employees, userId, refetchReceipts, refetchExpenses, pensionMonthly }) {
   const { businesses, initialized, load } = useBusinessStore()
   const activeBizId    = useBusinessStore(s => s.activeBusinessId)
   const activeBusiness = useMemo(
@@ -146,7 +146,7 @@ function AccountingModuleTab({ projects, employees, userId, refetchReceipts, ref
                                                   onMutate={refetchExpenses} />}
       {subTab === 'archive'    && <InvoiceArchiveTab projects={filteredProjects} userId={userId} />}
       {subTab === 'payroll'    && <PayrollTab    employees={employees} userId={userId} />}
-      {subTab === 'taxsummary' && <TaxSummaryTab />}
+      {subTab === 'taxsummary' && <TaxSummaryTab pensionMonthly={pensionMonthly} />}
     </div>
   )
 }
@@ -248,10 +248,12 @@ function Confirm({ open, msg, onConfirm, onCancel, lang }) {
 }
 
 // ─── EXPENSES TAB ─────────────────────────────────────────────────────────────
-function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [], clientReceipts = [], addExpense, deleteExpense, approveExpense, rejectExpense, userId, permissions, businessType, language, isReadOnly, lockedPeriods = [], appCfg }) {
+function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [], clientReceipts = [], addExpense, deleteExpense, approveExpense, rejectExpense, userId, permissions, language, isReadOnly, lockedPeriods = [], appCfg }) {
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const cats = expCats.length ? expCats : EXP_CATS
   const { confirm: bioConfirm } = useBiometricConfirm()
+  // مصدر واحد لنوع المصلحة — business store (لكل مصلحة على حدة)
+  const businessType = useBusinessStore(s => s.activeBusiness?.business_type) || 'osek_patur'
 
   const [showForm, setShowForm]   = useState(false)
   const [search, setSearch]       = useState('')
@@ -1054,7 +1056,7 @@ export default function FinanceScreen({
   expCats = [], addExpense, deleteExpense, approveExpense, rejectExpense,
   addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest,
   taxAdvances = [], addTaxAdvance, deleteTaxAdvance,
-  pensionMonthly, setPensionMonthly, businessType, setBusinessType,
+  pensionMonthly, setPensionMonthly,
   userId, permissions, payMethods = [], appCfg,
   refetchReceipts, refetchExpenses,
 }) {
@@ -1134,13 +1136,13 @@ export default function FinanceScreen({
       </div>
 
       {tab === 'accounting' && (
-        <AccountingModuleTab projects={projects} employees={employees} userId={userId} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} />
+        <AccountingModuleTab projects={projects} employees={employees} userId={userId} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} pensionMonthly={pensionMonthly} />
       )}
       {tab === 'expenses' && (
         <ExpensesTab expenses={expenses} projects={projects} employees={employees}
           expCats={expCats} clientReceipts={clientReceipts} addExpense={addExpense} deleteExpense={deleteExpense}
           approveExpense={approveExpense} rejectExpense={rejectExpense}
-          userId={userId} permissions={permissions} businessType={businessType} language={language}
+          userId={userId} permissions={permissions} language={language}
           isReadOnly={isReadOnly} lockedPeriods={lockedPeriods} appCfg={appCfg} />
       )}
       {tab === 'payments' && (

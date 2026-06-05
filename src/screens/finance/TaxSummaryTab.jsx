@@ -20,27 +20,8 @@ import { supabase } from '../../lib/supabase.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { computeTaxRunway } from '../../lib/insights.js'
 import TaxRunway from '../../components/TaxRunway.jsx'
-
-// ─── Israeli income-tax brackets 2024 (individual / self-employed) ─────────────
-const IL_TAX_BRACKETS = [
-  { upTo:  81_480, rate: 0.10 },
-  { upTo: 116_760, rate: 0.14 },
-  { upTo: 187_440, rate: 0.20 },
-  { upTo: 260_520, rate: 0.31 },
-  { upTo: 542_160, rate: 0.35 },
-  { upTo: Infinity, rate: 0.47 },
-]
-
-function calcIncomeTax(income) {
-  let tax = 0, prev = 0
-  for (const b of IL_TAX_BRACKETS) {
-    if (income <= prev) break
-    const slice = Math.min(income, b.upTo) - prev
-    tax += slice * b.rate
-    prev = b.upTo
-  }
-  return Math.max(0, tax)
-}
+// مصدر واحد لحساب ضريبة الدخل — المحرّك المركزي (شرائح 2025 + نقاط الزكاء + خصم پنسيה)
+import { calcIncomeTaxAnnual } from '../../hooks/useTaxEngine.js'
 
 // ─── Period helpers ────────────────────────────────────────────────────────────
 const now = new Date()
@@ -125,7 +106,7 @@ function buildMonthlyChart(income, expenses, year) {
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
-export default function TaxSummaryTab() {
+export default function TaxSummaryTab({ pensionMonthly = 0 }) {
   const businesses  = useBusinessStore(s => s.businesses)
   const activeBizId = useBusinessStore(s => s.activeBusinessId)
   const activeBusiness = useMemo(
@@ -202,7 +183,7 @@ export default function TaxSummaryTab() {
 
   const incomeTax = bizType === 'hevra'
     ? yearProfit * 0.23                  // ضريبة شركات 23%
-    : calcIncomeTax(yearProfit)          // شرائح ضريبة دخل فردية
+    : calcIncomeTaxAnnual(yearProfit, 2.25, (pensionMonthly || 0) * 12)   // محرّك مركزي: شرائح + نقاط زكاء + خصم پنسيה
 
   const bituachLeumi = bizType !== 'hevra'
     ? Math.max(0, yearProfit) * BITUACH_LEUMI_RATE

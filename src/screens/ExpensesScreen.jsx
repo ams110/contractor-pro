@@ -7,12 +7,15 @@ import { GlassCard, Modal, Input, Btn, FilterChip, SectionLabel, EmptyState, Con
 import { uploadReceipt } from '../lib/storage.js'
 import { exportExpensesToExcel } from '../lib/export.js'
 import { supabase } from '../lib/supabase.js'
+import { useBusinessStore } from '../store/useBusinessStore.js'
 
 const CAT_ICONS  = { 'بضاعة': ShoppingCart, 'مواد بناء / خامات': Layers, 'عدد وأدوات': Wrench, 'وقود وتنقلات': Fuel, 'إيجار معدات': Building2, 'خدمات مهنية': ClipboardList, 'صيانة مركبات': Car, 'رواتب عمال': HardHat, 'تأمين': Shield, 'أخرى': Package }
 const CAT_COLORS = { 'بضاعة':C.pink, 'مواد بناء / خامات':C.orange, 'عدد وأدوات':C.blue, 'وقود وتنقلات':C.cyan, 'إيجار معدات':C.purple, 'خدمات مهنية':C.secondary, 'صيانة مركبات':C.warning, 'رواتب عمال':C.primary, 'تأمين':C.success, 'أخرى':C.textDim }
 const FILTER_CATS = ['الكل', 'مواد', 'بضاعة', 'عدد', 'وقود', 'إيجار', 'خدمات', 'رواتب', 'تأمين', 'أخرى']
 
-export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions, businessType, showVatExpenses = true }) {
+export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions, showVatExpenses = true }) {
+  // مصدر واحد لنوع المصلحة — business store (لكل مصلحة على حدة)
+  const businessType = useBusinessStore(s => s.activeBusiness?.business_type) || 'osek_patur'
   const showVAT = businessType !== 'osek_patur' && showVatExpenses
   const [showForm,    setShowForm]    = useState(false)
   const [filter,      setFilter]      = useState('الكل')
