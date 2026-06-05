@@ -18,6 +18,8 @@ import { useAuth } from '../../hooks/useAuth.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { computeAccountReadiness } from '../../lib/accountReadiness.js'
 import AccountReadiness from '../../components/AccountReadiness.jsx'
+import { exportAllDataJSON } from '../../lib/export.js'
+import { fmtDate } from '../../lib/helpers.js'
 
 const LANGS = [
   { code: 'ar', label: 'العربية', flag: '🇸🇦', dir: 'rtl' },
@@ -229,6 +231,37 @@ export default function SettingsScreen({
   function fixReadiness(key) {
     const map = { name: 'set-profile', avatar: 'set-profile', taxNumber: 'set-tax', pension: 'set-tax', passkey: 'set-security', spendLimit: 'set-security', notify: 'set-notify' }
     document.getElementById(map[key])?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  // ── البيانات: نسخة احتياطية + إجازات ──
+  const backupKey = userId ? `last_backup_${userId}` : null
+  const [backupAt, setBackupAt] = useState(() => (backupKey ? localStorage.getItem(backupKey) : null))
+  const [backingUp, setBackingUp] = useState(false)
+  const [holName, setHolName] = useState('')
+  const [holDate, setHolDate] = useState('')
+
+  function doBackup() {
+    setBackingUp(true)
+    try {
+      exportAllDataJSON({ projects, employees, workDays, expenses, payments, clientReceipts, advances, holidays })
+      const now = new Date().toISOString()
+      if (backupKey) localStorage.setItem(backupKey, now)
+      setBackupAt(now)
+    } finally {
+      setBackingUp(false)
+    }
+  }
+
+  const backupAgo = (() => {
+    if (!backupAt) return null
+    const days = Math.floor((Date.now() - new Date(backupAt)) / 86400000)
+    return days <= 0 ? 'اليوم' : days === 1 ? 'أمس' : `قبل ${days} يوم`
+  })()
+
+  function addHolidayRow() {
+    if (!holDate || !holName.trim()) return
+    addHoliday?.({ name: holName.trim(), date: holDate })
+    setHolName(''); setHolDate('')
   }
 
   return (
@@ -563,6 +596,67 @@ export default function SettingsScreen({
       <Section title={t('settings.subscription')}>
         <Row icon={Shield} label={language === 'he' ? 'ניהול מנוי' : language === 'en' ? 'Manage Subscription' : 'إدارة الاشتراك'} color={C.gold} onClick={() => navigate('/pricing')} last />
       </Section>
+
+      <GroupLabel>{language === 'he' ? 'נתונים' : language === 'en' ? 'Data' : 'البيانات'}</GroupLabel>
+
+      {/* ── نسخة احتياطية / تصدير الكل ── */}
+      {permissions?.isOwner && (
+        <Section title={language === 'he' ? 'גיבוי נתונים' : language === 'en' ? 'Backup' : 'نسخة احتياطية'}>
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.cyan}15`, border: `1px solid ${C.cyan}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Database size={16} color={C.cyan} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>تصدير كل بياناتك</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
+                {backupAgo ? `آخر نسخة: ${backupAgo}` : 'ملف JSON كامل (مشاريع · عمّال · مالية · إجازات)'}
+              </div>
+            </div>
+            <motion.button
+              whileTap={{ scale: 0.96 }} onClick={doBackup} disabled={backingUp}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 11, background: GRAD.cyan, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: backingUp ? 'default' : 'pointer', fontFamily: 'inherit', flexShrink: 0, opacity: backingUp ? 0.7 : 1 }}
+            >
+              <Download size={13} strokeWidth={2.5} />
+              {backingUp ? '...' : 'تصدير'}
+            </motion.button>
+          </div>
+        </Section>
+      )}
+
+      {/* ── الإجازات الرسمية ── */}
+      {permissions?.isOwner && (
+        <Section title={language === 'he' ? 'חגים' : language === 'en' ? 'Holidays' : 'الإجازات الرسمية'}>
+          <div style={{ padding: '12px 16px' }}>
+            <div style={{ fontSize: 10, color: C.textDim, marginBottom: 10 }}>الأيام المسجّلة هنا تُحتسب كعطل في حساب أيام العمل والرواتب.</div>
+            {(holidays || []).length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                {[...holidays].sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(h => (
+                  <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 11px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 11 }}>
+                    <CalendarDays size={14} color={C.gold} strokeWidth={2} style={{ flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: C.text }}>{h.name}</span>
+                    <span style={{ fontSize: 11, color: C.textDim, fontFamily: 'monospace' }}>{fmtDate(h.date)}</span>
+                    <button onClick={() => deleteHoliday?.(h.id)} style={{ background: 'none', border: 'none', color: C.accent, cursor: 'pointer', display: 'flex', padding: 0, flexShrink: 0 }}>
+                      <Trash2 size={13} strokeWidth={2} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 7 }}>
+              <input type="date" value={holDate} onChange={e => setHolDate(e.target.value)}
+                style={{ width: 140, padding: '8px 10px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 12, fontFamily: 'inherit', outline: 'none' }} />
+              <input value={holName} onChange={e => setHolName(e.target.value)}
+                placeholder="اسم العطلة..."
+                onKeyDown={e => { if (e.key === 'Enter') addHolidayRow() }}
+                style={{ flex: 1, padding: '8px 11px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 12, fontFamily: 'inherit', outline: 'none' }} />
+              <button onClick={addHolidayRow}
+                style={{ padding: '8px 14px', borderRadius: 10, background: GRAD.gold, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <Plus size={13} strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
+        </Section>
+      )}
 
       <GroupLabel>{language === 'he' ? 'אפליקציה וכלים' : language === 'en' ? 'App & Tools' : 'التطبيق والأدوات'}</GroupLabel>
 
