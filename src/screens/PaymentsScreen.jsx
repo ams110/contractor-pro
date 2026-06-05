@@ -1,16 +1,27 @@
 import React, { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Wallet, BarChart2, Plus, Building2, Paperclip, MessageCircle, Trash2, Camera } from 'lucide-react'
+import { Wallet, BarChart2, Plus, Building2, Paperclip, MessageCircle, Trash2, Camera, Check, AlertTriangle, ChevronDown, X, ArrowLeft, Pencil, Coins, Calendar, CreditCard } from 'lucide-react'
 import { C, GRAD, PAY_METHODS } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validatePayment } from '../lib/helpers.js'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../lib/calculations.js'
 import { GlassCard, Modal, Input, Btn, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
+import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import { uploadReceipt } from '../lib/storage.js'
 import { exportPaymentsToExcel } from '../lib/export.js'
 import { openWhatsApp, waMessages } from '../lib/whatsapp.js'
 
 function fmtMonth(ym) {
   return new Date(ym + '-01').toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })
+}
+
+// ─── شريحة وسم صغيرة ──────────────────────────────────────────────────────────
+function MetaTag({ icon: Icon, label, color }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color, background: `${color}15`, padding: '3px 8px', borderRadius: 7, border: `1px solid ${color}28` }}>
+      <Icon size={11} color={color} strokeWidth={2.3} />
+      {label}
+    </span>
+  )
 }
 
 function sendWhatsApp(phone, name, amount, date) {
@@ -114,12 +125,14 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
 
       {/* ── Header ── */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-        <div>
-          <div style={{ fontSize:22, fontWeight:900, background:GRAD.success, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Wallet size={22} strokeWidth={2} style={{ color: C.success }} /> الدفعات
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+          <IconChip icon={Wallet} tone="excellent" size={40} radius={12} />
+          <div>
+            <div style={{ fontSize:18, fontWeight:900, color:C.text, letterSpacing:'-0.02em' }}>الدفعات</div>
+            <div style={{ fontSize:11, color:C.textDim, marginTop:1 }}>{payments.length} دفعة</div>
           </div>
-          <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{payments.length} دفعة</div>
-        </div>
+        </motion.div>
         <div style={{ display:'flex', gap:8 }}>
           {permissions?.isOwner && payments.length > 0 && (
             <motion.button whileTap={{ scale: 0.93 }} onClick={() => exportPaymentsToExcel(payments, employees)}
@@ -138,9 +151,8 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
 
       {/* ── ملخص الإجماليات ── */}
       {(totalOwed > 0 || totalPaid > 0) && (
-        <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
-          <div style={{ height:3, background:GRAD.success }} />
-          <div style={{ padding:'14px 16px', display:'flex', justifyContent:'space-around' }}>
+        <PremiumCard tone="excellent" radius={18} padding="14px 16px" style={{ marginBottom:16 }}>
+          <div style={{ display:'flex', justifyContent:'space-around' }}>
             <div style={{ textAlign:'center' }}>
               <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>مدفوع للعمال</div>
               <div style={{ fontSize:22, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmtA(totalPaid)}</div>
@@ -151,16 +163,22 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
               <div style={{ fontSize:22, fontWeight:900, color: totalOwed > 0 ? C.accent : C.success, fontFamily:'monospace' }}>{fmtA(totalOwed)}</div>
             </div>
           </div>
-        </GlassCard>
+        </PremiumCard>
       )}
 
       {/* ── بطاقات العمال ── */}
       {activeEmployees.length === 0
-        ? <EmptyState icon="💰" text="ما في دفعات بعد" action="+ أضف دفعة" onAction={() => setShowForm(true)} />
+        ? (
+          <div style={{ textAlign:'center', padding:'44px 0', color:C.textDim }}>
+            <IconChip icon={Coins} tone="excellent" size={52} radius={16} iconSize={26} style={{ margin:'0 auto 12px' }} />
+            <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:18 }}>ما في دفعات بعد</div>
+            <Btn onClick={() => setShowForm(true)}>+ أضف دفعة</Btn>
+          </div>
+        )
         : (
           <>
             <SectionLabel color={C.primary} style={{ marginBottom:12 }}>العمال</SectionLabel>
-            {activeEmployees.map(emp => {
+            {activeEmployees.map((emp, ei) => {
               const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
               const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
               const paid   = payments.filter(p => p.employee_id === emp.id).reduce((s, p) => s + p.amount, 0)
@@ -168,13 +186,13 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
               const owed   = Math.max(0, earned + wExp - paid - advs)
               const pct    = (earned + wExp) > 0 ? Math.min(100, Math.round(((paid + advs) / (earned + wExp)) * 100)) : 0
               const grad   = owed > 0 ? GRAD.danger : GRAD.success
+              const tone   = owed > 0 ? 'critical' : 'excellent'
+              const owedColor = owed > 0 ? C.accent : C.success
 
               return (
-                <GlassCard key={emp.id}
+                <PremiumCard key={emp.id} tone={tone} radius={16} padding="14px 16px" delay={Math.min(ei * 0.03, 0.3)}
                   onClick={() => { setSelectedEmp(emp); setOpenMonths(new Set([currentMonth])) }}
-                  style={{ overflow:'hidden', marginBottom:10, cursor:'pointer' }}>
-                  <div style={{ height:3, background:grad }} />
-                  <div style={{ padding:'14px 16px' }}>
+                  style={{ marginBottom:10 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
                       {/* Avatar + name */}
                       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -187,9 +205,9 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                         </div>
                       </div>
                       {/* owed badge */}
-                      <div style={{ textAlign:'center', padding:'6px 12px', borderRadius:12, background: owed > 0 ? `${C.accent}20` : `${C.success}20`, border:`1px solid ${owed > 0 ? C.accent : C.success}44` }}>
-                        <div style={{ fontSize:14, fontWeight:900, color: owed > 0 ? C.accent : C.success, fontFamily:'monospace' }}>
-                          {owed > 0 ? fmtA(owed) : 'مسدد ✓'}
+                      <div style={{ textAlign:'center', padding:'6px 12px', borderRadius:12, background:`${owedColor}20`, border:`1px solid ${owedColor}44` }}>
+                        <div style={{ fontSize:14, fontWeight:900, color:owedColor, fontFamily:'monospace', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
+                          {owed > 0 ? fmtA(owed) : <><Check size={13} strokeWidth={3} /> مسدد</>}
                         </div>
                         <div style={{ fontSize:9, color:C.textDim }}>{owed > 0 ? 'متبقي' : ''}</div>
                       </div>
@@ -214,8 +232,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                       <div style={{ height:'100%', width:`${pct}%`, background:grad, borderRadius:3, transition:'width .5s' }} />
                     </div>
                     <div style={{ fontSize:9, color:C.textDim, marginTop:4, textAlign:'center' }}>{pct}% مدفوع</div>
-                  </div>
-                </GlassCard>
+                </PremiumCard>
               )
             })}
           </>
@@ -230,12 +247,12 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
             <div style={{ display:'flex', gap:6, alignItems:'center' }}>
               <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
                 style={{ padding:'5px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:11, outline:'none', width:120 }} />
-              <span style={{ color:C.textDim, fontSize:11 }}>→</span>
+              <ArrowLeft size={13} strokeWidth={2.2} style={{ color:C.textDim }} />
               <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
                 style={{ padding:'5px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:11, outline:'none', width:120 }} />
               {(dateFrom || dateTo) && (
                 <button onClick={() => { setDateFrom(''); setDateTo('') }}
-                  style={{ padding:'5px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:'none', color:C.textDim, fontSize:11, cursor:'pointer' }}>✕</button>
+                  style={{ padding:'5px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:'none', color:C.textDim, fontSize:11, cursor:'pointer', display:'flex', alignItems:'center' }}><X size={13} strokeWidth={2.2} /></button>
               )}
             </div>
           </div>
@@ -253,16 +270,18 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                   {/* نقطة timeline */}
                   <div style={{ position:'absolute', right:-13, top:14, width:10, height:10, borderRadius:'50%', background:GRAD.success, border:`2px solid ${C.bg}`, flexShrink:0, zIndex:1 }} />
 
-                  <GlassCard style={{ flex:1, marginBottom:0, overflow:'hidden' }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 14px' }}>
-                      <div>
-                        <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{emp?.name || '?'}</div>
-                        <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{fmtDate(p.date)}{p.method ? ` • ${p.method}` : ''}</div>
-                        {projName && (
-                          <div style={{ fontSize:10, color:C.secondary, fontWeight:700, marginTop:3, background:`${C.secondary}18`, borderRadius:6, padding:'2px 7px', display:'inline-flex', alignItems:'center', gap:4 }}>
-                            <Building2 size={10} strokeWidth={2} /> {projName}
+                  <PremiumCard tone="excellent" glow={false} radius={14} padding="12px 14px" animate={false} style={{ flex:1, marginBottom:0 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <IconChip icon={Wallet} tone="excellent" size={36} radius={11} />
+                        <div>
+                          <div style={{ fontSize:14, fontWeight:800, color:C.text }}>{emp?.name || '?'}</div>
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:4 }}>
+                            <MetaTag icon={Calendar} label={fmtDate(p.date)} color="#94A3B8" />
+                            {p.method && <MetaTag icon={CreditCard} label={p.method} color={C.cyan} />}
+                            {projName && <MetaTag icon={Building2} label={projName} color={C.secondary} />}
                           </div>
-                        )}
+                        </div>
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                         <div style={{ fontSize:16, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmtA(p.amount)}</div>
@@ -280,7 +299,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                         {permissions?.addPayments !== false && (
                           <button onClick={() => openEdit(p)}
                             style={{ background:`${C.primary}15`, border:`1px solid ${C.primary}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', display:'flex', alignItems:'center', color:C.primary, fontFamily:'inherit' }}>
-                            <Wallet size={12} strokeWidth={2} />
+                            <Pencil size={12} strokeWidth={2} />
                           </button>
                         )}
                         <button onClick={() => setConfirmDel(p.id)}
@@ -289,7 +308,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                         </button>
                       </div>
                     </div>
-                  </GlassCard>
+                  </PremiumCard>
                 </div>
               )
             })}
@@ -349,7 +368,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
               ? <div style={{ position:'relative' }}>
                   <img src={preview} alt="إثبات" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:12, border:`1px solid ${C.border}` }} />
                   <button onClick={() => { if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview); setReceiptFile(null); setPreview('') }}
-                    style={{ position:'absolute', top:6, left:6, background:`${C.accent}dd`, border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', fontSize:14 }}>×</button>
+                    style={{ position:'absolute', top:6, left:6, background:`${C.accent}dd`, border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><X size={14} strokeWidth={2.5} /></button>
                 </div>
               : <button onClick={() => fileRef.current.click()}
                   style={{ width:'100%', padding:'14px', borderRadius:12, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontFamily:'inherit' }}>
@@ -359,9 +378,12 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
           </div>
         )}
 
-        {formError && <div style={{ padding:'10px 12px', background:`${C.accent}18`, borderRadius:10, fontSize:12, color:C.accent, marginBottom:14, fontWeight:600 }}>⚠ {formError}</div>}
+        {formError && <div style={{ padding:'10px 12px', background:`${C.accent}18`, borderRadius:10, fontSize:12, color:C.accent, marginBottom:14, fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><AlertTriangle size={13} strokeWidth={2.5} /> {formError}</div>}
         <Btn onClick={save} full disabled={saving || (!editingId && !form.employee_id) || !form.amount}>
-          {saving ? 'جاري الحفظ...' : editingId ? '✓ حفظ التعديل' : '✓ سجّل الدفعة'}
+          <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+            {!saving && <Check size={15} strokeWidth={3} />}
+            {saving ? 'جاري الحفظ...' : editingId ? 'حفظ التعديل' : 'سجّل الدفعة'}
+          </span>
         </Btn>
       </Modal>
 
@@ -428,8 +450,8 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                     </div>
                   </div>
                   <button onClick={() => setSelectedEmp(null)}
-                    style={{ width:32, height:32, borderRadius:'50%', border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:C.textDim, cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    ×
+                    style={{ width:32, height:32, borderRadius:'50%', border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.06)', color:C.textDim, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <X size={17} strokeWidth={2.4} />
                   </button>
                 </div>
                 {/* الإجماليات */}
@@ -437,11 +459,13 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                   {[
                     { l:'المستحق الكلي', v: fmtA(totalEarned), c:C.text },
                     { l: 'المدفوع الكلي', v: fmtA(totalPaid), c:C.success },
-                    { l:'المتبقي',       v: totalOwedEmp > 0 ? fmtA(totalOwedEmp) : 'مسدد ✓', c: totalOwedEmp > 0 ? C.accent : C.success },
+                    { l:'المتبقي',       v: totalOwedEmp > 0 ? fmtA(totalOwedEmp) : null, paid: !(totalOwedEmp > 0), c: totalOwedEmp > 0 ? C.accent : C.success },
                   ].map(s => (
                     <div key={s.l} style={{ textAlign:'center' }}>
                       <div style={{ fontSize:9, color:C.textDim, fontWeight:600, marginBottom:2 }}>{s.l}</div>
-                      <div style={{ fontSize:13, fontWeight:900, color:s.c, fontFamily:'monospace' }}>{s.v}</div>
+                      <div style={{ fontSize:13, fontWeight:900, color:s.c, fontFamily:'monospace', display:'flex', alignItems:'center', justifyContent:'center', gap:3 }}>
+                        {s.paid ? <><Check size={12} strokeWidth={3} /> مسدد</> : s.v}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -468,10 +492,10 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                               </span>
                             </div>
                             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                              <span style={{ fontSize:13, fontWeight:900, color: balance > 0 ? C.accent : C.success, fontFamily:'monospace' }}>
-                                {balance > 0 ? `${fmt(balance)}₪ باقي` : 'مسدد ✓'}
+                              <span style={{ fontSize:13, fontWeight:900, color: balance > 0 ? C.accent : C.success, fontFamily:'monospace', display:'inline-flex', alignItems:'center', gap:3 }}>
+                                {balance > 0 ? `${fmt(balance)}₪ باقي` : <><Check size={12} strokeWidth={3} /> مسدد</>}
                               </span>
-                              <span style={{ color:C.textDim, fontSize:12, transition:'transform .2s', display:'inline-block', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                              <ChevronDown size={14} strokeWidth={2.4} style={{ color:C.textDim, transition:'transform .2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
                             </div>
                           </button>
 
@@ -481,11 +505,13 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                               {[
                                 { l:'المستحق',         v:`${fmt(mEarned)}₪`, c:C.primary },
                                 { l:'واصل',            v:`${fmt(mPaid)}₪`,   c:C.success },
-                                { l:'الرصيد التراكمي', v: balance > 0 ? `${fmt(balance)}₪` : 'مسدد ✓', c: balance > 0 ? C.accent : C.success },
+                                { l:'الرصيد التراكمي', v: balance > 0 ? `${fmt(balance)}₪` : null, paid: !(balance > 0), c: balance > 0 ? C.accent : C.success },
                               ].map(row => (
                                 <div key={row.l} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:`${C.border}22`, borderRadius:10 }}>
                                   <span style={{ fontSize:13, color:C.textDim, fontWeight:600 }}>{row.l}</span>
-                                  <span style={{ fontSize:15, fontWeight:900, color:row.c, fontFamily:'monospace' }}>{row.v}</span>
+                                  <span style={{ fontSize:15, fontWeight:900, color:row.c, fontFamily:'monospace', display:'inline-flex', alignItems:'center', gap:4 }}>
+                                    {row.paid ? <><Check size={13} strokeWidth={3} /> مسدد</> : row.v}
+                                  </span>
                                 </div>
                               ))}
                             </div>
