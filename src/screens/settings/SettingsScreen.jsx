@@ -7,7 +7,7 @@ import {
   CreditCard, Banknote, ClipboardList, Package, Calculator,
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
   Fingerprint, ShieldCheck, Clock, Lock, Eye, EyeOff, Smartphone,
-  ToggleLeft, ToggleRight, Timer, CalendarOff, UserCheck, UserX,
+  ToggleLeft, ToggleRight, Timer, CalendarOff, UserCheck, UserX, Wallet, SlidersHorizontal,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
@@ -38,42 +38,62 @@ const NAV_ICONS_MAP = {
   activity:   Activity,
 }
 
-function Section({ title, children, id }) {
+// ── فئات الإعدادات (تبويبات أفقية) — كل فئة لها أيقونة ولون ولابل ثلاثي اللغة ──
+const CATEGORIES = [
+  { id: 'account',       icon: User,              color: C.primary,   ar: 'حسابي',  he: 'חשבון',  en: 'Account'  },
+  { id: 'customization', icon: SlidersHorizontal, color: C.secondary, ar: 'تخصيص',  he: 'התאמה',  en: 'Custom'   },
+  { id: 'finance',       icon: Wallet,            color: C.gold,      ar: 'مالية',  he: 'כספים',  en: 'Finance'  },
+  { id: 'data',          icon: Database,          color: C.cyan,      ar: 'بيانات', he: 'נתונים', en: 'Data',    ownerOnly: true },
+  { id: 'appTools',      icon: Settings,          color: C.success,   ar: 'أدوات',  he: 'כלים',   en: 'Tools'    },
+  { id: 'security',      icon: Shield,            color: C.accent,    ar: 'أمان',   he: 'אבטחה',  en: 'Security', ownerOnly: true },
+]
+
+// شريط تبويبات أفقي لاصق — حبّات (pills) أيقونة+نص، النشطة بتدرّج وتوهّج
+function CategoryNav({ categories, active, onChange, lang }) {
   return (
-    <div id={id} style={{ marginBottom: 20, scrollMarginTop: 12 }}>
-      <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10, paddingInlineStart: 4 }}>{title}</div>
-      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, overflow: 'hidden' }}>
-        {children}
+    <div style={{ position: 'sticky', top: 0, zIndex: 30, margin: '0 -16px 18px', padding: '8px 16px 12px',
+      background: `linear-gradient(180deg, ${C.bg} 62%, ${C.bg}00)`, backdropFilter: 'blur(8px)' }}>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+        {categories.map(cat => {
+          const on = active === cat.id
+          const Icon = cat.icon
+          const label = cat[lang] || cat.ar
+          return (
+            <motion.button key={cat.id} whileTap={{ scale: 0.94 }} onClick={() => onChange(cat.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 13,
+                flexShrink: 0, cursor: 'pointer', fontFamily: 'inherit',
+                background: on ? `linear-gradient(135deg, ${cat.color}, ${cat.color}cc)` : C.card,
+                border: `1px solid ${on ? 'transparent' : C.border}`,
+                boxShadow: on ? `0 4px 16px ${cat.color}55` : 'none',
+                transition: 'background .2s, box-shadow .2s',
+              }}>
+              <Icon size={15} color={on ? '#fff' : cat.color} strokeWidth={2.4} />
+              <span style={{ fontSize: 12.5, fontWeight: 800, color: on ? '#fff' : C.textDim, whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>{label}</span>
+            </motion.button>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-// مجموعة قابلة للطيّ — رأس قابل للضغط يفتح/يطوي أقسامها (أكورديون)
-function CollapsibleGroup({ title, open, onToggle, children }) {
+function Section({ title, children, id, icon: Icon, accent = C.primary }) {
   return (
-    <div style={{ marginBottom: 12 }}>
-      <button onClick={onToggle}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '11px 6px', background: open ? `${C.primary}0c` : 'none', border: 'none', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-        <span style={{ fontSize: 13, fontWeight: 900, color: open ? C.primary : C.text, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{title}</span>
-        <div style={{ height: 1, flex: 1, background: `linear-gradient(90deg, ${open ? C.primary + '40' : C.borderMid}, transparent)` }} />
-        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }} style={{ display: 'flex' }}>
-          <ChevronDown size={16} color={open ? C.primary : C.textDim} strokeWidth={2.5} />
-        </motion.div>
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
-            style={{ overflow: 'hidden' }}
-          >
-            <div style={{ paddingTop: 8 }}>{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div id={id} style={{ marginBottom: 16, scrollMarginTop: 76 }}>
+      {title && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9, paddingInlineStart: 4 }}>
+          {Icon && (
+            <div style={{ width: 22, height: 22, borderRadius: 7, background: `${accent}18`, border: `1px solid ${accent}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon size={12} color={accent} strokeWidth={2.4} />
+            </div>
+          )}
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{title}</div>
+        </div>
+      )}
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.18)' }}>
+        {children}
+      </div>
     </div>
   )
 }
@@ -247,11 +267,18 @@ export default function SettingsScreen({
     dailySpendLimit: appCfg?.config?.daily_spend_limit,
   }), [profile?.display_name, profile?.avatar_url, profile?.contractor_number, pensionMonthly, hasPasskey, permission, appCfg?.config?.daily_spend_limit])
 
-  // مجموعات الإعدادات القابلة للطيّ — «حسابي» مفتوحة افتراضياً
-  const [openGroups, setOpenGroups] = useState({ account: true })
-  const toggleGroup = (id) => setOpenGroups(g => ({ ...g, [id]: !g[id] }))
+  // الفئات المرئية (data/security للمالك فقط) + الفئة النشطة
+  const visibleCategories = useMemo(
+    () => CATEGORIES.filter(c => !c.ownerOnly || permissions?.isOwner),
+    [permissions?.isOwner]
+  )
+  const [activeCat, setActiveCat] = useState('account')
+  useEffect(() => {
+    if (!visibleCategories.some(c => c.id === activeCat)) setActiveCat('account')
+  }, [visibleCategories, activeCat])
+  const catLang = language === 'he' ? 'he' : language === 'en' ? 'en' : 'ar'
 
-  // عند الضغط على بند ناقص → افتح مجموعته ومرّر لقسمه
+  // عند الضغط على بند ناقص في «جاهزية الحساب» → انتقل لفئته ومرّر لقسمه
   function fixReadiness(key) {
     const map = {
       name: ['account', 'set-profile'], avatar: ['account', 'set-profile'],
@@ -260,8 +287,8 @@ export default function SettingsScreen({
       notify: ['finance', 'set-notify'],
     }
     const [grp, el] = map[key] || []
-    if (grp) setOpenGroups(g => ({ ...g, [grp]: true }))
-    setTimeout(() => document.getElementById(el)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 140)
+    if (grp) setActiveCat(grp)
+    setTimeout(() => document.getElementById(el)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 180)
   }
 
   // ── البيانات: نسخة احتياطية + إجازات ──
@@ -316,13 +343,25 @@ export default function SettingsScreen({
         </div>
       </div>
 
-      {/* ── جاهزية الحساب (Hero) ── */}
+      {/* ── جاهزية الحساب (Hero) — مستثناة من التصميم الجديد ── */}
       <AccountReadiness readiness={readiness} onFix={fixReadiness} />
 
-      <CollapsibleGroup title={language === 'he' ? 'החשבון שלי' : language === 'en' ? 'My Account' : 'حسابي'} open={!!openGroups.account} onToggle={() => toggleGroup('account')}>
+      {/* ── شريط التبويبات الجديد ── */}
+      <CategoryNav categories={visibleCategories} active={activeCat} onChange={setActiveCat} lang={catLang} />
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeCat}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+        >
+
+      {activeCat === 'account' && (<>
 
       {/* ── Profile ── */}
-      <Section id="set-profile" title={language === 'he' ? 'פרופיל' : language === 'en' ? 'Profile' : 'الملف الشخصي'}>
+      <Section id="set-profile" icon={User} accent={C.primary} title={language === 'he' ? 'פרופיל' : language === 'en' ? 'Profile' : 'الملف الشخصي'}>
         <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 52, height: 52, borderRadius: 17, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 14px rgba(249,115,22,0.3)' }}>
             {profile?.avatar_url
@@ -354,12 +393,12 @@ export default function SettingsScreen({
         <Row icon={LogOut} label={language === 'he' ? 'יציאה' : language === 'en' ? 'Sign Out' : 'تسجيل الخروج'} danger onClick={() => supabase.auth.signOut()} last />
       </Section>
 
-      </CollapsibleGroup>
+      </>)}
 
-      <CollapsibleGroup title={language === 'he' ? 'התאמה אישית' : language === 'en' ? 'Customization' : 'التخصيص'} open={!!openGroups.customization} onToggle={() => toggleGroup('customization')}>
+      {activeCat === 'customization' && (<>
 
       {/* ── Language ── */}
-      <Section title={t('settings.language')}>
+      <Section icon={Globe} accent={C.secondary} title={t('settings.language')}>
         <div style={{ padding: '12px 16px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {LANGS.map(l => (
@@ -375,7 +414,7 @@ export default function SettingsScreen({
       </Section>
 
       {/* ── Specialties ── */}
-      <Section title={t('settings.specs')}>
+      <Section icon={HardHat} accent={C.primary} title={t('settings.specs')}>
         <div style={{ padding: '12px 16px' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
             {specs.map(s => (
@@ -402,7 +441,7 @@ export default function SettingsScreen({
       </Section>
 
       {/* ── Expense Categories ── */}
-      <Section title={t('settings.categories')}>
+      <Section icon={CreditCard} accent={C.accent} title={t('settings.categories')}>
         <div style={{ padding: '12px 16px' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
             {expCats.map(c => (
@@ -429,7 +468,7 @@ export default function SettingsScreen({
       </Section>
 
       {/* ── Payment Methods ── */}
-      <Section title={t('settings.payMethods')}>
+      <Section icon={Banknote} accent={C.secondary} title={t('settings.payMethods')}>
         <div style={{ padding: '12px 16px' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
             {payMethods.map(m => (
@@ -455,13 +494,13 @@ export default function SettingsScreen({
         </div>
       </Section>
 
-      </CollapsibleGroup>
+      </>)}
 
-      <CollapsibleGroup title={language === 'he' ? 'כספים והתראות' : language === 'en' ? 'Finance & Alerts' : 'المالية والإشعارات'} open={!!openGroups.finance} onToggle={() => toggleGroup('finance')}>
+      {activeCat === 'finance' && (<>
 
       {/* ── تنبيهات الرواتب المتأخّرة ── */}
       {permissions?.isOwner && (
-        <Section title={language === 'he' ? 'התראות שכר' : language === 'en' ? 'Salary Alerts' : 'تنبيهات الرواتب'}>
+        <Section icon={BellRing} accent={C.warning} title={language === 'he' ? 'התראות שכר' : language === 'en' ? 'Salary Alerts' : 'تنبيهات الرواتب'}>
           <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.warning}15`, border: `1px solid ${C.warning}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <BellRing size={16} color={C.warning} />
@@ -480,7 +519,7 @@ export default function SettingsScreen({
 
       {/* ── الضرائب والمصلحة ── */}
       {permissions?.isOwner && (
-        <Section id="set-tax" title={language === 'he' ? 'מסים ועסק' : language === 'en' ? 'Tax & Business' : 'الضرائب والمصلحة'}>
+        <Section id="set-tax" icon={Calculator} accent={C.gold} title={language === 'he' ? 'מסים ועסק' : language === 'en' ? 'Tax & Business' : 'الضرائب والمصلحة'}>
           {/* پنسيه شهرية — يُخصم من الوعاء الضريبي */}
           <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.blue}15`, border: `1px solid ${C.blue}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -527,7 +566,7 @@ export default function SettingsScreen({
 
       {/* ── Notifications Permission ── */}
       {pushSupported && (
-        <Section id="set-notify" title={language === 'he' ? 'התראות' : language === 'en' ? 'Notifications' : 'الإشعارات'}>
+        <Section id="set-notify" icon={Bell} accent={C.primary} title={language === 'he' ? 'התראות' : language === 'en' ? 'Notifications' : 'الإشعارات'}>
           <div style={{ padding: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
               <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -659,17 +698,17 @@ export default function SettingsScreen({
       )}
 
       {/* ── Subscription ── */}
-      <Section title={t('settings.subscription')}>
+      <Section icon={Shield} accent={C.gold} title={t('settings.subscription')}>
         <Row icon={Shield} label={language === 'he' ? 'ניהול מנוי' : language === 'en' ? 'Manage Subscription' : 'إدارة الاشتراك'} color={C.gold} onClick={() => navigate('/pricing')} last />
       </Section>
 
-      </CollapsibleGroup>
+      </>)}
 
-      <CollapsibleGroup title={language === 'he' ? 'נתונים' : language === 'en' ? 'Data' : 'البيانات'} open={!!openGroups.data} onToggle={() => toggleGroup('data')}>
+      {activeCat === 'data' && (<>
 
       {/* ── نسخة احتياطية / تصدير الكل ── */}
       {permissions?.isOwner && (
-        <Section title={language === 'he' ? 'גיבוי נתונים' : language === 'en' ? 'Backup' : 'نسخة احتياطية'}>
+        <Section icon={Database} accent={C.cyan} title={language === 'he' ? 'גיבוי נתונים' : language === 'en' ? 'Backup' : 'نسخة احتياطية'}>
           <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.cyan}15`, border: `1px solid ${C.cyan}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Database size={16} color={C.cyan} />
@@ -693,7 +732,7 @@ export default function SettingsScreen({
 
       {/* ── الإجازات الرسمية ── */}
       {permissions?.isOwner && (
-        <Section title={language === 'he' ? 'חגים' : language === 'en' ? 'Holidays' : 'الإجازات الرسمية'}>
+        <Section icon={CalendarDays} accent={C.gold} title={language === 'he' ? 'חגים' : language === 'en' ? 'Holidays' : 'الإجازات الرسمية'}>
           <div style={{ padding: '12px 16px' }}>
             <div style={{ fontSize: 10, color: C.textDim, marginBottom: 10 }}>الأيام المسجّلة هنا تُحتسب كعطل في حساب أيام العمل والرواتب.</div>
             {(holidays || []).length > 0 && (
@@ -726,12 +765,12 @@ export default function SettingsScreen({
         </Section>
       )}
 
-      </CollapsibleGroup>
+      </>)}
 
-      <CollapsibleGroup title={language === 'he' ? 'אפליקציה וכלים' : language === 'en' ? 'App & Tools' : 'التطبيق والأدوات'} open={!!openGroups.appTools} onToggle={() => toggleGroup('appTools')}>
+      {activeCat === 'appTools' && (<>
 
       {/* ── App Update ── */}
-      <Section title={language === 'he' ? 'עדכון אפליקציה' : language === 'en' ? 'App Update' : 'تحديث التطبيق'}>
+      <Section icon={RefreshCw} accent={C.primary} title={language === 'he' ? 'עדכון אפליקציה' : language === 'en' ? 'App Update' : 'تحديث التطبيق'}>
         <div style={{ padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, background: `${C.primary}18`, border: `1px solid ${C.primary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -791,7 +830,7 @@ export default function SettingsScreen({
       </Section>
 
       {/* ── More Screens / Quick Access ── */}
-      <Section title={language === 'he' ? 'כלים נוספים' : language === 'en' ? 'More Tools' : 'أدوات إضافية'}>
+      <Section icon={Settings} accent={C.success} title={language === 'he' ? 'כלים נוספים' : language === 'en' ? 'More Tools' : 'أدوات إضافية'}>
         {MORE_WITH_ICONS.map((item, i) => (
           <Row
             key={item.id}
@@ -804,13 +843,13 @@ export default function SettingsScreen({
         ))}
       </Section>
 
-      </CollapsibleGroup>
+      </>)}
 
-      <CollapsibleGroup title={language === 'he' ? 'אבטחה ובקרה' : language === 'en' ? 'Security & Control' : 'الأمان والتحكّم'} open={!!openGroups.security} onToggle={() => toggleGroup('security')}>
+      {activeCat === 'security' && (<>
 
       {/* ── Security & Access Control ── */}
       {permissions?.isOwner && appCfg && (
-        <Section id="set-security" title="الأمان والتحكم">
+        <Section id="set-security" icon={Lock} accent={C.accent} title="الأمان والتحكم">
 
           {/* وضع القراءة فقط */}
           <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
@@ -921,7 +960,7 @@ export default function SettingsScreen({
 
       {/* ── Timed Permissions (members) ── */}
       {permissions?.isOwner && teamMembers.length > 0 && (
-        <Section title="صلاحيات الأعضاء الوقتية">
+        <Section icon={UserCheck} accent={C.warning} title="صلاحيات الأعضاء الوقتية">
           {teamMembers.map(m => {
             const hasExpiry = !!m.expires_at
             const isExpired = hasExpiry && new Date(m.expires_at) < new Date()
@@ -964,7 +1003,7 @@ export default function SettingsScreen({
 
       {/* ── Biometric Status + Signature Log ── */}
       {permissions?.isOwner && (
-        <Section title="التوقيع الرقمي بالبصمة">
+        <Section icon={Fingerprint} accent={C.success} title="التوقيع الرقمي بالبصمة">
           {/* Passkey status row */}
           <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: hasPasskey ? `${C.success}18` : `${C.primary}18`, border: `1px solid ${hasPasskey ? C.success : C.primary}28` }}>
@@ -1083,7 +1122,10 @@ export default function SettingsScreen({
         </Section>
       )}
 
-      </CollapsibleGroup>
+      </>)}
+
+        </motion.div>
+      </AnimatePresence>
 
       {/* App version */}
       <div style={{ textAlign: 'center', padding: '20px 0 8px', fontSize: 10, color: C.textDim }}>
