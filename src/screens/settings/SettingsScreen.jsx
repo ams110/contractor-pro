@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   Settings, User, Users, Users2, Globe, Shield, Bell, BellOff, BellRing, Database,
-  ChevronRight, Check, LogOut, HardHat, Palette, CalendarDays,
+  ChevronRight, ChevronDown, Check, LogOut, HardHat, Palette, CalendarDays,
   CreditCard, Banknote, ClipboardList, Package, Calculator,
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
   Fingerprint, ShieldCheck, Clock, Lock, Eye, EyeOff, Smartphone,
@@ -49,12 +49,31 @@ function Section({ title, children, id }) {
   )
 }
 
-// عنوان مجموعة — يفصل أقسام الإعدادات لمجموعات منطقية
-function GroupLabel({ children }) {
+// مجموعة قابلة للطيّ — رأس قابل للضغط يفتح/يطوي أقسامها (أكورديون)
+function CollapsibleGroup({ title, open, onToggle, children }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '4px 4px 12px' }}>
-      <span style={{ fontSize: 12, fontWeight: 900, color: C.text, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{children}</span>
-      <div style={{ height: 1, flex: 1, background: `linear-gradient(90deg, ${C.borderMid}, transparent)` }} />
+    <div style={{ marginBottom: 12 }}>
+      <button onClick={onToggle}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '11px 6px', background: open ? `${C.primary}0c` : 'none', border: 'none', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <span style={{ fontSize: 13, fontWeight: 900, color: open ? C.primary : C.text, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{title}</span>
+        <div style={{ height: 1, flex: 1, background: `linear-gradient(90deg, ${open ? C.primary + '40' : C.borderMid}, transparent)` }} />
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }} style={{ display: 'flex' }}>
+          <ChevronDown size={16} color={open ? C.primary : C.textDim} strokeWidth={2.5} />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{ paddingTop: 8 }}>{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -228,10 +247,21 @@ export default function SettingsScreen({
     dailySpendLimit: appCfg?.config?.daily_spend_limit,
   }), [profile?.display_name, profile?.avatar_url, profile?.contractor_number, pensionMonthly, hasPasskey, permission, appCfg?.config?.daily_spend_limit])
 
-  // عند الضغط على بند ناقص → مرّر للقسم المعني
+  // مجموعات الإعدادات القابلة للطيّ — «حسابي» مفتوحة افتراضياً
+  const [openGroups, setOpenGroups] = useState({ account: true })
+  const toggleGroup = (id) => setOpenGroups(g => ({ ...g, [id]: !g[id] }))
+
+  // عند الضغط على بند ناقص → افتح مجموعته ومرّر لقسمه
   function fixReadiness(key) {
-    const map = { name: 'set-profile', avatar: 'set-profile', taxNumber: 'set-tax', pension: 'set-tax', passkey: 'set-security', spendLimit: 'set-security', notify: 'set-notify' }
-    document.getElementById(map[key])?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    const map = {
+      name: ['account', 'set-profile'], avatar: ['account', 'set-profile'],
+      taxNumber: ['finance', 'set-tax'], pension: ['finance', 'set-tax'],
+      passkey: ['security', 'set-security'], spendLimit: ['security', 'set-security'],
+      notify: ['finance', 'set-notify'],
+    }
+    const [grp, el] = map[key] || []
+    if (grp) setOpenGroups(g => ({ ...g, [grp]: true }))
+    setTimeout(() => document.getElementById(el)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 140)
   }
 
   // ── البيانات: نسخة احتياطية + إجازات ──
@@ -289,7 +319,7 @@ export default function SettingsScreen({
       {/* ── جاهزية الحساب (Hero) ── */}
       <AccountReadiness readiness={readiness} onFix={fixReadiness} />
 
-      <GroupLabel>{language === 'he' ? 'החשבון שלי' : language === 'en' ? 'My Account' : 'حسابي'}</GroupLabel>
+      <CollapsibleGroup title={language === 'he' ? 'החשבון שלי' : language === 'en' ? 'My Account' : 'حسابي'} open={!!openGroups.account} onToggle={() => toggleGroup('account')}>
 
       {/* ── Profile ── */}
       <Section id="set-profile" title={language === 'he' ? 'פרופיל' : language === 'en' ? 'Profile' : 'الملف الشخصي'}>
@@ -324,7 +354,9 @@ export default function SettingsScreen({
         <Row icon={LogOut} label={language === 'he' ? 'יציאה' : language === 'en' ? 'Sign Out' : 'تسجيل الخروج'} danger onClick={() => supabase.auth.signOut()} last />
       </Section>
 
-      <GroupLabel>{language === 'he' ? 'התאמה אישית' : language === 'en' ? 'Customization' : 'التخصيص'}</GroupLabel>
+      </CollapsibleGroup>
+
+      <CollapsibleGroup title={language === 'he' ? 'התאמה אישית' : language === 'en' ? 'Customization' : 'التخصيص'} open={!!openGroups.customization} onToggle={() => toggleGroup('customization')}>
 
       {/* ── Language ── */}
       <Section title={t('settings.language')}>
@@ -423,7 +455,9 @@ export default function SettingsScreen({
         </div>
       </Section>
 
-      <GroupLabel>{language === 'he' ? 'כספים והתראות' : language === 'en' ? 'Finance & Alerts' : 'المالية والإشعارات'}</GroupLabel>
+      </CollapsibleGroup>
+
+      <CollapsibleGroup title={language === 'he' ? 'כספים והתראות' : language === 'en' ? 'Finance & Alerts' : 'المالية والإشعارات'} open={!!openGroups.finance} onToggle={() => toggleGroup('finance')}>
 
       {/* ── تنبيهات الرواتب المتأخّرة ── */}
       {permissions?.isOwner && (
@@ -629,7 +663,9 @@ export default function SettingsScreen({
         <Row icon={Shield} label={language === 'he' ? 'ניהול מנוי' : language === 'en' ? 'Manage Subscription' : 'إدارة الاشتراك'} color={C.gold} onClick={() => navigate('/pricing')} last />
       </Section>
 
-      <GroupLabel>{language === 'he' ? 'נתונים' : language === 'en' ? 'Data' : 'البيانات'}</GroupLabel>
+      </CollapsibleGroup>
+
+      <CollapsibleGroup title={language === 'he' ? 'נתונים' : language === 'en' ? 'Data' : 'البيانات'} open={!!openGroups.data} onToggle={() => toggleGroup('data')}>
 
       {/* ── نسخة احتياطية / تصدير الكل ── */}
       {permissions?.isOwner && (
@@ -690,7 +726,9 @@ export default function SettingsScreen({
         </Section>
       )}
 
-      <GroupLabel>{language === 'he' ? 'אפליקציה וכלים' : language === 'en' ? 'App & Tools' : 'التطبيق والأدوات'}</GroupLabel>
+      </CollapsibleGroup>
+
+      <CollapsibleGroup title={language === 'he' ? 'אפליקציה וכלים' : language === 'en' ? 'App & Tools' : 'التطبيق والأدوات'} open={!!openGroups.appTools} onToggle={() => toggleGroup('appTools')}>
 
       {/* ── App Update ── */}
       <Section title={language === 'he' ? 'עדכון אפליקציה' : language === 'en' ? 'App Update' : 'تحديث التطبيق'}>
@@ -766,7 +804,9 @@ export default function SettingsScreen({
         ))}
       </Section>
 
-      <GroupLabel>{language === 'he' ? 'אבטחה ובקרה' : language === 'en' ? 'Security & Control' : 'الأمان والتحكّم'}</GroupLabel>
+      </CollapsibleGroup>
+
+      <CollapsibleGroup title={language === 'he' ? 'אבטחה ובקרה' : language === 'en' ? 'Security & Control' : 'الأمان والتحكّم'} open={!!openGroups.security} onToggle={() => toggleGroup('security')}>
 
       {/* ── Security & Access Control ── */}
       {permissions?.isOwner && appCfg && (
@@ -1042,6 +1082,8 @@ export default function SettingsScreen({
           </div>
         </Section>
       )}
+
+      </CollapsibleGroup>
 
       {/* App version */}
       <div style={{ textAlign: 'center', padding: '20px 0 8px', fontSize: 10, color: C.textDim }}>
