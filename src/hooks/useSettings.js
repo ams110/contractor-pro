@@ -14,6 +14,7 @@ const DEFAULTS = {
   specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS,
   taxEnabled: true,
   taxModules: DEFAULT_TAX_MODULES,
+  salaryAlerts: true,
 }
 
 export function useSettings(userId) {
@@ -69,6 +70,8 @@ export function useSettings(userId) {
     save({ ...settings, taxModules: { ...settings.taxModules, [moduleKey]: !!val } })
   }
 
+  function setSalaryAlerts(val) { save({ ...settings, salaryAlerts: !!val }) }
+
   function addPayMethod(method) {
     const m = method.trim()
     if (!m || settings.payMethods.includes(m)) return
@@ -83,11 +86,13 @@ export function useSettings(userId) {
     pensionMonthly: settings.pensionMonthly || 0,
     taxEnabled:     settings.taxEnabled !== false,
     taxModules:     settings.taxModules || DEFAULT_TAX_MODULES,
+    salaryAlerts:   settings.salaryAlerts !== false,
     addSpec,        removeSpec,
     addExpCat,      removeExpCat,
     addPayMethod,   removePayMethod,
     setPensionMonthly,
     setTaxEnabled,
     setTaxModule,
+    setSalaryAlerts,
   }
 }
