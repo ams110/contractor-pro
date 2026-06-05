@@ -754,8 +754,8 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
 
       {extras.length === 0 && !showForm ? (
         <div style={{ textAlign: 'center', padding: '36px 0', color: C.textDim }}>
-          <ClipboardList size={38} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
-          <div style={{ fontSize: 13, fontWeight: 600 }}>لا توجد زيادات بعد</div>
+          <IconChip icon={ClipboardList} tone="brand" size={52} radius={16} iconSize={26} style={{ margin: '0 auto 12px' }} />
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>لا توجد زيادات بعد</div>
           <div style={{ fontSize: 11, marginTop: 4 }}>أضف أي أعمال خارج نطاق العقد</div>
         </div>
       ) : (
@@ -767,7 +767,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
           const xFloor = xHouse?.floors?.find(f => f.id === extra.floorId)
           if (editingExtra === extra.id) return null
           return (
-            <div key={extra.id} style={{ background: C.card, borderRadius: 13, border: `1px solid ${C.border}`, padding: '11px 13px', marginBottom: 7 }}>
+            <PremiumCard key={extra.id} color={s.color} glow={false} radius={13} padding="11px 13px" style={{ marginBottom: 7 }}>
               {extra.photo && (
                 <img src={extra.photo} alt="" onClick={() => window.open(extra.photo, '_blank')}
                   style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 9, marginBottom: 10, border: `1px solid ${C.border}`, display: 'block', cursor: 'zoom-in' }} />
@@ -776,7 +776,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
                 <div style={{ display: 'flex', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
                   {xPlot  && <span style={{ fontSize: 10, color: C.primary,   background: `${C.primary}15`,   padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.primary}22`, display:'inline-flex', alignItems:'center', gap:3   }}><Building2 size={9} strokeWidth={2} /> {xPlot.name}</span>}
                   {xHouse && <span style={{ fontSize: 10, color: C.secondary, background: `${C.secondary}15`, padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.secondary}22`, display:'inline-flex', alignItems:'center', gap:3 }}><Home size={9} strokeWidth={2} /> {xHouse.name}</span>}
-                  {xFloor && <span style={{ fontSize: 10, color: C.orange,    background: `${C.orange}15`,    padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.orange}22`    }}>🏢 {xFloor.name}</span>}
+                  {xFloor && <span style={{ fontSize: 10, color: C.orange,    background: `${C.orange}15`,    padding: '2px 8px', borderRadius: 6, border: `1px solid ${C.orange}22`, display:'inline-flex', alignItems:'center', gap:3 }}><Layers size={9} strokeWidth={2} /> {xFloor.name}</span>}
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>

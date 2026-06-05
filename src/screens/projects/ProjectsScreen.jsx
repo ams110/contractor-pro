@@ -1004,14 +1004,11 @@ export default function ProjectsScreen({
       {projects.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           {[
-            { label: language === 'he' ? 'פעילים' : language === 'en' ? 'Active' : 'نشطة', value: projects.filter(p => p.status === 'نشط').length, color: C.success },
-            { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'إيرادات', value: `₪${fmt(clientReceipts.reduce((s, r) => s + (r.amount || 0), 0))}`, color: C.primary, small: true },
-            { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'تكاليف', value: `₪${fmt(workDays.reduce((s, w) => s + (w.amount || 0), 0) + expenses.reduce((s, e) => s + (e.amount || 0), 0))}`, color: C.accent, small: true },
-          ].map(({ label, value, color, small }) => (
-            <div key={label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '10px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: small ? 12 : 18, fontWeight: 900, color, letterSpacing: '-0.02em' }}>{value}</div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{label}</div>
-            </div>
+            { label: language === 'he' ? 'פעילים' : language === 'en' ? 'Active' : 'نشطة', value: projects.filter(p => p.status === 'نشط').length, color: C.success, icon: CheckCircle2 },
+            { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'إيرادات', value: `₪${fmt(clientReceipts.reduce((s, r) => s + (r.amount || 0), 0))}`, color: C.primary, icon: TrendingUp },
+            { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'تكاليف', value: `₪${fmt(workDays.reduce((s, w) => s + (w.amount || 0), 0) + expenses.reduce((s, e) => s + (e.amount || 0), 0))}`, color: C.accent, icon: TrendingDown },
+          ].map(({ label, value, color, icon }, i) => (
+            <PremiumStat key={label} label={label} value={value} color={color} icon={icon} delay={i * 0.05} />
           ))}
         </div>
       )}
@@ -1019,9 +1016,7 @@ export default function ProjectsScreen({
       {/* Project list */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <div style={{ width: 56, height: 56, borderRadius: 18, background: `${C.primary}18`, border: `1px solid ${C.primary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-            <Building2 size={26} color={C.primary} strokeWidth={1.5} />
-          </div>
+          <IconChip icon={Building2} tone="brand" size={56} radius={18} iconSize={26} strokeWidth={1.5} style={{ margin: '0 auto 14px' }} />
           <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 }}>{t('projects.empty')}</div>
           <div style={{ fontSize: 12, color: C.textDim }}>{language === 'he' ? 'הוסף את הפרויקט הראשון שלך' : language === 'en' ? 'Add your first project' : 'أضف مشروعك الأول'}</div>
         </div>
