@@ -4,6 +4,7 @@ import { C, GRAD, DAY_TYPES } from '../constants/index.js'
 import { fmt, fmtDate, fmtDateFull, todayStr, calcSalary, validateWorkDay } from '../lib/helpers.js'
 import { GlassCard, Modal, Input, Btn, Badge, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
+import WorkDayTicket from '../components/WorkDayTicket.jsx'
 import { exportWorkDaysToExcel } from '../lib/export.js'
 
 const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange, 'عطلة': C.textDim }
@@ -454,33 +455,25 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             const busy    = approving === wd.id
             const holiday = holidayDates.has(String(wd.date).slice(0,10)) ? holidays.find(h => String(h.date).slice(0,10) === String(wd.date).slice(0,10)) : null
             return (
-              <PremiumCard key={wd.id} tone="fair" radius={20} padding="16px 18px" style={{ marginBottom:12 }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
-                    <div style={{ flex:1, display:'flex', alignItems:'flex-start', gap:11 }}>
-                      <IconChip icon={HardHat} tone="fair" size={38} radius={11} />
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:16, fontWeight:800, color:C.text, marginBottom:6 }}>{emp?.name || '؟'}</div>
-                        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
-                          <MetaTag icon={CalendarDays} label={fmtDateFull(wd.date)} color="#94A3B8" />
-                          <MetaTag icon={Building2} label={proj?.name || '؟'} color={C.secondary} />
-                          <MetaTag icon={DAY_ICONS[wd.day_type] || Clock} label={wd.day_type} color={C.warning} />
-                          {holiday && <MetaTag icon={Gift} label={holiday.name} color={C.orange} />}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace', flexShrink:0, marginRight:8 }}>{fmt(wd.amount)}₪</div>
-                  </div>
-                  <div style={{ display:'flex', gap:10 }}>
-                    <button onClick={() => handleApprove(wd.id)} disabled={busy}
-                      style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? C.border : GRAD.success, border:'none', color: busy ? C.textDim : '#fff', fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', boxShadow: busy ? 'none' : `0 4px 18px ${C.success}44`, transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-                      {busy ? '...' : <><CheckCircle2 size={16} strokeWidth={2.5} /> موافقة</>}
-                    </button>
-                    <button onClick={() => { setRejectTarget(wd.id); setRejectReason('') }} disabled={busy}
-                      style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? 'transparent' : `${C.accent}12`, border:`1.5px solid ${busy ? C.border : C.accent + '55'}`, color: busy ? C.textDim : C.accent, fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-                      {busy ? '...' : <><XCircle size={16} strokeWidth={2.5} /> رفض</>}
-                    </button>
-                  </div>
-              </PremiumCard>
+              <div key={wd.id} style={{ marginBottom:12 }}>
+                <WorkDayTicket
+                  wd={wd}
+                  name={emp?.name}
+                  projectName={proj?.name}
+                  holidayName={holiday?.name}
+                  notchColor={C.bg}
+                />
+                <div style={{ display:'flex', gap:10, marginTop:8 }}>
+                  <button onClick={() => handleApprove(wd.id)} disabled={busy}
+                    style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? C.border : GRAD.success, border:'none', color: busy ? C.textDim : '#fff', fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', boxShadow: busy ? 'none' : `0 4px 18px ${C.success}44`, transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                    {busy ? '...' : <><CheckCircle2 size={16} strokeWidth={2.5} /> موافقة</>}
+                  </button>
+                  <button onClick={() => { setRejectTarget(wd.id); setRejectReason('') }} disabled={busy}
+                    style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? 'transparent' : `${C.accent}12`, border:`1.5px solid ${busy ? C.border : C.accent + '55'}`, color: busy ? C.textDim : C.accent, fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                    {busy ? '...' : <><XCircle size={16} strokeWidth={2.5} /> رفض</>}
+                  </button>
+                </div>
+              </div>
             )
           })}
         </div>
@@ -615,48 +608,39 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                     </div>
                                   </button>
 
-                                  {/* Day rows */}
-                                  {workerOpen && wdays.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map((wd, idx) => {
-                                    const proj      = projects.find(x => x.id === wd.project_id)
-                                    const dayNum    = (wd.date || '').slice(8, 10)
-                                    const pillColor = DAY_TYPE_COLOR[wd.day_type] || C.primary
-                                    const holiday   = holidayDates.has(String(wd.date).slice(0,10)) ? holidays.find(h => String(h.date).slice(0,10) === String(wd.date).slice(0,10)) : null
-                                    const isSel = bulkSelectMode && selectedDayIds.has(wd.id)
-                                    return (
-                                      <div key={wd.id}
-                                        onClick={bulkSelectMode ? () => toggleDaySelect(wd.id) : undefined}
-                                        style={{ padding:'10px 16px 10px 58px', display:'flex', justifyContent:'space-between', alignItems:'center', background: isSel ? `${C.primary}12` : holiday ? `${C.warning}08` : idx%2===0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderTop:`1px solid ${C.border}`, cursor: bulkSelectMode ? 'pointer' : 'default', transition:'background .15s' }}>
-                                        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                                          <div style={{ minWidth:36, height:40, borderRadius:10, background: isSel ? `${C.primary}25` : `${pillColor}15`, border:`1px solid ${isSel ? C.primary : pillColor}30`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, flexShrink:0 }}>
-                                            <div style={{ fontSize:14, fontWeight:900, color: isSel ? C.primary : pillColor }}>{dayNum}</div>
-                                            <div style={{ color: isSel ? C.primary : pillColor, opacity:0.8 }}><DayIcon type={wd.day_type} size={8} /></div>
+                                  {/* Day tickets */}
+                                  {workerOpen && (
+                                    <div style={{ display:'flex', flexDirection:'column', gap:10, padding:'11px 12px', background:C.bg }}>
+                                      {wdays.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map((wd, idx) => {
+                                        const proj    = projects.find(x => x.id === wd.project_id)
+                                        const holiday = holidayDates.has(String(wd.date).slice(0,10)) ? holidays.find(h => String(h.date).slice(0,10) === String(wd.date).slice(0,10)) : null
+                                        const isSel   = bulkSelectMode && selectedDayIds.has(wd.id)
+                                        const actions = bulkSelectMode ? (
+                                          <div style={{ width:26, height:26, borderRadius:8, border:`2px solid ${isSel ? C.primary : C.border}`, background: isSel ? C.primary : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', color:'#000', flexShrink:0, transition:'all .15s' }}>
+                                            {isSel && <Check size={13} strokeWidth={3} />}
                                           </div>
-                                          <div>
-                                            <div style={{ fontSize:12, color:C.textDim }}>{fmtDateFull(wd.date)}</div>
-                                            <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:2, flexWrap:'wrap' }}>
-                                              <span style={{ fontSize:11, color:C.textDim }}>{proj?.name||'؟'}</span>
-                                              {wd.location && <span style={{ fontSize:10, color:C.primary, background:`${C.primary}15`, padding:'1px 6px', borderRadius:5, display:'inline-flex', alignItems:'center', gap:3 }}><MapPin size={8} strokeWidth={2} /> {wd.location}</span>}
-                                              <span style={{ fontSize:10, fontWeight:700, color:pillColor, background:`${pillColor}15`, padding:'1px 7px', borderRadius:6 }}>{wd.day_type}</span>
-                                              {holiday && <span style={{ fontSize:10, fontWeight:700, color:C.warning, background:`${C.warning}18`, padding:'1px 7px', borderRadius:6, border:`1px solid ${C.warning}33`, display:'inline-flex', alignItems:'center', gap:3 }}><Gift size={8} strokeWidth={2} /> {holiday.name}</span>}
-                                            </div>
-                                          </div>
-                                        </div>
-                                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                                          <span style={{ fontSize:14, fontWeight:900, color: isSel ? C.primary : C.accent, fontFamily:'monospace' }}>{fmt(wd.amount)}₪</span>
-                                          {bulkSelectMode ? (
-                                            <div style={{ width:26, height:26, borderRadius:8, border:`2px solid ${isSel ? C.primary : C.border}`, background: isSel ? C.primary : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, color:'#000', flexShrink:0, transition:'all .15s' }}>
-                                              {isSel && <Check size={13} strokeWidth={3} />}
-                                            </div>
-                                          ) : (
-                                            <>
-                                              <button onClick={() => openEditDay(wd)} style={{ width:30, height:30, borderRadius:8, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Pencil size={12} strokeWidth={2} /></button>
-                                              <button onClick={() => setConfirmDel(wd.id)} style={{ width:30, height:30, borderRadius:8, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Trash2 size={12} strokeWidth={2} /></button>
-                                            </>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )
-                                  })}
+                                        ) : (
+                                          <>
+                                            <button onClick={(e) => { e.stopPropagation(); openEditDay(wd) }} style={{ width:30, height:30, borderRadius:8, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Pencil size={12} strokeWidth={2} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); setConfirmDel(wd.id) }} style={{ width:30, height:30, borderRadius:8, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Trash2 size={12} strokeWidth={2} /></button>
+                                          </>
+                                        )
+                                        return (
+                                          <WorkDayTicket key={wd.id}
+                                            wd={wd}
+                                            hideName
+                                            projectName={proj?.name || '؟'}
+                                            holidayName={holiday?.name}
+                                            selected={isSel}
+                                            onClick={bulkSelectMode ? () => toggleDaySelect(wd.id) : undefined}
+                                            notchColor={C.bg}
+                                            actions={actions}
+                                            delay={Math.min(idx * 0.03, 0.2)}
+                                          />
+                                        )
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               )
                             })}
