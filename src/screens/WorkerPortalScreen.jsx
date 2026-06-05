@@ -1,6 +1,12 @@
 import React, { useState, useRef } from 'react'
-import { Gift, HardHat, KeyRound, Bell, HardHat as ConstructionIcon, CalendarDays, Wallet, ClipboardList, Ruler, X } from 'lucide-react'
+import {
+  Gift, HardHat, KeyRound, Bell, HardHat as ConstructionIcon, CalendarDays, Wallet, ClipboardList, Ruler, X,
+  LogOut, LogIn, Eye, EyeOff, AlertTriangle, TrendingUp, CheckCircle2, Clock as ClockIcon,
+  CalendarPlus, Receipt, Package, HandCoins, Map as MapIcon, Settings, Send, FileText, Download,
+  Check, X as XIcon, ChevronDown, Sparkles,
+} from 'lucide-react'
 import { C, GRAD, EXP_CATS } from '../constants/index.js'
+import { HolographicSheen } from '../ui/Premium.jsx'
 import { fmt, fmtDate, fmtDateFull, todayStr } from '../lib/helpers.js'
 import { useWorkerPortal } from '../hooks/useWorkerPortal.js'
 import { useMaterialLogs } from '../hooks/useMaterialLogs.js'
@@ -22,48 +28,74 @@ const STATUS_BADGE = {
   pending:  { label: 'معلق',   bg: `${C.warning}22`, color: C.warning },
   rejected: { label: 'مرفوض', bg: `${C.accent}22`,  color: C.accent  },
 }
-
-function fmtMonth(yyyymm) {
-  const [y, m] = yyyymm.split('-')
-  return `${MONTHS_AR[parseInt(m, 10) - 1]} ${y}`
-}
-
-function SummaryCard({ earned, expenses, paid, owed, pendingCount }) {
-  const totalDue = earned + expenses
+// ─── هيدر «بطاقة العامل» — بانر محفظة متدرّج + لمعة ────────────────────────────
+function PortalHero({ worker, owed, earned, paid, daysCount, pending, onLogout }) {
+  const initials = (worker?.name || '؟').split(' ').map(w => w[0]).join('').slice(0, 2)
+  const specialty = worker?.specialization ? worker.specialization.split(',')[0] : ''
   return (
-    <div style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderRadius: 20, border: `1px solid ${C.borderMid}`, marginBottom: 16, overflow: 'hidden' }}>
-      <div style={{ height: 3, background: owed > 0 ? GRAD.danger : GRAD.success }} />
-      <div style={{ padding: '14px 16px' }}>
-        <div style={{ fontSize: 11, color: C.textDim, marginBottom: 12, fontWeight: 700, letterSpacing: '0.04em' }}>الملخص المالي الإجمالي</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          {[
-            { l: 'مستحق إجمالي', v: `${fmt(totalDue)}₪`, c: C.text },
-            { l: 'واصل',         v: `${fmt(paid)}₪`,     c: C.success },
-            { l: 'ضايل',         v: `${fmt(owed)}₪`,     c: owed > 0 ? C.accent : C.success },
-          ].map(s => (
-            <div key={s.l} style={{ textAlign: 'center', padding: '10px 4px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 9, color: C.textDim, marginBottom: 4, fontWeight: 600 }}>{s.l}</div>
-              <div style={{ fontSize: 15, fontWeight: 900, color: s.c, fontFamily: 'monospace' }}>{s.v}</div>
-            </div>
-          ))}
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 22, padding: 18,
+      background: `linear-gradient(135deg, ${C.secondary} 0%, #6D28D9 28%, ${C.primary} 92%, ${C.gold} 120%)`,
+      boxShadow: '0 14px 40px rgba(124,58,237,0.4), inset 0 1px 0 rgba(255,255,255,0.22)', marginBottom: 14 }}>
+      <HolographicSheen />
+      <div aria-hidden style={{ position: 'absolute', top: -70, insetInlineEnd: -50, width: 200, height: 200, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.16)', pointerEvents: 'none' }} />
+      <div aria-hidden style={{ position: 'absolute', top: -40, insetInlineEnd: -18, width: 150, height: 150, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.1)', pointerEvents: 'none' }} />
+
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 15, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 900, color: '#fff', backdropFilter: 'blur(4px)', flexShrink: 0 }}>{initials}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>أهلاً بعودتك</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.25)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{worker?.name}</div>
+            {specialty && <span style={{ display: 'inline-block', fontSize: 9.5, fontWeight: 800, color: '#fff', padding: '2px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.26)', marginTop: 3 }}>{specialty}</span>}
+          </div>
         </div>
-        {expenses > 0 && (
-          <div style={{ marginTop: 8, padding: '6px 12px', background: `${C.warning}12`, borderRadius: 10, fontSize: 11, color: C.warning, fontWeight: 700, textAlign: 'center', border: `1px solid ${C.warning}22`, display: 'flex', justifyContent: 'space-between' }}>
-            <span>💸 مصاريف معتمدة مستحقة</span>
-            <span>{fmt(expenses)}₪</span>
+        <button onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 11px', borderRadius: 11, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.28)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+          <LogOut size={13} strokeWidth={2.4} /> خروج
+        </button>
+      </div>
+
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
+        <div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: 2 }}>
+            <Wallet size={12} color="#fff" strokeWidth={2.4} /> مستحقّ لك الآن
           </div>
-        )}
-        {pendingCount > 0 && (
-          <div style={{ marginTop: 8, padding: '8px 12px', background: `${C.warning}18`, borderRadius: 10, fontSize: 12, color: C.warning, fontWeight: 700, textAlign: 'center', border: `1px solid ${C.warning}33` }}>
-            ⏳ {pendingCount} يوم بانتظار موافقة المشرف
-          </div>
-        )}
-        {owed === 0 && totalDue > 0 && pendingCount === 0 && (
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12, color: C.success, fontWeight: 700 }}>
-            ✓ مسدد بالكامل
+          <div style={{ fontSize: 30, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>₪{fmt(owed)}</div>
+        </div>
+        {pending > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,0.2)', borderRadius: 999, padding: '4px 9px', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
+            <ClockIcon size={11} strokeWidth={2.6} /> {pending} بانتظار الموافقة
           </div>
         )}
       </div>
+
+      <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7, marginTop: 14 }}>
+        {[{ l: 'استحققت', v: `₪${fmt(earned)}` }, { l: 'قبضت', v: `₪${fmt(paid)}` }, { l: 'أيام', v: daysCount }].map(s => (
+          <div key={s.l} style={{ background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 11, padding: '7px 6px', textAlign: 'center', backdropFilter: 'blur(2px)' }}>
+            <div style={{ fontSize: 13, fontWeight: 900, color: '#fff' }}>{s.v}</div>
+            <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.78)', marginTop: 1 }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── شريط التبويبات بأيقونات Lucide ───────────────────────────────────────────
+function PortalTabs({ tabs, tab, setTab }) {
+  return (
+    <div style={{ display: 'flex', gap: 7, overflowX: 'auto', padding: '2px 0', marginBottom: 16 }}>
+      {tabs.map(({ id, label, Icon }) => {
+        const on = tab === id
+        return (
+          <button key={id} onClick={() => setTab(id)}
+            style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '9px 13px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
+              background: on ? GRAD.primary : 'rgba(255,255,255,0.05)', border: `1px solid ${on ? 'transparent' : C.border}`,
+              color: on ? '#fff' : C.textDim, boxShadow: on ? `0 6px 18px ${C.primary}44` : 'none', minWidth: 60, transition: 'all .2s' }}>
+            <Icon size={17} strokeWidth={on ? 2.5 : 2} />
+            <span style={{ fontSize: 10.5, fontWeight: on ? 900 : 700 }}>{label}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -97,7 +129,7 @@ function MonthRow({ month, data, payments, holidays = [] }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>
-          <span style={{ fontSize: 10, color: C.textDim }}>{open ? '▲' : '▼'}</span>
+          <ChevronDown size={14} style={{ color: C.textDim, transition: 'transform .2s', transform: open ? 'rotate(180deg)' : 'none' }} />
         </div>
       </button>
 
@@ -172,8 +204,8 @@ function LoginScreen({ onLogin, error, loading }) {
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, direction: 'rtl', position: 'relative', overflow: 'hidden', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
       {/* blobs */}
-      <div style={{ position: 'absolute', top: '-15%', right: '-15%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, #00DDB322 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '-15%', left: '-15%', width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, #6366F122 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '-15%', right: '-15%', width: 300, height: 300, borderRadius: '50%', background: `radial-gradient(circle, ${C.primary}22 0%, transparent 70%)`, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-15%', left: '-15%', width: 280, height: 280, borderRadius: '50%', background: `radial-gradient(circle, ${C.secondary}22 0%, transparent 70%)`, pointerEvents: 'none' }} />
 
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 12px 36px rgba(245,158,11,0.35)', animation: 'float 3s ease-in-out infinite' }}><HardHat size={38} strokeWidth={1.8} color="#000" /></div>
@@ -197,22 +229,22 @@ function LoginScreen({ onLogin, error, loading }) {
               type={showPass ? 'text' : 'password'} placeholder="••••••••" autoComplete="current-password"
               style={{ width: '100%', padding: '13px 44px 13px 14px', borderRadius: 14, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
             <button onClick={() => setShowPass(s => !s)}
-              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 16, padding: 0 }}>
-              {showPass ? '🙈' : '👁️'}
+              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+              {showPass ? <EyeOff size={17} strokeWidth={2} /> : <Eye size={17} strokeWidth={2} />}
             </button>
           </div>
         </div>
 
         {error && (
-          <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 12, marginBottom: 16, fontSize: 13, color: C.accent, textAlign: 'center', border: `1px solid ${C.accent}33`, fontWeight: 600 }}>
-            ⚠ {error}
+          <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 12, marginBottom: 16, fontSize: 13, color: C.accent, textAlign: 'center', border: `1px solid ${C.accent}33`, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <AlertTriangle size={14} strokeWidth={2.2} /> {error}
           </div>
         )}
 
         <button onClick={() => onLogin(username, password)}
           disabled={loading || !username || !password}
-          style={{ width: '100%', padding: 14, borderRadius: 16, background: loading || !username || !password ? C.border : GRAD.brand, border: 'none', color: loading || !username || !password ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: loading || !username || !password ? 'default' : 'pointer', boxShadow: !loading && username && password ? '0 4px 20px #00DDB344' : 'none', transition: 'all .2s' }}>
-          {loading ? 'جاري التحقق...' : '→ دخول'}
+          style={{ width: '100%', padding: 14, borderRadius: 16, background: loading || !username || !password ? C.border : GRAD.brand, border: 'none', color: loading || !username || !password ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: loading || !username || !password ? 'default' : 'pointer', boxShadow: !loading && username && password ? `0 4px 20px ${C.primary}44` : 'none', transition: 'all .2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+          {loading ? 'جاري التحقق...' : <><LogIn size={17} strokeWidth={2.4} /> دخول</>}
         </button>
 
         <button onClick={() => setShowForgot(s => !s)}
@@ -272,7 +304,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
   if (done) {
     return (
       <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-        <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+        <CheckCircle2 size={52} color={C.success} strokeWidth={1.6} style={{ margin: '0 auto 12px', display: 'block' }} />
         <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم الإرسال!</div>
         <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>{projName} • {submittedDate}</div>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.primary, marginBottom: 16, fontFamily: 'monospace' }}>{fmt(amount)}₪</div>
@@ -304,8 +336,8 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
               max={todayStr()}
               style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${holidaySet.has(form.date) ? C.warning : C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
             {holidaySet.has(form.date) && (
-              <div style={{ marginTop: 6, padding: '6px 12px', borderRadius: 8, background: `${C.warning}18`, border: `1px solid ${C.warning}33`, fontSize: 12, color: C.warning, fontWeight: 700 }}>
-                🎉 هذا اليوم عطلة رسمية — تأكد قبل الإرسال
+              <div style={{ marginTop: 6, padding: '6px 12px', borderRadius: 8, background: `${C.warning}18`, border: `1px solid ${C.warning}33`, fontSize: 12, color: C.warning, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Gift size={13} strokeWidth={2.2} /> هذا اليوم عطلة رسمية — تأكد قبل الإرسال
               </div>
             )}
           </div>
@@ -374,13 +406,13 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
 
           {submitErr && (
             <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 12, fontSize: 13, color: C.accent }}>
-              ⚠ {submitErr}
+              <AlertTriangle size={13} strokeWidth={2.2} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />{submitErr}
             </div>
           )}
 
           <button onClick={handleSubmit} disabled={submitting || !form.projectId}
             style={{ width: '100%', padding: 14, borderRadius: 14, background: submitting || !form.projectId ? C.border : C.primary, border: 'none', color: submitting || !form.projectId ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: submitting || !form.projectId ? 'default' : 'pointer' }}>
-            {submitting ? 'جاري الإرسال...' : '📤 أرسل اليوم للمشرف'}
+            {submitting ? 'جاري الإرسال...' : <><CalendarPlus size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />أرسل اليوم للمشرف</>}
           </button>
         </>
       )}
@@ -399,6 +431,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
   const [submittedAmt, setSubmittedAmt] = useState(0)
   const [scanning,     setScanning]     = useState(false)
   const [scanMsg,      setScanMsg]      = useState('')
+  const [scanOk,       setScanOk]       = useState(false)
   const fileRef = useRef()
 
   function pickFile(e) {
@@ -435,9 +468,9 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
         date:     r.date     || prev.date,
         category: r.category || prev.category,
       }))
-      setScanMsg('✓ تم استخراج البيانات تلقائياً')
+      setScanOk(true); setScanMsg('تم استخراج البيانات تلقائياً')
     } catch (e) {
-      setScanMsg(`⚠ ${e.message}`)
+      setScanOk(false); setScanMsg(e.message)
     } finally {
       setScanning(false)
     }
@@ -476,7 +509,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
   if (done) {
     return (
       <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-        <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+        <CheckCircle2 size={52} color={C.success} strokeWidth={1.6} style={{ margin: '0 auto 12px', display: 'block' }} />
         <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم الإرسال!</div>
         <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>{form.category}</div>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.accent, marginBottom: 16, fontFamily: 'monospace' }}>{fmt(submittedAmt)}₪</div>
@@ -556,7 +589,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
           {receiptFile && receiptFile.type.startsWith('image/') && (
             <button onClick={scanReceipt} disabled={scanning}
               style={{ padding: '4px 10px', borderRadius: 8, border: `1px solid ${C.primary}55`, background: `${C.primary}15`, color: C.primary, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              {scanning ? '⏳ مسح...' : '🤖 مسح AI'}
+              {scanning ? 'مسح...' : <><Sparkles size={14} strokeWidth={2.4} style={{ verticalAlign: '-2px', marginInlineEnd: 4 }} />مسح AI</>}
             </button>
           )}
         </div>
@@ -566,7 +599,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
           <div style={{ position: 'relative' }}>
             {receiptPreview === 'pdf' ? (
               <div style={{ padding: '14px', borderRadius: 12, border: `1.5px solid ${C.success}55`, background: `${C.success}11`, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 24 }}>📄</span>
+                <FileText size={24} color={C.blue} strokeWidth={1.8} />
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.success }}>تم رفع الملف</div>
                   <div style={{ fontSize: 10, color: C.textDim }}>{receiptFile?.name}</div>
@@ -589,19 +622,19 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
           </button>
         )}
         {scanMsg && (
-          <div style={{ marginTop: 6, fontSize: 11, color: scanMsg.startsWith('✓') ? C.success : C.accent, fontWeight: 600 }}>{scanMsg}</div>
+          <div style={{ marginTop: 6, fontSize: 11, color: scanOk ? C.success : C.accent, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>{scanOk ? <Check size={12} strokeWidth={2.6} /> : <AlertTriangle size={12} strokeWidth={2.2} />}{scanMsg}</div>
         )}
       </div>
 
       {submitErr && (
         <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 12, fontSize: 13, color: C.accent }}>
-          ⚠ {submitErr}
+          <AlertTriangle size={13} strokeWidth={2.2} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />{submitErr}
         </div>
       )}
 
       <button onClick={handleSubmit} disabled={!canSubmit}
         style={{ width: '100%', padding: 14, borderRadius: 14, background: !canSubmit ? C.border : C.accent, border: 'none', color: !canSubmit ? C.textDim : '#fff', fontSize: 15, fontWeight: 800, cursor: !canSubmit ? 'default' : 'pointer' }}>
-        {uploading ? '⏳ جاري رفع الفاتورة...' : submitting ? 'جاري الإرسال...' : '💸 أرسل المصروف للمشرف'}
+        {uploading ? 'جاري رفع الفاتورة...' : submitting ? 'جاري الإرسال...' : <><Send size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />أرسل المصروف للمشرف</>}
       </button>
     </div>
   )
@@ -666,7 +699,7 @@ function ChangePasswordForm({ worker, onChangePassword }) {
 
         {success && (
           <div style={{ padding: '12px 14px', background: `${C.success}18`, borderRadius: 12, marginBottom: 16, fontSize: 13, color: C.success, textAlign: 'center', border: `1px solid ${C.success}33`, fontWeight: 700 }}>
-            ✓ تم تغيير كلمة المرور بنجاح
+<Check size={14} strokeWidth={2.6} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />تم تغيير كلمة المرور بنجاح
           </div>
         )}
 
@@ -677,7 +710,7 @@ function ChangePasswordForm({ worker, onChangePassword }) {
               placeholder="••••••••" style={inputStyle} />
             <button onClick={() => setShowOld(s => !s)}
               style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 15, padding: 0 }}>
-              {showOld ? '🙈' : '👁️'}
+              {showOld ? <EyeOff size={16} strokeWidth={2} /> : <Eye size={16} strokeWidth={2} />}
             </button>
           </div>
         </div>
@@ -689,7 +722,7 @@ function ChangePasswordForm({ worker, onChangePassword }) {
               placeholder="4 أحرف على الأقل" style={inputStyle} />
             <button onClick={() => setShowNew(s => !s)}
               style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 15, padding: 0 }}>
-              {showNew ? '🙈' : '👁️'}
+              {showNew ? <EyeOff size={16} strokeWidth={2} /> : <Eye size={16} strokeWidth={2} />}
             </button>
           </div>
         </div>
@@ -700,19 +733,19 @@ function ChangePasswordForm({ worker, onChangePassword }) {
             placeholder="••••••••" style={{ ...inputStyle, paddingLeft: 14 }} />
           {confirm && newPass && (
             <div style={{ marginTop: 6, fontSize: 11, fontWeight: 600, color: confirm === newPass ? C.success : C.accent }}>
-              {confirm === newPass ? '✓ متطابقة' : '✗ غير متطابقة'}
+              {confirm === newPass ? <><Check size={11} strokeWidth={2.8} style={{ verticalAlign: '-1px', marginInlineEnd: 2 }} />متطابقة</> : <><XIcon size={11} strokeWidth={2.8} style={{ verticalAlign: '-1px', marginInlineEnd: 2 }} />غير متطابقة</>}
             </div>
           )}
         </div>
 
         {err && (
           <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 14, fontSize: 13, color: C.accent, border: `1px solid ${C.accent}33`, fontWeight: 600 }}>
-            ⚠ {err}
+            <AlertTriangle size={13} strokeWidth={2.2} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />{err}
           </div>
         )}
 
         <button onClick={handleSubmit} disabled={saving || !oldPass || !newPass || !confirm}
-          style={{ width: '100%', padding: 14, borderRadius: 14, background: saving || !oldPass || !newPass || !confirm ? C.border : GRAD.purple, border: 'none', color: saving || !oldPass || !newPass || !confirm ? C.textDim : '#fff', fontSize: 15, fontWeight: 800, cursor: saving || !oldPass || !newPass || !confirm ? 'default' : 'pointer', transition: 'all .2s', boxShadow: oldPass && newPass && confirm ? '0 4px 20px #6366F144' : 'none' }}>
+          style={{ width: '100%', padding: 14, borderRadius: 14, background: saving || !oldPass || !newPass || !confirm ? C.border : GRAD.purple, border: 'none', color: saving || !oldPass || !newPass || !confirm ? C.textDim : '#fff', fontSize: 15, fontWeight: 800, cursor: saving || !oldPass || !newPass || !confirm ? 'default' : 'pointer', transition: 'all .2s', boxShadow: oldPass && newPass && confirm ? `0 4px 20px ${C.secondary}44` : 'none' }}>
           {saving ? 'جاري الحفظ...' : '🔐 حفظ كلمة المرور الجديدة'}
         </button>
       </div>
@@ -742,7 +775,7 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
 
   if (done) return (
     <div style={{ textAlign:'center', padding:'30px 16px' }}>
-      <div style={{ fontSize:52, marginBottom:12 }}>✅</div>
+      <CheckCircle2 size={52} color={C.success} strokeWidth={1.6} style={{ margin: '0 auto 12px', display: 'block' }} />
       <div style={{ fontSize:16, fontWeight:800, color:C.success, marginBottom:6 }}>تم إرسال الطلب!</div>
       <div style={{ fontSize:15, fontWeight:800, color:C.primary, marginBottom:16, fontFamily:'monospace' }}>{fmt(sentAmt)}₪</div>
       <div style={{ padding:'12px 16px', background:`${C.primary}12`, borderRadius:12, marginBottom:20, border:`1px solid ${C.primary}33` }}>
@@ -784,13 +817,13 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
           </div>
           <button onClick={() => setForm(p => ({ ...p, amount: String(Math.round(totalOwed)) }))}
             style={{ width:'100%', padding:'10px 0', background:`${C.primary}15`, border:'none', borderTop:`1px solid ${C.primary}22`, color:C.primary, fontSize:12, fontWeight:700, cursor:'pointer' }}>
-            ✓ استخدم المبلغ الكامل {fmt(totalOwed)}₪
+<Check size={13} strokeWidth={2.6} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />استخدم المبلغ الكامل {fmt(totalOwed)}₪
           </button>
         </div>
       )}
 
       <div style={{ padding:'12px 14px', background:`${C.warning}12`, borderRadius:12, marginBottom:16, border:`1px solid ${C.warning}33` }}>
-        <div style={{ fontSize:12, color:C.warning, fontWeight:700 }}>⚠ تنبيه</div>
+        <div style={{ fontSize:12, color:C.warning, fontWeight:700, display:'flex', alignItems:'center', gap:5 }}><AlertTriangle size={13} strokeWidth={2.2} /> تنبيه</div>
         <div style={{ fontSize:11, color:C.textDim, marginTop:4 }}>الطلب يذهب للمشرف للموافقة — الراتب لا يُسجَّل تلقائياً</div>
       </div>
 
@@ -823,11 +856,11 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
           style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:14, boxSizing:'border-box', outline:'none' }} />
       </div>
 
-      {err && <div style={{ padding:'10px 14px', background:`${C.accent}18`, borderRadius:10, marginBottom:12, fontSize:13, color:C.accent }}>⚠ {err}</div>}
+      {err && <div style={{ padding:'10px 14px', background:`${C.accent}18`, borderRadius:10, marginBottom:12, fontSize:13, color:C.accent }}><AlertTriangle size={13} strokeWidth={2.2} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />{err}</div>}
 
       <button onClick={handleSubmit} disabled={saving || !form.amount || !form.notes?.trim()}
         style={{ width:'100%', padding:14, borderRadius:14, background:saving || !form.amount || !form.notes?.trim() ? C.border : GRAD.success, border:'none', color:saving || !form.amount || !form.notes?.trim() ? C.textDim : '#000', fontSize:15, fontWeight:800, cursor:saving || !form.amount || !form.notes?.trim() ? 'default' : 'pointer', boxShadow:form.amount && form.notes ? `0 4px 20px ${C.success}44` : 'none' }}>
-        {saving ? 'جاري الإرسال...' : '💰 أرسل طلب الراتب للمشرف'}
+        {saving ? 'جاري الإرسال...' : <><Wallet size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />أرسل طلب الراتب للمشرف</>}
       </button>
     </div>
   )
@@ -859,7 +892,7 @@ function RequestAdvanceForm({ onRequest }) {
 
   if (success) return (
     <div style={{ textAlign: 'center', padding: '36px 16px' }}>
-      <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+      <CheckCircle2 size={48} color={C.success} strokeWidth={1.6} style={{ margin: '0 auto 12px', display: 'block' }} />
       <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم إرسال طلب السلفة</div>
       <div style={{ fontSize: 12, color: C.textDim }}>سيراجعه المشرف قريباً</div>
     </div>
@@ -867,7 +900,7 @@ function RequestAdvanceForm({ onRequest }) {
 
   return (
     <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.border}`, padding: 20, direction: 'rtl' }}>
-      <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 4 }}>💵 طلب سلفة</div>
+      <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 7 }}><HandCoins size={17} color={C.primary} strokeWidth={2.2} /> طلب سلفة</div>
       <div style={{ fontSize: 11, color: C.textDim, marginBottom: 18 }}>
         اطلب سلفة من راتبك — ستُخصم تلقائياً من مستحقاتك
       </div>
@@ -893,13 +926,13 @@ function RequestAdvanceForm({ onRequest }) {
 
       {error && (
         <div style={{ padding: '10px 14px', borderRadius: 12, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, color: C.accent, fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
-          ⚠ {error}
+          <AlertTriangle size={13} strokeWidth={2.2} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />{error}
         </div>
       )}
 
       <button onClick={submit} disabled={loading || !amount}
         style={{ width: '100%', padding: 16, borderRadius: 14, border: 'none', cursor: loading || !amount ? 'default' : 'pointer', fontWeight: 800, fontSize: 14, background: loading || !amount ? C.border : GRAD.warm, color: '#000', transition: 'all .2s' }}>
-        {loading ? '⏳ جاري الإرسال...' : '💵 إرسال الطلب'}
+        {loading ? 'جاري الإرسال...' : <><HandCoins size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />إرسال الطلب</>}
       </button>
     </div>
   )
@@ -942,7 +975,7 @@ function SubmitMaterialForm({ worker, projects }) {
     <div style={{ paddingBottom: 16 }}>
       {done && (
         <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-          <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+          <CheckCircle2 size={52} color={C.success} strokeWidth={1.6} style={{ margin: '0 auto 12px', display: 'block' }} />
           <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم التسجيل!</div>
           <div style={{ fontSize: 12, color: C.textDim, marginBottom: 16 }}>تم حفظ سجل البضاعة بنجاح</div>
           <button onClick={() => setDone(false)}
@@ -1007,13 +1040,13 @@ function SubmitMaterialForm({ worker, projects }) {
 
           {(formErr || error) && (
             <div style={{ padding: '10px 14px', background: `${C.accent}18`, borderRadius: 10, marginBottom: 12, fontSize: 13, color: C.accent, border: `1px solid ${C.accent}33` }}>
-              ⚠ {formErr || error}
+              <AlertTriangle size={13} strokeWidth={2.2} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />{formErr || error}
             </div>
           )}
 
           <button onClick={handleSubmit} disabled={!canSubmit}
             style={{ width: '100%', padding: 14, borderRadius: 14, background: !canSubmit ? C.border : GRAD.brand, border: 'none', color: !canSubmit ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: !canSubmit ? 'default' : 'pointer' }}>
-            {loading ? '⏳ جاري الحفظ...' : '🪵 سجّل البضاعة'}
+            {loading ? 'جاري الحفظ...' : <><Package size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />سجّل البضاعة</>}
           </button>
         </>
       )}
@@ -1055,7 +1088,7 @@ function BlueprintsTab({ projects }) {
               style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${b.type === 'pdf' ? C.blue + '55' : C.border}`, aspectRatio: '1.4', cursor: 'pointer', position: 'relative', background: b.type === 'pdf' ? `${C.blue}0d` : 'transparent' }}>
               {b.type === 'pdf' ? (
                 <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 8 }}>
-                  <div style={{ fontSize: 34 }}>📄</div>
+                  <FileText size={34} color={C.blue} strokeWidth={1.6} />
                   <div style={{ fontSize: 10, color: C.textDim, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{b.name}</div>
                   <div style={{ fontSize: 9, color: C.blue, fontWeight: 700, background: `${C.blue}22`, padding: '2px 8px', borderRadius: 6 }}>PDF</div>
                 </div>
@@ -1082,7 +1115,7 @@ function BlueprintsTab({ projects }) {
                     <span style={{ fontSize: 11, color: C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{bp.name}</span>
                     <a href={bp.dataUrl} download={bp.name}
                       style={{ padding: '5px 12px', borderRadius: 8, background: `${C.blue}22`, border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
-                      ⬇ تحميل
+<Download size={12} strokeWidth={2.2} style={{ verticalAlign: '-2px', marginInlineEnd: 3 }} />تحميل
                     </a>
                   </div>
                 </div>
@@ -1138,60 +1171,33 @@ export default function WorkerPortalScreen() {
   const canBlueprints = worker.can_view_blueprints === true
 
   const tabs = [
-    { id: 'submit',     label: '📤 يوم'    },
-    ...(canExpense     ? [{ id: 'expense',    label: '💸 مصروف'  }] : []),
-    { id: 'materials',  label: '🪵 بضاعة'  },
-    ...(canSalary      ? [{ id: 'salary',     label: '💰 راتب'   }] : []),
-    ...(canSalary      ? [{ id: 'advance',    label: '💵 سلفة'   }] : []),
-    { id: 'monthly',    label: '📅 شهري'   },
-    ...(canBlueprints  ? [{ id: 'blueprints', label: '📐 خرائط'  }] : []),
-    { id: 'account',    label: '⚙️ حساب'   },
+    { id: 'submit',     label: 'يوم',    Icon: CalendarPlus },
+    ...(canExpense     ? [{ id: 'expense',    label: 'مصروف', Icon: Receipt }] : []),
+    { id: 'materials',  label: 'بضاعة',  Icon: Package },
+    ...(canSalary      ? [{ id: 'salary',     label: 'راتب',  Icon: Wallet }] : []),
+    ...(canSalary      ? [{ id: 'advance',    label: 'سلفة',  Icon: HandCoins }] : []),
+    { id: 'monthly',    label: 'شهري',   Icon: CalendarDays },
+    ...(canBlueprints  ? [{ id: 'blueprints', label: 'خرائط', Icon: MapIcon }] : []),
+    { id: 'account',    label: 'حساب',   Icon: Settings },
   ]
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
-      {/* Header */}
-      <div style={{ background: 'rgba(7,9,13,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', padding: '16px 16px 14px', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 50 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ padding: 2, borderRadius: '50%', background: GRAD.brand }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, color: C.primary }}>
-                {worker.name?.[0] || '?'}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: 10, color: C.textDim, fontWeight: 600 }}>أهلاً 👋</div>
-              <div style={{ fontSize: 16, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{worker.name}</div>
-              {worker.specialization && (
-                <div style={{ fontSize: 10, color: C.primary, fontWeight: 600 }}>{worker.specialization.split(',')[0]}</div>
-              )}
-            </div>
-          </div>
-          <button onClick={logout}
-            style={{ padding: '7px 14px', borderRadius: 10, border: `1px solid ${C.accent}44`, background: `${C.accent}15`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-            🚪 خروج
-          </button>
-        </div>
-      </div>
-
       <div style={{ padding: 16, paddingBottom: 32 }}>
-        {/* ملخص إجمالي */}
-        <SummaryCard earned={totalEarned} expenses={totalExpenses} paid={totalPaid} owed={totalOwed} pendingCount={pendingDays.length} />
+        {/* هيدر بطاقة العامل */}
+        <PortalHero
+          worker={worker}
+          owed={totalOwed}
+          earned={totalEarned}
+          paid={totalPaid}
+          daysCount={workDays.length}
+          pending={pendingDays.length}
+          onLogout={logout}
+        />
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 4 }}>
-          {tabs.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              style={{ flex: 1, padding: '9px 2px', borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 11, transition: 'all .2s',
-                background: tab === t.id ? GRAD.brand : 'transparent',
-                color: tab === t.id ? '#000' : C.textDim,
-                boxShadow: tab === t.id ? '0 4px 14px #00DDB344' : 'none',
-              }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <PortalTabs tabs={tabs} tab={tab} setTab={setTab} />
 
         {/* تبويب إضافة يوم */}
         {tab === 'submit' && (
@@ -1246,7 +1252,7 @@ export default function WorkerPortalScreen() {
             {/* أيام معلقة */}
             {pendingDays.length > 0 && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.warning, marginBottom: 8 }}>⏳ بانتظار الموافقة</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.warning, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}><ClockIcon size={13} strokeWidth={2.2} /> بانتظار الموافقة</div>
                 {pendingDays.map(d => (
                   <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: `${C.warning}11`, borderRadius: 10, border: `1px solid ${C.warning}33`, marginBottom: 6 }}>
                     <div>
