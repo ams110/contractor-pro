@@ -52,19 +52,24 @@ def make_svg(size):
     return svg
 
 def make_badge_svg(size):
-    # Notification badge (Android tints by alpha) → SOLID white HardHat
-    # silhouette on a transparent background. A filled silhouette (not a thin
-    # outline) reads far more clearly when shrunk into the status bar.
+    # Notification badge (Android tints by alpha) → white HardHat OUTLINE on a
+    # transparent background, identical in style to the main logo (same paths +
+    # vent lines, fill:none). The stroke is widened so the outline still reads
+    # clearly once Android shrinks it into the status bar.
     r = size
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg"
      width="{r}" height="{r}" viewBox="0 0 {r} {r}">
   <g transform="translate({r*0.16:.1f},{r*0.16:.1f}) scale({r*0.68/24:.4f})"
-     fill="white" stroke="white" stroke-width="2"
+     fill="none" stroke="white" stroke-width="2.5"
      stroke-linecap="round" stroke-linejoin="round">
-    <!-- Brim (filled) -->
+    <!-- Bottom brim -->
     <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2H2z"/>
-    <!-- Dome (filled) -->
+    <!-- Dome -->
     <path d="M20 15a1 1 0 0 0 1-1v-4a8 8 0 1 0-16 0v4a1 1 0 0 0 1 1z"/>
+    <!-- Vent lines -->
+    <path d="M9 15v1"/>
+    <path d="M15 15v1"/>
+    <path d="M12 15v2"/>
   </g>
 </svg>"""
     return svg
