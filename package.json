@@ -1,6 +1,6 @@
 {
   "name": "contractor-pro",
-  "version": "2.0.71",
+  "version": "2.0.73",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -40,6 +40,7 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^1.14.0",
+    "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.75.0",

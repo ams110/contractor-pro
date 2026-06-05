@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import QRCode from 'qrcode'
 import {
   Settings, User, Users, Users2, Globe, Shield, Bell, BellOff, BellRing, Database,
   ChevronRight, ChevronDown, Check, LogOut, HardHat, Palette, CalendarDays,
@@ -8,6 +9,7 @@ import {
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
   Fingerprint, ShieldCheck, Clock, Lock, Eye, EyeOff, Smartphone,
   ToggleLeft, ToggleRight, Timer, CalendarOff, UserCheck, UserX, Wallet, SlidersHorizontal,
+  RotateCw, QrCode, Copy, ArrowRight, MessageCircle,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
@@ -15,11 +17,12 @@ import { useAppStore } from '../../store/useAppStore.js'
 import { navigate } from '../../Router.jsx'
 import { usePushNotifications } from '../../hooks/usePushNotifications.js'
 import { useAuth } from '../../hooks/useAuth.js'
-import { useBusinessStore } from '../../store/useBusinessStore.js'
+import { useBusinessStore, BUSINESS_TYPES } from '../../store/useBusinessStore.js'
 import { computeAccountReadiness } from '../../lib/accountReadiness.js'
 import AccountReadiness from '../../components/AccountReadiness.jsx'
 import { exportAllDataJSON } from '../../lib/export.js'
 import { fmtDate } from '../../lib/helpers.js'
+import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 
 const LANGS = [
   { code: 'ar', label: 'العربية', flag: '🇸🇦', dir: 'rtl' },
@@ -40,12 +43,12 @@ const NAV_ICONS_MAP = {
 
 // ── فئات الإعدادات (تبويبات أفقية) — كل فئة لها أيقونة ولون ولابل ثلاثي اللغة ──
 const CATEGORIES = [
-  { id: 'account',       icon: User,              color: C.primary,   ar: 'حسابي',  he: 'חשבון',  en: 'Account'  },
-  { id: 'customization', icon: SlidersHorizontal, color: C.secondary, ar: 'تخصيص',  he: 'התאמה',  en: 'Custom'   },
-  { id: 'finance',       icon: Wallet,            color: C.gold,      ar: 'مالية',  he: 'כספים',  en: 'Finance'  },
-  { id: 'data',          icon: Database,          color: C.cyan,      ar: 'بيانات', he: 'נתונים', en: 'Data',    ownerOnly: true },
-  { id: 'appTools',      icon: Settings,          color: C.success,   ar: 'أدوات',  he: 'כלים',   en: 'Tools'    },
-  { id: 'security',      icon: Shield,            color: C.accent,    ar: 'أمان',   he: 'אבטחה',  en: 'Security', ownerOnly: true },
+  { id: 'account',       icon: User,              color: C.primary,   ar: 'حسابي',  he: 'חשבון',  en: 'Account',  hint: { ar: 'الملف والخروج', he: 'פרופיל ויציאה', en: 'Profile & sign out' } },
+  { id: 'customization', icon: SlidersHorizontal, color: C.secondary, ar: 'تخصيص',  he: 'התאמה',  en: 'Custom',   hint: { ar: 'اللغة · تخصّصات · فئات', he: 'שפה · קטגוריות', en: 'Language · lists' } },
+  { id: 'finance',       icon: Wallet,            color: C.gold,      ar: 'مالية',  he: 'כספים',  en: 'Finance',  hint: { ar: 'ضرائب · إشعارات · اشتراك', he: 'מסים · התראות', en: 'Tax · alerts · plan' } },
+  { id: 'data',          icon: Database,          color: C.cyan,      ar: 'بيانات', he: 'נתונים', en: 'Data',    ownerOnly: true, hint: { ar: 'نسخ احتياطي · إجازات', he: 'גיבוי · חגים', en: 'Backup · holidays' } },
+  { id: 'appTools',      icon: Settings,          color: C.success,   ar: 'أدوات',  he: 'כלים',   en: 'Tools',    hint: { ar: 'تحديث · أدوات إضافية', he: 'עדכון · כלים', en: 'Update · more tools' } },
+  { id: 'security',      icon: Shield,            color: C.accent,    ar: 'أمان',   he: 'אבטחה',  en: 'Security', ownerOnly: true, hint: { ar: 'بصمة · قفل · سجلّ', he: 'ביומטרי · נעילה', en: 'Biometric · locks' } },
 ]
 
 // شريط تبويبات أفقي لاصق — حبّات (pills) أيقونة+نص، النشطة بتدرّج وتوهّج
@@ -114,6 +117,192 @@ function Row({ icon: Icon, label, value, color = C.primary, onClick, danger, las
   )
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  خلفية Aurora حيّة — بقع برتقالي/بنفسجي/سماوي تنجرف ببطء خلف الزجاج
+// ════════════════════════════════════════════════════════════════════════
+function AuroraBackground() {
+  const blobs = [
+    { color: C.primary,   size: 340, top: '-6%',  left: '-12%', dur: 22, x: 40,  y: 30 },
+    { color: C.secondary, size: 300, top: '18%',  left: '60%',  dur: 27, x: -50, y: 40 },
+    { color: C.cyan,      size: 260, top: '52%',  left: '-8%',  dur: 31, x: 60,  y: -30 },
+    { color: C.gold,      size: 220, top: '78%',  left: '55%',  dur: 25, x: -40, y: -40 },
+  ]
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }} aria-hidden>
+      {blobs.map((b, i) => (
+        <motion.div key={i}
+          initial={{ x: 0, y: 0 }}
+          animate={{ x: [0, b.x, 0], y: [0, b.y, 0], scale: [1, 1.15, 1] }}
+          transition={{ duration: b.dur, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            position: 'absolute', top: b.top, left: b.left,
+            width: b.size, height: b.size, borderRadius: '50%',
+            background: `radial-gradient(circle, ${b.color}38 0%, ${b.color}00 70%)`,
+            filter: 'blur(38px)',
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  بطاقة هوية المقاول — Wallet-style، لمعة holographic، تنقلب 3D لـ QR
+// ════════════════════════════════════════════════════════════════════════
+function ContractorCard({ profile, business, lang }) {
+  const [flipped, setFlipped] = useState(false)
+  const [qr, setQr] = useState('')
+  const [copied, setCopied] = useState(false)
+  const portalUrl = `${window.location.origin}${window.location.pathname}?portal`
+  const typeLabel = BUSINESS_TYPES.find(t => t.id === business?.type)?.label || ''
+  const name = profile?.display_name || (lang === 'en' ? 'Your Name' : lang === 'he' ? 'השם שלך' : 'اسمك هنا')
+  const num = profile?.contractor_number
+
+  useEffect(() => {
+    QRCode.toDataURL(portalUrl, { margin: 1, width: 320, color: { dark: '#0D0F1C', light: '#ffffff' } })
+      .then(setQr).catch(() => {})
+  }, [portalUrl])
+
+  function copyLink(e) {
+    e.stopPropagation()
+    navigator.clipboard?.writeText(portalUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800) }).catch(() => {})
+  }
+  function shareWa(e) {
+    e.stopPropagation()
+    openWhatsApp('', waMessages.portalInvite({ workerName: '', url: portalUrl }))
+  }
+
+  const L = (ar, he, en) => (lang === 'en' ? en : lang === 'he' ? he : ar)
+
+  return (
+    <div style={{ perspective: 1400, marginBottom: 18 }}>
+      <motion.div
+        onClick={() => setFlipped(f => !f)}
+        animate={{ rotateY: flipped ? 180 : 0 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+        whileHover={{ scale: 1.012 }}
+        style={{ position: 'relative', width: '100%', aspectRatio: '1.62 / 1', transformStyle: 'preserve-3d', cursor: 'pointer' }}
+      >
+        {/* ── الوجه الأمامي ── */}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 22, overflow: 'hidden',
+          backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
+          background: `linear-gradient(135deg, ${C.primary} 0%, ${C.gold} 48%, ${C.secondary} 105%)`,
+          boxShadow: '0 14px 40px rgba(249,115,22,0.42), inset 0 1px 0 rgba(255,255,255,0.25)',
+          padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        }}>
+          {/* لمعة holographic تكتسح البطاقة */}
+          <motion.div
+            animate={{ x: ['-130%', '130%'] }}
+            transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 1.4 }}
+            style={{ position: 'absolute', top: 0, bottom: 0, width: '55%', transform: 'skewX(-18deg)',
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.34), transparent)', mixBlendMode: 'soft-light' }}
+          />
+          {/* نقش دائري خافت */}
+          <div style={{ position: 'absolute', top: -70, right: -50, width: 200, height: 200, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.18)' }} />
+          <div style={{ position: 'absolute', top: -40, right: -20, width: 150, height: 150, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.12)' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backdropFilter: 'blur(4px)' }}>
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <HardHat size={24} color="#fff" strokeWidth={1.6} />}
+              </div>
+              {typeLabel && (
+                <span style={{ fontSize: 10.5, fontWeight: 800, color: '#fff', padding: '4px 10px', borderRadius: 999, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.28)' }}>
+                  {typeLabel}
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, opacity: 0.92 }}>
+              <RotateCw size={13} color="#fff" strokeWidth={2.5} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>{L('اقلب', 'הפוך', 'Flip')}</span>
+            </div>
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>CONTRACTOR&nbsp;PRO</div>
+            <div style={{ fontSize: 21, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.25)' }}>{name}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.92)', fontFamily: 'monospace', letterSpacing: '0.12em', marginTop: 6, direction: 'ltr', textAlign: 'start' }}>
+              {num ? `№ ${num}` : '№ • • • •'}
+            </div>
+          </div>
+        </div>
+
+        {/* ── الوجه الخلفي (QR بوّابة العامل) ── */}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 22, overflow: 'hidden',
+          backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)',
+          background: `linear-gradient(140deg, ${C.surface}, ${C.card})`, border: `1px solid ${C.borderMid}`,
+          boxShadow: '0 14px 40px rgba(0,0,0,0.5)', padding: 16,
+          display: 'flex', alignItems: 'center', gap: 16,
+        }}>
+          <div style={{ width: 112, height: 112, borderRadius: 16, background: '#fff', padding: 7, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
+            {qr ? <img src={qr} style={{ width: '100%', height: '100%' }} /> : <QrCode size={48} color={C.surface} />}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <QrCode size={15} color={C.primary} strokeWidth={2.4} />
+              <span style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{L('بوّابة العامل', 'פורטל העובד', 'Worker Portal')}</span>
+            </div>
+            <div style={{ fontSize: 10.5, color: C.textDim, lineHeight: 1.5, marginBottom: 10 }}>
+              {L('امسح الكود أو شارك الرابط ليدخل العامل بوّابته', 'סרוק או שתף את הקישור', 'Scan or share the link with your worker')}
+            </div>
+            <div style={{ display: 'flex', gap: 7 }}>
+              <button onClick={shareWa} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, background: `${C.success}1c`, border: `1px solid ${C.success}40`, color: C.success, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <MessageCircle size={13} strokeWidth={2.4} /> {L('واتساب', 'וואטסאפ', 'WhatsApp')}
+              </button>
+              <button onClick={copyLink} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, background: copied ? `${C.success}1c` : `${C.primary}1c`, border: `1px solid ${copied ? C.success : C.primary}40`, color: copied ? C.success : C.primary, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {copied ? <Check size={13} strokeWidth={2.6} /> : <Copy size={13} strokeWidth={2.4} />} {copied ? L('تم', 'הועתק', 'Copied') : L('نسخ', 'העתק', 'Copy')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  Bento Grid — بلاطات فئات بأحجام مختلفة، تتمدّد (morph) للوحة كاملة
+// ════════════════════════════════════════════════════════════════════════
+function BentoTile({ cat, onSelect, lang, span }) {
+  const Icon = cat.icon
+  const label = cat[lang] || cat.ar
+  return (
+    <motion.button
+      layoutId={`cat-${cat.id}`}
+      onClick={() => onSelect(cat.id)}
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 26 }}
+      style={{
+        gridColumn: span === 2 ? 'span 2' : 'span 1',
+        position: 'relative', overflow: 'hidden', textAlign: 'start',
+        minHeight: span === 2 ? 96 : 110, padding: 15, borderRadius: 18, cursor: 'pointer', fontFamily: 'inherit',
+        background: `linear-gradient(150deg, ${C.surface}, ${C.card})`,
+        border: `1px solid ${cat.color}2a`,
+        boxShadow: `0 4px 18px rgba(0,0,0,0.22)`,
+        display: 'flex', flexDirection: span === 2 ? 'row' : 'column',
+        alignItems: span === 2 ? 'center' : 'flex-start',
+        justifyContent: span === 2 ? 'flex-start' : 'space-between',
+        gap: span === 2 ? 13 : 0,
+      }}
+    >
+      {/* توهّج زاوية بلون الفئة */}
+      <div style={{ position: 'absolute', top: -30, insetInlineEnd: -30, width: 90, height: 90, borderRadius: '50%', background: `radial-gradient(circle, ${cat.color}33, transparent 70%)`, filter: 'blur(6px)' }} />
+      <div style={{ width: 42, height: 42, borderRadius: 13, background: `${cat.color}1f`, border: `1px solid ${cat.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+        <Icon size={20} color={cat.color} strokeWidth={2.2} />
+      </div>
+      <div style={{ position: 'relative' }}>
+        <div style={{ fontSize: 14, fontWeight: 900, color: C.text, letterSpacing: '-0.01em' }}>{label}</div>
+        <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{cat.hint?.[lang] || cat.hint?.ar || ''}</div>
+      </div>
+    </motion.button>
+  )
+}
+
 export default function SettingsScreen({
   projects = [], employees = [], workDays = [], expenses = [], payments = [], clientReceipts = [], advances = [],
   userId, profile, profSaving, uploading, saveName, uploadAvatar, saveContractorNumber,
@@ -130,6 +319,7 @@ export default function SettingsScreen({
 }) {
   const { t } = useTranslation()
   const { language, setLanguage } = useAppStore()
+  const activeBusiness = useBusinessStore(s => s.activeBusiness)
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
   const { registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey } = useAuth()
@@ -272,9 +462,10 @@ export default function SettingsScreen({
     () => CATEGORIES.filter(c => !c.ownerOnly || permissions?.isOwner),
     [permissions?.isOwner]
   )
-  const [activeCat, setActiveCat] = useState('account')
+  // null = شاشة البلاطات (الرئيسية) · id = لوحة فئة مفتوحة
+  const [activeCat, setActiveCat] = useState(null)
   useEffect(() => {
-    if (!visibleCategories.some(c => c.id === activeCat)) setActiveCat('account')
+    if (activeCat && !visibleCategories.some(c => c.id === activeCat)) setActiveCat(null)
   }, [visibleCategories, activeCat])
   const catLang = language === 'he' ? 'he' : language === 'en' ? 'en' : 'ar'
 
@@ -334,29 +525,71 @@ export default function SettingsScreen({
   }
 
   return (
-    <div dir={dir} style={{ padding: '16px 16px 8px' }}>
+    <div dir={dir} style={{ position: 'relative', padding: '16px 16px 8px', minHeight: '100%' }}>
+      {/* ── خلفية Aurora حيّة ── */}
+      <AuroraBackground />
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
       {/* Header */}
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{t('settings.title')}</div>
         <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
           {language === 'he' ? 'הגדרות והתאמה אישית' : language === 'en' ? 'Preferences & customization' : 'الإعدادات والتخصيص'}
         </div>
       </div>
 
-      {/* ── جاهزية الحساب (Hero) — مستثناة من التصميم الجديد ── */}
-      <AccountReadiness readiness={readiness} onFix={fixReadiness} />
-
-      {/* ── شريط التبويبات الجديد ── */}
-      <CategoryNav categories={visibleCategories} active={activeCat} onChange={setActiveCat} lang={catLang} />
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeCat}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.22, ease: 'easeOut' }}
+      <AnimatePresence mode="wait" initial={false}>
+      {activeCat === null ? (
+        // ════ الشاشة الرئيسية: بطاقة الهوية + جاهزية الحساب + Bento ════
+        <motion.div key="home"
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.24, ease: 'easeOut' }}
         >
+          {/* ── بطاقة هوية المقاول (3D) ── */}
+          <ContractorCard profile={profile} business={activeBusiness} lang={catLang} />
+
+          {/* ── جاهزية الحساب (Hero) — مستثناة من التصميم الجديد ── */}
+          <AccountReadiness readiness={readiness} onFix={fixReadiness} />
+
+          {/* ── شبكة Bento للفئات ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11, marginTop: 4 }}>
+            {visibleCategories.map((cat, i) => (
+              <BentoTile key={cat.id} cat={cat} lang={catLang} onSelect={setActiveCat}
+                span={(cat.id === 'account' || cat.id === 'appTools') ? 2 : 1} />
+            ))}
+          </div>
+        </motion.div>
+      ) : (
+        // ════ لوحة فئة مفتوحة ════
+        <motion.div key={activeCat}
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.24, ease: 'easeOut' }}
+        >
+          {/* رأس اللوحة: زرّ رجوع + شريط تبديل سريع */}
+          {(() => {
+            const cur = CATEGORIES.find(c => c.id === activeCat)
+            return (
+              <motion.button layoutId={`cat-${activeCat}`} onClick={() => setActiveCat(null)}
+                whileTap={{ scale: 0.98 }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', marginBottom: 14,
+                  borderRadius: 16, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start',
+                  background: `linear-gradient(135deg, ${cur?.color}1f, ${cur?.color}0a)`, border: `1px solid ${cur?.color}3a` }}>
+                <div style={{ width: 38, height: 38, borderRadius: 12, background: `${cur?.color}22`, border: `1px solid ${cur?.color}45`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {cur && <cur.icon size={18} color={cur.color} strokeWidth={2.3} />}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: C.text, letterSpacing: '-0.01em' }}>{cur?.[catLang] || cur?.ar}</div>
+                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{cur?.hint?.[catLang] || cur?.hint?.ar}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: cur?.color, fontSize: 11, fontWeight: 800 }}>
+                  {language === 'en' ? 'Back' : language === 'he' ? 'חזרה' : 'رجوع'}
+                  <ArrowRight size={15} strokeWidth={2.5} style={{ transform: dir === 'rtl' ? 'none' : 'scaleX(-1)' }} />
+                </div>
+              </motion.button>
+            )
+          })()}
+
+          <CategoryNav categories={visibleCategories} active={activeCat} onChange={setActiveCat} lang={catLang} />
 
       {activeCat === 'account' && (<>
 
@@ -1125,6 +1358,7 @@ export default function SettingsScreen({
       </>)}
 
         </motion.div>
+      )}
       </AnimatePresence>
 
       {/* App version */}
@@ -1132,6 +1366,7 @@ export default function SettingsScreen({
         Contractor Pro v{__APP_VERSION__} · {__BUILD_DATE__}
         <br />
         {language === 'he' ? 'כל הזכויות שמורות' : language === 'en' ? 'All rights reserved' : 'جميع الحقوق محفوظة'}
+      </div>
       </div>
     </div>
   )
