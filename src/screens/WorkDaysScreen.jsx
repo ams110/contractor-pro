@@ -5,6 +5,7 @@ import { fmt, fmtDate, fmtDateFull, todayStr, calcSalary, validateWorkDay } from
 import { GlassCard, Modal, Input, Btn, Badge, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import WorkDayTicket from '../components/WorkDayTicket.jsx'
+import WorkMonthHeader from '../components/WorkMonthHeader.jsx'
 import { exportWorkDaysToExcel } from '../lib/export.js'
 
 const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange, 'عطلة': C.textDim }
@@ -503,6 +504,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             })
             const monthEntries = Object.entries(byMonth).sort(([a], [b]) => b.localeCompare(a))
             const currentMonth = new Date().toISOString().slice(0, 7)
+            const totalsByMonth = Object.fromEntries(monthEntries.map(([mk, ds]) => [mk, ds.reduce((s, d) => s + (d.amount || 0), 0)]))
 
             return (
               <>
@@ -538,28 +540,37 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   const [y, m]    = month.split('-')
                   const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
                   const monthLabel = `${MONTHS_AR[parseInt(m,10)-1]} ${y}`
+                  const workerCount = new Set(days.map(d => d.employee_id)).size
+                  // مخطّط النشاط: مجموع الصرف لكل يوم من أيام الشهر
+                  const daysInMonth = new Date(parseInt(y,10), parseInt(m,10), 0).getDate()
+                  const bars = new Array(daysInMonth).fill(0)
+                  days.forEach(d => { const dn = parseInt(String(d.date||'').slice(8,10),10); if (dn>=1 && dn<=daysInMonth) bars[dn-1] += (d.amount||0) })
+                  // الاتجاه مقابل الشهر السابق
+                  const prevKey = (() => { let yy=parseInt(y,10), mm=parseInt(m,10)-1; if(mm<1){mm=12;yy--} return `${yy}-${String(mm).padStart(2,'0')}` })()
+                  const prevTotal = totalsByMonth[prevKey] || 0
+                  const trendPct  = prevTotal > 0 ? Math.round((totalAmt - prevTotal) / prevTotal * 100) : null
 
                   return (
                     <div key={month} style={{ marginBottom:10 }}>
                       {/* Month header */}
-                      <button
-                        onClick={() => setOpenMonths(prev => {
+                      <WorkMonthHeader
+                        label={monthLabel}
+                        monthNum={parseInt(m,10)}
+                        year={y}
+                        total={totalAmt}
+                        workDays={workDaysOnly.length}
+                        holidays={holidayDays.length}
+                        workerCount={workerCount}
+                        isCurrent={isCurrent}
+                        isOpen={isOpen}
+                        trendPct={trendPct}
+                        bars={bars}
+                        onToggle={() => setOpenMonths(prev => {
                           const next = new Set(prev)
                           next.has(month) ? next.delete(month) : next.add(month)
                           return next
                         })}
-                        style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 18px', borderRadius: isOpen ? '16px 16px 0 0' : 16, background: isCurrent ? `${C.primary}12` : 'rgba(255,255,255,0.05)', border:`1.5px solid ${isCurrent ? C.primary + '44' : C.border}`, cursor:'pointer', transition:'all .2s' }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                          <span style={{ fontSize:15, fontWeight:800, color: isCurrent ? C.primary : C.text }}>{monthLabel}</span>
-                          <span style={{ fontSize:11, color:C.textDim, background:'rgba(255,255,255,0.06)', padding:'2px 10px', borderRadius:20, fontWeight:600 }}>
-                            {workDaysOnly.length} يوم{holidayDays.length > 0 ? ` · ${holidayDays.length} عطلة` : ''}
-                          </span>
-                        </div>
-                        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                          <span style={{ fontSize:16, fontWeight:900, color: isCurrent ? C.primary : C.success, fontFamily:'monospace' }}>{fmt(totalAmt)}₪</span>
-                          <ChevronDown size={14} style={{ color:C.textDim, transition:'transform .2s', transform: isOpen ? 'rotate(180deg)' : 'none' }} />
-                        </div>
-                      </button>
+                      />
 
                       {/* Workers inside month */}
                       {isOpen && (() => {
