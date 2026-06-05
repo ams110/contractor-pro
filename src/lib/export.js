@@ -3,6 +3,41 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { fmt, fmtDate } from './helpers.js'
 
+// ─── نسخة احتياطية كاملة (JSON) ─────────────────────────────────────────────────
+const BACKUP_TABLES = ['projects', 'employees', 'workDays', 'expenses', 'payments', 'clientReceipts', 'advances', 'holidays']
+
+// دالة نقيّة: تبني حمولة النسخة الاحتياطية (قابلة للاختبار، بلا DOM).
+export function buildBackupPayload(data = {}) {
+  const payload = {
+    app: 'contractor-pro',
+    version: typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : null,
+    exportedAt: new Date().toISOString(),
+    counts: {},
+    data: {},
+  }
+  for (const key of BACKUP_TABLES) {
+    const rows = Array.isArray(data[key]) ? data[key] : []
+    payload.data[key] = rows
+    payload.counts[key] = rows.length
+  }
+  return payload
+}
+
+// يجمع كل جداول المستخدم في ملف JSON واحد قابل للأرشفة/الاستعادة.
+export function exportAllDataJSON(data = {}) {
+  const payload = buildBackupPayload(data)
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url
+  a.download = `نسخة-احتياطية-contractor-pro-${new Date().toISOString().slice(0, 10)}.json`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+  return payload.counts
+}
+
 // ─── Excel ────────────────────────────────────────────────────────────────────
 
 export function exportExpensesToExcel(expenses, projects) {
