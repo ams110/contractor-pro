@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
@@ -15,6 +15,9 @@ import { useAppStore } from '../../store/useAppStore.js'
 import { navigate } from '../../Router.jsx'
 import { usePushNotifications } from '../../hooks/usePushNotifications.js'
 import { useAuth } from '../../hooks/useAuth.js'
+import { useBusinessStore } from '../../store/useBusinessStore.js'
+import { computeAccountReadiness } from '../../lib/accountReadiness.js'
+import AccountReadiness from '../../components/AccountReadiness.jsx'
 
 const LANGS = [
   { code: 'ar', label: 'العربية', flag: '🇸🇦', dir: 'rtl' },
@@ -33,13 +36,23 @@ const NAV_ICONS_MAP = {
   activity:   Activity,
 }
 
-function Section({ title, children }) {
+function Section({ title, children, id }) {
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div id={id} style={{ marginBottom: 20, scrollMarginTop: 12 }}>
       <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10, paddingInlineStart: 4 }}>{title}</div>
       <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, overflow: 'hidden' }}>
         {children}
       </div>
+    </div>
+  )
+}
+
+// عنوان مجموعة — يفصل أقسام الإعدادات لمجموعات منطقية
+function GroupLabel({ children }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '4px 4px 12px' }}>
+      <span style={{ fontSize: 12, fontWeight: 900, color: C.text, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{children}</span>
+      <div style={{ height: 1, flex: 1, background: `linear-gradient(90deg, ${C.borderMid}, transparent)` }} />
     </div>
   )
 }
@@ -201,6 +214,23 @@ export default function SettingsScreen({
     }
   }
 
+  // ── جاهزية الحساب: تُحسب من الإشارات الحقيقية ──
+  const readiness = useMemo(() => computeAccountReadiness({
+    displayName:     profile?.display_name,
+    hasAvatar:       !!profile?.avatar_url,
+    contractorNumber: profile?.contractor_number,
+    pensionMonthly,
+    hasPasskey,
+    notifGranted:    permission === 'granted',
+    dailySpendLimit: appCfg?.config?.daily_spend_limit,
+  }), [profile?.display_name, profile?.avatar_url, profile?.contractor_number, pensionMonthly, hasPasskey, permission, appCfg?.config?.daily_spend_limit])
+
+  // عند الضغط على بند ناقص → مرّر للقسم المعني
+  function fixReadiness(key) {
+    const map = { name: 'set-profile', avatar: 'set-profile', taxNumber: 'set-tax', pension: 'set-tax', passkey: 'set-security', spendLimit: 'set-security', notify: 'set-notify' }
+    document.getElementById(map[key])?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <div dir={dir} style={{ padding: '16px 16px 8px' }}>
       {/* Header */}
@@ -211,8 +241,13 @@ export default function SettingsScreen({
         </div>
       </div>
 
+      {/* ── جاهزية الحساب (Hero) ── */}
+      <AccountReadiness readiness={readiness} onFix={fixReadiness} />
+
+      <GroupLabel>{language === 'he' ? 'החשבון שלי' : language === 'en' ? 'My Account' : 'حسابي'}</GroupLabel>
+
       {/* ── Profile ── */}
-      <Section title={language === 'he' ? 'פרופיל' : language === 'en' ? 'Profile' : 'الملف الشخصي'}>
+      <Section id="set-profile" title={language === 'he' ? 'פרופיל' : language === 'en' ? 'Profile' : 'الملف الشخصي'}>
         <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 52, height: 52, borderRadius: 17, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 14px rgba(249,115,22,0.3)' }}>
             {profile?.avatar_url
@@ -243,6 +278,8 @@ export default function SettingsScreen({
         <Row icon={LogOut} label={language === 'he' ? 'יציאה' : language === 'en' ? 'Sign Out' : 'تسجيل الخروج'} danger onClick={() => supabase.auth.signOut()} last />
       </Section>
 
+      <GroupLabel>{language === 'he' ? 'התאמה אישית' : language === 'en' ? 'Customization' : 'التخصيص'}</GroupLabel>
+
       {/* ── Language ── */}
       <Section title={t('settings.language')}>
         <div style={{ padding: '12px 16px' }}>
@@ -257,20 +294,6 @@ export default function SettingsScreen({
             ))}
           </div>
         </div>
-      </Section>
-
-      {/* ── More Screens / Quick Access ── */}
-      <Section title={language === 'he' ? 'כלים נוספים' : language === 'en' ? 'More Tools' : 'أدوات إضافية'}>
-        {MORE_WITH_ICONS.map((item, i) => (
-          <Row
-            key={item.id}
-            icon={item.IconComp}
-            label={item.label}
-            color={[C.primary, C.secondary, C.gold, C.cyan, C.success, C.warning, C.accent][i % 7]}
-            onClick={() => onNav?.(item.id)}
-            last={i === MORE_WITH_ICONS.length - 1}
-          />
-        ))}
       </Section>
 
       {/* ── Specialties ── */}
@@ -354,9 +377,11 @@ export default function SettingsScreen({
         </div>
       </Section>
 
+      <GroupLabel>{language === 'he' ? 'כספים והתראות' : language === 'en' ? 'Finance & Alerts' : 'المالية والإشعارات'}</GroupLabel>
+
       {/* ── الضرائب والمصلحة ── */}
       {permissions?.isOwner && (
-        <Section title={language === 'he' ? 'מסים ועסק' : language === 'en' ? 'Tax & Business' : 'الضرائب والمصلحة'}>
+        <Section id="set-tax" title={language === 'he' ? 'מסים ועסק' : language === 'en' ? 'Tax & Business' : 'الضرائب والمصلحة'}>
           {/* پنسيه شهرية — يُخصم من الوعاء الضريبي */}
           <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.blue}15`, border: `1px solid ${C.blue}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -403,7 +428,7 @@ export default function SettingsScreen({
 
       {/* ── Notifications Permission ── */}
       {pushSupported && (
-        <Section title={language === 'he' ? 'התראות' : language === 'en' ? 'Notifications' : 'الإشعارات'}>
+        <Section id="set-notify" title={language === 'he' ? 'התראות' : language === 'en' ? 'Notifications' : 'الإشعارات'}>
           <div style={{ padding: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
               <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -539,6 +564,8 @@ export default function SettingsScreen({
         <Row icon={Shield} label={language === 'he' ? 'ניהול מנוי' : language === 'en' ? 'Manage Subscription' : 'إدارة الاشتراك'} color={C.gold} onClick={() => navigate('/pricing')} last />
       </Section>
 
+      <GroupLabel>{language === 'he' ? 'אפליקציה וכלים' : language === 'en' ? 'App & Tools' : 'التطبيق والأدوات'}</GroupLabel>
+
       {/* ── App Update ── */}
       <Section title={language === 'he' ? 'עדכון אפליקציה' : language === 'en' ? 'App Update' : 'تحديث التطبيق'}>
         <div style={{ padding: '16px' }}>
@@ -599,9 +626,25 @@ export default function SettingsScreen({
         </div>
       </Section>
 
+      {/* ── More Screens / Quick Access ── */}
+      <Section title={language === 'he' ? 'כלים נוספים' : language === 'en' ? 'More Tools' : 'أدوات إضافية'}>
+        {MORE_WITH_ICONS.map((item, i) => (
+          <Row
+            key={item.id}
+            icon={item.IconComp}
+            label={item.label}
+            color={[C.primary, C.secondary, C.gold, C.cyan, C.success, C.warning, C.accent][i % 7]}
+            onClick={() => onNav?.(item.id)}
+            last={i === MORE_WITH_ICONS.length - 1}
+          />
+        ))}
+      </Section>
+
+      <GroupLabel>{language === 'he' ? 'אבטחה ובקרה' : language === 'en' ? 'Security & Control' : 'الأمان والتحكّم'}</GroupLabel>
+
       {/* ── Security & Access Control ── */}
       {permissions?.isOwner && appCfg && (
-        <Section title="الأمان والتحكم">
+        <Section id="set-security" title="الأمان والتحكم">
 
           {/* وضع القراءة فقط */}
           <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
