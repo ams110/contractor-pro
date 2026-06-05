@@ -7,8 +7,10 @@ import {
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
   ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users, MessageCircle,
+  Wallet, Percent, HardHat, FolderKanban,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
+import { PremiumCard, IconChip, PremiumStat } from '../../ui/Premium.jsx'
 import { uploadReceipt } from '../../lib/storage.js'
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr, isPaymentOverdue } from '../../lib/helpers.js'
@@ -198,8 +200,8 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
       )}
 
       {error && (
-        <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
-          ⚠ {error}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
+          <AlertTriangle size={13} strokeWidth={2.3} /> {error}
         </div>
       )}
     </Modal>
@@ -360,6 +362,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 11, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <ArrowLeft size={16} color={C.textDim} style={{ transform: dir === 'rtl' ? 'rotate(180deg)' : 'none' }} />
         </button>
+        <IconChip icon={Building2} color={statusColor(project.status)} size={36} radius={11} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
@@ -445,7 +448,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
               if (!biz) return null
               return (
                 <div style={{ background: `${C.primary}08`, border: `1px solid ${C.primary}20`, borderRadius: 14, padding: '10px 13px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Building2 size={12} strokeWidth={2} color={C.primary} />
+                  <IconChip icon={Building2} tone="brand" size={26} radius={8} />
                   <span style={{ fontSize: 11, fontWeight: 700, color: C.primary }}>{biz.name}</span>
                   <span style={{ fontSize: 9, fontWeight: 700, color: C.textDim, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, borderRadius: 20, padding: '2px 7px' }}>
                     {biz.business_type === 'osek_patur' ? 'פטור' : biz.business_type === 'osek_moreh' ? 'מורשה' : 'חברה'}
@@ -459,16 +462,16 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 14, background: `${C.primary}10`, border: `1px solid ${C.primary}28` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Banknote size={14} color={C.primary} strokeWidth={2} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <IconChip icon={Banknote} tone="brand" size={28} radius={9} />
                       <span style={{ fontSize: 12, fontWeight: 700, color: C.primary }}>قيمة الصفقة</span>
                     </div>
                     <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>₪{fmt(project.price)}</span>
                   </div>
                   {remaining > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 14, background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Clock size={14} color={C.warning} strokeWidth={2} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <IconChip icon={Clock} tone="fair" size={28} radius={9} />
                         <span style={{ fontSize: 12, fontWeight: 700, color: C.warning }}>متبقي للتحصيل</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -484,8 +487,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
                     </div>
                   )}
                   {remaining <= 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 14, background: `${C.success}10`, border: `1px solid ${C.success}28` }}>
-                      <CheckCircle2 size={14} color={C.success} strokeWidth={2} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 14, background: `${C.success}10`, border: `1px solid ${C.success}28` }}>
+                      <IconChip icon={CheckCircle2} tone="excellent" size={28} radius={9} />
                       <span style={{ fontSize: 12, fontWeight: 700, color: C.success }}>تم تحصيل كامل الصفقة</span>
                     </div>
                   )}
@@ -494,20 +497,17 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
             })()}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               {[
-                { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'الإيرادات', value: `₪${fmt(stats.revenue)}`, color: C.success },
-                { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'المصاريف', value: `₪${fmt(stats.expTotal)}`, color: C.accent },
-                { label: language === 'he' ? 'שכר' : language === 'en' ? 'Labor' : 'أجور العمال', value: `₪${fmt(stats.wdCost)}`, color: C.secondary },
-                { label: language === 'he' ? 'ימי עבודה' : language === 'en' ? 'Work Days' : 'أيام العمل', value: stats.wdCount, color: C.primary },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
-                  <div style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: '-0.02em' }}>{value}</div>
-                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>{label}</div>
-                </div>
+                { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'الإيرادات', value: `₪${fmt(stats.revenue)}`, color: C.success, icon: TrendingUp },
+                { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'المصاريف', value: `₪${fmt(stats.expTotal)}`, color: C.accent, icon: TrendingDown },
+                { label: language === 'he' ? 'שכר' : language === 'en' ? 'Labor' : 'أجور العمال', value: `₪${fmt(stats.wdCost)}`, color: C.secondary, icon: Users },
+                { label: language === 'he' ? 'ימי עבודה' : language === 'en' ? 'Work Days' : 'أيام العمل', value: stats.wdCount, color: C.primary, icon: Calendar },
+              ].map(({ label, value, color, icon }, i) => (
+                <PremiumStat key={label} label={label} value={value} color={color} icon={icon} delay={i * 0.04} />
               ))}
             </div>
             {/* Locations — daily projects */}
             {project.type === 'يومي' && (project.locations || []).length > 0 && (
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px', marginBottom: 10 }}>
+              <PremiumCard tone="brand" glow={false} radius={14} padding="12px 14px" style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
                   <MapPin size={10} strokeWidth={2} /> أماكن العمل
                 </div>
@@ -518,7 +518,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
                     </span>
                   ))}
                 </div>
-              </div>
+              </PremiumCard>
             )}
 
             {/* Worker payment breakdown */}
@@ -528,8 +528,10 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
               const receivedTotal = paidToWorkers + advancesPaid
               const owedToWorkers = owedTotal - receivedTotal
               return (
-                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '14px', marginBottom: 10 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10 }}>توزيع الأجور</div>
+                <PremiumCard tone="premium" glow={false} radius={14} padding="14px" style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Users size={10} strokeWidth={2} /> توزيع الأجور
+                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 12, color: C.textDim }}>مستحق للعمال (أجور + مصاريفهم)</span>
@@ -549,7 +551,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
                       </span>
                     </div>
                   </div>
-                </div>
+                </PremiumCard>
               )
             })()}
 
@@ -559,23 +561,29 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
               // (مصاريف العمال لا تُطرح هنا — تُسوّى ضمن المدفوعات/السلف)
               const ownerCash = calcOwnerCash(stats.revenue, stats.projExpTotal, paidToWorkers, advancesPaid)
               return (
-                <div style={{ background: ownerCash >= 0 ? `${C.success}10` : `${C.accent}10`, border: `1px solid ${ownerCash >= 0 ? C.success : C.accent}28`, borderRadius: 14, padding: '14px 16px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 3 }}>متبقي بيد المالك</div>
-                    <div style={{ fontSize: 10, color: C.textDim }}>إيرادات − مصاريف المشروع − مدفوعات وسلف العمال</div>
+                <PremiumCard tone={ownerCash >= 0 ? 'excellent' : 'critical'} radius={14} padding="14px 16px" style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <IconChip icon={Wallet} color={ownerCash >= 0 ? C.success : C.accent} size={34} radius={11} />
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 3 }}>متبقي بيد المالك</div>
+                      <div style={{ fontSize: 10, color: C.textDim }}>إيرادات − مصاريف المشروع − مدفوعات وسلف العمال</div>
+                    </div>
                   </div>
                   <span style={{ fontSize: 20, fontWeight: 900, color: ownerCash >= 0 ? C.success : C.accent, fontFamily: 'monospace' }}>
                     {ownerCash >= 0 ? '' : '-'}₪{fmt(Math.abs(ownerCash))}
                   </span>
-                </div>
+                </PremiumCard>
               )
             })()}
 
             {stats.margin && (
-              <div style={{ background: `${stats.profit >= 0 ? C.success : C.accent}12`, border: `1px solid ${stats.profit >= 0 ? C.success : C.accent}28`, borderRadius: 14, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: C.textDim }}>{language === 'he' ? 'מרג\'ין' : language === 'en' ? 'Profit Margin' : 'هامش الربح'}</span>
+              <PremiumCard tone={stats.profit >= 0 ? 'excellent' : 'critical'} radius={14} padding="12px 14px" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <IconChip icon={Percent} color={stats.profit >= 0 ? C.success : C.accent} size={32} radius={10} />
+                  <span style={{ fontSize: 12, color: C.textDim }}>{language === 'he' ? 'מרג\'ין' : language === 'en' ? 'Profit Margin' : 'هامش الربح'}</span>
+                </div>
                 <span style={{ fontSize: 18, fontWeight: 900, color: stats.profit >= 0 ? C.success : C.accent }}>{stats.margin}%</span>
-              </div>
+              </PremiumCard>
             )}
           </div>
         )}
@@ -589,10 +597,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
             ) : pWorkDays.map(wd => {
               const emp = employees.find(e => e.id === wd.employee_id)
               return (
-                <div key={wd.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.primary}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Calendar size={14} color={C.primary} strokeWidth={2} />
-                  </div>
+                <PremiumCard key={wd.id} tone="brand" glow={false} radius={14} padding="10px 12px" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <IconChip icon={Calendar} tone="brand" size={32} radius={10} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{emp?.name || '—'}</div>
                     <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(wd.date)}{wd.day_type ? ` · ${wd.day_type}` : ''}</div>
@@ -607,7 +613,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
                       <Check size={13} strokeWidth={2.5} />
                     </button>
                   )}
-                </div>
+                </PremiumCard>
               )
             })}
           </div>
@@ -640,7 +646,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
                 const balance   = earned + expAmt - paid
                 const payRefs   = pPayments.filter(p => p.employee_id === wid)
                 return (
-                  <div key={wid} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, marginBottom: 10, overflow: 'hidden' }}>
+                  <PremiumCard key={wid} tone="premium" glow={false} radius={16} padding="0" style={{ marginBottom: 10, overflow: 'hidden' }}>
                     {/* رأس العامل */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
                       <div style={{ width: 38, height: 38, borderRadius: 12, background: `${C.secondary}20`, border: `1px solid ${C.secondary}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: C.secondary, flexShrink: 0 }}>
@@ -685,7 +691,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
                         ))}
                       </div>
                     )}
-                  </div>
+                  </PremiumCard>
                 )
               })}
             </div>
@@ -699,10 +705,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
                 {language === 'he' ? 'אין הוצאות' : language === 'en' ? 'No expenses yet' : 'لا توجد مصاريف'}
               </div>
             ) : pExpenses.map(exp => (
-              <div key={exp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 8 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <CreditCard size={14} color={C.accent} strokeWidth={2} />
-                </div>
+              <PremiumCard key={exp.id} tone="critical" glow={false} radius={14} padding="10px 12px" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <IconChip icon={CreditCard} color={C.accent} size={32} radius={10} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{exp.category || exp.description || '—'}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
@@ -715,7 +719,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
                   </div>
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>₪{fmt(exp.amount || 0)}</div>
-              </div>
+              </PremiumCard>
             ))}
           </div>
         )}
@@ -776,8 +780,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
               )}
 
               {receiptError && (
-                <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
-                  ⚠ {receiptError}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 8 }}>
+                  <AlertTriangle size={13} strokeWidth={2.3} /> {receiptError}
                 </div>
               )}
             </Modal>
@@ -818,12 +822,10 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
               const pct        = r.amount > 0 ? Math.min(100, Math.round((usedAmt / r.amount) * 100)) : 0
               const isExpanded = expandedReceipt === r.id
               return (
-                <div key={r.id} style={{ background: `${C.success}06`, border: `1px solid ${C.success}20`, borderRadius: 14, marginBottom: 8, overflow: 'hidden' }}>
+                <PremiumCard key={r.id} tone="excellent" glow={false} radius={14} padding="0" style={{ marginBottom: 8, overflow: 'hidden' }}>
                   {/* Header row */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 11, background: `${C.success}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <ReceiptText size={15} color={C.success} strokeWidth={2} />
-                    </div>
+                    <IconChip icon={ReceiptText} tone="excellent" size={34} radius={11} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ fontSize: 15, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>+₪{fmt(r.amount || 0)}</div>
@@ -898,7 +900,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
                       })}
                     </div>
                   )}
-                </div>
+                </PremiumCard>
               )
             })}
           </div>
@@ -963,10 +965,14 @@ export default function ProjectsScreen({
     <div dir={dir} style={{ padding: '16px 16px 8px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{t('projects.title')}</div>
-          <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{projects.length} {language === 'he' ? 'פרויקטים' : language === 'en' ? 'projects' : 'مشروع'}</div>
-        </div>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+          <IconChip icon={FolderKanban} tone="brand" size={40} radius={12} />
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{t('projects.title')}</div>
+            <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{projects.length} {language === 'he' ? 'פרויקטים' : language === 'en' ? 'projects' : 'مشروع'}</div>
+          </div>
+        </motion.div>
         {permissions?.addProjects !== false && (
           <motion.button whileTap={{ scale: 0.94 }} onClick={() => setShowAdd(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 18px rgba(249,115,22,0.35)' }}>

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { Home, Building2, ClipboardList, Pencil, Plus, X, Image, HardHat } from 'lucide-react'
+import { Home, Building2, ClipboardList, Pencil, Plus, X, Image, HardHat, ChevronDown, ChevronLeft, Square, RotateCw, CheckSquare, Trash2, Camera, Layers, AlertTriangle, Check, MapPin, RefreshCw, Box } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { C, GRAD } from '../constants/index.js'
 import { fmt, uid } from '../lib/helpers.js'
+import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 function loadTracker(pid) {
@@ -19,9 +21,9 @@ function saveExtras(pid, items) { localStorage.setItem(`extras_${pid}`, JSON.str
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const TASK_STATUS = {
-  pending:     { icon: '⬜', label: 'لم يبدأ', color: C.textDim },
-  in_progress: { icon: '🔄', label: 'جاري',    color: C.warning },
-  done:        { icon: '✅', label: 'منجز',    color: C.success },
+  pending:     { icon: Square,      label: 'لم يبدأ', color: C.textDim },
+  in_progress: { icon: RotateCw,    label: 'جاري',    color: C.warning },
+  done:        { icon: CheckSquare, label: 'منجز',    color: C.success },
 }
 const STATUS_ORDER = ['pending', 'in_progress', 'done']
 
@@ -65,7 +67,7 @@ function AddRow({ placeholder, onAdd, onCancel }) {
         placeholder={placeholder} autoFocus
         style={{ flex: 1, padding: '8px 12px', borderRadius: 9, border: `1px solid ${C.primary}66`, background: C.bg, color: C.text, fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
       <button onClick={submit}
-        style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: C.primary, color: '#000', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>+</button>
+        style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: C.primary, color: '#000', fontSize: 13, fontWeight: 800, cursor: 'pointer', display:'flex', alignItems:'center' }}><Plus size={14} strokeWidth={3} /></button>
       <button onClick={onCancel}
         style={{ padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, cursor: 'pointer', display:'flex', alignItems:'center' }}><X size={12} strokeWidth={2.5} /></button>
     </div>
@@ -190,33 +192,34 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
       {data.plots.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 7, marginBottom: 14 }}>
           {[
-            { val: data.plots.length, label: 'قطعة',   color: C.primary   },
-            { val: totalHouses,       label: 'بيت',     color: C.secondary },
-            { val: totalFloors,       label: 'طابق',    color: C.orange    },
-            { val: `${totalPct}%`,    label: 'إنجاز',   color: totalPct === 100 ? C.success : C.warning },
-          ].map(({ val, label, color }) => (
-            <div key={label} style={{ background: C.card, borderRadius: 12, border: `1px solid ${color}22`, padding: '10px 6px', textAlign: 'center' }}>
+            { val: data.plots.length, label: 'قطعة',   color: C.primary,   icon: MapPin   },
+            { val: totalHouses,       label: 'بيت',     color: C.secondary, icon: Home     },
+            { val: totalFloors,       label: 'طابق',    color: C.orange,    icon: Layers   },
+            { val: `${totalPct}%`,    label: 'إنجاز',   color: totalPct === 100 ? C.success : C.warning, icon: CheckSquare },
+          ].map(({ val, label, color, icon }, i) => (
+            <PremiumCard key={label} color={color} radius={12} padding="10px 6px" delay={i * 0.04} style={{ textAlign: 'center' }}>
+              <IconChip icon={icon} color={color} size={26} radius={8} style={{ margin: '0 auto 6px' }} />
               <div style={{ fontSize: 17, fontWeight: 900, color, fontFamily: 'monospace', lineHeight: 1 }}>{val}</div>
               <div style={{ fontSize: 9, color: C.textDim, marginTop: 3, fontWeight: 600 }}>{label}</div>
-            </div>
+            </PremiumCard>
           ))}
         </div>
       )}
 
       {/* التقدم الكلي */}
       {total.length > 0 && (
-        <div style={{ background: `${C.primary}12`, borderRadius: 14, border: `1px solid ${C.primary}33`, padding: '12px 16px', marginBottom: 14 }}>
+        <PremiumCard tone={totalPct === 100 ? 'excellent' : 'brand'} radius={14} padding="12px 16px" style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: C.textDim }}>التقدم الكلي</span>
             <span style={{ fontSize: 18, fontWeight: 900, color: totalPct === 100 ? C.success : C.primary, fontFamily: 'monospace' }}>{totalPct}%</span>
           </div>
           <ProgressBar p={totalPct} height={8} />
-          <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
-            <span style={{ fontSize: 10, color: C.success }}>✅ {doneTasks} منجز</span>
-            <span style={{ fontSize: 10, color: C.warning }}>🔄 {inProgTasks} جاري</span>
-            <span style={{ fontSize: 10, color: C.textDim }}>⬜ {total.length - doneTasks - inProgTasks} لم يبدأ</span>
+          <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+            <span style={{ fontSize: 10, color: C.success, display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckSquare size={11} strokeWidth={2.3} /> {doneTasks} منجز</span>
+            <span style={{ fontSize: 10, color: C.warning, display: 'inline-flex', alignItems: 'center', gap: 4 }}><RotateCw size={11} strokeWidth={2.3} /> {inProgTasks} جاري</span>
+            <span style={{ fontSize: 10, color: C.textDim, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Square size={11} strokeWidth={2.3} /> {total.length - doneTasks - inProgTasks} لم يبدأ</span>
           </div>
-        </div>
+        </PremiumCard>
       )}
 
       {/* ── مستوى 1: القطع ── */}
@@ -230,25 +233,27 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
 
             {/* رأس القطعة */}
             <div style={{
-              background: C.card, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10,
+              position: 'relative', overflow: 'hidden',
+              background: `linear-gradient(135deg, ${C.primary}14, ${C.card} 60%)`, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10,
               borderRadius: pOpen ? '14px 14px 0 0' : 14,
-              border: `1px solid ${C.borderMid}`,
+              border: `1px solid ${C.primary}33`,
               borderRight: `3px solid ${C.primary}`,
             }}>
               <button onClick={() => setOpenPlots(s => ({ ...s, [plot.id]: !pOpen }))}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.textDim, padding: 0, flexShrink: 0 }}>
-                {pOpen ? '▼' : '►'}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: 0, flexShrink: 0, display:'flex', alignItems:'center' }}>
+                {pOpen ? <ChevronDown size={16} strokeWidth={2.5} /> : <ChevronLeft size={16} strokeWidth={2.5} />}
               </button>
+              <IconChip icon={MapPin} tone="brand" size={30} radius={9} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: C.text, display:'inline-flex', alignItems:'center', gap:5 }}><Building2 size={13} strokeWidth={2} /> {plot.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{plot.name}</span>
                   <span style={{ fontSize: 10, background: C.surface, color: C.textDim, padding: '1px 7px', borderRadius: 6 }}>{plot.houses.length} بيت</span>
                   <span style={{ fontSize: 11, fontWeight: 900, color: pp === 100 ? C.success : C.primary, fontFamily: 'monospace', marginRight: 'auto' }}>{pp}%</span>
                 </div>
                 <ProgressBar p={pp} height={5} />
               </div>
               <button onClick={() => delPlot(plot.id)}
-                style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
+                style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, cursor: 'pointer', flexShrink: 0, display:'flex', alignItems:'center', justifyContent:'center' }}><Trash2 size={13} strokeWidth={2.2} /></button>
             </div>
 
             {/* داخل القطعة: البيوت */}
@@ -270,25 +275,26 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
 
                       {/* رأس البيت */}
                       <div style={{
-                        background: C.surface, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8,
+                        background: `linear-gradient(135deg, ${C.secondary}10, ${C.surface} 60%)`, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8,
                         borderRadius: hOpen ? '11px 11px 0 0' : 11,
-                        border: `1px solid ${C.border}`,
+                        border: `1px solid ${C.secondary}28`,
                         borderRight: `3px solid ${C.secondary}`,
                       }}>
                         <button onClick={() => setOpenHouses(s => ({ ...s, [house.id]: !hOpen }))}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: C.textDim, padding: 0, flexShrink: 0 }}>
-                          {hOpen ? '▼' : '►'}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: 0, flexShrink: 0, display:'flex', alignItems:'center' }}>
+                          {hOpen ? <ChevronDown size={14} strokeWidth={2.5} /> : <ChevronLeft size={14} strokeWidth={2.5} />}
                         </button>
+                        <IconChip icon={Home} tone="premium" size={27} radius={8} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: C.text, display:'inline-flex', alignItems:'center', gap:4 }}><Home size={12} strokeWidth={2} /> {house.name}</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{house.name}</span>
                             <span style={{ fontSize: 10, background: C.bg, color: C.textDim, padding: '1px 6px', borderRadius: 5 }}>{house.floors.length} طابق</span>
                             <span style={{ fontSize: 10, fontWeight: 800, color: hp === 100 ? C.success : C.secondary, fontFamily: 'monospace', marginRight: 'auto' }}>{hp}%</span>
                           </div>
                           <ProgressBar p={hp} height={4} />
                         </div>
                         <button onClick={() => delHouse(plot.id, house.id)}
-                          style={{ width: 26, height: 26, borderRadius: 7, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, fontSize: 10, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
+                          style={{ width: 26, height: 26, borderRadius: 7, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, cursor: 'pointer', flexShrink: 0, display:'flex', alignItems:'center', justifyContent:'center' }}><Trash2 size={12} strokeWidth={2.2} /></button>
                       </div>
 
                       {/* داخل البيت: الطوابق */}
@@ -309,18 +315,19 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
 
                                 {/* رأس الطابق */}
                                 <div style={{
-                                  background: C.bg, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 7,
+                                  background: `linear-gradient(135deg, ${C.orange}10, ${C.bg} 60%)`, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 7,
                                   borderRadius: fOpen ? '9px 9px 0 0' : 9,
-                                  border: `1px solid ${C.border}`,
+                                  border: `1px solid ${C.orange}28`,
                                   borderRight: `3px solid ${C.orange}`,
                                 }}>
                                   <button onClick={() => setOpenFloors(s => ({ ...s, [floor.id]: !fOpen }))}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 9, color: C.textDim, padding: 0, flexShrink: 0 }}>
-                                    {fOpen ? '▼' : '►'}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, padding: 0, flexShrink: 0, display:'flex', alignItems:'center' }}>
+                                    {fOpen ? <ChevronDown size={13} strokeWidth={2.5} /> : <ChevronLeft size={13} strokeWidth={2.5} />}
                                   </button>
+                                  <IconChip icon={Layers} color={C.orange} size={24} radius={7} />
                                   <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                                      <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>🏢 {floor.name}</span>
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{floor.name}</span>
                                       <span style={{ fontSize: 9, color: C.textDim, background: C.surface, padding: '1px 5px', borderRadius: 4 }}>
                                         {floor.tasks.filter(t => t.status === 'done').length}/{floor.tasks.length}
                                       </span>
@@ -329,7 +336,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                                     <ProgressBar p={fp} height={3} />
                                   </div>
                                   <button onClick={() => delFloor(plot.id, house.id, floor.id)}
-                                    style={{ width: 24, height: 24, borderRadius: 6, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, fontSize: 9, cursor: 'pointer', flexShrink: 0 }}>🗑</button>
+                                    style={{ width: 24, height: 24, borderRadius: 6, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, cursor: 'pointer', flexShrink: 0, display:'flex', alignItems:'center', justifyContent:'center' }}><Trash2 size={11} strokeWidth={2.2} /></button>
                                 </div>
 
                                 {/* ── مستوى 4: المهام ── */}
@@ -342,11 +349,12 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
                                       {floor.tasks.map(task => {
                                         const st = TASK_STATUS[task.status]
+                                        const StIcon = st.icon
                                         return (
                                           <div key={task.id}
                                             onClick={() => cycleTask(plot.id, house.id, floor.id, task.id)}
-                                            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px 8px 8px', borderRadius: 10, background: `${st.color}18`, border: `1.5px solid ${st.color}55`, cursor: 'pointer', userSelect: 'none', minHeight: 38 }}>
-                                            <span style={{ fontSize: 15 }}>{st.icon}</span>
+                                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px 8px 8px', borderRadius: 10, background: `${st.color}18`, border: `1.5px solid ${st.color}55`, cursor: 'pointer', userSelect: 'none', minHeight: 38 }}>
+                                            <StIcon size={15} color={st.color} strokeWidth={2.4} style={{ flexShrink: 0 }} />
                                             <span style={{ fontSize: 12, fontWeight: 700, color: st.color }}>{task.name}</span>
                                             <button onClick={e => { e.stopPropagation(); delTask(plot.id, house.id, floor.id, task.id) }}
                                               style={{ background: 'none', border: 'none', color: `${C.textDim}99`, cursor: 'pointer', padding: '0 0 0 4px', lineHeight: 1, display:'flex', alignItems:'center' }}><X size={9} strokeWidth={2.5} /></button>
@@ -358,8 +366,8 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                                       <AddRow placeholder="اسم المهمة" onAdd={name => addTask(plot.id, house.id, floor.id, name)} onCancel={() => setAddingTask(null)} />
                                     ) : (
                                       <button onClick={() => setAddingTask(floor.id)}
-                                        style={{ fontSize: 10, color: C.orange, background: `${C.orange}11`, border: `1px dashed ${C.orange}44`, borderRadius: 7, padding: '4px 10px', cursor: 'pointer', fontWeight: 700 }}>
-                                        + مهمة
+                                        style={{ fontSize: 10, color: C.orange, background: `${C.orange}11`, border: `1px dashed ${C.orange}44`, borderRadius: 7, padding: '4px 10px', cursor: 'pointer', fontWeight: 700, display:'inline-flex', alignItems:'center', gap:4 }}>
+                                        <Plus size={11} strokeWidth={2.5} /> مهمة
                                       </button>
                                     )}
                                   </div>
@@ -374,8 +382,8 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                               <AddRow placeholder="اسم الطابق (مثال: طابق أرضي)" onAdd={name => addFloor(plot.id, house.id, name)} onCancel={() => setAddingFloor(null)} />
                             ) : (
                               <button onClick={() => setAddingFloor(house.id)}
-                                style={{ width: '100%', padding: '7px 0', borderRadius: 9, border: `1.5px dashed ${C.secondary}44`, background: `${C.secondary}08`, color: C.secondary, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                                + طابق
+                                style={{ width: '100%', padding: '7px 0', borderRadius: 9, border: `1.5px dashed ${C.secondary}44`, background: `${C.secondary}08`, color: C.secondary, fontSize: 11, fontWeight: 700, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                                <Plus size={13} strokeWidth={2.5} /> طابق
                               </button>
                             )}
                           </div>
@@ -391,8 +399,8 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                     <AddRow placeholder="اسم البيت (مثال: بيت 1)" onAdd={name => addHouse(plot.id, name)} onCancel={() => setAddingHouse(null)} />
                   ) : (
                     <button onClick={() => setAddingHouse(plot.id)}
-                      style={{ width: '100%', padding: '8px 0', borderRadius: 11, border: `1.5px dashed ${C.primary}44`, background: `${C.primary}08`, color: C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                      + بيت
+                      style={{ width: '100%', padding: '8px 0', borderRadius: 11, border: `1.5px dashed ${C.primary}44`, background: `${C.primary}08`, color: C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                      <Plus size={14} strokeWidth={2.5} /> بيت
                     </button>
                   )}
                 </div>
@@ -409,16 +417,16 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
         </div>
       ) : (
         <button onClick={() => setAddingPlot(true)}
-          style={{ width: '100%', marginTop: 6, padding: '12px 0', borderRadius: 13, border: `2px dashed ${C.primary}44`, background: `${C.primary}08`, color: C.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-          + إضافة قطعة (מגרש)
+          style={{ width: '100%', marginTop: 6, padding: '12px 0', borderRadius: 13, border: `2px dashed ${C.primary}44`, background: `${C.primary}08`, color: C.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+          <Plus size={15} strokeWidth={2.5} /> {'إضافة قطعة (מגרש)'}
         </button>
       )}
 
       {data.plots.length === 0 && !addingPlot && (
         <div style={{ textAlign: 'center', padding: '36px 0', color: C.textDim }}>
-          <Building2 size={40} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
-          <div style={{ fontSize: 13, fontWeight: 700 }}>لا توجد قطع بعد</div>
-          <div style={{ fontSize: 11, marginTop: 4 }}>أضف قطعة (מגרש) للبدء بالتتبع</div>
+          <IconChip icon={MapPin} tone="brand" size={52} radius={16} iconSize={26} style={{ margin: '0 auto 12px' }} />
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>لا توجد قطع بعد</div>
+          <div style={{ fontSize: 11, marginTop: 4 }}>{'أضف قطعة (מגרש) للبدء بالتتبع'}</div>
         </div>
       )}
     </div>
@@ -581,7 +589,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
             <React.Fragment key={n}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
                 <div style={{ width: 24, height: 24, borderRadius: 99, border: `2px solid ${done || active ? color : C.border}`, background: done ? color : active ? `${color}22` : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: done ? '#000' : active ? color : C.textDim, marginBottom: 3 }}>
-                  {done ? '✓' : n}
+                  {done ? <Check size={13} strokeWidth={3} color="#000" /> : n}
                 </div>
                 <span style={{ fontSize: 9, color: active ? color : C.textDim, fontWeight: active ? 700 : 500 }}>{label}</span>
               </div>
@@ -618,7 +626,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
       </div>
 
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 10, color: !form.floorId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700 }}>🏢 الطابق *</div>
+        <div style={{ fontSize: 10, color: !form.floorId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700, display:'flex', alignItems:'center', gap:4 }}><Layers size={10} strokeWidth={2} /> الطابق *</div>
         <select value={form.floorId} onChange={e => setF('floorId', e.target.value)} disabled={!form.houseId}
           style={{ width: '100%', padding: '9px 8px', borderRadius: 9, border: `1px solid ${form.floorId ? C.border : C.accent + '88'}`, background: C.bg, color: form.floorId ? C.text : C.textDim, fontSize: 12, boxSizing: 'border-box', outline: 'none', opacity: form.houseId ? 1 : 0.4 }}>
           <option value="">اختر طابق</option>
@@ -627,8 +635,8 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
       </div>
 
       {plots.length === 0 && (
-        <div style={{ fontSize: 11, color: C.warning, background: `${C.warning}11`, border: `1px solid ${C.warning}33`, borderRadius: 8, padding: '7px 10px', marginBottom: 8 }}>
-          ⚠ لا توجد قطع في هذا المشروع — أضف قطعة من تبويب التتبع أولاً
+        <div style={{ fontSize: 11, color: C.warning, background: `${C.warning}11`, border: `1px solid ${C.warning}33`, borderRadius: 8, padding: '7px 10px', marginBottom: 8, display:'flex', alignItems:'center', gap:6 }}>
+          <AlertTriangle size={13} strokeWidth={2.3} style={{ flexShrink: 0 }} /> لا توجد قطع في هذا المشروع — أضف قطعة من تبويب التتبع أولاً
         </div>
       )}
 
@@ -672,8 +680,8 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
 
       {/* صورة إثبات */}
       <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 10, color: !form.photo ? C.accent : C.textDim, marginBottom: 5, fontWeight: 700 }}>
-          📷 صورة إثبات {!form.photo && <span style={{ color: C.accent }}>*</span>}
+        <div style={{ fontSize: 10, color: !form.photo ? C.accent : C.textDim, marginBottom: 5, fontWeight: 700, display:'flex', alignItems:'center', gap:4 }}>
+          <Camera size={11} strokeWidth={2.3} /> صورة إثبات {!form.photo && <span style={{ color: C.accent }}>*</span>}
         </div>
         {form.photo ? (
           <div style={{ position: 'relative' }}>
@@ -684,7 +692,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '16px 0', borderRadius: 10, border: `2px dashed ${C.accent}66`, background: `${C.accent}08`, cursor: 'pointer' }}>
-              <span style={{ fontSize: 26 }}>📷</span>
+              <Camera size={26} style={{ color: C.accent }} strokeWidth={2} />
               <span style={{ fontSize: 11, color: C.accent, fontWeight: 700 }}>كاميرا</span>
               <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
                 onChange={async e => {
@@ -717,8 +725,8 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
           إلغاء
         </button>
         <button onClick={handleSave} disabled={!isValid}
-          style={{ flex: 2, padding: '10px 0', borderRadius: 10, border: 'none', background: isValid ? GRAD.brand : C.border, color: isValid ? '#000' : C.textDim, fontSize: 12, fontWeight: 800, cursor: isValid ? 'pointer' : 'default' }}>
-          {editingExtra ? 'حفظ التعديل' : '+ إضافة'}
+          style={{ flex: 2, padding: '10px 0', borderRadius: 10, border: 'none', background: isValid ? GRAD.brand : C.border, color: isValid ? '#000' : C.textDim, fontSize: 12, fontWeight: 800, cursor: isValid ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+          {editingExtra ? 'حفظ التعديل' : <><Plus size={14} strokeWidth={2.7} /> إضافة</>}
         </button>
       </div>
     </div>
@@ -727,8 +735,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
   return (
     <div>
       {extras.length > 0 && (
-        <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.borderMid}`, padding: '12px 16px', marginBottom: 12, overflow: 'hidden' }}>
-          <div style={{ height: 3, background: GRAD.brand, margin: '-12px -16px 12px' }} />
+        <PremiumCard tone="brand" radius={14} padding="12px 16px" style={{ marginBottom: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div style={{ textAlign: 'center', padding: '8px 4px', background: `${C.success}12`, borderRadius: 10, border: `1px solid ${C.success}22` }}>
               <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2, fontWeight: 600 }}>معتمد</div>
@@ -739,7 +746,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
               <div style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{fmt(grandTotal)}₪</div>
             </div>
           </div>
-        </div>
+        </PremiumCard>
       )}
 
       {showForm && !editingExtra && ExtraFormEl}
