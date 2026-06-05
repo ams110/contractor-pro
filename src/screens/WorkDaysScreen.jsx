@@ -6,6 +6,7 @@ import { GlassCard, Modal, Input, Btn, Badge, SectionLabel, EmptyState, ConfirmD
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import WorkDayTicket from '../components/WorkDayTicket.jsx'
 import WorkMonthHeader from '../components/WorkMonthHeader.jsx'
+import WorkerMonthStrip from '../components/WorkerMonthStrip.jsx'
 import { exportWorkDaysToExcel } from '../lib/export.js'
 
 const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange, 'عطلة': C.textDim }
@@ -597,27 +598,24 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                 next.has(workerKey) ? next.delete(workerKey) : next.add(workerKey)
                                 return next
                               })
+                              const wkWorkDays = wdays.filter(d => d.day_type !== 'عطلة').length
+                              const wkHolidays = wdays.filter(d => d.day_type === 'عطلة').length
+                              const wkBars = new Array(daysInMonth).fill(0)
+                              wdays.forEach(d => { const dn = parseInt(String(d.date||'').slice(8,10),10); if (dn>=1 && dn<=daysInMonth) wkBars[dn-1] += (d.amount||0) })
                               return (
                                 <div key={empId} style={{ borderBottom: wi < workerEntries.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                                  {/* Worker row */}
-                                  <button onClick={toggleWorker}
-                                    style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'11px 16px', background: workerOpen ? 'rgba(255,255,255,0.05)' : 'transparent', border:'none', cursor:'pointer' }}>
-                                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                                      <div style={{ width:32, height:32, borderRadius:10, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:900, color:'#000', flexShrink:0 }}>
-                                        {emp?.name?.[0] || '؟'}
-                                      </div>
-                                      <div style={{ textAlign:'right' }}>
-                                        <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{emp?.name || '؟'}</div>
-                                        <div style={{ fontSize:10, color:C.textDim, marginTop:1 }}>
-                                          {wdays.filter(d => d.day_type !== 'عطلة').length} يوم{wdays.filter(d => d.day_type === 'عطلة').length > 0 ? ` · ${wdays.filter(d => d.day_type === 'عطلة').length} عطلة` : ''}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                                      <span style={{ fontSize:14, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmt(total)}₪</span>
-                                      <ChevronDown size={12} style={{ color:C.textDim, transition:'transform .2s', transform: workerOpen ? 'rotate(180deg)' : 'none' }} />
-                                    </div>
-                                  </button>
+                                  {/* Worker month strip */}
+                                  <WorkerMonthStrip
+                                    name={emp?.name || '؟'}
+                                    rank={wi + 1}
+                                    workDays={wkWorkDays}
+                                    holidays={wkHolidays}
+                                    total={total}
+                                    bars={wkBars}
+                                    isOpen={workerOpen}
+                                    onToggle={toggleWorker}
+                                    isLast
+                                  />
 
                                   {/* Day tickets */}
                                   {workerOpen && (
