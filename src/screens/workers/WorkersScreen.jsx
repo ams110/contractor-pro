@@ -5,7 +5,7 @@ import {
   Plus, Search, Users, ArrowLeft, Calendar, Banknote,
   TrendingUp, Phone, Star, BarChart3, CreditCard,
   Check, AlertTriangle, Trash2, ChevronRight, CalendarDays,
-  Link2, Copy, CheckCheck, UserPlus, UserMinus, MessageCircle,
+  Link2, Copy, CheckCheck, UserPlus, UserMinus, MessageCircle, GitCommitHorizontal,
   Wallet, X, HardHat, Clock,
 } from 'lucide-react'
 import { C, GRAD, SPECS } from '../../constants/index.js'
@@ -14,6 +14,13 @@ import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi, calcEarned } from '../../lib/calculations.js'
 import { computeWorkerDNA } from '../../lib/insights.js'
+import {
+  buildAttendanceHeatmap, buildFleetDna, buildRadarData,
+  detectWorkerAnomalies, buildWorkerTimeline, buildFleetLeaderboard,
+} from '../../lib/workerInsights.js'
+import {
+  AttendanceHeatmap, PerformanceRadar, AnomalyAlerts, WorkerTimeline, FleetLeaderboard,
+} from '../../components/WorkerInsights.jsx'
 import WorkDaysScreen from '../WorkDaysScreen.jsx'
 import WorkerDNA, { WorkerDNABadge } from '../../components/WorkerDNA.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
@@ -173,7 +180,7 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
 // ─── Worker Detail ────────────────────────────────────────────────────────────
 const PORTAL_URL = `${window.location.origin}${window.location.pathname}?portal`
 
-function WorkerDetail({ worker, dna, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language, appCfg, onDeleteWorker }) {
+function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language, appCfg, onDeleteWorker }) {
   const [tab, setTab] = useState('overview')
   const [advRequests, setAdvRequests] = useState([])
   const [advProject, setAdvProject] = useState({})   // req.id → project_id (اختياري)
@@ -240,8 +247,15 @@ function WorkerDetail({ worker, dna, workDays, payments, advances, projects, exp
   const totalAdvances = calcAdvances(wAdvances)
   const balance       = calcMutabqi(wWorksApp, wWorkerExp, wPayments, wAdvances)
 
+  // ── الميزات الذكية: خريطة حضور · رادار · شذوذ · خطّ زمني ──
+  const heatmap   = useMemo(() => buildAttendanceHeatmap(wWorkers, { weeks: 26 }), [wWorkers])
+  const radarData = useMemo(() => buildRadarData(dna, fleetDna), [dna, fleetDna])
+  const anomalies = useMemo(() => detectWorkerAnomalies(worker, { workDays, advances, expenses }), [worker, workDays, advances, expenses])
+  const timeline  = useMemo(() => buildWorkerTimeline(worker, { workDays, payments, advances, expenses, projects }), [worker, workDays, payments, advances, expenses, projects])
+
   const TABS = [
     { id: 'overview', icon: BarChart3, label: language === 'he' ? 'סיכום' : language === 'en' ? 'Overview' : 'ملخص' },
+    { id: 'timeline', icon: GitCommitHorizontal, label: language === 'he' ? 'ציר זמן' : language === 'en' ? 'Timeline' : 'الخط الزمني' },
     { id: 'workdays', icon: Calendar,  label: language === 'he' ? 'ימים' : language === 'en' ? 'Days' : 'أيام' },
     { id: 'payments', icon: Banknote,  label: language === 'he' ? 'שכר' : language === 'en' ? 'Salary' : 'رواتب' },
     { id: 'advances', icon: CreditCard, label: language === 'he' ? 'מקדמות' : language === 'en' ? 'Advances' : 'سلف' },
@@ -288,6 +302,15 @@ function WorkerDetail({ worker, dna, workDays, payments, advances, projects, exp
             {/* بصمة العامل — تحليل ذكي */}
             <WorkerDNA dna={dna} />
 
+            {/* كشف الشذوذ الذكي */}
+            <AnomalyAlerts anomalies={anomalies} lang={language} />
+
+            {/* رادار الأداء مقابل الأسطول */}
+            <PerformanceRadar data={radarData} lang={language} />
+
+            {/* خريطة الحضور الحرارية */}
+            <AttendanceHeatmap heatmap={heatmap} lang={language} />
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               {[
                 { label: language === 'he' ? 'סה"כ הרוויח' : language === 'en' ? 'Total Earned' : 'إجمالي المستحق', value: `₪${fmt(totalEarned)}`, color: C.success, icon: TrendingUp },
@@ -330,6 +353,10 @@ function WorkerDetail({ worker, dna, workDays, payments, advances, projects, exp
               </div>
             </PremiumCard>
           </div>
+        )}
+
+        {tab === 'timeline' && (
+          <WorkerTimeline timeline={timeline} lang={language} />
         )}
 
         {tab === 'workdays' && (
@@ -517,11 +544,28 @@ export default function WorkersScreen({
     return map
   }, [employees, workDays, payments, advances, expenses])
 
+  // متوسّط بصمة الأسطول (مرجع الرادار)
+  const fleetDna = useMemo(() => buildFleetDna(Object.values(dnaMap)), [dnaMap])
+
+  // عدد ملاحظات الشذوذ لكل عامل (شارة على بطاقة الروستر)
+  const anomalyMap = useMemo(() => {
+    const map = {}
+    for (const e of employees) {
+      const a = detectWorkerAnomalies(e, { workDays, advances, expenses })
+      map[e.id] = { total: a.length, high: a.filter(x => x.severity === 'high').length }
+    }
+    return map
+  }, [employees, workDays, advances, expenses])
+
+  // لوحة شرف الأسطول
+  const leaderboard = useMemo(() => buildFleetLeaderboard(employees, dnaMap, workerStats), [employees, dnaMap, workerStats])
+
   if (selected) {
     return (
       <WorkerDetail
         worker={selected}
         dna={dnaMap[selected.id]}
+        fleetDna={fleetDna}
         workDays={workDays} payments={payments} advances={advances} projects={projects} expenses={expenses}
         onClose={() => setSelected(null)}
         addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay}
@@ -645,6 +689,11 @@ export default function WorkersScreen({
         </div>
       )}
 
+      {/* لوحة شرف الأسطول — تظهر بلا بحث/فلترة */}
+      {!search && specFilter === 'all' && (
+        <FleetLeaderboard rows={leaderboard} onSelect={(id) => setSelected(employees.find(e => e.id === id))} lang={language} />
+      )}
+
       {/* Worker list */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -668,6 +717,16 @@ export default function WorkersScreen({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{worker.name}</div>
                       {dnaMap[worker.id] && <WorkerDNABadge dna={dnaMap[worker.id]} />}
+                      {anomalyMap[worker.id]?.total > 0 && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 800,
+                          color: anomalyMap[worker.id].high > 0 ? C.accent : C.warning,
+                          background: `${anomalyMap[worker.id].high > 0 ? C.accent : C.warning}14`,
+                          border: `1px solid ${anomalyMap[worker.id].high > 0 ? C.accent : C.warning}30`,
+                          borderRadius: 6, padding: '2px 6px' }}>
+                          <AlertTriangle size={9} strokeWidth={2.5} />
+                          {anomalyMap[worker.id].total}
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{worker.specialty || ''} {worker.phone ? `· ${worker.phone}` : ''}</div>
                   </div>
