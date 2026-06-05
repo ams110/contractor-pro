@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ShoppingCart, Layers, Wrench, Fuel, Building2, ClipboardList, Car, HardHat, Shield, Package, Plus, BarChart2, Search, X, Paperclip, Camera, Trash2, Check } from 'lucide-react'
+import { ShoppingCart, Layers, Wrench, Fuel, Building2, ClipboardList, Car, HardHat, Shield, Package, Plus, BarChart2, Search, X, Paperclip, Camera, Trash2, Check, Hourglass, FileText, Wallet, Receipt, Sparkles, AlertTriangle, Loader2 } from 'lucide-react'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense } from '../lib/helpers.js'
 import { GlassCard, Modal, Input, Btn, FilterChip, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
+import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import { uploadReceipt } from '../lib/storage.js'
 import { exportExpensesToExcel } from '../lib/export.js'
 import { supabase } from '../lib/supabase.js'
@@ -12,6 +13,16 @@ import { useBusinessStore } from '../store/useBusinessStore.js'
 const CAT_ICONS  = { 'بضاعة': ShoppingCart, 'مواد بناء / خامات': Layers, 'عدد وأدوات': Wrench, 'وقود وتنقلات': Fuel, 'إيجار معدات': Building2, 'خدمات مهنية': ClipboardList, 'صيانة مركبات': Car, 'رواتب عمال': HardHat, 'تأمين': Shield, 'أخرى': Package }
 const CAT_COLORS = { 'بضاعة':C.pink, 'مواد بناء / خامات':C.orange, 'عدد وأدوات':C.blue, 'وقود وتنقلات':C.cyan, 'إيجار معدات':C.purple, 'خدمات مهنية':C.secondary, 'صيانة مركبات':C.warning, 'رواتب عمال':C.primary, 'تأمين':C.success, 'أخرى':C.textDim }
 const FILTER_CATS = ['الكل', 'مواد', 'بضاعة', 'عدد', 'وقود', 'إيجار', 'خدمات', 'رواتب', 'تأمين', 'أخرى']
+
+// ─── شريحة وسم صغيرة (مورّد / مشروع / عامل …) ─────────────────────────────────
+function MetaTag({ icon: Icon, label, color }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 700, color, background: `${color}15`, padding: '2px 7px', borderRadius: 6, border: `1px solid ${color}33` }}>
+      {Icon && <Icon size={9} color={color} strokeWidth={2.3} />}
+      {label}
+    </span>
+  )
+}
 
 export default function ExpensesScreen({ expenses, projects, expCats, addExpense, deleteExpense, approveExpense, rejectExpense, employees, userId, permissions, showVatExpenses = true }) {
   // مصدر واحد لنوع المصلحة — business store (لكل مصلحة على حدة)
@@ -112,11 +123,14 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
       {/* ── Header ── */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-        <div>
-          <div style={{ fontSize:22, fontWeight:900, color:C.accent }}>
-            المصاريف
+        <div style={{ display:'flex', alignItems:'center', gap:11 }}>
+          <IconChip icon={Receipt} color={C.accent} size={40} radius={12} />
+          <div>
+            <div style={{ fontSize:18, fontWeight:900, color:C.text, letterSpacing:'-0.02em' }}>
+              المصاريف
+            </div>
+            <div style={{ fontSize:11, color:C.textDim, marginTop:1 }}>{approvedExpenses.length} سجل</div>
           </div>
-          <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{approvedExpenses.length} سجل</div>
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
           {permissions?.isOwner && approvedExpenses.length > 0 && (
@@ -136,9 +150,8 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
       {/* ── إجماليات ── */}
       {approvedExpenses.length > 0 && (
-        <GlassCard style={{ marginBottom:16, overflow:'hidden' }}>
-          <div style={{ height:3, background:GRAD.danger }} />
-          <div style={{ padding:'14px 16px', display:'flex', justifyContent:'space-around' }}>
+        <PremiumCard tone="critical" radius={20} padding="14px 16px" style={{ marginBottom:16 }}>
+          <div style={{ display:'flex', justifyContent:'space-around' }}>
             {showVAT ? (
               <>
                 <div style={{ textAlign:'center' }}>
@@ -147,12 +160,12 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                 </div>
                 <div style={{ width:1, background:C.border }} />
                 <div style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>صافي بدون مع"מ</div>
+                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>{'صافي بدون مع"מ'}</div>
                   <div style={{ fontSize:22, fontWeight:900, color:C.text, fontFamily:'monospace' }}>{fmt(noVAT)}₪</div>
                 </div>
                 <div style={{ width:1, background:C.border }} />
                 <div style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>מס תשומות</div>
+                  <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>{'מס תשומות'}</div>
                   <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace' }}>{fmt(totalVATIn)}₪</div>
                 </div>
               </>
@@ -163,20 +176,23 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
               </div>
             )}
           </div>
-        </GlassCard>
+        </PremiumCard>
       )}
 
       {/* ── مصاريف معلقة ── */}
       {pendingExpenses.length > 0 && (
         <div style={{ marginBottom:16 }}>
-          <SectionLabel color={C.warning}>⏳ بانتظار الموافقة ({pendingExpenses.length})</SectionLabel>
-          {pendingExpenses.map(ex => {
+          <SectionLabel color={C.warning}>
+            <span style={{ display:'inline-flex', alignItems:'center', gap:5 }}>
+              <Hourglass size={13} strokeWidth={2.3} /> بانتظار الموافقة ({pendingExpenses.length})
+            </span>
+          </SectionLabel>
+          {pendingExpenses.map((ex, i) => {
             const worker = employees?.find(e => e.id === ex.employee_id)
             const proj   = projects.find(p => p.id === ex.project_id)
             return (
-              <GlassCard key={ex.id} style={{ overflow:'hidden', marginBottom:10 }}>
-                <div style={{ height:3, background:GRAD.warm }} />
-                <div style={{ padding:'12px 14px' }}>
+              <PremiumCard key={ex.id} tone="fair" radius={18} padding="12px 14px" delay={Math.min(i * 0.03, 0.3)} style={{ marginBottom:10 }}>
+                <div>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
                     <div>
                       <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{ex.category}</div>
@@ -206,12 +222,12 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                       <Check size={14} strokeWidth={2.5} /> موافقة
                     </button>
                     <button onClick={() => rejectExpense(ex.id)}
-                      style={{ flex:1, padding:'9px 0', borderRadius:10, background:`${C.accent}20`, border:`1px solid ${C.accent}55`, color:C.accent, fontSize:13, fontWeight:700, cursor:'pointer' }}>
-                      ✗ رفض
+                      style={{ flex:1, padding:'9px 0', borderRadius:10, background:`${C.accent}20`, border:`1px solid ${C.accent}55`, color:C.accent, fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5, fontFamily:'inherit' }}>
+                      <X size={14} strokeWidth={2.5} /> رفض
                     </button>
                   </div>
                 </div>
-              </GlassCard>
+              </PremiumCard>
             )
           })}
         </div>
@@ -219,11 +235,11 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
       {/* ── بحث ── */}
       <div style={{ position:'relative', marginBottom:10 }}>
-        <span style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', fontSize:14, pointerEvents:'none', opacity:0.5 }}>🔍</span>
+        <Search size={15} color={C.textDim} style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', opacity:0.7 }} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالمورد أو التصنيف أو المبلغ..."
           style={{ width:'100%', padding:'9px 38px 9px 36px', borderRadius:12, border:`1px solid ${search ? C.primary+'66' : C.border}`, background:'rgba(255,255,255,0.04)', color:C.text, fontSize:12, outline:'none', boxSizing:'border-box', direction:'rtl' }} />
         {search && (
-          <button onClick={() => setSearch('')} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:C.textDim, fontSize:14, cursor:'pointer', padding:0 }}>✕</button>
+          <button onClick={() => setSearch('')} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:C.textDim, cursor:'pointer', padding:0, display:'flex', alignItems:'center' }}><X size={14} strokeWidth={2.5} /></button>
         )}
       </div>
 
@@ -237,20 +253,24 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
       {/* ── قائمة المصاريف ── */}
       {sorted.length === 0 && pendingExpenses.length === 0
-        ? <EmptyState icon="💸" text="ما في مصاريف" action="+ أضف مصروف" onAction={() => setShowForm(true)} />
+        ? (
+            <div style={{ textAlign:'center', padding:'44px 0', color:C.textDim }}>
+              <IconChip icon={Wallet} color={C.accent} size={52} radius={16} iconSize={26} style={{ margin:'0 auto 12px' }} />
+              <div style={{ fontSize:14, fontWeight:700, color:C.text, marginBottom:18 }}>ما في مصاريف</div>
+              <Btn onClick={() => setShowForm(true)}>+ أضف مصروف</Btn>
+            </div>
+          )
         : sorted.length === 0 ? null
-        : sorted.map(ex => {
+        : sorted.map((ex, i) => {
             const proj   = projects.find(p => p.id === ex.project_id)
             const worker = employees?.find(e => e.id === ex.employee_id)
             const col    = catColor(ex.category)
             const CatIcon = catIcon(ex.category)
             return (
-              <GlassCard key={ex.id} style={{ overflow:'hidden', marginBottom:8, position:'relative' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px' }}>
+              <PremiumCard key={ex.id} color={col} glow={false} radius={14} padding="12px 14px" delay={Math.min(i * 0.03, 0.3)} style={{ marginBottom:8 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
                   {/* أيقونة ملونة */}
-                  <div style={{ width:44, height:44, borderRadius:14, background:`${col}20`, border:`1px solid ${col}44`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <CatIcon size={20} strokeWidth={1.8} style={{ color: col }} />
-                  </div>
+                  <IconChip icon={CatIcon} color={col} size={44} radius={14} iconSize={20} strokeWidth={1.8} />
 
                   {/* المعلومات */}
                   <div style={{ flex:1, minWidth:0 }}>
@@ -301,7 +321,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                 </div>
                 {/* شريط لوني جانبي */}
                 <div style={{ position:'absolute', top:0, right:0, width:3, height:'100%', background:col, borderRadius:'0 20px 20px 0' }} />
-              </GlassCard>
+              </PremiumCard>
             )
           })
       }
@@ -351,8 +371,10 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
             <label style={{ fontSize:12, color:C.textDim, fontWeight:600, display:'flex', alignItems:'center', gap:5 }}><Paperclip size={12} strokeWidth={2} /> فاتورة / إثبات (اختياري)</label>
             {receiptFile && receiptFile.type.startsWith('image/') && (
               <button onClick={scanReceipt} disabled={scanning}
-                style={{ padding:'4px 10px', borderRadius:8, border:`1px solid ${C.primary}55`, background:`${C.primary}15`, color:C.primary, fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                {scanning ? '⏳' : '🤖 AI مسح'}
+                style={{ padding:'4px 10px', borderRadius:8, border:`1px solid ${C.primary}55`, background:`${C.primary}15`, color:C.primary, fontSize:11, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:5, fontFamily:'inherit' }}>
+                {scanning
+                  ? <><Loader2 size={12} strokeWidth={2.5} style={{ animation:'spin .8s linear infinite' }} /> جاري المسح</>
+                  : <><Sparkles size={12} strokeWidth={2.3} /> AI مسح</>}
               </button>
             )}
           </div>
@@ -361,7 +383,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
             ? <div style={{ position:'relative' }}>
                 <img src={preview} alt="فاتورة" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:12, border:`1px solid ${C.border}` }} />
                 <button onClick={() => { setReceiptFile(null); setPreview(''); setScanMsg('') }}
-                  style={{ position:'absolute', top:6, left:6, background:`${C.accent}dd`, border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                  style={{ position:'absolute', top:6, left:6, background:`${C.accent}dd`, border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><X size={14} strokeWidth={2.5} /></button>
               </div>
             : receiptFile
             ? <div style={{ padding:'10px 14px', background:`${C.border}33`, borderRadius:12, fontSize:12, color:C.text, display:'flex', alignItems:'center', gap:6 }}><Paperclip size={13} strokeWidth={2} style={{ color: C.secondary }} /> {receiptFile.name}</div>
@@ -370,12 +392,18 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                 <Camera size={16} strokeWidth={1.8} /> اضغط لرفع صورة الفاتورة
               </button>
           }
-          {scanMsg && <div style={{ marginTop:6, fontSize:11, color: scanMsg.startsWith('✓') ? C.success : C.accent, fontWeight:600 }}>{scanMsg}</div>}
+          {scanMsg && <div style={{ marginTop:6, fontSize:11, color: scanMsg.startsWith('✓') ? C.success : C.accent, fontWeight:600, display:'flex', alignItems:'center', gap:5 }}>
+            {scanMsg.startsWith('✓') ? <Check size={12} strokeWidth={2.5} /> : <AlertTriangle size={12} strokeWidth={2.3} />}
+            {scanMsg.replace(/^[✓⚠]\s*/, '')}
+          </div>}
         </div>
 
-        {formError && <div style={{ padding:'10px 12px', background:`${C.accent}18`, borderRadius:10, fontSize:12, color:C.accent, marginBottom:14, fontWeight:600 }}>⚠ {formError}</div>}
+        {formError && <div style={{ padding:'10px 12px', background:`${C.accent}18`, borderRadius:10, fontSize:12, color:C.accent, marginBottom:14, fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><AlertTriangle size={13} strokeWidth={2.3} /> {formError}</div>}
         <Btn onClick={save} full disabled={saving || !form.amount || !form.category}>
-          {saving ? 'جاري الحفظ...' : '✓ أضف المصروف'}
+          <span style={{ display:'inline-flex', alignItems:'center', gap:6, justifyContent:'center' }}>
+            {saving ? <Loader2 size={14} strokeWidth={2.5} style={{ animation:'spin .8s linear infinite' }} /> : <Check size={14} strokeWidth={2.5} />}
+            {saving ? 'جاري الحفظ...' : 'أضف المصروف'}
+          </span>
         </Btn>
       </Modal>
 

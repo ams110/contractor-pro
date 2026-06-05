@@ -1,7 +1,8 @@
 import React from 'react'
-import { X, Lock } from 'lucide-react'
+import { X, Lock, UserPlus, CalendarClock, FolderTree, AlertTriangle, Check, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { Btn, GlassCard } from '../../components/index.jsx'
+import { IconChip } from '../../ui/Premium.jsx'
 import { PERM_LABELS, PRESET_ROLES } from './teamConstants.js'
 
 export function AddMemberModal({ manager, onSubmit, projects = [] }) {
@@ -36,7 +37,10 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>➕ عضو جديد</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <IconChip icon={UserPlus} tone="brand" size={36} radius={11} />
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>عضو جديد</div>
+          </div>
           <button onClick={closeAddMember} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, cursor: 'pointer', padding: '4px 10px', display:'flex', alignItems:'center' }}><X size={14} strokeWidth={2.5} /></button>
         </div>
 
@@ -100,7 +104,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
               </Field>
             </div>
 
-            <Field label="⏰ تاريخ انتهاء الصلاحية (اختياري)">
+            <Field label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CalendarClock size={11} strokeWidth={2.3} /> تاريخ انتهاء الصلاحية (اختياري)</span>}>
               <input
                 type="date"
                 value={memberForm.expiresAt}
@@ -110,7 +114,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
             </Field>
 
             {addMemberErr && <ErrorMsg msg={addMemberErr} />}
-            <Btn onClick={nextStep} full style={{ marginTop: 14 }}>التالي ← الصلاحيات</Btn>
+            <Btn onClick={nextStep} full style={{ marginTop: 14 }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>التالي <ChevronLeft size={14} strokeWidth={2.6} /> الصلاحيات</span></Btn>
           </div>
         )}
 
@@ -170,8 +174,8 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
                   }}
                   style={{ accentColor: C.primary }}
                 />
-                <span style={{ fontSize: 11, fontWeight: 700, color: addRestrictProjects ? C.text : C.textDim }}>
-                  🗂 تقييد المشاريع (يرى مشاريع محددة فقط)
+                <span style={{ fontSize: 11, fontWeight: 700, color: addRestrictProjects ? C.text : C.textDim, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <FolderTree size={12} strokeWidth={2.3} /> تقييد المشاريع (يرى مشاريع محددة فقط)
                 </span>
               </label>
               {addRestrictProjects && (
@@ -200,9 +204,11 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
             {addMemberErr && <ErrorMsg msg={addMemberErr} />}
 
             <div style={{ display: 'flex', gap: 8 }}>
-              <Btn onClick={() => { setAddStep(1); setAddMemberErr('') }} variant="outline" color={C.textDim} full>← رجوع</Btn>
+              <Btn onClick={() => { setAddStep(1); setAddMemberErr('') }} variant="outline" color={C.textDim} full><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'center' }}><ChevronRight size={14} strokeWidth={2.6} /> رجوع</span></Btn>
               <Btn onClick={onSubmit} full disabled={addingMember}>
-                {addingMember ? '⏳ جاري الإنشاء...' : '✓ إضافة العضو'}
+                {addingMember
+                  ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Loader2 size={14} strokeWidth={2.6} style={{ animation: 'spin .8s linear infinite' }} /> جاري الإنشاء...</span>
+                  : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Check size={14} strokeWidth={2.6} /> إضافة العضو</span>}
               </Btn>
             </div>
           </div>
@@ -224,8 +230,8 @@ function Field({ label, hint, children }) {
 
 function ErrorMsg({ msg }) {
   return (
-    <div style={{ fontSize: 11, color: C.accent, padding: '8px 12px', background: `${C.accent}12`, borderRadius: 9, marginBottom: 10 }}>
-      ⚠ {msg}
+    <div style={{ fontSize: 11, color: C.accent, padding: '8px 12px', background: `${C.accent}12`, borderRadius: 9, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+      <AlertTriangle size={12} strokeWidth={2.3} /> {msg}
     </div>
   )
 }

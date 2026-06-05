@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import * as XLSX from 'xlsx'
-import { ClipboardList, RefreshCw, Download } from 'lucide-react'
-import { C, GRAD } from '../constants/index.js'
+import {
+  ClipboardList, RefreshCw, Download, X, AlertTriangle, Clock,
+  PlusCircle, PencilLine, Trash2, Eye, User, Calendar,
+} from 'lucide-react'
+import { C } from '../constants/index.js'
 import { fmtDate } from '../lib/helpers.js'
-import { GlassCard, Btn, EmptyState } from '../components/index.jsx'
+import { GlassCard, Btn } from '../components/index.jsx'
+import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 
 const ACTION_MAP = {
   insert: 'أضاف',
@@ -33,6 +37,13 @@ const ACTION_COLOR = {
   view:   C.blue,
 }
 
+const ACTION_ICON = {
+  insert: PlusCircle,
+  update: PencilLine,
+  delete: Trash2,
+  view:   Eye,
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return ''
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
@@ -51,14 +62,26 @@ function translateEntry(entry) {
 function ActionBadge({ action }) {
   const color = ACTION_COLOR[action] || C.textDim
   const label = ACTION_MAP[action] || action
+  const Icon  = ACTION_ICON[action]
   return (
     <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
       fontSize: 10, fontWeight: 700,
       color, background: `${color}18`,
       border: `1px solid ${color}33`,
       padding: '2px 7px', borderRadius: 6,
       flexShrink: 0,
-    }}>{label}</span>
+    }}>{Icon && <Icon size={11} color={color} strokeWidth={2.5} />}{label}</span>
+  )
+}
+
+// ─── شريحة وسم صغيرة (وقت / تاريخ) ─────────────────────────────────────────────
+function MetaTag({ icon: Icon, label, color }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color, background: `${color}15`, padding: '3px 8px', borderRadius: 7, border: `1px solid ${color}28` }}>
+      <Icon size={11} color={color} strokeWidth={2.3} />
+      {label}
+    </span>
   )
 }
 
@@ -115,16 +138,11 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 14,
-            background: GRAD.purple,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 4px 16px #6366F144`,
-          }}><ClipboardList size={18} strokeWidth={2} color="#000" /></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+          <IconChip icon={ClipboardList} tone="premium" size={40} radius={12} />
           <div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>سجل النشاط</div>
-            <div style={{ fontSize: 11, color: C.textDim }}>{filtered.length} إجراء</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1.1, letterSpacing: '-0.02em' }}>سجل النشاط</div>
+            <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{filtered.length} إجراء</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -174,8 +192,8 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
           </div>
           {hasFilter && (
             <button onClick={() => { setFilterMember('all'); setFilterAction('all'); setFilterDate('') }}
-              style={{ alignSelf: 'flex-start', padding: '5px 12px', borderRadius: 8, border: `1px solid ${C.accent}44`, background: `${C.accent}12`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              ✕ مسح الفلاتر
+              style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: `1px solid ${C.accent}44`, background: `${C.accent}12`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <X size={12} strokeWidth={2.5} /> مسح الفلاتر
             </button>
           )}
         </div>
@@ -183,8 +201,8 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
 
       {/* Error */}
       {error && (
-        <div style={{ padding: '12px 14px', background: `${C.accent}15`, borderRadius: 12, marginBottom: 14, fontSize: 13, color: C.accent, border: `1px solid ${C.accent}33` }}>
-          ⚠ {error}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: `${C.accent}15`, borderRadius: 12, marginBottom: 14, fontSize: 13, color: C.accent, border: `1px solid ${C.accent}33` }}>
+          <AlertTriangle size={15} strokeWidth={2.3} /> {error}
         </div>
       )}
 
@@ -194,43 +212,40 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
           <div style={{ width: 36, height: 36, border: `3px solid ${C.border}`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin .8s linear infinite', margin: '0 auto' }} />
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState icon="📋" text="لا يوجد نشاط مسجّل بعد" />
+        <div style={{ textAlign: 'center', padding: '44px 0', color: C.textDim }}>
+          <IconChip icon={ClipboardList} tone="premium" size={52} radius={16} iconSize={26} style={{ margin: '0 auto 12px' }} />
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>لا يوجد نشاط مسجّل بعد</div>
+        </div>
       ) : (
         <div>
           {filtered.map((entry, i) => {
             const color = ACTION_COLOR[entry.action] || C.textDim
+            const Icon  = ACTION_ICON[entry.action] || ClipboardList
             const desc  = translateEntry(entry)
             const name  = entry.actor_name || entry.actor_email || 'مجهول'
             return (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 10,
-                padding: '12px 14px',
-                background: 'rgba(255,255,255,0.03)',
-                borderRadius: 12,
-                border: `1px solid ${C.border}`,
-                marginBottom: 6,
-              }}>
-                {/* dot */}
-                <div style={{
-                  width: 8, height: 8, borderRadius: '50%',
-                  background: color,
-                  boxShadow: `0 0 8px ${color}66`,
-                  marginTop: 5, flexShrink: 0,
-                }} />
-                {/* content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{name}</span>
-                    <ActionBadge action={entry.action} />
-                    <span style={{ fontSize: 12, color: C.textDim }}>
-                      {TABLE_MAP[entry.tbl] || entry.tbl}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 10, color: C.textDim }}>
-                    {fmtDate(entry.created_at)} • {timeAgo(entry.created_at)}
+              <PremiumCard key={i} color={color} glow={false} radius={12} padding="12px 14px" delay={Math.min(i * 0.03, 0.3)} style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  {/* أيقونة الإجراء */}
+                  <IconChip icon={Icon} color={color} size={38} radius={11} />
+                  {/* المحتوى */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 800, color: C.text }}>
+                        <User size={12} color={C.textDim} strokeWidth={2.3} />{name}
+                      </span>
+                      <ActionBadge action={entry.action} />
+                      <span style={{ fontSize: 12, color: C.textDim }}>
+                        {TABLE_MAP[entry.tbl] || entry.tbl}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      <MetaTag icon={Calendar} label={fmtDate(entry.created_at)} color="#94A3B8" />
+                      <MetaTag icon={Clock} label={timeAgo(entry.created_at)} color={C.cyan} />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </PremiumCard>
             )
           })}
         </div>

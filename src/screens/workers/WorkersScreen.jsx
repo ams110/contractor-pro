@@ -6,6 +6,7 @@ import {
   TrendingUp, Phone, Star, BarChart3, CreditCard,
   Check, AlertTriangle, Trash2, ChevronRight, CalendarDays,
   Link2, Copy, CheckCheck, UserPlus, UserMinus, MessageCircle, GitCommitHorizontal,
+  Wallet, X, HardHat, Clock,
 } from 'lucide-react'
 import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
@@ -23,6 +24,7 @@ import {
 import WorkDaysScreen from '../WorkDaysScreen.jsx'
 import WorkerDNA, { WorkerDNABadge } from '../../components/WorkerDNA.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
+import { PremiumCard, IconChip, PremiumStat } from '../../ui/Premium.jsx'
 
 // ─── بصمة العامل: يبني مدخلات المحرّك من البيانات الخام ──────────────────────────
 function buildWorkerDNA(worker, { workDays, payments, advances, expenses, fleetAvgPerDay }) {
@@ -154,8 +156,8 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
             )}
 
             {error && (
-              <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', fontSize: 12, marginBottom: 10 }}>
-                ⚠ {error}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px', borderRadius: 12, background: `${C.accent}1F`, border: `1px solid ${C.accent}4D`, color: C.accent, fontSize: 12, marginBottom: 10 }}>
+                <AlertTriangle size={14} strokeWidth={2.3} /> {error}
               </div>
             )}
 
@@ -311,31 +313,30 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               {[
-                { label: language === 'he' ? 'סה"כ הרוויח' : language === 'en' ? 'Total Earned' : 'إجمالي المستحق', value: `₪${fmt(totalEarned)}`, color: C.success },
-                { label: language === 'he' ? 'שולם' : language === 'en' ? 'Paid' : 'المدفوع', value: `₪${fmt(totalPaid)}`, color: C.secondary },
-                { label: language === 'he' ? 'מקדמות' : language === 'en' ? 'Advances' : 'السلف', value: `₪${fmt(totalAdvances)}`, color: C.accent },
-                { label: language === 'he' ? 'ימי עבודה' : language === 'en' ? 'Work Days' : 'أيام العمل', value: wWorkers.length, color: C.primary },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
-                  <div style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: '-0.02em' }}>{value}</div>
-                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>{label}</div>
-                </div>
+                { label: language === 'he' ? 'סה"כ הרוויח' : language === 'en' ? 'Total Earned' : 'إجمالي المستحق', value: `₪${fmt(totalEarned)}`, color: C.success, icon: TrendingUp },
+                { label: language === 'he' ? 'שולם' : language === 'en' ? 'Paid' : 'المدفوع', value: `₪${fmt(totalPaid)}`, color: C.secondary, icon: Banknote },
+                { label: language === 'he' ? 'מקדמות' : language === 'en' ? 'Advances' : 'السلف', value: `₪${fmt(totalAdvances)}`, color: C.accent, icon: CreditCard },
+                { label: language === 'he' ? 'ימי עבודה' : language === 'en' ? 'Work Days' : 'أيام العمل', value: wWorkers.length, color: C.primary, icon: Calendar },
+              ].map(({ label, value, color, icon }, i) => (
+                <PremiumStat key={label} label={label} value={value} icon={icon} color={color} delay={i * 0.04} />
               ))}
             </div>
 
             {worker.phone && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 10 }}>
-                <Phone size={15} color={C.cyan} strokeWidth={2} />
-                <span style={{ flex: 1, fontSize: 13, color: C.text, direction: 'ltr', textAlign: 'start' }}>{worker.phone}</span>
-                <button onClick={shareStatementWhatsApp} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-                  <MessageCircle size={13} strokeWidth={2} />
-                  كشف حساب
-                </button>
-              </div>
+              <PremiumCard tone="cyan" glow={false} radius={14} padding="12px" style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <IconChip icon={Phone} tone="cyan" size={32} radius={10} />
+                  <span style={{ flex: 1, fontSize: 13, color: C.text, direction: 'ltr', textAlign: 'start' }}>{worker.phone}</span>
+                  <button onClick={shareStatementWhatsApp} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                    <MessageCircle size={13} strokeWidth={2} />
+                    كشف حساب
+                  </button>
+                </div>
+              </PremiumCard>
             )}
 
             {/* Portal link */}
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
+            <PremiumCard tone="brand" glow={false} radius={14} padding="12px 14px">
               <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Link2 size={10} strokeWidth={2} /> بورتال العامل
               </div>
@@ -350,7 +351,7 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
                   {copied ? 'تم النسخ' : 'نسخ'}
                 </button>
               </div>
-            </div>
+            </PremiumCard>
           </div>
         )}
 
@@ -364,13 +365,12 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
               <div style={{ textAlign: 'center', padding: '40px', color: C.textDim, fontSize: 13 }}>
                 {language === 'he' ? 'אין ימי עבודה' : language === 'en' ? 'No work days' : 'لا توجد أيام عمل'}
               </div>
-            ) : wWorkers.slice().reverse().map(wd => {
+            ) : wWorkers.slice().reverse().map((wd, i) => {
               const project = projects?.find(p => p.id === wd.project_id)
               return (
-                <div key={wd.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.secondary}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Calendar size={13} color={C.secondary} strokeWidth={2} />
-                  </div>
+                <PremiumCard key={wd.id} tone="premium" glow={false} radius={14} padding="10px 12px" delay={Math.min(i * 0.03, 0.3)} style={{ marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <IconChip icon={Calendar} tone="premium" size={32} radius={10} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{fmtDate(wd.date)}</div>
                     <div style={{ fontSize: 10, color: C.textDim }}>{project?.name || ''} · {wd.day_type}</div>
@@ -379,7 +379,8 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
                     <div style={{ fontSize: 12, fontWeight: 800, color: C.secondary }}>₪{fmt(wd.daily_rate || 0)}</div>
                     {wd.status === 'pending' && <div style={{ fontSize: 9, color: C.warning, marginTop: 1 }}>{language === 'he' ? 'ממתין' : language === 'en' ? 'Pending' : 'معلق'}</div>}
                   </div>
-                </div>
+                  </div>
+                </PremiumCard>
               )
             })}
           </div>
@@ -391,18 +392,18 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
               <div style={{ textAlign: 'center', padding: '40px', color: C.textDim, fontSize: 13 }}>
                 {language === 'he' ? 'אין תשלומים' : language === 'en' ? 'No payments' : 'لا توجد رواتب'}
               </div>
-            ) : wPayments.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(pay => (
-              <div key={pay.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 8 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.success}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Banknote size={13} color={C.success} strokeWidth={2} />
-                </div>
+            ) : wPayments.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map((pay, i) => (
+              <PremiumCard key={pay.id} tone="excellent" glow={false} radius={14} padding="10px 12px" delay={Math.min(i * 0.03, 0.3)} style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <IconChip icon={Banknote} tone="excellent" size={32} radius={10} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{pay.method || ''}</div>
                   <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(pay.date)}</div>
                   {pay.ref_number && <div style={{ fontSize: 9, fontWeight: 700, color: C.primary, marginTop: 2, letterSpacing: '0.04em' }}>{pay.ref_number}</div>}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: C.success }}>₪{fmt(pay.amount || 0)}</div>
-              </div>
+                </div>
+              </PremiumCard>
             ))}
           </div>
         )}
@@ -413,7 +414,7 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
             {advRequests.length > 0 && (
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 10, fontWeight: 800, color: C.warning, letterSpacing: '0.06em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.warning }} />
+                  <Clock size={11} color={C.warning} strokeWidth={2.3} />
                   طلبات سلف معلّقة ({advRequests.length})
                 </div>
                 {advRequests.map(req => (
@@ -449,18 +450,18 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
               <div style={{ textAlign: 'center', padding: '40px', color: C.textDim, fontSize: 13 }}>
                 {language === 'he' ? 'אין מקדמות' : language === 'en' ? 'No advances' : 'لا توجد سلف'}
               </div>
-            ) : wAdvances.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(adv => (
-              <div key={adv.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 8 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <CreditCard size={13} color={C.accent} strokeWidth={2} />
-                </div>
+            ) : wAdvances.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map((adv, i) => (
+              <PremiumCard key={adv.id} tone="critical" glow={false} radius={14} padding="10px 12px" delay={Math.min(i * 0.03, 0.3)} style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <IconChip icon={CreditCard} tone="critical" size={32} radius={10} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{adv.notes || (language === 'en' ? 'Advance' : language === 'he' ? 'מקדמה' : 'سلفة')}</div>
                   <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(adv.date)}</div>
                   {adv.ref_number && <div style={{ fontSize: 9, fontWeight: 700, color: C.primary, marginTop: 2, letterSpacing: '0.04em' }}>{adv.ref_number}</div>}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>-₪{fmt(adv.amount || 0)}</div>
-              </div>
+                </div>
+              </PremiumCard>
             ))}
           </div>
         )}
@@ -659,14 +660,11 @@ export default function WorkersScreen({
       {employees.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           {[
-            { label: language === 'he' ? 'עובדים' : language === 'en' ? 'Workers' : 'عمال', value: employees.length, color: C.secondary },
-            { label: language === 'he' ? 'חייבים' : language === 'en' ? 'Owed' : 'مستحق', value: `₪${fmt(totalOwed)}`, color: C.warning, small: true },
-            { label: language === 'he' ? 'ימים' : language === 'en' ? 'Days' : 'أيام', value: workDays.length, color: C.primary },
-          ].map(({ label, value, color, small }) => (
-            <div key={label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '10px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: small ? 12 : 18, fontWeight: 900, color, letterSpacing: '-0.02em' }}>{value}</div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{label}</div>
-            </div>
+            { label: language === 'he' ? 'עובדים' : language === 'en' ? 'Workers' : 'عمال', value: employees.length, color: C.secondary, icon: Users },
+            { label: language === 'he' ? 'חייבים' : language === 'en' ? 'Owed' : 'مستحق', value: `₪${fmt(totalOwed)}`, color: C.warning, icon: Wallet },
+            { label: language === 'he' ? 'ימים' : language === 'en' ? 'Days' : 'أيام', value: workDays.length, color: C.primary, icon: Calendar },
+          ].map(({ label, value, color, icon }, i) => (
+            <PremiumStat key={label} label={label} value={value} icon={icon} color={color} delay={i * 0.04} />
           ))}
         </div>
       )}
@@ -699,9 +697,7 @@ export default function WorkersScreen({
       {/* Worker list */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <div style={{ width: 56, height: 56, borderRadius: 18, background: `${C.secondary}18`, border: `1px solid ${C.secondary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-            <Users size={26} color={C.secondary} strokeWidth={1.5} />
-          </div>
+          <IconChip icon={Users} tone="premium" size={56} radius={18} iconSize={26} strokeWidth={1.5} style={{ margin: '0 auto 14px' }} />
           <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 }}>{t('workers.empty')}</div>
         </div>
       ) : (
@@ -709,13 +705,12 @@ export default function WorkersScreen({
           {filtered.map((worker, i) => {
             const ws = workerStats[worker.id] || {}
             return (
-              <motion.div key={worker.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setSelected(worker)}
-                style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: '14px', cursor: 'pointer' }}>
+              <PremiumCard key={worker.id}
+                tone="premium"
+                radius={18}
+                padding="14px"
+                delay={Math.min(i * 0.04, 0.3)}
+                onClick={() => setSelected(worker)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: ws.balance > 0 ? 10 : 0 }}>
                   <Avatar name={worker.name} size={44} color={C.secondary} />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -752,7 +747,7 @@ export default function WorkersScreen({
                       { label: language === 'he' ? 'שולם' : language === 'en' ? 'Paid' : 'المدفوع', value: `₪${fmt(ws.paid || 0)}`, color: C.secondary },
                       { label: language === 'he' ? 'ימים' : language === 'en' ? 'Days' : 'أيام', value: ws.days || 0, color: C.primary },
                     ].map(({ label, value, color }) => (
-                      <div key={label} style={{ background: C.card, borderRadius: 10, padding: '7px 8px', textAlign: 'center' }}>
+                      <div key={label} style={{ background: `${color}12`, border: `1px solid ${color}24`, borderRadius: 10, padding: '7px 8px', textAlign: 'center' }}>
                         <div style={{ fontSize: 11, fontWeight: 800, color }}>{value}</div>
                         <div style={{ fontSize: 9, color: C.textDim, marginTop: 1 }}>{label}</div>
                       </div>
@@ -761,12 +756,12 @@ export default function WorkersScreen({
                 )}
 
                 {ws.pending > 0 && (
-                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, padding: '5px 8px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: 8 }}>
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, padding: '5px 8px', background: `${C.warning}14`, border: `1px solid ${C.warning}33`, borderRadius: 8 }}>
                     <AlertTriangle size={11} color={C.warning} strokeWidth={2} />
                     <span style={{ fontSize: 10, color: C.warning, fontWeight: 700 }}>{ws.pending} {language === 'he' ? 'ממתינים' : language === 'en' ? 'pending' : 'بانتظار الموافقة'}</span>
                   </div>
                 )}
-              </motion.div>
+              </PremiumCard>
             )
           })}
         </div>

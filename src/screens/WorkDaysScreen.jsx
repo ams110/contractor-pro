@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { CalendarDays, BarChart2, Search, ClipboardList, Clock, Gift, Pencil, Trash2, AlertTriangle, Users, MapPin, X, CheckSquare, Square, Sun, CloudSun, DollarSign, Star, Zap, BedDouble, HardHat, Check, ChevronDown, Plus } from 'lucide-react'
+import { CalendarDays, BarChart2, Search, ClipboardList, Clock, Gift, Pencil, Trash2, AlertTriangle, Users, MapPin, X, CheckSquare, Square, Sun, CloudSun, DollarSign, Star, Zap, BedDouble, HardHat, Check, ChevronDown, Plus, CheckCircle2, XCircle, FolderInput, Loader2, Building2 } from 'lucide-react'
 import { C, GRAD, DAY_TYPES } from '../constants/index.js'
 import { fmt, fmtDate, fmtDateFull, todayStr, calcSalary, validateWorkDay } from '../lib/helpers.js'
 import { GlassCard, Modal, Input, Btn, Badge, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
+import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import { exportWorkDaysToExcel } from '../lib/export.js'
 
 const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange, 'عطلة': C.textDim }
@@ -10,6 +11,16 @@ const DAY_ICONS = { 'كامل': Sun, 'نص يوم': CloudSun, 'ساعات': Cloc
 function DayIcon({ type, size = 18 }) {
   const Icon = DAY_ICONS[type]
   return Icon ? <Icon size={size} strokeWidth={1.8} /> : null
+}
+
+// ─── شريحة وسم صغيرة (مكان / نوع يوم / عطلة) ──────────────────────────────────
+function MetaTag({ icon: Icon, label, color }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color, background: `${color}15`, padding: '2px 8px', borderRadius: 7, border: `1px solid ${color}28` }}>
+      {Icon && <Icon size={10} color={color} strokeWidth={2.3} />}
+      {label}
+    </span>
+  )
 }
 
 export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [] }) {
@@ -285,14 +296,14 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       {/* ─── Header ─── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width:48, height:48, borderRadius:16, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 6px 24px ${C.primary}44`, flexShrink:0 }}><CalendarDays size={22} strokeWidth={2} color="#000" /></div>
+          <IconChip icon={CalendarDays} tone="brand" size={46} radius={14} iconSize={23} />
           <div>
             <div style={{ fontSize:20, fontWeight:900, color:C.text, letterSpacing:'-0.5px' }}>أيام العمل</div>
             <div style={{ fontSize:12, color:C.textDim, marginTop:2 }}>{workDays.length} يوم مسجل</div>
           </div>
           {pendingDays.length > 0 && (
-            <div style={{ background:GRAD.warm, borderRadius:24, padding:'4px 14px', fontSize:12, fontWeight:900, color:'#000', boxShadow:`0 4px 16px ${C.warning}55` }}>
-              {pendingDays.length} معلق
+            <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:`${C.warning}18`, borderRadius:24, padding:'5px 13px', fontSize:12, fontWeight:900, color:C.warning, border:`1px solid ${C.warning}40` }}>
+              <Clock size={12} strokeWidth={2.5} /> {pendingDays.length} معلق
             </div>
           )}
         </div>
@@ -335,9 +346,9 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
         const pendingToday  = todayDays.filter(wd => wd.status === 'pending').length
         const absentCount   = activeEmpsToday.filter(e => !presentIds.has(e.id)).length
         return (
-          <div style={{ marginBottom: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '12px 14px', border: `1px solid ${C.border}` }}>
+          <PremiumCard tone="brand" glow={false} radius={14} padding="12px 14px" style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: C.text, display:'flex', alignItems:'center', gap:6 }}><ClipboardList size={14} strokeWidth={2} style={{ color:C.primary }} /> الحضور اليوم</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: C.text, display:'flex', alignItems:'center', gap:7 }}><IconChip icon={ClipboardList} tone="brand" size={24} radius={8} iconSize={13} /> الحضور اليوم</span>
               <span style={{ fontSize: 10, color: C.textDim }}>{new Date().toLocaleDateString('ar-EG', { weekday:'long', day:'numeric', month:'long' })}</span>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: todayDays.length > 0 ? 10 : 0 }}>
@@ -367,7 +378,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 {todayDays.length > 8 && <span style={{ fontSize: 10, color: C.textDim, padding: '3px 6px' }}>+{todayDays.length - 8}</span>}
               </div>
             )}
-          </div>
+          </PremiumCard>
         )
       })()}
 
@@ -378,8 +389,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             <span style={{ fontSize:12, fontWeight:800, color:C.secondary, display:'flex', alignItems:'center', gap:6 }}><Search size={13} strokeWidth={2} /> فلترة الأيام</span>
             {hasFilter && (
               <button onClick={() => { setFilterEmp(''); setFilterProj(''); setFilterMonth('') }}
-                style={{ fontSize:11, color:C.accent, background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:8, padding:'4px 10px', cursor:'pointer', fontWeight:700 }}>
-                ✕ مسح الفلاتر
+                style={{ fontSize:11, color:C.accent, background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:8, padding:'4px 10px', cursor:'pointer', fontWeight:700, display:'inline-flex', alignItems:'center', gap:4 }}>
+                <X size={12} strokeWidth={2.5} /> مسح الفلاتر
               </button>
             )}
           </div>
@@ -443,35 +454,33 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             const busy    = approving === wd.id
             const holiday = holidayDates.has(String(wd.date).slice(0,10)) ? holidays.find(h => String(h.date).slice(0,10) === String(wd.date).slice(0,10)) : null
             return (
-              <div key={wd.id} style={{ borderRadius:20, marginBottom:12, overflow:'hidden', background:C.surface, boxShadow:`0 0 0 1px ${C.warning}33, 0 8px 32px ${C.warning}18` }}>
-                <div style={{ height:3, background:GRAD.warm }} />
-                <div style={{ padding:'16px 18px' }}>
+              <PremiumCard key={wd.id} tone="fair" radius={20} padding="16px 18px" style={{ marginBottom:12 }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:16, fontWeight:800, color:C.text, marginBottom:6 }}>{emp?.name || '؟'}</div>
-                      <div style={{ fontSize:12, color:C.textDim, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-                        <span>{fmtDateFull(wd.date)}</span>
-                        <span style={{ opacity:0.3 }}>•</span>
-                        <span>{proj?.name || '؟'}</span>
-                        <span style={{ opacity:0.3 }}>•</span>
-                        <span style={{ background:`${C.warning}22`, color:C.warning, padding:'2px 10px', borderRadius:12, fontSize:11, fontWeight:700, border:`1px solid ${C.warning}44` }}>{wd.day_type}</span>
-                        {holiday && <span style={{ background:`${C.orange}22`, color:C.orange, padding:'2px 10px', borderRadius:12, fontSize:11, fontWeight:700, border:`1px solid ${C.orange}44`, display:'inline-flex', alignItems:'center', gap:4 }}><Gift size={10} strokeWidth={2} /> {holiday.name}</span>}
+                    <div style={{ flex:1, display:'flex', alignItems:'flex-start', gap:11 }}>
+                      <IconChip icon={HardHat} tone="fair" size={38} radius={11} />
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:16, fontWeight:800, color:C.text, marginBottom:6 }}>{emp?.name || '؟'}</div>
+                        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                          <MetaTag icon={CalendarDays} label={fmtDateFull(wd.date)} color="#94A3B8" />
+                          <MetaTag icon={Building2} label={proj?.name || '؟'} color={C.secondary} />
+                          <MetaTag icon={DAY_ICONS[wd.day_type] || Clock} label={wd.day_type} color={C.warning} />
+                          {holiday && <MetaTag icon={Gift} label={holiday.name} color={C.orange} />}
+                        </div>
                       </div>
                     </div>
                     <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace', flexShrink:0, marginRight:8 }}>{fmt(wd.amount)}₪</div>
                   </div>
                   <div style={{ display:'flex', gap:10 }}>
                     <button onClick={() => handleApprove(wd.id)} disabled={busy}
-                      style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? C.border : GRAD.success, border:'none', color: busy ? C.textDim : '#fff', fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', boxShadow: busy ? 'none' : `0 4px 18px ${C.success}44`, transition:'all .2s' }}>
-                      {busy ? '...' : '✓ موافقة'}
+                      style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? C.border : GRAD.success, border:'none', color: busy ? C.textDim : '#fff', fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', boxShadow: busy ? 'none' : `0 4px 18px ${C.success}44`, transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                      {busy ? '...' : <><CheckCircle2 size={16} strokeWidth={2.5} /> موافقة</>}
                     </button>
                     <button onClick={() => { setRejectTarget(wd.id); setRejectReason('') }} disabled={busy}
-                      style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? 'transparent' : `${C.accent}12`, border:`1.5px solid ${busy ? C.border : C.accent + '55'}`, color: busy ? C.textDim : C.accent, fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', transition:'all .2s' }}>
-                      {busy ? '...' : '✗ رفض'}
+                      style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? 'transparent' : `${C.accent}12`, border:`1.5px solid ${busy ? C.border : C.accent + '55'}`, color: busy ? C.textDim : C.accent, fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                      {busy ? '...' : <><XCircle size={16} strokeWidth={2.5} /> رفض</>}
                     </button>
                   </div>
-                </div>
-              </div>
+              </PremiumCard>
             )
           })}
         </div>
@@ -479,7 +488,11 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
       {/* ─── Approved Days (grouped by month) ─── */}
       {sorted.length === 0 && pendingDays.length === 0
-        ? <EmptyState icon="📅" text="ما في أيام عمل مسجلة" action="سجّل أول يوم" onAction={openForm} />
+        ? <div style={{ textAlign:'center', padding:'52px 20px' }}>
+            <IconChip icon={CalendarDays} tone="brand" size={56} radius={17} iconSize={28} style={{ margin:'0 auto 16px' }} />
+            <div style={{ fontSize:14, color:C.textDim, marginBottom:22, lineHeight:1.7 }}>ما في أيام عمل مسجلة</div>
+            <Btn onClick={openForm}>سجّل أول يوم</Btn>
+          </div>
         : (() => {
             if (sorted.length === 0) return (
               <>
@@ -662,9 +675,11 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       <Modal open={showForm} onClose={closeForm} title={editingDay ? 'تعديل يوم عمل' : 'تسجيل يوم عمل'}
         action={activeEmps.length > 0 && activeProjs.length > 0
           ? <Btn onClick={save} full disabled={saving || (!rangeMode && !multiMode && (!form.employee_id || (!form.project_id && form.day_type !== 'عطلة'))) || (!rangeMode && multiMode && (multiEmps.size === 0 || (!form.project_id && form.day_type !== 'عطلة'))) || (rangeMode && !form.project_id && form.day_type !== 'عطلة')}>
-              {saving ? 'جاري الحفظ...' : rangeMode
-                ? `✓ سجّل ${(multiMode ? multiEmps.size : (form.employee_id ? 1 : 0)) * (dateFrom && dateTo && dateTo >= dateFrom ? getDatesInRange(dateFrom, dateTo).length : 0)} سجل`
-                : multiMode ? `✓ سجّل لـ ${multiEmps.size || '...'} عمال` : '✓ سجّل اليوم'}
+              <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                {saving ? <><Loader2 size={15} strokeWidth={2.5} style={{ animation:'spin .8s linear infinite' }} /> جاري الحفظ...</> : rangeMode
+                  ? <><Check size={15} strokeWidth={2.8} /> {`سجّل ${(multiMode ? multiEmps.size : (form.employee_id ? 1 : 0)) * (dateFrom && dateTo && dateTo >= dateFrom ? getDatesInRange(dateFrom, dateTo).length : 0)} سجل`}</>
+                  : multiMode ? <><Check size={15} strokeWidth={2.8} /> {`سجّل لـ ${multiEmps.size || '...'} عمال`}</> : <><Check size={15} strokeWidth={2.8} /> سجّل اليوم</>}
+              </span>
             </Btn>
           : null}
       >
@@ -915,7 +930,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               )}
 
               {formError && (
-                <div style={{ fontSize:12, color:C.accent, marginBottom:16, padding:'12px 16px', borderRadius:12, background:`${C.accent}10`, border:`1px solid ${C.accent}33` }}>⚠ {formError}</div>
+                <div style={{ fontSize:12, color:C.accent, marginBottom:16, padding:'12px 16px', borderRadius:12, background:`${C.accent}10`, border:`1px solid ${C.accent}33`, display:'flex', alignItems:'center', gap:7 }}><AlertTriangle size={14} strokeWidth={2.3} style={{ flexShrink:0 }} /> {formError}</div>
               )}
 
             </>
@@ -926,7 +941,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
       {/* ─── Reject with reason modal ─── */}
       <Modal open={!!rejectTarget} onClose={() => { setRejectTarget(null); setRejectReason('') }} title="رفض يوم العمل"
-        action={<Btn onClick={confirmReject} full style={{ background:`${C.accent}cc` }}>✗ تأكيد الرفض</Btn>}
+        action={<Btn onClick={confirmReject} full style={{ background:`${C.accent}cc` }}><span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}><XCircle size={15} strokeWidth={2.5} /> تأكيد الرفض</span></Btn>}
       >
         <div style={{ fontSize:13, color:C.textDim, marginBottom:14 }}>سيصل سبب الرفض للعامل في بوابته</div>
         <Input label="سبب الرفض (اختياري)" value={rejectReason} onChange={v => setRejectReason(v)} />
@@ -958,10 +973,13 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
               {/* Header */}
               <div style={{ padding:'16px 18px 12px', borderBottom:`1px solid ${C.border}`, display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
-                <div>
-                  <div style={{ fontSize:16, fontWeight:900, color:C.text, display:'flex', alignItems:'center', gap:6 }}><BarChart2 size={16} style={{ color:C.primary }} /> {emp.name}</div>
-                  <div style={{ fontSize:11, color:C.textDim, marginTop:3 }}>
-                    {totalDays} يوم عمل • {fmt(totalAmt)}₪ إجمالي
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <IconChip icon={HardHat} tone="brand" size={38} radius={11} />
+                  <div>
+                    <div style={{ fontSize:16, fontWeight:900, color:C.text }}>{emp.name}</div>
+                    <div style={{ fontSize:11, color:C.textDim, marginTop:3 }}>
+                      {totalDays} يوم عمل • {fmt(totalAmt)}₪ إجمالي
+                    </div>
                   </div>
                 </div>
                 <button onClick={() => setWorkerDetail(null)} style={{ width:30, height:30, borderRadius:'50%', background:C.border, border:'none', cursor:'pointer', color:C.text, display:'flex', alignItems:'center', justifyContent:'center' }}><X size={13} strokeWidth={2.5} /></button>
@@ -1038,18 +1056,18 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             {selectedDayIds.size > 0 && (
               <>
                 <button onClick={bulkApproveSelected} disabled={bulkSaving}
-                  style={{ padding:'10px 14px', borderRadius:12, background:`${C.success}22`, border:`1px solid ${C.success}55`, color:C.success, fontSize:12, fontWeight:800, cursor:'pointer' }}>
-                  ✓ موافقة
+                  style={{ padding:'10px 14px', borderRadius:12, background:`${C.success}22`, border:`1px solid ${C.success}55`, color:C.success, fontSize:12, fontWeight:800, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:5 }}>
+                  <CheckCircle2 size={14} strokeWidth={2.5} /> موافقة
                 </button>
                 <button onClick={() => setShowBulkProj(true)}
-                  style={{ padding:'10px 14px', borderRadius:12, background:GRAD.brand, border:'none', color:'#000', fontSize:12, fontWeight:800, cursor:'pointer' }}>
-                  🗂 مشروع
+                  style={{ padding:'10px 14px', borderRadius:12, background:GRAD.brand, border:'none', color:'#000', fontSize:12, fontWeight:800, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:5 }}>
+                  <FolderInput size={14} strokeWidth={2.5} /> مشروع
                 </button>
               </>
             )}
             <button onClick={exitBulkMode}
-              style={{ padding:'10px 12px', borderRadius:12, background:'transparent', border:`1px solid ${C.border}`, color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
-              ✕
+              style={{ padding:'10px 12px', borderRadius:12, background:'transparent', border:`1px solid ${C.border}`, color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center' }}>
+              <X size={14} strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -1061,12 +1079,15 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
           onClick={e => { if (e.target === e.currentTarget) { setShowBulkProj(false); setBulkProjId(''); setBulkError('') } }}>
           <div className="slide-up" style={{ width:'100%', maxWidth:480, background:C.surface, borderRadius:'20px 20px 0 0', padding:'20px 20px 20px', border:`1px solid ${C.borderMid}`, maxHeight:'calc(80vh - 80px)', overflowY:'auto', marginBottom:'max(72px, calc(66px + env(safe-area-inset-bottom, 0px)))' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-              <div>
-                <div style={{ fontSize:15, fontWeight:800, color:C.text }}>🗂 تعديل المشروع</div>
-                <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>تطبيق على {selectedDayIds.size} يوم محدد</div>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <IconChip icon={FolderInput} tone="brand" size={34} radius={10} />
+                <div>
+                  <div style={{ fontSize:15, fontWeight:800, color:C.text }}>تعديل المشروع</div>
+                  <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>تطبيق على {selectedDayIds.size} يوم محدد</div>
+                </div>
               </div>
               <button onClick={() => { setShowBulkProj(false); setBulkProjId(''); setBulkError('') }}
-                style={{ background:'none', border:`1px solid ${C.border}`, borderRadius:10, color:C.textDim, fontSize:16, cursor:'pointer', padding:'4px 10px' }}>✕</button>
+                style={{ background:'none', border:`1px solid ${C.border}`, borderRadius:10, color:C.textDim, cursor:'pointer', padding:'7px', display:'inline-flex', alignItems:'center' }}><X size={15} strokeWidth={2.5} /></button>
             </div>
 
             <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:16 }}>
@@ -1076,22 +1097,22 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   <button key={p.id} onClick={() => setBulkProjId(p.id)}
                     style={{ padding:'14px 16px', borderRadius:14, textAlign:'right', border:`1.5px solid ${sel ? C.primary : C.border}`, background: sel ? `${C.primary}18` : 'rgba(255,255,255,0.04)', color: sel ? C.primary : C.text, fontSize:13, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', transition:'all .15s' }}>
                     <span>{p.name}</span>
-                    {sel && <span style={{ fontSize:16, color:C.primary }}>✓</span>}
+                    {sel && <Check size={16} strokeWidth={3} style={{ color:C.primary }} />}
                   </button>
                 )
               })}
             </div>
 
             {bulkError && (
-              <div style={{ fontSize:11, color:C.accent, marginBottom:12, padding:'8px 12px', background:`${C.accent}12`, borderRadius:9 }}>
-                ⚠ {bulkError}
+              <div style={{ fontSize:11, color:C.accent, marginBottom:12, padding:'8px 12px', background:`${C.accent}12`, borderRadius:9, display:'flex', alignItems:'center', gap:6 }}>
+                <AlertTriangle size={13} strokeWidth={2.3} style={{ flexShrink:0 }} /> {bulkError}
               </div>
             )}
 
             <div style={{ display:'flex', gap:8 }}>
               <button onClick={applyBulkProject} disabled={!bulkProjId || bulkSaving}
-                style={{ flex:1, padding:'14px', borderRadius:14, background: !bulkProjId || bulkSaving ? C.border : GRAD.brand, border:'none', color: !bulkProjId || bulkSaving ? C.textDim : '#000', fontSize:14, fontWeight:800, cursor: !bulkProjId || bulkSaving ? 'default' : 'pointer', transition:'all .2s' }}>
-                {bulkSaving ? '⏳ جاري الحفظ...' : '✓ تطبيق'}
+                style={{ flex:1, padding:'14px', borderRadius:14, background: !bulkProjId || bulkSaving ? C.border : GRAD.brand, border:'none', color: !bulkProjId || bulkSaving ? C.textDim : '#000', fontSize:14, fontWeight:800, cursor: !bulkProjId || bulkSaving ? 'default' : 'pointer', transition:'all .2s', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                {bulkSaving ? <><Loader2 size={15} strokeWidth={2.5} style={{ animation:'spin .8s linear infinite' }} /> جاري الحفظ...</> : <><Check size={15} strokeWidth={2.8} /> تطبيق</>}
               </button>
               <button onClick={() => { setShowBulkProj(false); setBulkProjId(''); setBulkError('') }}
                 style={{ padding:'14px 20px', borderRadius:14, background:'transparent', border:`1px solid ${C.border}`, color:C.textDim, fontSize:14, fontWeight:700, cursor:'pointer' }}>
