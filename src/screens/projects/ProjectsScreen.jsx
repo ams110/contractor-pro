@@ -20,6 +20,7 @@ import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { calcProjectStats as _calcStats, calcOwnerCash } from '../../lib/calculations.js'
 import { computeProjectHealth } from '../../lib/insights.js'
 import ProjectHealth from '../../components/ProjectHealth.jsx'
+import ProjectCard from '../../components/ProjectCard.jsx'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useDataStore } from '../../store/useDataStore.js'
 // useProjectBusinessLinks removed — projects now use direct business_id FK
@@ -1021,96 +1022,18 @@ export default function ProjectsScreen({
           <div style={{ fontSize: 12, color: C.textDim }}>{language === 'he' ? 'הוסף את הפרויקט הראשון שלך' : language === 'en' ? 'Add your first project' : 'أضف مشروعك الأول'}</div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map((project, i) => {
             const stats = calcProjectStats(project, workDays, expenses, clientReceipts, employees, payments)
-            const isProfit = stats.profit >= 0
             return (
-              <PremiumCard key={project.id}
-                color={statusColor(project.status)}
+              <ProjectCard key={project.id}
+                project={project}
+                stats={stats}
+                businessName={businesses.find(b => b.id === project.business_id)?.name}
+                lang={language}
+                onOpen={setSelected}
                 delay={Math.min(i * 0.04, 0.3)}
-                radius={18}
-                padding="14px 14px"
-                onClick={() => setSelected(project)}>
-
-                {/* Status indicator */}
-                <div style={{ position: 'absolute', top: 0, insetInlineStart: 0, width: 3, height: '100%', background: statusColor(project.status), borderRadius: '0 3px 3px 0', zIndex: 1 }} />
-
-                <div style={{ paddingInlineStart: 8 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: statusColor(project.status), background: `${statusColor(project.status)}18`, padding: '2px 7px', borderRadius: 6 }}>{project.status || 'نشط'}</span>
-                        {project.type && <span style={{ fontSize: 10, color: C.textDim }}>{project.type}</span>}
-                        {project.ref_number && <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.04em' }}>{project.ref_number}</span>}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'end', flexShrink: 0, marginInlineStart: 8 }}>
-                      <div style={{ fontSize: 15, fontWeight: 900, color: isProfit ? C.success : C.accent }}>
-                        {isProfit ? '+' : ''}₪{fmt(stats.profit)}
-                      </div>
-                      {stats.margin && <div style={{ fontSize: 9, color: C.textDim }}>{stats.margin}%</div>}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                    {[
-                      { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'إيرادات', value: `₪${fmt(stats.revenue)}`, color: C.success },
-                      { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'التكاليف', value: `₪${fmt(stats.cost)}`, color: C.accent },
-                      { label: language === 'he' ? 'ימים' : language === 'en' ? 'Days' : 'أيام', value: stats.wdCount, color: C.primary },
-                    ].map(({ label, value, color }) => (
-                      <div key={label} style={{ background: C.card, borderRadius: 10, padding: '7px 8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color }}>{value}</div>
-                        <div style={{ fontSize: 9, color: C.textDim, marginTop: 1 }}>{label}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {project.type === 'مقاولة مغلقة' && project.price > 0 && (() => {
-                    const remaining = project.price - stats.revenue
-                    return (
-                      <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px', background: `${C.primary}10`, border: `1px solid ${C.primary}28`, borderRadius: 8 }}>
-                          <Banknote size={10} color={C.primary} strokeWidth={2} />
-                          <span style={{ fontSize: 9, color: C.primary, fontWeight: 700 }}>الصفقة: ₪{fmt(project.price)}</span>
-                        </div>
-                        {remaining > 0 ? (
-                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', borderRadius: 8 }}>
-                            <Clock size={10} color={C.warning} strokeWidth={2} />
-                            <span style={{ fontSize: 9, color: C.warning, fontWeight: 700 }}>متبقي: ₪{fmt(remaining)}</span>
-                          </div>
-                        ) : (
-                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px', background: `${C.success}10`, border: `1px solid ${C.success}28`, borderRadius: 8 }}>
-                            <CheckCircle2 size={10} color={C.success} strokeWidth={2} />
-                            <span style={{ fontSize: 9, color: C.success, fontWeight: 700 }}>مكتمل التحصيل</span>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })()}
-
-                  {stats.pending > 0 && (
-                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, padding: '5px 8px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: 8 }}>
-                      <AlertTriangle size={11} color={C.warning} strokeWidth={2} />
-                      <span style={{ fontSize: 10, color: C.warning, fontWeight: 700 }}>{stats.pending} {language === 'he' ? 'ממתינים' : language === 'en' ? 'pending' : 'بانتظار الموافقة'}</span>
-                    </div>
-                  )}
-
-                  {/* شارة المصلحة */}
-                  {(() => {
-                    const biz = businesses.find(b => b.id === project.business_id)
-                    if (!biz) return null
-                    return (
-                      <div style={{ marginTop: 8 }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 20, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                          <Building2 size={8} strokeWidth={2} /> {biz.name}
-                        </span>
-                      </div>
-                    )
-                  })()}
-                </div>
-              </PremiumCard>
+              />
             )
           })}
         </div>
