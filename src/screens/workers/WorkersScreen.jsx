@@ -24,6 +24,7 @@ import {
 import WorkDaysScreen from '../WorkDaysScreen.jsx'
 import WorkerDNA, { WorkerDNABadge } from '../../components/WorkerDNA.jsx'
 import WorkerCard from '../../components/WorkerCard.jsx'
+import WorkDayTicket from '../../components/WorkDayTicket.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { PremiumCard, IconChip, PremiumStat } from '../../ui/Premium.jsx'
 import QRCode from 'qrcode'
@@ -367,24 +368,18 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
               <div style={{ textAlign: 'center', padding: '40px', color: C.textDim, fontSize: 13 }}>
                 {language === 'he' ? 'אין ימי עבודה' : language === 'en' ? 'No work days' : 'لا توجد أيام عمل'}
               </div>
-            ) : wWorkers.slice().reverse().map((wd, i) => {
-              const project = projects?.find(p => p.id === wd.project_id)
-              return (
-                <PremiumCard key={wd.id} tone="premium" glow={false} radius={14} padding="10px 12px" delay={Math.min(i * 0.03, 0.3)} style={{ marginBottom: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <IconChip icon={Calendar} tone="premium" size={32} radius={10} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{fmtDate(wd.date)}</div>
-                    <div style={{ fontSize: 10, color: C.textDim }}>{project?.name || ''} · {wd.day_type}</div>
-                  </div>
-                  <div style={{ textAlign: 'end' }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: C.secondary }}>₪{fmt(wd.daily_rate || 0)}</div>
-                    {wd.status === 'pending' && <div style={{ fontSize: 9, color: C.warning, marginTop: 1 }}>{language === 'he' ? 'ממתין' : language === 'en' ? 'Pending' : 'معلق'}</div>}
-                  </div>
-                  </div>
-                </PremiumCard>
-              )
-            })}
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {wWorkers.slice().reverse().map((wd, i) => {
+                  const project = projects?.find(p => p.id === wd.project_id)
+                  return (
+                    <WorkDayTicket key={wd.id} wd={wd} hideName
+                      projectName={project?.name || ''} lang={language}
+                      notchColor={C.bg} delay={Math.min(i * 0.03, 0.3)} />
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 

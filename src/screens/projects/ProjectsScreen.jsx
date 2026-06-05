@@ -21,6 +21,7 @@ import { calcProjectStats as _calcStats, calcOwnerCash } from '../../lib/calcula
 import { computeProjectHealth } from '../../lib/insights.js'
 import ProjectHealth from '../../components/ProjectHealth.jsx'
 import ProjectCard from '../../components/ProjectCard.jsx'
+import WorkDayTicket from '../../components/WorkDayTicket.jsx'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useDataStore } from '../../store/useDataStore.js'
 // useProjectBusinessLinks removed — projects now use direct business_id FK
@@ -595,28 +596,23 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
               <div style={{ textAlign: 'center', padding: '40px 20px', color: C.textDim, fontSize: 13 }}>
                 {language === 'he' ? 'אין ימי עבודה' : language === 'en' ? 'No work days yet' : 'لا توجد أيام عمل'}
               </div>
-            ) : pWorkDays.map(wd => {
-              const emp = employees.find(e => e.id === wd.employee_id)
-              return (
-                <PremiumCard key={wd.id} tone="brand" glow={false} radius={14} padding="10px 12px" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <IconChip icon={Calendar} tone="brand" size={32} radius={10} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{emp?.name || '—'}</div>
-                    <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(wd.date)}{wd.day_type ? ` · ${wd.day_type}` : ''}</div>
-                  </div>
-                  <div style={{ textAlign: 'end' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>₪{fmt(wd.amount || 0)}</div>
-                    {wd.status === 'pending' && <div style={{ fontSize: 9, color: C.warning, fontWeight: 700 }}>بانتظار الموافقة</div>}
-                    {wd.status === 'approved' && <div style={{ fontSize: 9, color: C.success, fontWeight: 700 }}>معتمد</div>}
-                  </div>
-                  {wd.status === 'pending' && permissions?.isOwner && (
-                    <button onClick={() => approveWorkDay(wd.id)} style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: C.success, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Check size={13} strokeWidth={2.5} />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {pWorkDays.map((wd, i) => {
+                  const emp = employees.find(e => e.id === wd.employee_id)
+                  const actions = (wd.status === 'pending' && permissions?.isOwner) ? (
+                    <button onClick={() => approveWorkDay(wd.id)} style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: C.success, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Check size={14} strokeWidth={2.5} />
                     </button>
-                  )}
-                </PremiumCard>
-              )
-            })}
+                  ) : null
+                  return (
+                    <WorkDayTicket key={wd.id} wd={wd} name={emp?.name || '—'}
+                      lang={language} notchColor={C.bg} actions={actions}
+                      delay={Math.min(i * 0.03, 0.3)} />
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 
