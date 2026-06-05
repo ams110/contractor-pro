@@ -52,20 +52,17 @@ def make_svg(size):
     return svg
 
 def make_badge_svg(size):
-    # Notification badge (Android tints by alpha) → solid white HardHat
-    # silhouette on a transparent background. No gradient square.
+    # Notification badge — Android tints by alpha and shrinks to ~24dp, so the
+    # standard Lucide HardHat outline reads as an unrecognizable blob there.
+    # Instead we draw ONE continuous SOLID hard-hat silhouette: the dome flares
+    # smoothly into a curved brim with no gap, which stays legible at tiny size.
     r = size
-    scale = r / 24
+    # Single filled path in 24-unit space, scaled to fill the icon with margin.
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg"
      width="{r}" height="{r}" viewBox="0 0 {r} {r}">
-  <g transform="translate({r*0.16:.1f},{r*0.16:.1f}) scale({r*0.68/24:.4f})"
-     fill="none" stroke="white" stroke-width="2.5"
-     stroke-linecap="round" stroke-linejoin="round">
-    <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2H2z"/>
-    <path d="M20 15a1 1 0 0 0 1-1v-4a8 8 0 1 0-16 0v4a1 1 0 0 0 1 1z"/>
-    <path d="M9 15v1"/>
-    <path d="M15 15v1"/>
-    <path d="M12 15v2"/>
+  <g transform="translate({r*0.085:.2f},{r*0.085:.2f}) scale({r*0.83/24:.4f})"
+     fill="white">
+    <path d="M12 4.3c-3.9 0-6.7 2.9-6.7 6.8v2.3c-1.4.1-2.8.4-2.8 1.9 0 1.6 1.7 2.1 3.6 2.1h11.8c1.9 0 3.6-.5 3.6-2.1 0-1.5-1.4-1.8-2.8-1.9v-2.3c0-3.9-2.8-6.8-6.7-6.8z"/>
   </g>
 </svg>"""
     return svg
