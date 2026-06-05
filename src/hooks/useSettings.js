@@ -12,7 +12,7 @@ const DEFAULT_TAX_MODULES = {
 
 const DEFAULTS = {
   specs: SPECS, expCats: EXP_CATS, payMethods: PAY_METHODS,
-  taxEnabled: true, businessType: 'osek_moreh',
+  taxEnabled: true,
   taxModules: DEFAULT_TAX_MODULES,
 }
 
@@ -65,8 +65,6 @@ export function useSettings(userId) {
 
   function setTaxEnabled(val) { save({ ...settings, taxEnabled: !!val }) }
 
-  function setBusinessType(val) { save({ ...settings, businessType: val }) }
-
   function setTaxModule(moduleKey, val) {
     save({ ...settings, taxModules: { ...settings.taxModules, [moduleKey]: !!val } })
   }
@@ -84,14 +82,12 @@ export function useSettings(userId) {
     payMethods:     settings.payMethods || PAY_METHODS,
     pensionMonthly: settings.pensionMonthly || 0,
     taxEnabled:     settings.taxEnabled !== false,
-    businessType:   settings.businessType || 'osek_moreh',
     taxModules:     settings.taxModules || DEFAULT_TAX_MODULES,
     addSpec,        removeSpec,
     addExpCat,      removeExpCat,
     addPayMethod,   removePayMethod,
     setPensionMonthly,
     setTaxEnabled,
-    setBusinessType,
     setTaxModule,
   }
 }
