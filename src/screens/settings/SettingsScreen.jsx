@@ -20,6 +20,8 @@ import { computeAccountReadiness } from '../../lib/accountReadiness.js'
 import AccountReadiness from '../../components/AccountReadiness.jsx'
 import { exportAllDataJSON } from '../../lib/export.js'
 import { fmtDate } from '../../lib/helpers.js'
+import { computeListUsage } from '../../lib/listUsage.js'
+import SmartList from '../../components/SmartList.jsx'
 
 const LANGS = [
   { code: 'ar', label: 'العربية', flag: '🇸🇦', dir: 'rtl' },
@@ -247,6 +249,11 @@ export default function SettingsScreen({
     dailySpendLimit: appCfg?.config?.daily_spend_limit,
   }), [profile?.display_name, profile?.avatar_url, profile?.contractor_number, pensionMonthly, hasPasskey, permission, appCfg?.config?.daily_spend_limit])
 
+  // استخدام القوائم الحقيقي — لكل قسم بصمته من البيانات
+  const specUsage = useMemo(() => computeListUsage(specs, employees, { countKey: 'specialty' }), [specs, employees])
+  const catUsage  = useMemo(() => computeListUsage(expCats, expenses, { countKey: 'category', amountKey: 'amount' }), [expCats, expenses])
+  const payUsage  = useMemo(() => computeListUsage(payMethods, payments, { countKey: 'method', amountKey: 'amount' }), [payMethods, payments])
+
   // مجموعات الإعدادات القابلة للطيّ — «حسابي» مفتوحة افتراضياً
   const [openGroups, setOpenGroups] = useState({ account: true })
   const toggleGroup = (id) => setOpenGroups(g => ({ ...g, [id]: !g[id] }))
@@ -374,85 +381,37 @@ export default function SettingsScreen({
         </div>
       </Section>
 
-      {/* ── Specialties ── */}
+      {/* ── Specialties — خريطة مهارات الطاقم ── */}
       <Section title={t('settings.specs')}>
-        <div style={{ padding: '12px 16px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-            {specs.map(s => (
-              <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: `${C.primary}15`, border: `1px solid ${C.primary}28`, borderRadius: 9 }}>
-                <span style={{ fontSize: 11, color: C.primary, fontWeight: 700 }}>{s}</span>
-                <button onClick={() => removeSpec?.(s)} style={{ background: 'none', border: 'none', color: C.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}>
-                  <Trash2 size={10} strokeWidth={2} />
-                </button>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 7 }}>
-            <input value={newSpec} onChange={e => setNewSpec(e.target.value)}
-              placeholder={language === 'en' ? 'New specialty...' : language === 'he' ? 'התמחות חדשה...' : 'تخصص جديد...'}
-              style={{ flex: 1, padding: '8px 11px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
-              onKeyDown={e => { if (e.key === 'Enter' && newSpec.trim()) { addSpec?.(newSpec.trim()); setNewSpec('') } }}
-            />
-            <button onClick={() => { if (newSpec.trim()) { addSpec?.(newSpec.trim()); setNewSpec('') } }}
-              style={{ padding: '8px 14px', borderRadius: 10, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-              <Plus size={13} strokeWidth={2.5} />
-            </button>
-          </div>
-        </div>
+        <SmartList
+          icon={HardHat} accent={C.primary} variant="cloud"
+          title={language === 'he' ? 'מפת מיומנויות הצוות' : language === 'en' ? 'Crew skills map' : 'خريطة مهارات الطاقم'}
+          usage={specUsage} onAdd={addSpec} onRemove={removeSpec}
+          addPlaceholder={language === 'en' ? 'New specialty...' : language === 'he' ? 'התמחות חדשה...' : 'تخصص جديد...'}
+          language={language}
+        />
       </Section>
 
-      {/* ── Expense Categories ── */}
+      {/* ── Expense Categories — توزيع الإنفاق ── */}
       <Section title={t('settings.categories')}>
-        <div style={{ padding: '12px 16px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-            {expCats.map(c => (
-              <div key={c} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: `${C.accent}12`, border: `1px solid ${C.accent}25`, borderRadius: 9 }}>
-                <span style={{ fontSize: 11, color: C.accent, fontWeight: 700 }}>{c}</span>
-                <button onClick={() => removeExpCat?.(c)} style={{ background: 'none', border: 'none', color: C.accent, cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}>
-                  <Trash2 size={10} strokeWidth={2} />
-                </button>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 7 }}>
-            <input value={newCat} onChange={e => setNewCat(e.target.value)}
-              placeholder={language === 'en' ? 'New category...' : language === 'he' ? 'קטגוריה חדשה...' : 'فئة جديدة...'}
-              style={{ flex: 1, padding: '8px 11px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
-              onKeyDown={e => { if (e.key === 'Enter' && newCat.trim()) { addExpCat?.(newCat.trim()); setNewCat('') } }}
-            />
-            <button onClick={() => { if (newCat.trim()) { addExpCat?.(newCat.trim()); setNewCat('') } }}
-              style={{ padding: '8px 14px', borderRadius: 10, background: GRAD.danger, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-              <Plus size={13} strokeWidth={2.5} />
-            </button>
-          </div>
-        </div>
+        <SmartList
+          icon={CreditCard} accent={C.gold} variant="bars" valueMode="amount"
+          title={language === 'he' ? 'פילוח הוצאות' : language === 'en' ? 'Spend breakdown' : 'توزيع الإنفاق'}
+          usage={catUsage} onAdd={addExpCat} onRemove={removeExpCat}
+          addPlaceholder={language === 'en' ? 'New category...' : language === 'he' ? 'קטגוריה חדשה...' : 'فئة جديدة...'}
+          language={language}
+        />
       </Section>
 
-      {/* ── Payment Methods ── */}
+      {/* ── Payment Methods — مزيج الدفع ── */}
       <Section title={t('settings.payMethods')}>
-        <div style={{ padding: '12px 16px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-            {payMethods.map(m => (
-              <div key={m} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: `${C.secondary}12`, border: `1px solid ${C.secondary}25`, borderRadius: 9 }}>
-                <span style={{ fontSize: 11, color: C.secondary, fontWeight: 700 }}>{m}</span>
-                <button onClick={() => removePayMethod?.(m)} style={{ background: 'none', border: 'none', color: C.secondary, cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}>
-                  <Trash2 size={10} strokeWidth={2} />
-                </button>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 7 }}>
-            <input value={newMethod} onChange={e => setNewMethod(e.target.value)}
-              placeholder={language === 'en' ? 'New method...' : language === 'he' ? 'אמצעי חדש...' : 'طريقة جديدة...'}
-              style={{ flex: 1, padding: '8px 11px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
-              onKeyDown={e => { if (e.key === 'Enter' && newMethod.trim()) { addPayMethod?.(newMethod.trim()); setNewMethod('') } }}
-            />
-            <button onClick={() => { if (newMethod.trim()) { addPayMethod?.(newMethod.trim()); setNewMethod('') } }}
-              style={{ padding: '8px 14px', borderRadius: 10, background: GRAD.premium, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-              <Plus size={13} strokeWidth={2.5} />
-            </button>
-          </div>
-        </div>
+        <SmartList
+          icon={Banknote} accent={C.secondary} variant="bars" valueMode="amount"
+          title={language === 'he' ? 'תמהיל תשלום' : language === 'en' ? 'Payment mix' : 'مزيج الدفع'}
+          usage={payUsage} onAdd={addPayMethod} onRemove={removePayMethod}
+          addPlaceholder={language === 'en' ? 'New method...' : language === 'he' ? 'אמצעי חדש...' : 'طريقة جديدة...'}
+          language={language}
+        />
       </Section>
 
       </CollapsibleGroup>
