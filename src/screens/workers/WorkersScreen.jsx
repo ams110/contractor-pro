@@ -23,8 +23,10 @@ import {
 } from '../../components/WorkerInsights.jsx'
 import WorkDaysScreen from '../WorkDaysScreen.jsx'
 import WorkerDNA, { WorkerDNABadge } from '../../components/WorkerDNA.jsx'
+import WorkerCard from '../../components/WorkerCard.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { PremiumCard, IconChip, PremiumStat } from '../../ui/Premium.jsx'
+import QRCode from 'qrcode'
 
 // ─── بصمة العامل: يبني مدخلات المحرّك من البيانات الخام ──────────────────────────
 function buildWorkerDNA(worker, { workDays, payments, advances, expenses, fleetAvgPerDay }) {
@@ -495,6 +497,12 @@ export default function WorkersScreen({
   const [showAdd, setShowAdd] = useState(false)
   const [selected, setSelected] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null) // worker to delete
+  const [portalQr, setPortalQr] = useState('')             // QR رابط البوّابة (مشترك للبطاقات)
+
+  useEffect(() => {
+    QRCode.toDataURL(PORTAL_URL, { margin: 1, width: 320, color: { dark: '#0D0F1C', light: '#ffffff' } })
+      .then(setPortalQr).catch(() => {})
+  }, [])
 
   async function handleDeleteWorker(worker) {
     const sig = await bioConfirm(`حذف العامل: ${worker.name}`, 'employees')
@@ -701,69 +709,20 @@ export default function WorkersScreen({
           <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 }}>{t('workers.empty')}</div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {filtered.map((worker, i) => {
-            const ws = workerStats[worker.id] || {}
-            return (
-              <PremiumCard key={worker.id}
-                tone="premium"
-                radius={18}
-                padding="14px"
-                delay={Math.min(i * 0.04, 0.3)}
-                onClick={() => setSelected(worker)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: ws.balance > 0 ? 10 : 0 }}>
-                  <Avatar name={worker.name} size={44} color={C.secondary} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{worker.name}</div>
-                      {dnaMap[worker.id] && <WorkerDNABadge dna={dnaMap[worker.id]} />}
-                      {anomalyMap[worker.id]?.total > 0 && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 800,
-                          color: anomalyMap[worker.id].high > 0 ? C.accent : C.warning,
-                          background: `${anomalyMap[worker.id].high > 0 ? C.accent : C.warning}14`,
-                          border: `1px solid ${anomalyMap[worker.id].high > 0 ? C.accent : C.warning}30`,
-                          borderRadius: 6, padding: '2px 6px' }}>
-                          <AlertTriangle size={9} strokeWidth={2.5} />
-                          {anomalyMap[worker.id].total}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{worker.specialty || ''} {worker.phone ? `· ${worker.phone}` : ''}</div>
-                  </div>
-                  <div style={{ textAlign: 'end' }}>
-                    <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>
-                      {language === 'he' ? 'מאזן' : language === 'en' ? 'Balance' : 'الرصيد'}
-                    </div>
-                    <div style={{ fontSize: 14, fontWeight: 900, color: ws.balance > 0 ? C.warning : C.success }}>
-                      ₪{fmt(Math.abs(ws.balance || 0))}
-                    </div>
-                  </div>
-                </div>
-
-                {(ws.days > 0 || ws.balance > 0) && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                    {[
-                      { label: language === 'he' ? 'הרוויח' : language === 'en' ? 'Earned' : 'المستحق', value: `₪${fmt(ws.earned || 0)}`, color: C.success },
-                      { label: language === 'he' ? 'שולם' : language === 'en' ? 'Paid' : 'المدفوع', value: `₪${fmt(ws.paid || 0)}`, color: C.secondary },
-                      { label: language === 'he' ? 'ימים' : language === 'en' ? 'Days' : 'أيام', value: ws.days || 0, color: C.primary },
-                    ].map(({ label, value, color }) => (
-                      <div key={label} style={{ background: `${color}12`, border: `1px solid ${color}24`, borderRadius: 10, padding: '7px 8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color }}>{value}</div>
-                        <div style={{ fontSize: 9, color: C.textDim, marginTop: 1 }}>{label}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {ws.pending > 0 && (
-                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, padding: '5px 8px', background: `${C.warning}14`, border: `1px solid ${C.warning}33`, borderRadius: 8 }}>
-                    <AlertTriangle size={11} color={C.warning} strokeWidth={2} />
-                    <span style={{ fontSize: 10, color: C.warning, fontWeight: 700 }}>{ws.pending} {language === 'he' ? 'ממתינים' : language === 'en' ? 'pending' : 'بانتظار الموافقة'}</span>
-                  </div>
-                )}
-              </PremiumCard>
-            )
-          })}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {filtered.map((worker, i) => (
+            <WorkerCard key={worker.id}
+              worker={worker}
+              stats={workerStats[worker.id] || {}}
+              dna={dnaMap[worker.id]}
+              anomaly={anomalyMap[worker.id]}
+              lang={language}
+              qr={portalQr}
+              portalUrl={PORTAL_URL}
+              onOpen={setSelected}
+              delay={Math.min(i * 0.04, 0.3)}
+            />
+          ))}
         </div>
       )}
 
