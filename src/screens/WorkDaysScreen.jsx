@@ -4,6 +4,9 @@ import { C, GRAD, DAY_TYPES } from '../constants/index.js'
 import { fmt, fmtDate, fmtDateFull, todayStr, calcSalary, validateWorkDay } from '../lib/helpers.js'
 import { GlassCard, Modal, Input, Btn, Badge, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
+import WorkDayTicket from '../components/WorkDayTicket.jsx'
+import WorkMonthHeader from '../components/WorkMonthHeader.jsx'
+import WorkerMonthStrip from '../components/WorkerMonthStrip.jsx'
 import { exportWorkDaysToExcel } from '../lib/export.js'
 
 const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange, 'عطلة': C.textDim }
@@ -454,33 +457,25 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             const busy    = approving === wd.id
             const holiday = holidayDates.has(String(wd.date).slice(0,10)) ? holidays.find(h => String(h.date).slice(0,10) === String(wd.date).slice(0,10)) : null
             return (
-              <PremiumCard key={wd.id} tone="fair" radius={20} padding="16px 18px" style={{ marginBottom:12 }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
-                    <div style={{ flex:1, display:'flex', alignItems:'flex-start', gap:11 }}>
-                      <IconChip icon={HardHat} tone="fair" size={38} radius={11} />
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:16, fontWeight:800, color:C.text, marginBottom:6 }}>{emp?.name || '؟'}</div>
-                        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
-                          <MetaTag icon={CalendarDays} label={fmtDateFull(wd.date)} color="#94A3B8" />
-                          <MetaTag icon={Building2} label={proj?.name || '؟'} color={C.secondary} />
-                          <MetaTag icon={DAY_ICONS[wd.day_type] || Clock} label={wd.day_type} color={C.warning} />
-                          {holiday && <MetaTag icon={Gift} label={holiday.name} color={C.orange} />}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace', flexShrink:0, marginRight:8 }}>{fmt(wd.amount)}₪</div>
-                  </div>
-                  <div style={{ display:'flex', gap:10 }}>
-                    <button onClick={() => handleApprove(wd.id)} disabled={busy}
-                      style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? C.border : GRAD.success, border:'none', color: busy ? C.textDim : '#fff', fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', boxShadow: busy ? 'none' : `0 4px 18px ${C.success}44`, transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-                      {busy ? '...' : <><CheckCircle2 size={16} strokeWidth={2.5} /> موافقة</>}
-                    </button>
-                    <button onClick={() => { setRejectTarget(wd.id); setRejectReason('') }} disabled={busy}
-                      style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? 'transparent' : `${C.accent}12`, border:`1.5px solid ${busy ? C.border : C.accent + '55'}`, color: busy ? C.textDim : C.accent, fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-                      {busy ? '...' : <><XCircle size={16} strokeWidth={2.5} /> رفض</>}
-                    </button>
-                  </div>
-              </PremiumCard>
+              <div key={wd.id} style={{ marginBottom:12 }}>
+                <WorkDayTicket
+                  wd={wd}
+                  name={emp?.name}
+                  projectName={proj?.name}
+                  holidayName={holiday?.name}
+                  notchColor={C.bg}
+                />
+                <div style={{ display:'flex', gap:10, marginTop:8 }}>
+                  <button onClick={() => handleApprove(wd.id)} disabled={busy}
+                    style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? C.border : GRAD.success, border:'none', color: busy ? C.textDim : '#fff', fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', boxShadow: busy ? 'none' : `0 4px 18px ${C.success}44`, transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                    {busy ? '...' : <><CheckCircle2 size={16} strokeWidth={2.5} /> موافقة</>}
+                  </button>
+                  <button onClick={() => { setRejectTarget(wd.id); setRejectReason('') }} disabled={busy}
+                    style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? 'transparent' : `${C.accent}12`, border:`1.5px solid ${busy ? C.border : C.accent + '55'}`, color: busy ? C.textDim : C.accent, fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                    {busy ? '...' : <><XCircle size={16} strokeWidth={2.5} /> رفض</>}
+                  </button>
+                </div>
+              </div>
             )
           })}
         </div>
@@ -510,6 +505,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             })
             const monthEntries = Object.entries(byMonth).sort(([a], [b]) => b.localeCompare(a))
             const currentMonth = new Date().toISOString().slice(0, 7)
+            const totalsByMonth = Object.fromEntries(monthEntries.map(([mk, ds]) => [mk, ds.reduce((s, d) => s + (d.amount || 0), 0)]))
 
             return (
               <>
@@ -545,28 +541,37 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   const [y, m]    = month.split('-')
                   const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
                   const monthLabel = `${MONTHS_AR[parseInt(m,10)-1]} ${y}`
+                  const workerCount = new Set(days.map(d => d.employee_id)).size
+                  // مخطّط النشاط: مجموع الصرف لكل يوم من أيام الشهر
+                  const daysInMonth = new Date(parseInt(y,10), parseInt(m,10), 0).getDate()
+                  const bars = new Array(daysInMonth).fill(0)
+                  days.forEach(d => { const dn = parseInt(String(d.date||'').slice(8,10),10); if (dn>=1 && dn<=daysInMonth) bars[dn-1] += (d.amount||0) })
+                  // الاتجاه مقابل الشهر السابق
+                  const prevKey = (() => { let yy=parseInt(y,10), mm=parseInt(m,10)-1; if(mm<1){mm=12;yy--} return `${yy}-${String(mm).padStart(2,'0')}` })()
+                  const prevTotal = totalsByMonth[prevKey] || 0
+                  const trendPct  = prevTotal > 0 ? Math.round((totalAmt - prevTotal) / prevTotal * 100) : null
 
                   return (
                     <div key={month} style={{ marginBottom:10 }}>
                       {/* Month header */}
-                      <button
-                        onClick={() => setOpenMonths(prev => {
+                      <WorkMonthHeader
+                        label={monthLabel}
+                        monthNum={parseInt(m,10)}
+                        year={y}
+                        total={totalAmt}
+                        workDays={workDaysOnly.length}
+                        holidays={holidayDays.length}
+                        workerCount={workerCount}
+                        isCurrent={isCurrent}
+                        isOpen={isOpen}
+                        trendPct={trendPct}
+                        bars={bars}
+                        onToggle={() => setOpenMonths(prev => {
                           const next = new Set(prev)
                           next.has(month) ? next.delete(month) : next.add(month)
                           return next
                         })}
-                        style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 18px', borderRadius: isOpen ? '16px 16px 0 0' : 16, background: isCurrent ? `${C.primary}12` : 'rgba(255,255,255,0.05)', border:`1.5px solid ${isCurrent ? C.primary + '44' : C.border}`, cursor:'pointer', transition:'all .2s' }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                          <span style={{ fontSize:15, fontWeight:800, color: isCurrent ? C.primary : C.text }}>{monthLabel}</span>
-                          <span style={{ fontSize:11, color:C.textDim, background:'rgba(255,255,255,0.06)', padding:'2px 10px', borderRadius:20, fontWeight:600 }}>
-                            {workDaysOnly.length} يوم{holidayDays.length > 0 ? ` · ${holidayDays.length} عطلة` : ''}
-                          </span>
-                        </div>
-                        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                          <span style={{ fontSize:16, fontWeight:900, color: isCurrent ? C.primary : C.success, fontFamily:'monospace' }}>{fmt(totalAmt)}₪</span>
-                          <ChevronDown size={14} style={{ color:C.textDim, transition:'transform .2s', transform: isOpen ? 'rotate(180deg)' : 'none' }} />
-                        </div>
-                      </button>
+                      />
 
                       {/* Workers inside month */}
                       {isOpen && (() => {
@@ -593,70 +598,58 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                 next.has(workerKey) ? next.delete(workerKey) : next.add(workerKey)
                                 return next
                               })
+                              const wkWorkDays = wdays.filter(d => d.day_type !== 'عطلة').length
+                              const wkHolidays = wdays.filter(d => d.day_type === 'عطلة').length
+                              const wkBars = new Array(daysInMonth).fill(0)
+                              wdays.forEach(d => { const dn = parseInt(String(d.date||'').slice(8,10),10); if (dn>=1 && dn<=daysInMonth) wkBars[dn-1] += (d.amount||0) })
                               return (
                                 <div key={empId} style={{ borderBottom: wi < workerEntries.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                                  {/* Worker row */}
-                                  <button onClick={toggleWorker}
-                                    style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'11px 16px', background: workerOpen ? 'rgba(255,255,255,0.05)' : 'transparent', border:'none', cursor:'pointer' }}>
-                                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                                      <div style={{ width:32, height:32, borderRadius:10, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:900, color:'#000', flexShrink:0 }}>
-                                        {emp?.name?.[0] || '؟'}
-                                      </div>
-                                      <div style={{ textAlign:'right' }}>
-                                        <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{emp?.name || '؟'}</div>
-                                        <div style={{ fontSize:10, color:C.textDim, marginTop:1 }}>
-                                          {wdays.filter(d => d.day_type !== 'عطلة').length} يوم{wdays.filter(d => d.day_type === 'عطلة').length > 0 ? ` · ${wdays.filter(d => d.day_type === 'عطلة').length} عطلة` : ''}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                                      <span style={{ fontSize:14, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmt(total)}₪</span>
-                                      <ChevronDown size={12} style={{ color:C.textDim, transition:'transform .2s', transform: workerOpen ? 'rotate(180deg)' : 'none' }} />
-                                    </div>
-                                  </button>
+                                  {/* Worker month strip */}
+                                  <WorkerMonthStrip
+                                    name={emp?.name || '؟'}
+                                    rank={wi + 1}
+                                    workDays={wkWorkDays}
+                                    holidays={wkHolidays}
+                                    total={total}
+                                    bars={wkBars}
+                                    isOpen={workerOpen}
+                                    onToggle={toggleWorker}
+                                    isLast
+                                  />
 
-                                  {/* Day rows */}
-                                  {workerOpen && wdays.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map((wd, idx) => {
-                                    const proj      = projects.find(x => x.id === wd.project_id)
-                                    const dayNum    = (wd.date || '').slice(8, 10)
-                                    const pillColor = DAY_TYPE_COLOR[wd.day_type] || C.primary
-                                    const holiday   = holidayDates.has(String(wd.date).slice(0,10)) ? holidays.find(h => String(h.date).slice(0,10) === String(wd.date).slice(0,10)) : null
-                                    const isSel = bulkSelectMode && selectedDayIds.has(wd.id)
-                                    return (
-                                      <div key={wd.id}
-                                        onClick={bulkSelectMode ? () => toggleDaySelect(wd.id) : undefined}
-                                        style={{ padding:'10px 16px 10px 58px', display:'flex', justifyContent:'space-between', alignItems:'center', background: isSel ? `${C.primary}12` : holiday ? `${C.warning}08` : idx%2===0 ? 'rgba(255,255,255,0.02)' : 'transparent', borderTop:`1px solid ${C.border}`, cursor: bulkSelectMode ? 'pointer' : 'default', transition:'background .15s' }}>
-                                        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                                          <div style={{ minWidth:36, height:40, borderRadius:10, background: isSel ? `${C.primary}25` : `${pillColor}15`, border:`1px solid ${isSel ? C.primary : pillColor}30`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, flexShrink:0 }}>
-                                            <div style={{ fontSize:14, fontWeight:900, color: isSel ? C.primary : pillColor }}>{dayNum}</div>
-                                            <div style={{ color: isSel ? C.primary : pillColor, opacity:0.8 }}><DayIcon type={wd.day_type} size={8} /></div>
+                                  {/* Day tickets */}
+                                  {workerOpen && (
+                                    <div style={{ display:'flex', flexDirection:'column', gap:10, padding:'11px 12px', background:C.bg }}>
+                                      {wdays.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map((wd, idx) => {
+                                        const proj    = projects.find(x => x.id === wd.project_id)
+                                        const holiday = holidayDates.has(String(wd.date).slice(0,10)) ? holidays.find(h => String(h.date).slice(0,10) === String(wd.date).slice(0,10)) : null
+                                        const isSel   = bulkSelectMode && selectedDayIds.has(wd.id)
+                                        const actions = bulkSelectMode ? (
+                                          <div style={{ width:26, height:26, borderRadius:8, border:`2px solid ${isSel ? C.primary : C.border}`, background: isSel ? C.primary : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', color:'#000', flexShrink:0, transition:'all .15s' }}>
+                                            {isSel && <Check size={13} strokeWidth={3} />}
                                           </div>
-                                          <div>
-                                            <div style={{ fontSize:12, color:C.textDim }}>{fmtDateFull(wd.date)}</div>
-                                            <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:2, flexWrap:'wrap' }}>
-                                              <span style={{ fontSize:11, color:C.textDim }}>{proj?.name||'؟'}</span>
-                                              {wd.location && <span style={{ fontSize:10, color:C.primary, background:`${C.primary}15`, padding:'1px 6px', borderRadius:5, display:'inline-flex', alignItems:'center', gap:3 }}><MapPin size={8} strokeWidth={2} /> {wd.location}</span>}
-                                              <span style={{ fontSize:10, fontWeight:700, color:pillColor, background:`${pillColor}15`, padding:'1px 7px', borderRadius:6 }}>{wd.day_type}</span>
-                                              {holiday && <span style={{ fontSize:10, fontWeight:700, color:C.warning, background:`${C.warning}18`, padding:'1px 7px', borderRadius:6, border:`1px solid ${C.warning}33`, display:'inline-flex', alignItems:'center', gap:3 }}><Gift size={8} strokeWidth={2} /> {holiday.name}</span>}
-                                            </div>
-                                          </div>
-                                        </div>
-                                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                                          <span style={{ fontSize:14, fontWeight:900, color: isSel ? C.primary : C.accent, fontFamily:'monospace' }}>{fmt(wd.amount)}₪</span>
-                                          {bulkSelectMode ? (
-                                            <div style={{ width:26, height:26, borderRadius:8, border:`2px solid ${isSel ? C.primary : C.border}`, background: isSel ? C.primary : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, color:'#000', flexShrink:0, transition:'all .15s' }}>
-                                              {isSel && <Check size={13} strokeWidth={3} />}
-                                            </div>
-                                          ) : (
-                                            <>
-                                              <button onClick={() => openEditDay(wd)} style={{ width:30, height:30, borderRadius:8, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Pencil size={12} strokeWidth={2} /></button>
-                                              <button onClick={() => setConfirmDel(wd.id)} style={{ width:30, height:30, borderRadius:8, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Trash2 size={12} strokeWidth={2} /></button>
-                                            </>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )
-                                  })}
+                                        ) : (
+                                          <>
+                                            <button onClick={(e) => { e.stopPropagation(); openEditDay(wd) }} style={{ width:30, height:30, borderRadius:8, background:`${C.secondary}15`, border:`1px solid ${C.secondary}30`, color:C.secondary, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Pencil size={12} strokeWidth={2} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); setConfirmDel(wd.id) }} style={{ width:30, height:30, borderRadius:8, background:`${C.accent}15`, border:`1px solid ${C.accent}30`, color:C.accent, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Trash2 size={12} strokeWidth={2} /></button>
+                                          </>
+                                        )
+                                        return (
+                                          <WorkDayTicket key={wd.id}
+                                            wd={wd}
+                                            hideName
+                                            projectName={proj?.name || '؟'}
+                                            holidayName={holiday?.name}
+                                            selected={isSel}
+                                            onClick={bulkSelectMode ? () => toggleDaySelect(wd.id) : undefined}
+                                            notchColor={C.bg}
+                                            actions={actions}
+                                            delay={Math.min(idx * 0.03, 0.2)}
+                                          />
+                                        )
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               )
                             })}
