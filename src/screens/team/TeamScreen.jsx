@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { KeyRound } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { KeyRound, Lock, Users, UserCheck, Ban, UserPlus, AlertTriangle, Check } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
-import { Btn, GlassCard, EmptyState, ConfirmDialog } from '../../components/index.jsx'
+import { Btn, EmptyState, ConfirmDialog } from '../../components/index.jsx'
+import { PremiumCard, IconChip } from '../../ui/Premium.jsx'
 import { useTeamManager } from './useTeamManager.js'
 import { MemberCard } from './MemberCard.jsx'
 import { AddMemberModal } from './AddMemberModal.jsx'
@@ -111,7 +113,7 @@ export default function TeamScreen({
   if (!permissions?.manageTeam) {
     return (
       <div style={{ textAlign: 'center', padding: '48px 16px' }}>
-        <div style={{ fontSize: 44, marginBottom: 14 }}>🔒</div>
+        <IconChip icon={Lock} tone="critical" size={56} radius={16} iconSize={28} style={{ margin: '0 auto 14px' }} />
         <div style={{ fontSize: 14, color: C.textDim }}>ليس لديك صلاحية إدارة الفريق</div>
       </div>
     )
@@ -123,10 +125,20 @@ export default function TeamScreen({
 
   return (
     <div>
+      {/* ── Header ── */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+        style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 16 }}>
+        <IconChip icon={Users} tone="brand" size={40} radius={12} />
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>إدارة الفريق</div>
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>الأعضاء والصلاحيات والوصول</div>
+        </div>
+      </motion.div>
+
       {/* ── Error banner ── */}
       {teamLoadError && (
-        <div style={{ padding: '10px 14px', borderRadius: 12, marginBottom: 12, background: '#ff444415', border: '1px solid #ff444433', fontSize: 11, color: C.accent, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>⚠ {teamLoadError}</span>
+        <div style={{ padding: '10px 14px', borderRadius: 12, marginBottom: 12, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, fontSize: 11, color: C.accent, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={13} strokeWidth={2.3} /> {teamLoadError}</span>
           {reloadTeam && <button onClick={reloadTeam} style={{ background: 'none', border: `1px solid ${C.accent}55`, borderRadius: 8, color: C.accent, fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>إعادة تحميل</button>}
         </div>
       )}
@@ -138,29 +150,29 @@ export default function TeamScreen({
       {teamMembers.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           {[
-            { label: 'إجمالي الأعضاء', value: teamMembers.length, color: C.primary },
-            { label: 'نشطون',           value: activeCount,         color: C.success },
-            { label: 'محجوبون',         value: blockedCount,        color: blockedCount > 0 ? C.accent : C.textDim },
+            { label: 'إجمالي الأعضاء', value: teamMembers.length, color: C.primary, tone: 'brand',     icon: Users },
+            { label: 'نشطون',           value: activeCount,         color: C.success, tone: 'excellent', icon: UserCheck },
+            { label: 'محجوبون',         value: blockedCount,        color: blockedCount > 0 ? C.accent : C.textDim, tone: blockedCount > 0 ? 'critical' : 'brand', icon: Ban },
           ].map((s, i) => (
-            <GlassCard key={i} style={{ marginBottom: 0, borderRadius: 14, overflow: 'hidden' }}>
-              <div style={{ padding: '10px 8px', textAlign: 'center' }}>
-                <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, marginBottom: 4 }}>{s.label}</div>
-                <div style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{s.value}</div>
+            <PremiumCard key={i} tone={s.tone} glow={false} radius={14} padding="12px 8px" delay={i * 0.05}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 6 }}>
+                <IconChip icon={s.icon} color={s.color} size={32} radius={10} />
+                <div style={{ fontSize: 20, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700 }}>{s.label}</div>
               </div>
-              <div style={{ height: 2, background: `${s.color}66` }} />
-            </GlassCard>
+            </PremiumCard>
           ))}
         </div>
       )}
 
       {/* ── Add button (shown when list is empty too) ── */}
       <div style={{ marginBottom: 12 }}>
-        <Btn onClick={manager.openAddMember} full>+ إضافة عضو جديد</Btn>
+        <Btn onClick={manager.openAddMember} full><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><UserPlus size={15} strokeWidth={2.5} /> إضافة عضو جديد</span></Btn>
       </div>
 
       {/* ── Member list ── */}
       {teamMembers.length === 0 ? (
-        <EmptyState icon="👥" text="لا يوجد أعضاء فريق بعد — أضف أول عضو الآن" />
+        <EmptyState icon={<Users size={40} color={C.textDim} strokeWidth={1.8} />} text="لا يوجد أعضاء فريق بعد — أضف أول عضو الآن" />
       ) : (
         teamMembers.map(m => (
           <MemberCard
@@ -188,9 +200,14 @@ export default function TeamScreen({
           onClick={e => { if (e.target === e.currentTarget) manager.setResetPassTarget(null) }}
         >
           <div style={{ width: '100%', maxWidth: 360, background: C.surface, borderRadius: 20, padding: 22, border: `1px solid ${C.borderMid}` }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 2, display:'flex', alignItems:'center', gap:6 }}><KeyRound size={14} strokeWidth={2} /> تغيير كلمة المرور</div>
-            <div style={{ fontSize: 11, color: C.textDim, marginBottom: 14 }}>
-              {manager.resetPassTarget.display_name || manager.resetPassTarget.username}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 14 }}>
+              <IconChip icon={KeyRound} tone="fair" size={38} radius={11} />
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تغيير كلمة المرور</div>
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
+                  {manager.resetPassTarget.display_name || manager.resetPassTarget.username}
+                </div>
+              </div>
             </div>
             <input
               type="password"
@@ -200,11 +217,11 @@ export default function TeamScreen({
               style={{ width: '100%', padding: '11px 12px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 13, marginBottom: 10, boxSizing: 'border-box', outline: 'none' }}
             />
             {manager.resetPassErr && (
-              <div style={{ fontSize: 11, color: C.accent, marginBottom: 10 }}>⚠ {manager.resetPassErr}</div>
+              <div style={{ fontSize: 11, color: C.accent, marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 5 }}><AlertTriangle size={12} strokeWidth={2.3} /> {manager.resetPassErr}</div>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
               <Btn onClick={handleResetPass} full disabled={manager.resetPassSaving}>
-                {manager.resetPassSaving ? '...' : '✓ حفظ'}
+                {manager.resetPassSaving ? '...' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'center' }}><Check size={14} strokeWidth={2.6} /> حفظ</span>}
               </Btn>
               <Btn onClick={() => manager.setResetPassTarget(null)} variant="outline" color={C.textDim} full>إلغاء</Btn>
             </div>

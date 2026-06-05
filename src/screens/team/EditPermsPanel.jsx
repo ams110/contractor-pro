@@ -1,7 +1,8 @@
 import React from 'react'
-import { Pencil, X, Lock } from 'lucide-react'
+import { Pencil, X, Lock, FolderTree, AlertTriangle, Check, Loader2 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { Btn } from '../../components/index.jsx'
+import { IconChip } from '../../ui/Premium.jsx'
 import { PERM_LABELS, PRESET_ROLES } from './teamConstants.js'
 
 export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
@@ -25,10 +26,13 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, display:'flex', alignItems:'center', gap:6 }}><Pencil size={14} strokeWidth={2} /> تعديل الصلاحيات</div>
-            <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
-              {member.display_name || member.username}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <IconChip icon={Pencil} tone="premium" size={36} radius={11} />
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تعديل الصلاحيات</div>
+              <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
+                {member.display_name || member.username}
+              </div>
             </div>
           </div>
           <button onClick={closeEditPerms} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, cursor: 'pointer', padding: '4px 10px', display:'flex', alignItems:'center' }}><X size={14} strokeWidth={2.5} /></button>
@@ -87,8 +91,8 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
               }}
               style={{ accentColor: C.primary }}
             />
-            <span style={{ fontSize: 11, fontWeight: 700, color: editRestrictProjects ? C.text : C.textDim }}>
-              🗂 تقييد المشاريع (يرى مشاريع محددة فقط)
+            <span style={{ fontSize: 11, fontWeight: 700, color: editRestrictProjects ? C.text : C.textDim, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <FolderTree size={12} strokeWidth={2.3} /> تقييد المشاريع (يرى مشاريع محددة فقط)
             </span>
           </label>
           {editRestrictProjects && (
@@ -115,14 +119,16 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
         </div>
 
         {editPermsErr && (
-          <div style={{ fontSize: 11, color: C.accent, marginBottom: 10, padding: '8px 12px', background: `${C.accent}12`, borderRadius: 9 }}>
-            ⚠ {editPermsErr}
+          <div style={{ fontSize: 11, color: C.accent, marginBottom: 10, padding: '8px 12px', background: `${C.accent}12`, borderRadius: 9, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <AlertTriangle size={12} strokeWidth={2.3} /> {editPermsErr}
           </div>
         )}
 
         <div style={{ display: 'flex', gap: 8 }}>
           <Btn onClick={onSave} full disabled={editPermsSaving}>
-            {editPermsSaving ? '⏳ جاري الحفظ...' : '✓ حفظ الصلاحيات'}
+            {editPermsSaving
+              ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Loader2 size={14} strokeWidth={2.6} style={{ animation: 'spin .8s linear infinite' }} /> جاري الحفظ...</span>
+              : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Check size={14} strokeWidth={2.6} /> حفظ الصلاحيات</span>}
           </Btn>
           <Btn onClick={closeEditPerms} variant="outline" color={C.textDim} full>إلغاء</Btn>
         </div>
