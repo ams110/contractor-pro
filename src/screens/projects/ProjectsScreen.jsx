@@ -7,7 +7,7 @@ import {
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
   ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users, MessageCircle,
-  Wallet, Percent, HardHat, FolderKanban,
+  Wallet, Percent, FolderKanban,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { PremiumCard, IconChip, PremiumStat } from '../../ui/Premium.jsx'
@@ -1026,16 +1026,15 @@ export default function ProjectsScreen({
             const stats = calcProjectStats(project, workDays, expenses, clientReceipts, employees, payments)
             const isProfit = stats.profit >= 0
             return (
-              <motion.div key={project.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setSelected(project)}
-                style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: '14px 14px', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+              <PremiumCard key={project.id}
+                color={statusColor(project.status)}
+                delay={Math.min(i * 0.04, 0.3)}
+                radius={18}
+                padding="14px 14px"
+                onClick={() => setSelected(project)}>
 
                 {/* Status indicator */}
-                <div style={{ position: 'absolute', top: 0, insetInlineStart: 0, width: 3, height: '100%', background: statusColor(project.status), borderRadius: '0 3px 3px 0' }} />
+                <div style={{ position: 'absolute', top: 0, insetInlineStart: 0, width: 3, height: '100%', background: statusColor(project.status), borderRadius: '0 3px 3px 0', zIndex: 1 }} />
 
                 <div style={{ paddingInlineStart: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
@@ -1111,7 +1110,7 @@ export default function ProjectsScreen({
                     )
                   })()}
                 </div>
-              </motion.div>
+              </PremiumCard>
             )
           })}
         </div>

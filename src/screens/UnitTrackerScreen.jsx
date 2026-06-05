@@ -794,21 +794,21 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
               </div>
               <div style={{ display: 'flex', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.border}22` }}>
                 <button onClick={() => cycleStatus(extra.id)}
-                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>⟳ الحالة</button>
+                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 10, fontWeight: 600, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><RefreshCw size={10} strokeWidth={2} /> الحالة</button>
                 <button onClick={() => startEdit(extra)}
                   style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.primary}44`, background: `${C.primary}11`, color: C.primary, fontSize: 10, fontWeight: 600, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><Pencil size={10} strokeWidth={2} /> تعديل</button>
                 <button onClick={() => deleteExtra(extra)}
-                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>🗑 حذف</button>
+                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, fontSize: 10, fontWeight: 600, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><Trash2 size={10} strokeWidth={2} /> حذف</button>
               </div>
-            </div>
+            </PremiumCard>
           )
         })
       )}
 
       {!showForm && !editingExtra && (
         <button onClick={() => { setShowForm(true); setForm(EMPTY_EXTRA) }}
-          style={{ width: '100%', marginTop: 4, padding: '12px 0', borderRadius: 13, border: `2px dashed ${C.primary}44`, background: `${C.primary}08`, color: C.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-          + زيادة جديدة
+          style={{ width: '100%', marginTop: 4, padding: '12px 0', borderRadius: 13, border: `2px dashed ${C.primary}44`, background: `${C.primary}08`, color: C.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+          <Plus size={15} strokeWidth={2.5} /> زيادة جديدة
         </button>
       )}
     </div>
@@ -832,19 +832,21 @@ export default function UnitTrackerScreen({ projects = [] }) {
   ]
 
   return (
-    <div style={{ padding: '16px 16px 32px', direction: 'rtl' }}>
+    <div style={{ padding: '16px 16px 32px', direction: 'rtl', maxWidth: 900, margin: '0 auto' }}>
 
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 18, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 2 }}>
-          متتبع الأعمال
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+        style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 16 }}>
+        <IconChip icon={Box} tone="brand" size={40} radius={12} />
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>متتبع الأعمال</div>
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>قطعة ← بيت ← طابق ← مهام</div>
         </div>
-        <div style={{ fontSize: 11, color: C.textDim }}>قطعة ← بيت ← طابق ← مهام</div>
-      </div>
+      </motion.div>
 
       {projects.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim }}>
-          <HardHat size={36} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
-          <div>لا توجد مشاريع</div>
+        <div style={{ textAlign: 'center', padding: '44px 0', color: C.textDim }}>
+          <IconChip icon={HardHat} tone="brand" size={52} radius={16} iconSize={26} style={{ margin: '0 auto 12px' }} />
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>لا توجد مشاريع</div>
         </div>
       ) : (
         <>
@@ -863,7 +865,7 @@ export default function UnitTrackerScreen({ projects = [] }) {
                 style={{ flex: 1, padding: '9px 4px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12, transition: 'all .2s',
                   background: tab === t.id ? GRAD.brand : 'transparent',
                   color:      tab === t.id ? '#000' : C.textDim,
-                  boxShadow:  tab === t.id ? '0 4px 14px #00DDB344' : 'none',
+                  boxShadow:  tab === t.id ? `0 4px 14px ${C.primary}44` : 'none',
                 }}>
                 {t.label}
               </button>
