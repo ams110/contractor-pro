@@ -113,3 +113,24 @@ export function PremiumStat({ label, value, sub, icon, tone = 'brand', color, on
     </PremiumCard>
   )
 }
+
+// ─── HolographicSheen — لمعة قطرية تكتسح البطاقة (إصلاح: skew على غلاف ثابت) ───
+// ملاحظة: framer-motion يتحكّم بخاصية `transform` كاملةً عند تحريك `x`، فأي
+// `transform: skewX(...)` يُكتب في style على نفس العنصر المتحرّك يُلغي الحركة.
+// الحل: نضع الـ skew على غلاف ثابت، ونحرّك عنصراً داخلياً بلا transform في style.
+export function HolographicSheen({ width = '55%', duration = 4.5, repeatDelay = 1.4, opacity = 0.34, skew = -18, blend = 'soft-light' }) {
+  return (
+    <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', transform: `skewX(${skew}deg)` }}>
+      <motion.div
+        initial={{ x: '-160%' }}
+        animate={{ x: '160%' }}
+        transition={{ duration, repeat: Infinity, ease: 'easeInOut', repeatDelay }}
+        style={{
+          position: 'absolute', top: 0, bottom: 0, width,
+          background: `linear-gradient(90deg, transparent, rgba(255,255,255,${opacity}), transparent)`,
+          mixBlendMode: blend,
+        }}
+      />
+    </div>
+  )
+}

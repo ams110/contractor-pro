@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
+import { HolographicSheen } from '../../ui/Premium.jsx'
 import { useAppStore } from '../../store/useAppStore.js'
 import { navigate } from '../../Router.jsx'
 import { usePushNotifications } from '../../hooks/usePushNotifications.js'
@@ -191,13 +192,8 @@ function ContractorCard({ profile, business, lang }) {
           boxShadow: '0 14px 40px rgba(249,115,22,0.42), inset 0 1px 0 rgba(255,255,255,0.25)',
           padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         }}>
-          {/* لمعة holographic تكتسح البطاقة */}
-          <motion.div
-            animate={{ x: ['-130%', '130%'] }}
-            transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 1.4 }}
-            style={{ position: 'absolute', top: 0, bottom: 0, width: '55%', transform: 'skewX(-18deg)',
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.34), transparent)', mixBlendMode: 'soft-light' }}
-          />
+          {/* لمعة holographic تكتسح البطاقة (مصلَّحة: skew على غلاف ثابت) */}
+          <HolographicSheen />
           {/* نقش دائري خافت */}
           <div style={{ position: 'absolute', top: -70, right: -50, width: 200, height: 200, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.18)' }} />
           <div style={{ position: 'absolute', top: -40, right: -20, width: 150, height: 150, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.12)' }} />
