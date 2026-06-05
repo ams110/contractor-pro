@@ -6,11 +6,11 @@ import { calcMutabqi } from '../lib/calculations.js'
 const OVERDUE_DAYS = 14
 const CHECK_KEY    = 'salary_alert_checked'
 
-export function useSalaryAlerts(userId, employees, workDays, payments, advances = [], expenses = []) {
+export function useSalaryAlerts(userId, employees, workDays, payments, advances = [], expenses = [], enabled = true) {
   const ran = useRef(false)
 
   useEffect(() => {
-    if (!userId || !employees?.length || ran.current) return
+    if (!enabled || !userId || !employees?.length || ran.current) return
 
     // تحقق مرة واحدة كل يوم فقط
     const lastCheck = localStorage.getItem(CHECK_KEY)

@@ -82,6 +82,7 @@ export default function SettingsScreen({
   addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod,
   pensionMonthly, setPensionMonthly, taxEnabled,
   setTaxEnabled, taxModules, setTaxModule,
+  salaryAlerts = true, setSalaryAlerts,
   holidays = [], addHoliday, deleteHoliday,
   permissions, teamMembers = [],
   addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, reloadTeam,
@@ -264,6 +265,17 @@ export default function SettingsScreen({
     setHolName(''); setHolDate('')
   }
 
+  // تسجيل الخروج من كل الأجهزة (إبطال كل الجلسات) — بنقرتين للتأكيد
+  const [globalConfirm, setGlobalConfirm] = useState(false)
+  function globalSignout() {
+    if (!globalConfirm) {
+      setGlobalConfirm(true)
+      setTimeout(() => setGlobalConfirm(false), 4000)
+      return
+    }
+    supabase.auth.signOut({ scope: 'global' })
+  }
+
   return (
     <div dir={dir} style={{ padding: '16px 16px 8px' }}>
       {/* Header */}
@@ -308,6 +320,7 @@ export default function SettingsScreen({
             )}
           </div>
         </div>
+        <Row icon={Smartphone} label={language === 'he' ? 'התנתק מכל המכשירים' : language === 'en' ? 'Sign out everywhere' : 'تسجيل الخروج من كل الأجهزة'} color={C.cyan} value={globalConfirm ? (language === 'en' ? 'Tap to confirm' : 'اضغط للتأكيد') : ''} onClick={globalSignout} />
         <Row icon={LogOut} label={language === 'he' ? 'יציאה' : language === 'en' ? 'Sign Out' : 'تسجيل الخروج'} danger onClick={() => supabase.auth.signOut()} last />
       </Section>
 
@@ -411,6 +424,25 @@ export default function SettingsScreen({
       </Section>
 
       <GroupLabel>{language === 'he' ? 'כספים והתראות' : language === 'en' ? 'Finance & Alerts' : 'المالية والإشعارات'}</GroupLabel>
+
+      {/* ── تنبيهات الرواتب المتأخّرة ── */}
+      {permissions?.isOwner && (
+        <Section title={language === 'he' ? 'התראות שכר' : language === 'en' ? 'Salary Alerts' : 'تنبيهات الرواتب'}>
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.warning}15`, border: `1px solid ${C.warning}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <BellRing size={16} color={C.warning} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>تنبيه الرواتب المتأخّرة</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>تنبيه يومي للعمّال اللي مستحقاتهم متأخّرة 14+ يوم</div>
+            </div>
+            <button onClick={() => setSalaryAlerts?.(!salaryAlerts)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: salaryAlerts ? C.success : C.textDim }}>
+              {salaryAlerts ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+            </button>
+          </div>
+        </Section>
+      )}
 
       {/* ── الضرائب والمصلحة ── */}
       {permissions?.isOwner && (
