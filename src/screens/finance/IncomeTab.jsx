@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { AddReceiptSheet } from '../../components/sheets/index.js'
+import ReceiptCard from '../../components/ReceiptCard.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { computeCollectionAging } from '../../lib/insights.js'
 import CollectionAging from '../../components/CollectionAging.jsx'
@@ -36,53 +37,29 @@ function StatCard({ label, value, color, sub, icon: Icon }) {
 
 function EntryRow({ entry, projectName, onDelete }) {
   const [delConfirm, setDelConfirm] = useState(false)
+  const chips = []
+  if (entry.payment_method) chips.push({ label: methodLabel(entry.payment_method), color: C.cyan })
+  if (entry.payer_name && projectName) chips.push({ label: entry.payer_name, color: C.textDim })
+  const actions = !delConfirm
+    ? <button onClick={() => setDelConfirm(true)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}><Trash2 size={13} /></button>
+    : <span style={{ display: 'flex', gap: 4 }}>
+        <button onClick={() => setDelConfirm(false)} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textDim, cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontFamily: 'inherit' }}>لا</button>
+        <button onClick={() => onDelete(entry.id)} style={{ background: C.accent, border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontWeight: 700, fontFamily: 'inherit' }}>احذف</button>
+      </span>
   return (
-    <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 40 }}
-      style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '12px 14px', marginBottom: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.success, marginTop: 5, flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <div style={{ fontSize: 14, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>₪{fmt(entry.amount)}</div>
-              {entry.ref_number && (
-                <span style={{ fontSize: 9, fontWeight: 800, color: C.primary, background: `${C.primary}18`, border: `1px solid ${C.primary}30`, padding: '2px 7px', borderRadius: 8, letterSpacing: '0.05em', fontFamily: 'monospace' }}>
-                  {entry.ref_number}
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(entry.date)}</div>
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 4 }}>
-            {projectName && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}15`, padding: '2px 7px', borderRadius: 20 }}>{projectName}</span>
-            )}
-            {entry.payment_method && (
-              <span style={{ fontSize: 10, color: C.textDim, background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>{methodLabel(entry.payment_method)}</span>
-            )}
-            {entry.payer_name && (
-              <span style={{ fontSize: 10, color: C.textDim, background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>{entry.payer_name}</span>
-            )}
-          </div>
-          {entry.notes && <div style={{ fontSize: 10, color: C.textDim, fontStyle: 'italic' }}>{entry.notes}</div>}
-          {entry.receipt_url && (
-            <a href={entry.receipt_url} target="_blank" rel="noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: 10, color: C.primary, textDecoration: 'none' }}>
-              <Image size={10} /> عرض الإيصال
-            </a>
-          )}
-        </div>
-        <div>
-          {!delConfirm
-            ? <button onClick={() => setDelConfirm(true)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 4, display: 'flex' }}><Trash2 size={13} /></button>
-            : <div style={{ display: 'flex', gap: 4 }}>
-                <button onClick={() => setDelConfirm(false)} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textDim, cursor: 'pointer', padding: '3px 7px', fontSize: 10 }}>لا</button>
-                <button onClick={() => onDelete(entry.id)} style={{ background: C.accent, border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontWeight: 700 }}>احذف</button>
-              </div>
-          }
-        </div>
-      </div>
-    </motion.div>
+    <ReceiptCard
+      accent={C.success}
+      direction="in"
+      amountLabel="قُبض"
+      refNumber={entry.ref_number}
+      date={fmtDate(entry.date)}
+      title={projectName || entry.payer_name || 'مقبوض'}
+      subtitle={entry.notes}
+      amount={entry.amount}
+      chips={chips}
+      onView={entry.receipt_url ? () => window.open(entry.receipt_url, '_blank', 'noopener') : undefined}
+      actions={actions}
+    />
   )
 }
 
