@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   LayoutDashboard, Building2, Users, Wallet, Settings,
-  Bell, ClipboardCheck, HardHat, WifiOff, Gift,
+  Bell, ClipboardCheck, HardHat, Gift,
   Clock, ShieldOff, Lock, CalendarDays, CreditCard, Banknote,
   ClipboardList, Package, Calculator, Activity, Grid3x3,
   Search,
@@ -32,6 +32,8 @@ import ErrorBoundary            from './components/ErrorBoundary.jsx'
 import SmartSearch              from './components/SmartSearch.jsx'
 import BiometricConfirmModal   from './components/BiometricConfirmModal.jsx'
 import SessionLockScreen       from './components/SessionLockScreen.jsx'
+import ConnectionStatus        from './components/ConnectionStatus.jsx'
+import ScreenSkeleton          from './components/ScreenSkeleton.jsx'
 import { LoadingSpinner }       from './components/index.jsx'
 import { usePushNotifications } from './hooks/usePushNotifications.js'
 import { useAppConfig }        from './hooks/useAppConfig.js'
@@ -273,7 +275,7 @@ export default function App() {
     showNotifs, setShowNotifs,
     showMore, setShowMore,
     toast, showToast,
-    isOnline, setOnline,
+    setOnline,
     language, setLanguage: setLang,
     setSigner,
     lockSession, isReadOnly, setReadOnly, setDailySpendLimit,
@@ -483,6 +485,15 @@ export default function App() {
   const p = permissions
   function renderScreen() {
     const commonData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts }
+
+    // ─── Skeleton على التحميل الأول فقط (قبل وصول أي بيانات) ───
+    const noDataYet = visibleProjects.length === 0 && visibleEmployees.length === 0 && visibleWorkDays.length === 0 && visibleExpenses.length === 0 && visiblePayments.length === 0 && visibleClientReceipts.length === 0
+    if (dataLoading && noDataYet) {
+      const SKEL_VARIANT = { dashboard: 'dashboard', finance: 'finance', accounting: 'finance', workers: 'workers', projects: 'list', expenses: 'list', payments: 'list', tracker: 'list', materials: 'list', team: 'list', activity: 'list' }
+      const variant = SKEL_VARIANT[screen]
+      if (variant) return <ErrorBoundary key={`${screen}-skel`}><ScreenSkeleton variant={variant} /></ErrorBoundary>
+    }
+
     let content
     const allData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts, advances: visibleAdvances }
     switch (screen) {
@@ -529,13 +540,8 @@ export default function App() {
       {/* ─── Aurora background ─── */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 40% at 15% 0%, rgba(249,115,22,0.07) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 85% 100%, rgba(124,58,237,0.04) 0%, transparent 60%)' }} />
 
-      {/* ─── Offline banner ─── */}
-      {!isOnline && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 200, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(12px)', padding: '9px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderBottom: '1px solid rgba(239,68,68,0.2)' }}>
-          <WifiOff size={13} color="#EF4444" strokeWidth={2} />
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>لا يوجد اتصال — البيانات محفوظة محلياً</span>
-        </div>
-      )}
+      {/* ─── Connection & Sync status ─── */}
+      <ConnectionStatus />
 
       {/* ─── Trial banner ─── */}
       {org && isTrialActive() && !effectiveOwnerId && (
