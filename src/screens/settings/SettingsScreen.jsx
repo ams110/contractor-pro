@@ -26,9 +26,9 @@ import { fmtDate } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 
 const LANGS = [
-  { code: 'ar', label: 'العربية', flag: '🇸🇦', dir: 'rtl' },
-  { code: 'he', label: 'עברית',   flag: '🇮🇱', dir: 'rtl' },
-  { code: 'en', label: 'English', flag: '🇬🇧', dir: 'ltr' },
+  { code: 'ar', label: 'العربية', dir: 'rtl' },
+  { code: 'he', label: 'עברית',   dir: 'rtl' },
+  { code: 'en', label: 'English', dir: 'ltr' },
 ]
 
 const NAV_ICONS_MAP = {
