@@ -33,6 +33,7 @@ import SmartSearch              from './components/SmartSearch.jsx'
 import BiometricConfirmModal   from './components/BiometricConfirmModal.jsx'
 import SessionLockScreen       from './components/SessionLockScreen.jsx'
 import ConnectionStatus        from './components/ConnectionStatus.jsx'
+import ScreenSkeleton          from './components/ScreenSkeleton.jsx'
 import { LoadingSpinner }       from './components/index.jsx'
 import { usePushNotifications } from './hooks/usePushNotifications.js'
 import { useAppConfig }        from './hooks/useAppConfig.js'
@@ -484,6 +485,15 @@ export default function App() {
   const p = permissions
   function renderScreen() {
     const commonData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts }
+
+    // ─── Skeleton على التحميل الأول فقط (قبل وصول أي بيانات) ───
+    const noDataYet = visibleProjects.length === 0 && visibleEmployees.length === 0 && visibleWorkDays.length === 0 && visibleExpenses.length === 0 && visiblePayments.length === 0 && visibleClientReceipts.length === 0
+    if (dataLoading && noDataYet) {
+      const SKEL_VARIANT = { dashboard: 'dashboard', finance: 'finance', accounting: 'finance', workers: 'workers', projects: 'list', expenses: 'list', payments: 'list', tracker: 'list', materials: 'list', team: 'list', activity: 'list' }
+      const variant = SKEL_VARIANT[screen]
+      if (variant) return <ErrorBoundary key={`${screen}-skel`}><ScreenSkeleton variant={variant} /></ErrorBoundary>
+    }
+
     let content
     const allData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts, advances: visibleAdvances }
     switch (screen) {
