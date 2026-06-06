@@ -1,32 +1,33 @@
 import React, { useState, useEffect } from 'react'
+import { HardHat, Star, Check, X, CheckCircle2, AlertTriangle, Lightbulb, ArrowLeft } from 'lucide-react'
 import { navigate } from '../Router.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { useOrganization } from '../hooks/useOrganization.js'
 import { openCheckout, PLAN_META, PLAN_PRICES } from '../lib/paddle.js'
 
 const C = {
-  bg:        '#07090D',
-  surface:   '#0D1117',
-  card:      '#131920',
-  primary:   '#00DDB3',
-  secondary: '#6366F1',
-  accent:    '#F43F5E',
+  bg:        '#07080F',
+  surface:   '#0D0F1C',
+  card:      '#12152A',
+  primary:   '#F97316',
+  secondary: '#7C3AED',
+  accent:    '#EF4444',
   success:   '#22C55E',
-  warning:   '#EAB308',
+  warning:   '#D97706',
   text:      '#F8FAFC',
   textDim:   '#64748B',
-  border:    'rgba(255,255,255,0.07)',
-  borderMid: 'rgba(255,255,255,0.14)',
+  border:    'rgba(249,115,22,0.08)',
+  borderMid: 'rgba(249,115,22,0.18)',
 }
-const GRAD = { brand: 'linear-gradient(135deg, #00DDB3 0%, #6366F1 100%)' }
+const GRAD = { brand: 'linear-gradient(135deg, #F97316 0%, #D97706 100%)' }
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #07090D; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { background: #07080F; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
   .lp-btn { transition: transform .15s ease, box-shadow .15s ease !important; }
   .lp-btn:active { transform: scale(0.96) !important; }
-  .grad-text { background: linear-gradient(135deg,#00DDB3,#6366F1); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .grad-text { background: linear-gradient(135deg,#F97316,#D97706); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
   details > summary { list-style: none; cursor: pointer; }
   details > summary::-webkit-details-marker { display: none; }
   details[open] .faq-icon { transform: rotate(45deg); }
@@ -38,7 +39,7 @@ function Navbar() {
     <nav style={{ position:'sticky', top:0, zIndex:100, background:'rgba(7,9,13,0.92)', backdropFilter:'blur(24px)', borderBottom:`1px solid ${C.border}`, padding:'0 24px' }}>
       <div style={{ maxWidth:1120, margin:'0 auto', height:64, display:'flex', alignItems:'center', justifyContent:'space-between', direction:'rtl' }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }} onClick={() => navigate('/')}>
-          <div style={{ width:40, height:40, borderRadius:13, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>🏗️</div>
+          <div style={{ width:40, height:40, borderRadius:13, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center' }}><HardHat size={21} color="#fff" strokeWidth={2} /></div>
           <div>
             <div style={{ fontSize:16, fontWeight:900, color:C.text }}>Contractor Pro</div>
             <div style={{ fontSize:10, color:C.textDim }}>קבלן פרו</div>
@@ -136,8 +137,8 @@ function PricingCard({ plan, onSubscribe, currentPlan, loading }) {
     }}>
       {/* Popular badge */}
       {plan.popular && (
-        <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:`linear-gradient(135deg,${plan.color},#8B5CF6)`, borderRadius:100, padding:'4px 16px', fontSize:11, fontWeight:800, color:'#fff', whiteSpace:'nowrap' }}>
-          ⭐ الأكثر شعبية
+        <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:`linear-gradient(135deg,${plan.color},#8B5CF6)`, borderRadius:100, padding:'4px 16px', fontSize:11, fontWeight:800, color:'#fff', whiteSpace:'nowrap', display:'inline-flex', alignItems:'center', gap:4 }}>
+          <Star size={12} fill="#fff" strokeWidth={0} /> الأكثر شعبية
         </div>
       )}
 
@@ -168,8 +169,8 @@ function PricingCard({ plan, onSubscribe, currentPlan, loading }) {
           boxShadow: (!isCurrent && plan.popular) ? `0 8px 24px ${plan.color}44` : 'none',
           opacity: loading ? 0.6 : 1,
         }}>
-        {loading ? '⏳ جاري التحميل...' :
-          isCurrent ? '✓ خطتك الحالية' :
+        {loading ? 'جاري التحميل...' :
+          isCurrent ? <><Check size={15} strokeWidth={2.6} style={{ verticalAlign:'-3px', marginInlineEnd:5 }} />خطتك الحالية</> :
           'اشترك الآن — جرّب مجاناً 14 يوم'}
       </button>
 
@@ -177,13 +178,13 @@ function PricingCard({ plan, onSubscribe, currentPlan, loading }) {
       <div style={{ flex:1 }}>
         {plan.features.map((f, i) => (
           <div key={i} style={{ display:'flex', gap:10, marginBottom:10, alignItems:'flex-start' }}>
-            <div style={{ width:18, height:18, borderRadius:5, background:`${plan.color}22`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:plan.color, flexShrink:0, marginTop:1 }}>✓</div>
+            <div style={{ width:18, height:18, borderRadius:5, background:`${plan.color}22`, display:'flex', alignItems:'center', justifyContent:'center', color:plan.color, flexShrink:0, marginTop:1 }}><Check size={11} strokeWidth={3} /></div>
             <span style={{ fontSize:13, color:C.textDim, lineHeight:1.5 }}>{f}</span>
           </div>
         ))}
         {plan.missing.map((f, i) => (
           <div key={i} style={{ display:'flex', gap:10, marginBottom:10, alignItems:'flex-start', opacity:0.35 }}>
-            <div style={{ width:18, height:18, borderRadius:5, background:'rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:C.textDim, flexShrink:0, marginTop:1 }}>✗</div>
+            <div style={{ width:18, height:18, borderRadius:5, background:'rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center', color:C.textDim, flexShrink:0, marginTop:1 }}><X size={11} strokeWidth={3} /></div>
             <span style={{ fontSize:13, color:C.textDim, lineHeight:1.5 }}>{f}</span>
           </div>
         ))}
@@ -294,11 +295,11 @@ export default function PricingPage() {
 
         {/* ── Hero ── */}
         <section style={{ padding:'72px 24px 48px', textAlign:'center', direction:'rtl', position:'relative', overflow:'hidden' }}>
-          <div style={{ position:'absolute', top:'-20%', right:'-10%', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, #00DDB310 0%, transparent 65%)', pointerEvents:'none' }} />
-          <div style={{ position:'absolute', bottom:'-20%', left:'-10%', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, #6366F110 0%, transparent 65%)', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', top:'-20%', right:'-10%', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, rgba(249,115,22,0.10) 0%, transparent 65%)', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', bottom:'-20%', left:'-10%', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 65%)', pointerEvents:'none' }} />
           <div style={{ maxWidth:640, margin:'0 auto', position:'relative' }}>
-            <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:`${C.success}14`, border:`1px solid ${C.success}33`, borderRadius:100, padding:'6px 16px', marginBottom:24, fontSize:12, color:C.success, fontWeight:700 }}>
-              ✓ 14 يوم مجاناً — بدون بطاقة ائتمان
+            <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:`${C.success}14`, border:`1px solid ${C.success}33`, borderRadius:100, padding:'6px 16px', marginBottom:24, fontSize:12, color:C.success, fontWeight:700 }}>
+              <Check size={13} strokeWidth={2.6} /> 14 يوم مجاناً — بدون بطاقة ائتمان
             </div>
             <h1 style={{ fontSize:'clamp(26px,5vw,46px)', fontWeight:900, color:C.text, lineHeight:1.2, marginBottom:14 }}>
               اختر الخطة المناسبة<br /><span className="grad-text">لمشروعك</span>
@@ -312,15 +313,15 @@ export default function PricingPage() {
         {/* ── Checkout feedback ── */}
         {checkoutSuccess && (
           <div style={{ maxWidth:600, margin:'0 auto 24px', padding:'16px 24px', background:`${C.success}18`, border:`1px solid ${C.success}44`, borderRadius:16, textAlign:'center', direction:'rtl', fontSize:14, color:C.success, fontWeight:700 }}>
-            🎉 تم تفعيل اشتراكك بنجاح! مرحباً بك في Contractor Pro.
+            <span style={{ display:'inline-flex', alignItems:'center', gap:6, justifyContent:'center' }}><CheckCircle2 size={16} strokeWidth={2.4} /> تم تفعيل اشتراكك بنجاح! مرحباً بك في Contractor Pro.</span>
             <button onClick={() => navigate('/app')} style={{ display:'block', margin:'12px auto 0', background:C.success, border:'none', color:'#fff', fontSize:13, fontWeight:800, padding:'10px 24px', borderRadius:12, cursor:'pointer' }}>
-              الدخول للتطبيق ←
+              الدخول للتطبيق
             </button>
           </div>
         )}
         {checkoutError && (
-          <div style={{ maxWidth:600, margin:'0 auto 24px', padding:'14px 22px', background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:14, textAlign:'center', direction:'rtl', fontSize:13, color:C.accent }}>
-            ⚠ {checkoutError}
+          <div style={{ maxWidth:600, margin:'0 auto 24px', padding:'14px 22px', background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:14, textAlign:'center', direction:'rtl', fontSize:13, color:C.accent, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+            <AlertTriangle size={14} strokeWidth={2.2} /> {checkoutError}
           </div>
         )}
 
@@ -343,15 +344,15 @@ export default function PricingPage() {
         <section style={{ padding:'0 24px 48px', direction:'rtl', textAlign:'center' }}>
           <div style={{ maxWidth:600, margin:'0 auto' }}>
             <div style={{ background:C.surface, borderRadius:20, padding:28, border:`1px solid ${C.border}` }}>
-              <div style={{ fontSize:24, marginBottom:12 }}>💡</div>
+              <Lightbulb size={26} color={C.warning} strokeWidth={1.9} style={{ margin:'0 auto 12px', display:'block' }} />
               <h3 style={{ fontSize:16, fontWeight:800, color:C.text, marginBottom:8 }}>غير متأكد من الخطة المناسبة؟</h3>
               <p style={{ fontSize:13, color:C.textDim, lineHeight:1.7, marginBottom:20 }}>
                 ابدأ بالتجربة المجانية 14 يوماً واستكشف كل الميزات — ثم اختر الخطة التي تناسب حجم مشاريعك.
                 معظم المقاولين يجدون أن خطة <strong style={{ color:C.secondary }}>المحترف</strong> هي الأنسب.
               </p>
               <button onClick={() => handleSubscribe('pro')} disabled={checkoutLoading} className="lp-btn"
-                style={{ background:GRAD.brand, border:'none', color:'#000', fontSize:14, fontWeight:800, padding:'13px 28px', borderRadius:14, cursor:'pointer', boxShadow:'0 8px 24px #00DDB344' }}>
-                ابدأ بخطة المحترف ←
+                style={{ background:GRAD.brand, border:'none', color:'#fff', fontSize:14, fontWeight:800, padding:'13px 28px', borderRadius:14, cursor:'pointer', boxShadow:`0 8px 24px ${C.primary}44` }}>
+                ابدأ بخطة المحترف
               </button>
             </div>
           </div>
@@ -363,12 +364,12 @@ export default function PricingPage() {
         <footer style={{ background:C.surface, borderTop:`1px solid ${C.border}`, padding:'28px 24px', direction:'rtl' }}>
           <div style={{ maxWidth:1120, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <span>🏗️</span>
+              <HardHat size={16} color={C.primary} strokeWidth={2} />
               <span style={{ fontSize:13, fontWeight:700, color:C.text }}>Contractor Pro</span>
               <span style={{ fontSize:11, color:C.textDim }}>© {new Date().getFullYear()}</span>
             </div>
-            <button onClick={() => navigate('/')} style={{ background:'transparent', border:'none', color:C.textDim, fontSize:12, cursor:'pointer' }}>
-              ← الرجوع للرئيسية
+            <button onClick={() => navigate('/')} style={{ background:'transparent', border:'none', color:C.textDim, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
+              <ArrowLeft size={13} strokeWidth={2.2} /> الرجوع للرئيسية
             </button>
           </div>
         </footer>
