@@ -138,7 +138,10 @@
     "message":  "All your data is saved. Subscribe to continue using Contractor Pro."
   },
   "offline": {
-    "message": "No connection — data saved locally"
+    "message": "No connection — data saved locally",
+    "reconnecting": "Back online — syncing…",
+    "synced": "Synced successfully",
+    "offlineFor": "Offline for {{time}}"
   },
   "onboarding": {
     "welcome":   "Welcome to Contractor Pro",
