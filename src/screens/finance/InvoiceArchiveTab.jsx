@@ -666,12 +666,12 @@ export default function InvoiceArchiveTab({ projects = [], userId }) {
     const { data, error } = await supabase.from('invoice_archive').insert(fields).select().single()
     if (error) throw error
     setArchive(prev => [normArchive(data), ...prev])
-    showToast('✅ تم أرشفة الفاتورة')
+    showToast('تم أرشفة الفاتورة')
   }
   async function handleToggleSent(id, val) {
     await supabase.from('invoice_archive').update({ sent_to_accountant: val }).eq('id', id)
     setArchive(prev => prev.map(e => e.id === id ? { ...e, sentToAccountant: val } : e))
-    if (val) showToast('✅ تم تعليمها مرسلة للمحاسب')
+    if (val) showToast('تم تعليمها مرسلة للمحاسب')
   }
   async function handleDelete(id) {
     const entry = entries.find(e => e.id === id)

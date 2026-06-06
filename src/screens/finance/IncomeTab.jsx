@@ -172,7 +172,7 @@ export default function IncomeTab({
     if (error) throw error
     setEntries(prev => [data, ...prev])
     onMutate?.()
-    showToast('✅ تم تسجيل القبضة')
+    showToast('تم تسجيل القبضة')
   }
 
   async function handleDelete(id) {

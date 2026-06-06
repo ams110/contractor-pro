@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { AlertTriangle, Check, X } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 
 /* ─── AnimatedNumber ─── */
@@ -124,7 +125,7 @@ export function Modal({ open, onClose, title, children, action }) {
         {/* Header */}
         <div style={{ padding: '14px 20px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <span style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{title}</span>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, borderRadius: '50%', width: 32, height: 32, color: C.textDim, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, borderRadius: '50%', width: 32, height: 32, color: C.textDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s' }}><X size={15} strokeWidth={2.4} /></button>
         </div>
         {/* Scrollable body */}
         <div style={{ padding: '0 20px 12px', overflowY: 'auto', flex: 1 }}>
@@ -170,7 +171,7 @@ export function Input({ label, value, onChange, type = 'text', placeholder = '',
           </select>
         : <input type={type} value={value} onChange={e => onChange(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder={placeholder} min={min} max={max} style={base} />
       }
-      {error && <div style={{ fontSize: 11, color: C.accent, marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>⚠ {error}</div>}
+      {error && <div style={{ fontSize: 11, color: C.accent, marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={12} strokeWidth={2.2} /> {error}</div>}
     </div>
   )
 }
@@ -197,9 +198,9 @@ export function Btn({ children, onClick, color = C.primary, variant = 'solid', f
         transform: pressed && !disabled ? 'scale(0.95)' : 'scale(1)',
         transition: 'transform .1s cubic-bezier(0.22,1,0.36,1), box-shadow .18s, opacity .2s',
         boxShadow: pressed && solid && !disabled
-          ? `0 2px 8px ${isPrimary ? '#00DDB322' : color + '22'}`
+          ? `0 2px 8px ${isPrimary ? C.primary + '22' : color + '22'}`
           : solid && !disabled
-            ? `0 6px 24px ${isPrimary ? '#00DDB355' : color + '55'}, 0 1px 0 rgba(255,255,255,0.18) inset`
+            ? `0 6px 24px ${isPrimary ? C.primary + '55' : color + '55'}, 0 1px 0 rgba(255,255,255,0.18) inset`
             : 'none',
         letterSpacing: '0.02em',
       }}
@@ -302,8 +303,8 @@ export function ErrorToast({ message, onClose }) {
   return (
     <div className="toast-in" style={{ position: 'fixed', bottom: 'max(140px, calc(120px + env(safe-area-inset-bottom, 0px)))', left: '50%', transform: 'translateX(-50%)', zIndex: 300, maxWidth: 380, width: '90%' }}>
       <div style={{ background: GRAD.danger, color: '#fff', padding: '14px 18px', borderRadius: 16, fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: `0 8px 32px #F43F5E55` }}>
-        <span>⚠ {message}</span>
-        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, cursor: 'pointer', padding: '3px 8px', marginRight: 8 }}>✕</button>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={15} strokeWidth={2.4} /> {message}</span>
+        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', padding: 4, marginRight: 8, display: 'flex' }}><X size={14} strokeWidth={2.5} /></button>
       </div>
     </div>
   )
@@ -315,8 +316,8 @@ export function SuccessToast({ message, onClose }) {
   return (
     <div className="toast-in" style={{ position: 'fixed', bottom: 'max(140px, calc(120px + env(safe-area-inset-bottom, 0px)))', left: '50%', transform: 'translateX(-50%)', zIndex: 300, maxWidth: 380, width: '90%' }}>
       <div style={{ background: GRAD.success, color: '#fff', padding: '14px 18px', borderRadius: 16, fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: `0 8px 32px #22C55E55` }}>
-        <span>✓ {message}</span>
-        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, cursor: 'pointer', padding: '3px 8px', marginRight: 8 }}>✕</button>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Check size={15} strokeWidth={2.6} /> {message}</span>
+        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', padding: 4, marginRight: 8, display: 'flex' }}><X size={14} strokeWidth={2.5} /></button>
       </div>
     </div>
   )

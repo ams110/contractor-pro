@@ -260,7 +260,7 @@ export default function ExpenseTab({
     if (error) throw error
     setEntries(prev => [data, ...prev])
     onMutate?.()
-    showToast('✅ تم تسجيل المصروف')
+    showToast('تم تسجيل المصروف')
   }
 
   async function handleDelete(id) {

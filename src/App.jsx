@@ -471,7 +471,7 @@ export default function App() {
         جميع بياناتك محفوظة. اشترك الآن للاستمرار في استخدام Contractor Pro.
       </div>
       <button onClick={() => navigate('/pricing')} style={{ padding: '14px 36px', borderRadius: 16, background: GRAD.primary, border: 'none', color: '#000', fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 28px rgba(245,158,11,0.4)', marginBottom: 14, position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
-        اختر خطة اشتراك ←
+        اختر خطة اشتراك
       </button>
       <button onClick={() => supabase.auth.signOut()} style={{ padding: '10px 24px', borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
         تسجيل الخروج
@@ -768,7 +768,7 @@ export default function App() {
                 onClick={() => { localStorage.setItem('cp_onboarded', '1'); setShowOnboarding(false) }}
                 style={{ marginTop: 22, width: '100%', padding: '13px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 24px rgba(245,158,11,0.35)', letterSpacing: '0.02em', fontFamily: 'inherit' }}
               >
-                ابدأ الآن ←
+                ابدأ الآن
               </motion.button>
             </motion.div>
           </motion.div>

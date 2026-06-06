@@ -3,7 +3,7 @@ import {
   Gift, HardHat, KeyRound, Bell, HardHat as ConstructionIcon, CalendarDays, Wallet, ClipboardList, Ruler, X,
   LogOut, LogIn, Eye, EyeOff, AlertTriangle, TrendingUp, CheckCircle2, Clock as ClockIcon,
   CalendarPlus, Receipt, Package, HandCoins, Map as MapIcon, Settings, Send, FileText, Download,
-  Check, X as XIcon, ChevronDown, Sparkles,
+  Check, X as XIcon, ChevronDown, Sparkles, MapPin, Camera, Paperclip,
 } from 'lucide-react'
 import { C, GRAD, EXP_CATS } from '../constants/index.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
@@ -362,7 +362,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
                 <button key={p.id} onClick={() => setForm(prev => ({ ...prev, projectId: p.id, location: '' }))}
                   style={{ padding: '8px 14px', borderRadius: 10, border: `1.5px solid ${form.projectId === p.id ? C.primary : C.border}`, background: form.projectId === p.id ? `${C.primary}22` : C.bg, color: form.projectId === p.id ? C.primary : C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                   {p.name}
-                  {p.type === 'يومي' && <span style={{ fontSize: 10, marginRight: 4, opacity: 0.7 }}>📍</span>}
+                  {p.type === 'يومي' && <MapPin size={10} strokeWidth={2.2} style={{ marginRight: 4, opacity: 0.7, verticalAlign: '-1px' }} />}
                 </button>
               ))}
             </div>
@@ -375,12 +375,12 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
             if (selProj?.type !== 'يومي' || locs.length === 0) return null
             return (
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>📍 مكان العمل</label>
+                <label style={{ fontSize: 12, color: C.textDim, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}><MapPin size={12} strokeWidth={2.2} /> مكان العمل</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {locs.map(loc => (
                     <button key={loc} onClick={() => setForm(prev => ({ ...prev, location: prev.location === loc ? '' : loc }))}
                       style={{ padding: '8px 14px', borderRadius: 10, border: `1.5px solid ${form.location === loc ? C.primary : C.border}`, background: form.location === loc ? `${C.primary}22` : C.bg, color: form.location === loc ? C.primary : C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                      📍 {loc}
+                      <MapPin size={11} strokeWidth={2.2} style={{ verticalAlign: '-1px', marginInlineEnd: 3 }} />{loc}
                     </button>
                   ))}
                 </div>
@@ -499,7 +499,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
     if (!form.amount || parseFloat(form.amount) <= 0) return setSubmitErr('أدخل المبلغ')
     if (!form.projectId) return setSubmitErr('اختر المشروع')
     if (!form.vendor?.trim()) return setSubmitErr('أدخل اسم المحل أو المزود')
-    if (!receiptFile) return setSubmitErr('📸 صورة الفاتورة مطلوبة')
+    if (!receiptFile) return setSubmitErr('صورة الفاتورة مطلوبة')
     setSubmitErr('')
     let receiptUrl = ''
     setUploading(true)
@@ -596,7 +596,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <label style={{ fontSize: 12 }}>
-            <span style={{ color: C.accent, fontWeight: 700 }}>📎 صورة الفاتورة *</span>
+            <span style={{ color: C.accent, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Paperclip size={12} strokeWidth={2.2} /> صورة الفاتورة *</span>
           </label>
           {receiptFile && receiptFile.type.startsWith('image/') && (
             <button onClick={scanReceipt} disabled={scanning}
@@ -621,14 +621,14 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
               <img src={receiptPreview} alt="فاتورة" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 12, border: `1.5px solid ${C.success}55` }} />
             )}
             <button onClick={clearFile}
-              style={{ position: 'absolute', top: 6, left: 6, width: 26, height: 26, borderRadius: '50%', background: `${C.accent}dd`, border: 'none', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              ✕
+              style={{ position: 'absolute', top: 6, left: 6, width: 26, height: 26, borderRadius: '50%', background: `${C.accent}dd`, border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <XIcon size={14} strokeWidth={2.5} />
             </button>
           </div>
         ) : (
           <button onClick={() => fileRef.current.click()}
             style={{ width: '100%', padding: '18px 14px', borderRadius: 12, border: `2px dashed ${C.accent}66`, background: `${C.accent}08`, color: C.accent, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 28 }}>📷</span>
+            <Camera size={28} strokeWidth={1.9} />
             <span>اضغط لالتقاط صورة الفاتورة</span>
             <span style={{ fontSize: 11, color: C.textDim, fontWeight: 400 }}>صورة أو PDF</span>
           </button>
@@ -758,7 +758,7 @@ function ChangePasswordForm({ worker, onChangePassword }) {
 
         <button onClick={handleSubmit} disabled={saving || !oldPass || !newPass || !confirm}
           style={{ width: '100%', padding: 14, borderRadius: 14, background: saving || !oldPass || !newPass || !confirm ? C.border : GRAD.purple, border: 'none', color: saving || !oldPass || !newPass || !confirm ? C.textDim : '#fff', fontSize: 15, fontWeight: 800, cursor: saving || !oldPass || !newPass || !confirm ? 'default' : 'pointer', transition: 'all .2s', boxShadow: oldPass && newPass && confirm ? `0 4px 20px ${C.secondary}44` : 'none' }}>
-          {saving ? 'جاري الحفظ...' : '🔐 حفظ كلمة المرور الجديدة'}
+          {saving ? 'جاري الحفظ...' : <><KeyRound size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />حفظ كلمة المرور الجديدة</>}
         </button>
       </div>
     </div>

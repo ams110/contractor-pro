@@ -1,5 +1,5 @@
 import React from 'react'
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, ChevronDown } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { GlassCard } from '../../components/index.jsx'
 import { ACTION_MAP, TABLE_MAP, ACTION_COLOR, fmtRelative } from './teamConstants.js'
@@ -23,7 +23,7 @@ export function MemberActivity({ memberId, authEmail, manager }) {
         }}
       >
         <span style={{ display:'flex', alignItems:'center', gap:5 }}><ClipboardList size={13} strokeWidth={2} /> سجل النشاط</span>
-        <span style={{ fontSize: 10 }}>{isOpen ? '▲' : '▼'}</span>
+        <ChevronDown size={13} style={{ transition: 'transform .2s', transform: isOpen ? 'rotate(180deg)' : 'none' }} />
       </button>
 
       {isOpen && (
