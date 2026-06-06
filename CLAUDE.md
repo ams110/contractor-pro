@@ -193,6 +193,8 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 | `CashForecast.jsx` | **التوقّع الذكي للسيولة** — مسار نقدي (ماضٍ صلب→مستقبل متقطّع) + نطاق ثقة + عدّاد أمان (runway). يقرأ من `computeCashForecast` |
 | `BiometricConfirmModal.jsx` | نافذة تأكيد بصمة/PIN للعمليات الحسّاسة (تُستدعى عبر `useAppStore.requestBioConfirm`) |
 | `SessionLockScreen.jsx` | شاشة قفل الجلسة عند الخمول (بدل الخروج التلقائي) |
+| `ConnectionStatus.jsx` | **مؤشّر حالة الاتصال والمزامنة** — آلة حالات بصرية (offline نابض أحمر + عدّاد مدّة · reconnecting سماوي مع ping فعلي لـ `/auth/v1/health` · synced ومضة خضراء تختفي تلقائياً). يقرأ `isOnline` من `useAppStore`. مُركَّب في `App.jsx` أعلى الشاشة |
+| `ScreenSkeleton.jsx` | **هياكل تحميل** (Skeleton) تحاكي تخطيط الشاشات — variants: `dashboard`/`finance`/`workers`/`list`. تُعرض في `renderScreen` (App.jsx) على **التحميل الأول فقط** (`dataLoading && noDataYet`) لمنع وميض الـ refetch وقفزة التخطيط. مبني على `ui/Skeleton` |
 | `NotificationsPanel.jsx` | مركز الإشعارات داخل التطبيق |
 | `SmartSearch.jsx` / `SearchOverlay.jsx` | بحث شامل (cmdk) عبر المشاريع/العمّال/المصاريف/الدفعات |
 | `SignaturePad.jsx` | لوحة توقيع canvas |
@@ -203,7 +205,9 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 | `sheets/AddExpenseSheet.jsx` | bottom-sheet إضافة مصروف (رفع إيصال، فئة، מע"מ، طريقة دفع) |
 | `sheets/AddReceiptSheet.jsx` | bottom-sheet إضافة مقبوض/فاتورة |
 
-**مكتبة UI** (`src/ui/`): `Button` (variants: brand/warm/ghost/danger/success · sizes: sm/md/lg/xl/icon) · `Card`+`GlassCard` · `Input` (label/error/hint/icon/suffix) · `Modal` (bottom-sheet، sizes sm/md/lg) · `Badge` (7 ألوان) · `StatCard`.
+**مكتبة UI** (`src/ui/`): `Button` (variants: brand/warm/ghost/danger/success · sizes: sm/md/lg/xl/icon) · `Card`+`GlassCard` · `Input` (label/error/hint/icon/suffix) · `Modal` (bottom-sheet، sizes sm/md/lg) · `Badge` (7 ألوان) · `StatCard` · `Skeleton` (هيكل تحميل بوميض shimmer برتقالي من `C.primary`، keyframe مُحقَن مرّة، يحترم `prefers-reduced-motion`) + `SkeletonText` + `SkeletonCard`.
+
+> **استعمل الـ Skeleton لكل حالة تحميل جديدة** بدل النصوص أو الـ spinner: لشاشة كاملة استعمل `ScreenSkeleton variant=...`، ولجزء داخل شاشة ركّب `Skeleton`/`SkeletonText`/`SkeletonCard` بنفس مقاسات المحتوى الحقيقي (منع layout shift). وأي شاشة جديدة بتعتمد على `dataLoading` تنضمّ تلقائياً عبر خريطة `SKEL_VARIANT` في `renderScreen`.
 
 ---
 
@@ -297,6 +301,7 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 
 - **i18n** (`src/i18n/index.js`): ar (افتراضي) / he / en، مخزّن في localStorage `cp_lang`. RTL تلقائي لـ ar/he. الترجمات في `locales/*.json`. **سلاسل عبرية داخل JSX تُكتب `{'מע"מ'}`** لتجنّب كسر JSX بسبب `"`.
 - **PWA**: `vite-plugin-pwa` بنمط `injectManifest` و`src/sw.js`. precache للأصول + Supabase API بـ NetworkFirst (مهلة 10s). تحديث تلقائي (`onNeedRefresh` → reload).
+- **حالة الاتصال** (`offline.*` في locales): `message`/`reconnecting`/`synced`/`offlineFor` — يستعملها `ConnectionStatus`. الحالة `isOnline` في `useAppStore` (listeners في `App.jsx`).
 - **Web Push**: SW يستقبل `push` → إشعار RTL. الاشتراكات في `push_subscriptions`، VAPID عبر `VITE_VAPID_PUBLIC_KEY`، الإرسال عبر edge `send-push`.
 
 ---
@@ -359,5 +364,5 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 
 - Branch رئيسي: `main`. الإصدار يتزايد تلقائياً (حالياً ~2.0.5x).
 - وحدة المالية مكتملة (Phases 0→5)، المصادقة WebAuthn passkey حقيقية، الفريق متعدّد الصلاحيات، بوّابة العامل، اشتراكات Paddle، Push.
-- آخر الإنجازات المدموجة: **نبض المصلحة + مشاركة واتساب** (#104) · **التوقّع الذكي للسيولة** (#106).
+- آخر الإنجازات المدموجة: **نبض المصلحة + مشاركة واتساب** (#104) · **التوقّع الذكي للسيولة** (#106) · **مؤشّر حالة الاتصال والمزامنة** (#137) · **هياكل التحميل Skeleton** (#139).
 - النشر: Vercel (أساسي) + GitHub Pages (مرآة) + Supabase edge functions — كلها تلقائية عند push لـ main.
