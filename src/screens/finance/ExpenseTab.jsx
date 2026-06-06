@@ -12,6 +12,7 @@ import { supabase } from '../../lib/supabase.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { AddExpenseSheet } from '../../components/sheets/index.js'
+import ReceiptCard from '../../components/ReceiptCard.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { detectExpenseAnomalies } from '../../lib/insights.js'
 import ExpenseRadar from '../../components/ExpenseRadar.jsx'
@@ -83,95 +84,43 @@ function EntryRow({ entry, showVat, projectName, onDelete }) {
   const [delConfirm, setDelConfirm] = useState(false)
   const color = catColor(entry.category)
   const deductible = Number(entry.vat_amount ?? 0) * vatDeductRate(entry.category)
+  const method = entry.payment_method || entry.method
+  const note = entry.note || entry.notes
+
+  const title = entry.vendor || entry.category || 'مصروف'
+  const chips = []
+  if (entry.category && entry.category !== title) chips.push({ label: entry.category, color })
+  if (method) chips.push({ label: methodLabel(method), color: C.cyan })
+  if (projectName) chips.push({ label: projectName, color: C.primary })
+
+  const actions = !delConfirm
+    ? <button onClick={() => setDelConfirm(true)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}><Trash2 size={13} /></button>
+    : <span style={{ display: 'flex', gap: 4 }}>
+        <button onClick={() => setDelConfirm(false)} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textDim, cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontFamily: 'inherit' }}>لا</button>
+        <button onClick={() => onDelete(entry.id)} style={{ background: C.accent, border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontWeight: 700, fontFamily: 'inherit' }}>احذف</button>
+      </span>
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: 40 }}
-      style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '12px 14px', marginBottom: 8 }}
+    <ReceiptCard
+      accent={C.accent}
+      direction="out"
+      amountLabel="صُرف"
+      refNumber={entry.ref_number}
+      date={fmtDate(entry.date)}
+      title={title}
+      subtitle={note}
+      amount={entry.amount}
+      chips={chips}
+      onView={entry.receipt_url ? () => window.open(entry.receipt_url, '_blank', 'noopener') : undefined}
+      actions={actions}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        {/* Color dot */}
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, marginTop: 5, flexShrink: 0 }} />
-
-        {/* Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>₪{fmt(entry.amount)}</div>
-              {entry.ref_number && (
-                <span style={{ fontSize: 9, fontWeight: 800, color: C.accent, background: `${C.accent}15`, border: `1px solid ${C.accent}25`, padding: '2px 7px', borderRadius: 8, letterSpacing: '0.05em', fontFamily: 'monospace' }}>
-                  {entry.ref_number}
-                </span>
-              )}
-              {showVat && deductible > 0 && (
-                <span style={{ fontSize: 10, color: '#22C55E', fontWeight: 600 }}>
-                  خصم {'מע"מ'} ₪{fmt(deductible)}
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(entry.date)}</div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: (entry.note || entry.notes || entry.vendor) ? 5 : 0 }}>
-            {entry.category && (
-              <span style={{ fontSize: 10, fontWeight: 700, color, background: `${color}15`, padding: '2px 7px', borderRadius: 20 }}>
-                {entry.category}
-              </span>
-            )}
-            {(entry.payment_method || entry.method) && (
-              <span style={{ fontSize: 10, color: C.textDim, background: 'rgba(255,255,255,0.05)', padding: '2px 7px', borderRadius: 20 }}>
-                {methodLabel(entry.payment_method || entry.method)}
-              </span>
-            )}
-            {projectName && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}15`, padding: '2px 7px', borderRadius: 20 }}>
-                {projectName}
-              </span>
-            )}
-            {showVat && (
-              <VatHint category={entry.category} />
-            )}
-          </div>
-
-          {(entry.vendor) && (
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{entry.vendor}</div>
-          )}
-          {(entry.note || entry.notes) && (
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, fontStyle: 'italic' }}>{entry.note || entry.notes}</div>
-          )}
-          {entry.receipt_url && (
-            <a href={entry.receipt_url} target="_blank" rel="noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: 10, color: C.primary, textDecoration: 'none' }}>
-              <Receipt size={10} /> عرض الإيصال
-            </a>
-          )}
+      {showVat && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 7 }}>
+          <VatHint category={entry.category} />
+          {deductible > 0 && <span style={{ fontSize: 10, color: C.success, fontWeight: 700 }}>خصم {'מע"מ'} ₪{fmt(deductible)}</span>}
         </div>
-
-        {/* Delete */}
-        <div>
-          {!delConfirm ? (
-            <button onClick={() => setDelConfirm(true)}
-              style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 4, display: 'flex' }}>
-              <Trash2 size={13} />
-            </button>
-          ) : (
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button onClick={() => setDelConfirm(false)}
-                style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textDim, cursor: 'pointer', padding: '3px 7px', fontSize: 10 }}>
-                لا
-              </button>
-              <button onClick={() => onDelete(entry.id)}
-                style={{ background: C.accent, border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontWeight: 700 }}>
-                احذف
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </motion.div>
+      )}
+    </ReceiptCard>
   )
 }
 

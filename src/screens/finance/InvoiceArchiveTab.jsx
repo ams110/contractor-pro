@@ -6,6 +6,7 @@ import {
   TrendingUp, TrendingDown, Link2, ImageOff,
 } from 'lucide-react'
 import { C, GRAD, EXP_CATS } from '../../constants/index.js'
+import { HolographicSheen } from '../../ui/Premium.jsx'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { supabase } from '../../lib/supabase.js'
 import { uploadReceipt } from '../../lib/storage.js'
@@ -97,17 +98,19 @@ function DocCard({ it, projectName, onToggleSent, onDelete, onPreview }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
       style={{
-        background: C.surface,
-        border: `1px solid ${sent ? '#22C55E22' : C.border}`,
-        borderRadius: 16, padding: '12px 14px', marginBottom: 8,
+        background: `linear-gradient(135deg, ${color}10, ${C.card} 62%)`,
+        border: `1px solid ${sent ? '#22C55E44' : color + '2e'}`,
+        borderRadius: 16, padding: '12px 14px', marginBottom: 9,
         position: 'relative', overflow: 'hidden',
+        boxShadow: `0 8px 22px ${color}12`,
       }}
     >
+      <HolographicSheen opacity={0.12} />
       {sent && (
         <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 3, background: '#22C55E', borderRadius: '0 16px 16px 0' }} />
       )}
 
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ position: 'relative', display: 'flex', gap: 10 }}>
         {/* Thumbnail / icon */}
         <div
           onClick={() => hasFile && onPreview(it)}
@@ -170,7 +173,7 @@ function DocCard({ it, projectName, onToggleSent, onDelete, onPreview }) {
       </div>
 
       {/* Footer */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
         {/* يسار: حالة الإرسال للمحاسب (أرشيف يدوي) أو شارة المصدر */}
         {it.source === 'archive' ? (
           <button
