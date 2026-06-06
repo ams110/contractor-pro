@@ -302,7 +302,7 @@ export function ErrorToast({ message, onClose }) {
   if (!message) return null
   return (
     <div className="toast-in" style={{ position: 'fixed', bottom: 'max(140px, calc(120px + env(safe-area-inset-bottom, 0px)))', left: '50%', transform: 'translateX(-50%)', zIndex: 300, maxWidth: 380, width: '90%' }}>
-      <div style={{ background: GRAD.danger, color: '#fff', padding: '14px 18px', borderRadius: 16, fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: `0 8px 32px #F43F5E55` }}>
+      <div style={{ background: GRAD.danger, color: '#fff', padding: '14px 18px', borderRadius: 16, fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: `0 8px 32px ${C.accent}55` }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={15} strokeWidth={2.4} /> {message}</span>
         <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', padding: 4, marginRight: 8, display: 'flex' }}><X size={14} strokeWidth={2.5} /></button>
       </div>
