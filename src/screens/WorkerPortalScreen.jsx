@@ -28,6 +28,12 @@ const STATUS_BADGE = {
   pending:  { label: 'معلق',   bg: `${C.warning}22`, color: C.warning },
   rejected: { label: 'مرفوض', bg: `${C.accent}22`,  color: C.accent  },
 }
+
+function fmtMonth(yyyymm) {
+  const [y, m] = yyyymm.split('-')
+  return `${MONTHS_AR[parseInt(m, 10) - 1]} ${y}`
+}
+
 // ─── هيدر «بطاقة العامل» — بانر محفظة متدرّج + لمعة ────────────────────────────
 function PortalHero({ worker, owed, earned, paid, daysCount, pending, onLogout }) {
   const initials = (worker?.name || '؟').split(' ').map(w => w[0]).join('').slice(0, 2)
