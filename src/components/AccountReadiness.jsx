@@ -114,7 +114,7 @@ export default function AccountReadiness({ readiness, onFix }) {
               <div style={{ width: 30, height: 30, borderRadius: 9, background: `${C.success}1c`, border: `1px solid ${C.success}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Check size={15} color={C.success} strokeWidth={2.5} />
               </div>
-              <span style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>حسابك مُعدّ ومؤمّن بالكامل — ما في إشي ناقص 🎯</span>
+              <span style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>حسابك مُعدّ ومؤمّن بالكامل — ما في إشي ناقص</span>
             </div>
           ) : (
             readiness.missing.slice(0, 3).map((m, i) => {

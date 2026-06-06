@@ -67,7 +67,7 @@ export function useSalaryAlerts(userId, employees, workDays, payments, advances 
       const names = overdueWorkers.map(o => `${o.emp.name} (${fmt(o.owed)}₪)`).join('، ')
       await supabase.from('notifications').insert({
         user_id: userId,
-        title:   `رواتب متأخرة 🔴 (${overdueWorkers.length} عمال)`,
+        title:   `رواتب متأخرة (${overdueWorkers.length} عمال)`,
         body:    names,
         type:    'salary_overdue',
       })

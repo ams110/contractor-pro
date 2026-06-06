@@ -1,4 +1,5 @@
 import React from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 
 export default class ErrorBoundary extends React.Component {
@@ -19,7 +20,7 @@ export default class ErrorBoundary extends React.Component {
     if (!this.state.error) return this.props.children
     return (
       <div style={{ padding: 32, textAlign: 'center', color: C.text }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+        <AlertTriangle size={48} color={C.accent} strokeWidth={1.8} style={{ margin: '0 auto 16px', display: 'block' }} />
         <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>حدث خطأ غير متوقع</div>
         <div style={{ fontSize: 12, color: C.textDim, marginBottom: 24 }}>
           {this.state.error.message}

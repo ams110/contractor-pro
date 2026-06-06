@@ -9,7 +9,7 @@ import {
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
   Fingerprint, ShieldCheck, Clock, Lock, Eye, EyeOff, Smartphone,
   ToggleLeft, ToggleRight, Timer, CalendarOff, UserCheck, UserX, Wallet, SlidersHorizontal,
-  RotateCw, QrCode, Copy, ArrowRight, MessageCircle,
+  RotateCw, QrCode, Copy, ArrowRight, MessageCircle, AlertTriangle,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
@@ -328,7 +328,7 @@ export default function SettingsScreen({
     setTestNotifLoading(true)
     try {
       await supabase.functions.invoke('send-push', {
-        body: { user_ids: [userId], title: 'اختبار الإشعارات', body: 'وصل الإشعار بنجاح حتى بعد إغلاق التطبيق ✓' }
+        body: { user_ids: [userId], title: 'اختبار الإشعارات', body: 'وصل الإشعار بنجاح حتى بعد إغلاق التطبيق' }
       })
     } catch {}
     setTestNotifLoading(false)
@@ -633,7 +633,7 @@ export default function SettingsScreen({
             {LANGS.map(l => (
               <motion.button key={l.code} whileTap={{ scale: 0.95 }} onClick={() => setLanguage(l.code)}
                 style={{ padding: '12px 8px', borderRadius: 14, background: language === l.code ? GRAD.primary : C.card, border: `1px solid ${language === l.code ? 'transparent' : C.border}`, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, boxShadow: language === l.code ? '0 4px 16px rgba(249,115,22,0.3)' : 'none' }}>
-                <span style={{ fontSize: 22 }}>{l.flag}</span>
+                <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.04em', color: language === l.code ? '#fff' : C.primary, background: language === l.code ? 'rgba(255,255,255,0.18)' : `${C.primary}18`, border: `1px solid ${language === l.code ? 'rgba(255,255,255,0.3)' : C.primary + '30'}`, borderRadius: 9, padding: '4px 10px', minWidth: 34, textAlign: 'center' }}>{l.code.toUpperCase()}</span>
                 <span style={{ fontSize: 12, fontWeight: 800, color: language === l.code ? '#fff' : C.textDim }}>{l.label}</span>
                 {language === l.code && <Check size={12} color="#fff" strokeWidth={3} />}
               </motion.button>
@@ -1296,7 +1296,7 @@ export default function SettingsScreen({
 
                   {bioError && (
                     <div style={{ fontSize: 12, color: C.accent, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span>⚠</span> {bioError}
+                      <AlertTriangle size={13} strokeWidth={2.2} /> {bioError}
                     </div>
                   )}
 

@@ -358,14 +358,14 @@ export default function ProjectFinanceTab({ userId }) {
     const { data, error } = await supabase.from('client_receipts').insert(fields).select().single()
     if (error) throw error
     setReceipts(prev => [data, ...prev])
-    showToast('✅ تم تسجيل القبضة')
+    showToast('تم تسجيل القبضة')
   }
 
   async function addExpense(fields) {
     const { data, error } = await supabase.from('expenses').insert(fields).select().single()
     if (error) throw error
     setExpenses(prev => [data, ...prev])
-    showToast('✅ تم تسجيل المصروف')
+    showToast('تم تسجيل المصروف')
   }
 
   async function deleteReceipt(id) {

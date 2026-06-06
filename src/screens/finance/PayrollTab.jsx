@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, X, Users, ChevronDown, Check,
   Printer, Trash2, Calendar, Banknote,
-  CheckCircle2, Clock, Search,
+  CheckCircle2, Clock, Search, ArrowRight,
 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
@@ -135,8 +135,8 @@ function SlipCard({ slip, onMarkPaid, onDelete, onPrint }) {
           </span>
         )}
         {isPaid && (
-          <span style={{ fontSize: 10, background: '#22C55E12', padding: '3px 8px', borderRadius: 20, color: '#22C55E', fontWeight: 700 }}>
-            ✓ صُرف {fmtDate(slip.paid_at)}
+          <span style={{ fontSize: 10, background: '#22C55E12', padding: '3px 8px', borderRadius: 20, color: '#22C55E', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <Check size={11} strokeWidth={2.8} /> صُرف {fmtDate(slip.paid_at)}
           </span>
         )}
       </div>
@@ -330,8 +330,8 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
                 </div>
                 {step === 2 && (
                   <button onClick={() => setStep(1)}
-                    style={{ background: 'none', border: 'none', color: C.primary, fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit', marginTop: 2 }}>
-                    ← تغيير العامل
+                    style={{ background: 'none', border: 'none', color: C.primary, fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit', marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <ArrowRight size={12} strokeWidth={2.4} /> تغيير العامل
                   </button>
                 )}
               </div>
@@ -555,7 +555,7 @@ export default function PayrollTab({ employees = [], userId }) {
       .from('payroll_slips').insert(fields).select().single()
     if (error) throw error
     setSlips(prev => [data, ...prev])
-    showToast('✅ تم حفظ القسيمة')
+    showToast('تم حفظ القسيمة')
   }
 
   async function handleMarkPaid(id) {
@@ -565,7 +565,7 @@ export default function PayrollTab({ employees = [], userId }) {
     const paid_at = todayStr()
     await supabase.from('payroll_slips').update({ paid_at }).eq('id', id)
     setSlips(prev => prev.map(s => s.id === id ? { ...s, paid_at } : s))
-    showToast('✅ تم تأكيد الصرف')
+    showToast('تم تأكيد الصرف')
   }
 
   async function handleDelete(id) {
