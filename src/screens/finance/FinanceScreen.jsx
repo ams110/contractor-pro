@@ -543,7 +543,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
                     <option value="">{lbl('بدون ربط بقبضة', 'ללא קישור', 'No receipt link', language)}</option>
                     {projectReceipts.map(r => (
                       <option key={r.id} value={r.id} disabled={r.remaining <= 0}>
-                        {r.ref_number || '—'} · ₪{fmt(r.amount)} · {lbl('متبقي', 'נותר', 'Left', language)}: ₪{fmt(r.remaining)}{r.remaining <= 0 ? ' ✗' : ''}
+                        {r.ref_number || '—'} · ₪{fmt(r.amount)} · {lbl('متبقي', 'נותר', 'Left', language)}: ₪{fmt(r.remaining)}{r.remaining <= 0 ? lbl(' — مكتمل', ' — נגבה', ' — Paid', language) : ''}
                       </option>
                     ))}
                   </select>
@@ -948,7 +948,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
                   <option value="">{lbl('بدون ربط بقبضة', 'ללא קישור', 'No receipt link', language)}</option>
                   {projectReceipts.map(r => (
                     <option key={r.id} value={r.id} disabled={r.remaining <= 0}>
-                      {r.ref_number || '—'} · ₪{fmt(r.amount)} · {lbl('متبقي', 'נותר', 'Left', language)}: ₪{fmt(r.remaining)}{r.remaining <= 0 ? ' ✗' : ''}
+                      {r.ref_number || '—'} · ₪{fmt(r.amount)} · {lbl('متبقي', 'נותר', 'Left', language)}: ₪{fmt(r.remaining)}{r.remaining <= 0 ? lbl(' — مكتمل', ' — נגבה', ' — Paid', language) : ''}
                     </option>
                   ))}
                 </select>
