@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import { C, GRAD, EXP_CATS } from '../constants/index.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
+import WorkDayTicket from '../components/WorkDayTicket.jsx'
+import WorkMonthHeader from '../components/WorkMonthHeader.jsx'
 import { fmt, fmtDate, fmtDateFull, todayStr } from '../lib/helpers.js'
 import { useWorkerPortal } from '../hooks/useWorkerPortal.js'
 import { useMaterialLogs } from '../hooks/useMaterialLogs.js'
@@ -108,7 +110,7 @@ function PortalTabs({ tabs, tab, setTab }) {
 
 const DAY_TYPE_COLORS = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange }
 
-function MonthRow({ month, data, payments, holidays = [] }) {
+function MonthRow({ month, data, payments, holidays = [], prevTotal = 0, isCurrent = false }) {
   const [open, setOpen] = useState(false)
   const monthPayments = payments.filter(p => String(p.date).substring(0, 7) === month)
 
@@ -116,51 +118,55 @@ function MonthRow({ month, data, payments, holidays = [] }) {
   const holidayMap = {}
   holidays.forEach(h => { holidayMap[String(h.date).slice(0, 10)] = h })
 
+  const records = data.records || []
+
   // holidays in this month that the worker did NOT work
-  const workedDates = new Set((data.records || []).map(r => String(r.date).slice(0, 10)))
+  const workedDates = new Set(records.map(r => String(r.date).slice(0, 10)))
   const offHolidays = holidays
     .filter(h => String(h.date).slice(0, 7) === month && !workedDates.has(String(h.date).slice(0, 10)))
     .sort((a, b) => String(a.date).localeCompare(String(b.date)))
 
+  // مدخلات بانر الشهر
+  const [y, m] = month.split('-')
+  const workDaysCount = records.filter(r => r.day_type !== 'عطلة').length
+  const holidayCount  = records.filter(r => r.day_type === 'عطلة').length
+  const daysInMonth   = new Date(parseInt(y, 10), parseInt(m, 10), 0).getDate()
+  const bars = new Array(daysInMonth).fill(0)
+  records.forEach(r => { const dn = parseInt(String(r.date || '').slice(8, 10), 10); if (dn >= 1 && dn <= daysInMonth) bars[dn - 1] += (r.amount || 0) })
+  const trendPct = prevTotal > 0 ? Math.round((data.amount - prevTotal) / prevTotal * 100) : null
+
   return (
-    <div style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)', borderRadius: 16, border: `1px solid ${C.border}`, marginBottom: 8, overflow: 'hidden' }}>
-      <button onClick={() => setOpen(o => !o)}
-        style={{ width: '100%', padding: '13px 16px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{fmtMonth(month)}</span>
-          <span style={{ fontSize: 10, color: C.textDim, background: `${C.border}88`, padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>
-          {(data.records || []).filter(r => r.day_type !== 'عطلة').length} يوم
-          {(data.records || []).filter(r => r.day_type === 'عطلة').length > 0 && ` · ${(data.records || []).filter(r => r.day_type === 'عطلة').length} عطلة`}
-        </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>
-          <ChevronDown size={14} style={{ color: C.textDim, transition: 'transform .2s', transform: open ? 'rotate(180deg)' : 'none' }} />
-        </div>
-      </button>
+    <div style={{ marginBottom: 10 }}>
+      <WorkMonthHeader
+        label={fmtMonth(month)}
+        monthNum={parseInt(m, 10)}
+        year={y}
+        total={data.amount}
+        workDays={workDaysCount}
+        holidays={holidayCount}
+        workerCount={0}
+        isCurrent={isCurrent}
+        isOpen={open}
+        trendPct={trendPct}
+        bars={bars}
+        onToggle={() => setOpen(o => !o)}
+      />
 
       {open && (
-        <div style={{ padding: '0 16px 14px', borderTop: `1px solid ${C.border}` }}>
-          {/* تفاصيل كل يوم */}
-          {data.records && data.records.length > 0 && (
-            <div style={{ marginTop: 10, marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: C.textDim, marginBottom: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>تفاصيل الأيام</div>
-              {data.records.map((r, i) => {
-                const tc = DAY_TYPE_COLORS[r.day_type] || C.primary
-                const hol = holidayMap[String(r.date).slice(0, 10)]
-                return (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: `1px solid ${C.border}22` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: 12, color: C.textDim, flexShrink: 0 }}>{fmtDateFull(r.date)}</div>
-                      {r.project_name && <div style={{ fontSize: 11, color: C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.project_name}</div>}
-                      {r.location && <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.primary}30`, flexShrink: 0 }}>{r.location}</span>}
-                      <span style={{ fontSize: 10, fontWeight: 700, color: tc, background: `${tc}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${tc}30`, flexShrink: 0 }}>{r.day_type}</span>
-                      {hol && <span style={{ fontSize: 10, fontWeight: 700, color: C.warning, background: `${C.warning}18`, padding: '1px 7px', borderRadius: 6, border: `1px solid ${C.warning}30`, flexShrink: 0, display:'inline-flex', alignItems:'center', gap:3 }}><Gift size={8} strokeWidth={2} /> {hol.name}</span>}
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: tc, fontFamily: 'monospace', flexShrink: 0, marginRight: 4 }}>{fmt(r.amount)}₪</span>
-                  </div>
-                )
-              })}
+        <div style={{ border: `1px solid ${isCurrent ? C.primary + '33' : C.border}`, borderTop: 'none', borderRadius: '0 0 18px 18px', padding: 12, background: C.bg }}>
+          {/* تذاكر الأيام */}
+          {records.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 10 }}>
+              {records.map((r, i) => (
+                <WorkDayTicket key={i}
+                  wd={{ ...r, status: r.status || 'approved' }}
+                  hideName
+                  projectName={r.project_name || ''}
+                  holidayName={holidayMap[String(r.date).slice(0, 10)]?.name}
+                  notchColor={C.bg}
+                  delay={Math.min(i * 0.03, 0.2)}
+                />
+              ))}
             </div>
           )}
 
@@ -1279,11 +1285,20 @@ export default function WorkerPortalScreen() {
                 <CalendarDays size={40} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
                 <div>ما في أيام عمل مسجّلة بعد</div>
               </div>
-            ) : (
-              monthlyBreakdown.map(([month, data]) => (
-                <MonthRow key={month} month={month} data={data} payments={payments} holidays={holidays} />
-              ))
-            )}
+            ) : (() => {
+              const curKey = new Date().toISOString().slice(0, 7)
+              const totalsByMonth = Object.fromEntries(monthlyBreakdown.map(([mk, d]) => [mk, d.amount || 0]))
+              return monthlyBreakdown.map(([month, data]) => {
+                const [yy, mm] = month.split('-').map(Number)
+                const pmm = mm - 1 < 1 ? 12 : mm - 1
+                const pyy = mm - 1 < 1 ? yy - 1 : yy
+                const prevKey = `${pyy}-${String(pmm).padStart(2, '0')}`
+                return (
+                  <MonthRow key={month} month={month} data={data} payments={payments} holidays={holidays}
+                    prevTotal={totalsByMonth[prevKey] || 0} isCurrent={month === curKey} />
+                )
+              })
+            })()}
           </>
         )}
 
