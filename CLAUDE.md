@@ -57,9 +57,9 @@ npm run test:e2e:ui   # واجهة Playwright التفاعلية
 - **الرأس**: شريحة أيقونة 30×30 (`borderRadius:10`، خلفية `tone.soft`، حدّ `main44`) **متحرّكة** (نبض scale أو rotate لانهائي)، + عنوان 14/900، + سطر فرعي 10 `textDim`، + شارة حالة على الطرف المقابل (حشوة `4px 9px`، `radius:9`، خلفية `main16`، حدّ `main3a`).
 - **الأرقام**: عدّاد تصاعدي `useCountUp` (easeOutCubic، RAF)، `fontVariantNumeric:'tabular-nums'`، وزن 900، إشارة سالب **صريحة `−`** قبل `₪`.
 - **صفوف الرؤى الداخلية**: خلفية `C.card`، حدّ `${color}26`، `radius:13`، حشوة `10px 12px`، + شريحة أيقونة 28×28 (`color1c`/`color33`) + نصّ 12 `lineHeight:1.5` + `ChevronLeft` 15 `textDim` للقابل للنقر.
-- **مكوّنات مساعدة قابلة لإعادة الاستخدام داخل `DashboardScreen.jsx`**: `PremiumShell` (القشرة) · `IconChip` (الشريحة) · `StatTile` (بطاقة إحصائية) · `Money` / `TrendChip`. عند بناء بطاقة جديدة في شاشة أخرى، طابق نفس البِنية.
+- **الـkit الرسمي المشترك = `src/ui/Premium.jsx`** ويستعمله ~21 ملف (ProjectCard, WorkerCard, ReceiptCard, WorkDayTicket, وأغلب الشاشات). صادراته: `TONES` + `toneFromColor(color)` · `IconChip` (مع `pulse`) · `PremiumCard` (القشرة كاملة بالوميض والدخول) · `PremiumStat` (بطاقة إحصائية) · `HolographicSheen` (لمعة قطرية). **لأي بطاقة/إحصائية جديدة: استورد من هون بدل إعادة الكتابة.**
 
-> ملاحظة: `useCountUp` و`TONE` و`Money` مُكرَّرة عمداً في كل مكوّن (لا يوجد ملف helper مشترك بعد) — حافظ على التطابق عند النسخ.
+> ⚠️ تنبيه ازدواجية قائمة: المكوّنات الفخمة الكبيرة (`BusinessPulse`/`CashForecast`/`NetWorth`/`CommandCenter`) و`DashboardScreen.jsx` ما زالت تُعرّف نسخاً **محليّة** من `TONE`/`useCountUp`/القشرة (سبقت `ui/Premium.jsx`). الاتّجاه المعتمد: توحيدها تدريجياً على `ui/Premium.jsx`. لا تنسخ نمطاً محليّاً جديداً — استعمل الـkit.
 
 ---
 
@@ -115,8 +115,9 @@ src/
 ├── i18n/                    ← index.js + locales/{ar,he,en}.json (افتراضي ar، مفتاح cp_lang)
 ├── constants/index.js       ← C, GRAD, SPECS, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, DAY_TYPES,
 │                              PROJECT_STATUS/TYPES, VAT, OSEK_PATUR_THRESHOLD, NAV, MORE_SCREENS, BP
-├── ui/                      ← مكتبة التصميم: Button, Card(+GlassCard), Input, Modal, Badge, StatCard
-├── pages/                   ← LandingPage, PricingPage, WelcomePage, AuthPage(قديم)
+├── ui/                      ← مكتبة التصميم: Button, Card(+GlassCard), Input, Modal, Badge, StatCard,
+│                              Premium (kit الفخامة المشترك — انظر §2.1), Skeleton
+├── pages/                   ← LandingPage, PricingPage, WelcomePage  (AuthPage حُذف — استبدله LoginScreen الموحّد)
 ├── store/
 │   ├── useAppStore.js       ← navigation, overlays, toast, signer, lock, readOnly, biometric promise
 │   ├── useBusinessStore.js  ← multi-business (load/create/update/remove) + BUSINESS_TYPES (persist)
@@ -204,19 +205,31 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 |---------|-------|
 | `BusinessPulse.jsx` | **نبض المصلحة** — مؤشّر صحّة مالية (0–100): عدّاد دائري + 5 عوامل + رؤى ذكية. يقرأ من `computeBusinessPulse` |
 | `CashForecast.jsx` | **التوقّع الذكي للسيولة** — مسار نقدي (ماضٍ صلب→مستقبل متقطّع) + نطاق ثقة + عدّاد أمان (runway). يقرأ من `computeCashForecast` |
+| `CommandCenter.jsx` | **مركز القيادة الذكي** — يجمّع إشارات كل المحرّكات في بطاقات + موجز موحّد. يقرأ من `computeCommandCenter` |
+| `NetWorth.jsx` | **الذمّة الصافية** — شلال ميزانية (نقد/ذمم/التزامات→صافي) + عدسة تغطية. يقرأ من `computeNetWorth` |
+| `ProjectHealth.jsx` | صحّة المشروع (تكلفة/هامش/تحصيل/جدول). يقرأ من `computeProjectHealth` |
+| `CollectionAging.jsx` | **رادار التحصيل** — تقادم الذمم المدينة حسب العمر. يقرأ من `computeCollectionAging` |
+| `ExpenseRadar.jsx` | كشف شذوذ المصاريف (قفزات/تكرار). يقرأ من `detectExpenseAnomalies` |
+| `TaxRunway.jsx` | مدرج الضريبة — التزام מע"מ/دخل المتوقّع ومتى يُستحقّ. يقرأ من `computeTaxRunway` |
+| `TeamPulse.jsx` | نبض الفريق — نشاط/أداء الأعضاء. يقرأ من `computeTeamPulse` |
+| `AccountReadiness.jsx` | جاهزية الحساب — اكتمال الإعداد والبيانات. يقرأ من `computeAccountReadiness` (`lib/accountReadiness.js`) |
+| `WorkerDNA.jsx` / `WorkerInsights.jsx` | **بصمة العامل** + رؤى/خريطة حضور/رادار/خطّ زمني. يقرآن من `computeWorkerDNA` + `lib/workerInsights.js` |
+| `ProjectCard.jsx` / `WorkerCard.jsx` / `ReceiptCard.jsx` | بطاقات هوية متحرّكة موحّدة (تستعمل `ui/Premium`) للمشروع/العامل/الإيصال |
+| `WorkDayTicket.jsx` / `WorkMonthHeader.jsx` / `WorkerMonthStrip.jsx` | تذكرة شِفت + رأس الشهر + شريط الشهر للعامل (أيام العمل/البوّابة) |
+| `ConnectionStatus.jsx` | مؤشّر حالة الاتصال والمزامنة المتحرّك (يُستعمل في `App.jsx`) |
+| `ScreenSkeleton.jsx` | هياكل تحميل (Skeleton) متوهّجة لكل شاشة (variant) |
 | `BiometricConfirmModal.jsx` | نافذة تأكيد بصمة/PIN للعمليات الحسّاسة (تُستدعى عبر `useAppStore.requestBioConfirm`) |
 | `SessionLockScreen.jsx` | شاشة قفل الجلسة عند الخمول (بدل الخروج التلقائي) |
 | `NotificationsPanel.jsx` | مركز الإشعارات داخل التطبيق |
 | `SmartSearch.jsx` / `SearchOverlay.jsx` | بحث شامل (cmdk) عبر المشاريع/العمّال/المصاريف/الدفعات |
 | `SignaturePad.jsx` | لوحة توقيع canvas |
-| `TaxDashboard.jsx` | لوحة ضرائب (מע"מ، حدود، التزام) |
 | `WorkerStatsPanel.jsx` | ملخّص أداء/ساعات/رواتب العامل |
 | `ErrorBoundary.jsx` | حدّ خطأ React (يلفّ كل شاشة بمفتاح `screen`) |
 | `index.jsx` | مكوّنات مساعدة: `LoadingSpinner`, `GlassCard`, `Card`, `StatCard`, `Modal`, `Input`, `Btn`, `FilterChip`, `TabBar`, `Badge`, `EmptyState`, `ConfirmDialog`, `AnimatedNumber`, ... |
 | `sheets/AddExpenseSheet.jsx` | bottom-sheet إضافة مصروف (رفع إيصال، فئة، מע"מ، طريقة دفع) |
 | `sheets/AddReceiptSheet.jsx` | bottom-sheet إضافة مقبوض/فاتورة |
 
-**مكتبة UI** (`src/ui/`): `Button` (variants: brand/warm/ghost/danger/success · sizes: sm/md/lg/xl/icon) · `Card`+`GlassCard` · `Input` (label/error/hint/icon/suffix) · `Modal` (bottom-sheet، sizes sm/md/lg) · `Badge` (7 ألوان) · `StatCard`.
+**مكتبة UI** (`src/ui/`): `Button` (variants: brand/warm/ghost/danger/success · sizes: sm/md/lg/xl/icon) · `Card`+`GlassCard` · `Input` (label/error/hint/icon/suffix) · `Modal` (bottom-sheet، sizes sm/md/lg) · `Badge` (7 ألوان) · `StatCard` · **`Premium`** (kit الفخامة: `PremiumCard`/`PremiumStat`/`IconChip`/`TONES`/`toneFromColor`/`HolographicSheen` — انظر §2.1) · `Skeleton` (+`SkeletonText`/`SkeletonCard`).
 
 ---
 
@@ -252,7 +265,9 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 | `supabase.js` | عميل Supabase. env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` |
 | `helpers.js` | `fmt`، `fmtDate`، `fmtDateFull`، `uid`، `todayStr`، `calcSalary` (overtime)، `validate*`، `calcVATNet`، `calcBituachLeumi*`، `estimateIncomeTax`، `isPaymentOverdue` |
 | `calculations.js` | دوال نقيّة: `calcEarned`، `calcPaid`، `calcAdvances`، `calcWasel`، `calcMustahaq`، `calcMutabqi` (رصيد العامل)، `calcRevenue`، `calcProjectCost`، `calcProfit`، `calcMargin`، `calcOwnerCash`، `calcProjectStats` |
-| `insights.js` | `computeBusinessPulse` (صحّة 0–100) + `computeCashForecast` (توقّع سيولة) + `weightedAvg`/`stdDev`/`fmtMonths`/`gradeFor`/`clamp`. **مغطّى باختبارات** |
+| `insights.js` | **محرّك الرؤى المالية** (دوال نقيّة): `computeBusinessPulse` · `computeCashForecast` · `computeCommandCenter` · `computeNetWorth` · `computeProjectHealth` · `computeCollectionAging` · `detectExpenseAnomalies` · `computeTaxRunway` · `computeTeamPulse` · `computeWorkerDNA` + مساعدات (`weightedAvg`/`stdDev`/`fmtMonths`/`gradeFor`/`workerTier`/`clamp`). **مغطّى باختبارات** |
+| `accountReadiness.js` | `computeAccountReadiness` + `readinessGrade` (جاهزية الحساب 0–100). **مغطّى باختبارات** |
+| `workerInsights.js` | رؤى العامل: `buildAttendanceHeatmap`/`buildFleetDna`/`buildRadarData`/`detectWorkerAnomalies`/`buildWorkerTimeline`/`buildFleetLeaderboard`. **مغطّى باختبارات** |
 | `crypto.js` | تشفير AES-256-GCM محلي (`secureSet/Get/Remove`)، مفتاح مشتقّ من بصمة المتصفح |
 | `storage.js` | `compressImage`، `uploadReceipt`، `uploadWorkerReceipt`، `refreshSignedUrl` (TTL سنة). buckets: `receipts`, `worker-receipts`, `avatars` |
 | `whatsapp.js` | `normalizePhone` (972)، `openWhatsApp`، قوالب `waMessages` (دعوة بوّابة/راتب مدفوع/كشف حساب/تذكير دفع). **مغطّى باختبارات** |
@@ -347,7 +362,7 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 
 ## 18. الاختبارات
 
-- **Vitest (unit)**: `npm test`. الملفات: `src/lib/insights.test.js`، `calculations.test.js`، `whatsapp.test.js`.
+- **Vitest (unit)**: `npm test`. الملفات: `src/lib/insights.test.js`، `calculations.test.js`، `whatsapp.test.js`، `accountReadiness.test.js`، `workerInsights.test.js`، `export.test.js`، و`src/hooks/useTaxEngine.test.js`.
   > ⚠️ Vitest حالياً يلتقط `tests/e2e/*.spec.js` ويُظهرها "فشل suites" (نسختا Playwright) — اختبارات الوحدة نفسها كلها تمرّ. (إصلاح مستقبلي: استثناء `tests/e2e` في إعداد Vitest.)
 - **Playwright (E2E)**: `tests/e2e/` — تغطية **client-side فقط** (تنقّل + تحقّق فورمات، بلا باكند): `landing.spec.js`، `navigation.spec.js`، `auth-forms.spec.js`. على viewport موبايل (Pixel 7) + ديسكتوب، locale عربي. تفاصيل في `docs/TESTING.md`.
 - **Playwright MCP**: للتحقّق البصري التفاعلي (المتصفح يُثبّت بـ `npx playwright install chrome` عند الحاجة).
@@ -370,7 +385,8 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 
 ## 20. الحالة الحالية
 
-- Branch رئيسي: `main`. الإصدار يتزايد تلقائياً (حالياً ~2.0.5x).
+- Branch رئيسي: `main`. الإصدار يتزايد تلقائياً (حالياً ~2.0.10x).
 - وحدة المالية مكتملة (Phases 0→5)، المصادقة WebAuthn passkey حقيقية، الفريق متعدّد الصلاحيات، بوّابة العامل، اشتراكات Paddle، Push.
-- آخر الإنجازات المدموجة: **نبض المصلحة + مشاركة واتساب** (#104) · **التوقّع الذكي للسيولة** (#106).
+- **طبقة الذكاء المالي** مدموجة وموسّعة: نبض المصلحة · التوقّع الذكي للسيولة · مركز القيادة · الذمّة الصافية · صحّة المشروع · رادار التحصيل · كشف شذوذ المصاريف · مدرج الضريبة · نبض الفريق · بصمة العامل · جاهزية الحساب — كلها دوال نقيّة في `insights.js`/`accountReadiness.js`/`workerInsights.js` مغطّاة باختبارات.
+- **توحيد بصري**: kit الفخامة `ui/Premium.jsx` + هياكل تحميل (Skeleton) + مؤشّر اتصال، وبطاقات هوية موحّدة (مشروع/عامل/إيصال). جارٍ مطابقة باقي الشاشات على نفس اللغة (انظر §2.1).
 - النشر: Vercel (أساسي) + GitHub Pages (مرآة) + Supabase edge functions — كلها تلقائية عند push لـ main.
