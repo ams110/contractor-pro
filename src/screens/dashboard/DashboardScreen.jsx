@@ -1,11 +1,13 @@
-import React, { useMemo } from 'react'
-import { motion } from 'framer-motion'
+import React, { useMemo, useRef, useState, useEffect } from 'react'
+import { motion, useInView } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
+import {
+  ComposedChart, Area, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from 'recharts'
 import {
   TrendingUp, TrendingDown, Building2, Users, Wallet,
-  AlertTriangle, ArrowUpRight, Zap, Trophy, Clock,
-  DollarSign, CreditCard, BarChart3, Activity,
+  AlertTriangle, Trophy, Clock, ChevronLeft,
+  DollarSign, CreditCard, BarChart3,
 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { fmt, isPaymentOverdue } from '../../lib/helpers.js'
@@ -17,103 +19,244 @@ import CashForecast from '../../components/CashForecast.jsx'
 import CommandCenter from '../../components/CommandCenter.jsx'
 import NetWorth from '../../components/NetWorth.jsx'
 
-// ─── Bento Card ───────────────────────────────────────────────────────────────
-function BentoCard({ children, style = {}, gradient, onClick }) {
+// ─── عدّاد تصاعدي ناعم (نفس لغة المكوّنات الجديدة، يدعم السالب) ───────────────────
+function useCountUp(target, duration = 1100, start = true) {
+  const [val, setVal] = useState(0)
+  useEffect(() => {
+    if (!start) return
+    let raf, t0
+    const tick = (t) => {
+      if (!t0) t0 = t
+      const p = Math.min(1, (t - t0) / duration)
+      const eased = 1 - Math.pow(1 - p, 3)   // easeOutCubic
+      setVal(Math.round(eased * target))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, duration, start])
+  return val
+}
+
+// مبلغ بالشيكل مع إشارة سالب صريحة + أرقام جدوليّة
+function Money({ v, color, size = 22 }) {
   return (
-    <motion.div
-      whileHover={onClick ? { scale: 1.015, y: -2 } : {}}
-      whileTap={onClick ? { scale: 0.98 } : {}}
+    <span style={{ fontSize: size, fontWeight: 900, color, letterSpacing: '-0.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+      {v < 0 ? '−' : ''}₪{fmt(Math.abs(v))}
+    </span>
+  )
+}
+
+// شارة اتّجاه صغيرة (شهر مقابل شهر)
+function TrendChip({ trend }) {
+  if (trend == null) return null
+  const up = trend >= 0
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 8, background: up ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)', border: `1px solid ${up ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
+      {up ? <TrendingUp size={10} color={C.success} /> : <TrendingDown size={10} color={C.accent} />}
+      <span style={{ fontSize: 10, fontWeight: 800, color: up ? C.success : C.accent, fontVariantNumeric: 'tabular-nums' }}>{Math.abs(trend)}%</span>
+    </div>
+  )
+}
+
+// ─── القشرة الفخمة المشتركة (تدرّج ناعم + وميض زاوية + دخول متحرّك) ────────────────
+function PremiumShell({ children, accent = C.primary, glowSide = 'end', radius = 20, padding = '16px 14px', onClick, delay = 0, style = {} }) {
+  const Comp = onClick ? motion.button : motion.div
+  return (
+    <Comp
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay }}
+      whileHover={onClick ? { scale: 1.015, y: -2 } : undefined}
+      whileTap={onClick ? { scale: 0.98 } : undefined}
       onClick={onClick}
       style={{
-        background: gradient ? 'transparent' : C.surface,
-        backgroundImage: gradient || 'none',
-        border: `1px solid ${C.border}`,
-        borderRadius: 20,
-        padding: '18px 16px',
-        position: 'relative',
-        overflow: 'hidden',
-        cursor: onClick ? 'pointer' : 'default',
+        position: 'relative', overflow: 'hidden', textAlign: 'start', width: '100%',
+        background: `linear-gradient(135deg, ${accent}14, ${C.surface} 70%)`,
+        border: `1px solid ${accent}2e`, borderRadius: radius, padding,
+        cursor: onClick ? 'pointer' : 'default', fontFamily: 'inherit',
         ...style,
       }}
     >
-      {children}
-    </motion.div>
+      <div aria-hidden style={{ position: 'absolute', top: -50, [glowSide === 'start' ? 'insetInlineStart' : 'insetInlineEnd']: -40, width: 150, height: 150, borderRadius: '50%', background: `radial-gradient(circle, ${accent}55 0%, transparent 70%)`, opacity: 0.35, pointerEvents: 'none' }} />
+      <div style={{ position: 'relative' }}>{children}</div>
+    </Comp>
   )
 }
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ label, value, sub, icon: Icon, color, gradient, trend, onClick }) {
-  const isPositive = trend >= 0
+// شريحة أيقونة موحّدة
+function IconChip({ icon: Icon, accent, size = 36, r = 11 }) {
   return (
-    <BentoCard gradient={gradient} onClick={onClick}>
-      <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse 80% 60% at 20% 20%, ${color}12 0%, transparent 70%)`, pointerEvents: 'none' }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <div style={{ width: 38, height: 38, borderRadius: 12, background: `${color}20`, border: `1px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon size={18} color={color} strokeWidth={2} />
+    <div style={{ width: size, height: size, borderRadius: r, background: `${accent}1f`, border: `1px solid ${accent}3a`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <Icon size={size * 0.46} color={accent} strokeWidth={2.2} />
+    </div>
+  )
+}
+
+// ─── بطاقة إحصائيّة فخمة (نقد/مستحقّات/ربح/إيراد/مصاريف/أرقام) ─────────────────────
+function StatTile({ icon, accent, value, label, sub, money = true, trend, onClick, delay = 0, big = false, glowSide = 'end' }) {
+  const v = useCountUp(value, 1100)
+  return (
+    <PremiumShell accent={accent} onClick={onClick} delay={delay} glowSide={glowSide} padding={big ? '16px 16px' : '14px 13px'} radius={big ? 20 : 18}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: big ? 12 : 10 }}>
+        <IconChip icon={icon} accent={accent} size={big ? 38 : 34} />
+        {trend !== undefined && <TrendChip trend={trend} />}
+      </div>
+      <div style={{ lineHeight: 1 }}>
+        {money
+          ? <Money v={v} color={value < 0 ? C.accent : (big ? accent : C.text)} size={big ? 28 : 20} />
+          : <span style={{ fontSize: big ? 28 : 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{v}</span>}
+      </div>
+      <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600, marginTop: 5, lineHeight: 1.3 }}>{label}</div>
+      {sub && <div style={{ fontSize: 10, color: accent, marginTop: 4, fontWeight: 800 }}>{sub}</div>}
+    </PremiumShell>
+  )
+}
+
+// ─── تلميح مخطّط الأداء ──────────────────────────────────────────────────────────
+function ChartTip({ active, payload, lang }) {
+  if (!active || !payload?.length) return null
+  const p = payload[0]?.payload
+  if (!p) return null
+  const net = p.v
+  const L = lang === 'he'
+    ? { rev: 'הכנסות', exp: 'הוצאות', net: 'נטו' }
+    : lang === 'en'
+      ? { rev: 'Revenue', exp: 'Expenses', net: 'Net' }
+      : { rev: 'إيراد', exp: 'مصاريف', net: 'صافي' }
+  const Row = ({ k, val, color }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, fontSize: 11 }}>
+      <span style={{ color: C.textDim }}>{k}</span>
+      <span style={{ color, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{val < 0 ? '−' : ''}₪{fmt(Math.abs(val))}</span>
+    </div>
+  )
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.borderMid}`, borderRadius: 11, padding: '9px 12px', boxShadow: '0 8px 24px rgba(0,0,0,0.45)', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 120 }}>
+      <Row k={L.rev} val={p.rev} color={C.primary} />
+      <Row k={L.exp} val={-p.exp} color={C.accent} />
+      <div style={{ height: 1, background: C.borderMid, margin: '2px 0' }} />
+      <Row k={L.net} val={net} color={net >= 0 ? C.success : C.accent} />
+    </div>
+  )
+}
+
+// رقم مصغّر لرأس المخطّط
+function MiniTotal({ label, value, color }) {
+  return (
+    <div style={{ textAlign: 'center', flex: 1 }}>
+      <div style={{ fontSize: 13, fontWeight: 900, color, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+        {value < 0 ? '−' : ''}₪{fmt(Math.abs(value))}
+      </div>
+      <div style={{ fontSize: 9, color: C.textDim, fontWeight: 600, marginTop: 2 }}>{label}</div>
+    </div>
+  )
+}
+
+// ─── مخطّط الأداء الشهري (محاور + نطاق + تلميح + إجماليات) ─────────────────────────
+function PerformanceCard({ data, totals, lang, delay }) {
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true, amount: 0.3 })
+  const accent = totals.net >= 0 ? C.success : C.accent
+  const gid = `perf-${totals.net >= 0 ? 'pos' : 'neg'}`
+  const L = lang === 'he'
+    ? { title: 'ביצועים חודשיים', sub: '6 חודשים אחרונים', rev: 'הכנסות', exp: 'הוצאות', net: 'נטו' }
+    : lang === 'en'
+      ? { title: 'Monthly Performance', sub: 'Last 6 months', rev: 'Revenue', exp: 'Expenses', net: 'Net' }
+      : { title: 'الأداء الشهري', sub: 'آخر 6 أشهر', rev: 'إيراد', exp: 'مصاريف', net: 'صافي' }
+  return (
+    <div ref={ref}>
+      <PremiumShell accent={accent} delay={delay} padding="16px 14px" radius={22}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <motion.div animate={inView ? { scale: [1, 1.12, 1] } : {}} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+              <IconChip icon={BarChart3} accent={accent} size={30} r={10} />
+            </motion.div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{L.title}</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{L.sub}</div>
+            </div>
+          </div>
+          <div style={{ padding: '4px 10px', background: `${accent}1f`, border: `1px solid ${accent}3a`, borderRadius: 9, fontSize: 10, fontWeight: 900, color: accent, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <BarChart3 size={12} /> P&L
+          </div>
         </div>
-        {trend !== undefined && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 8, background: isPositive ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)', border: `1px solid ${isPositive ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
-            {isPositive ? <TrendingUp size={10} color={C.success} /> : <TrendingDown size={10} color={C.accent} />}
-            <span style={{ fontSize: 10, fontWeight: 700, color: isPositive ? C.success : C.accent }}>{Math.abs(trend)}%</span>
+
+        {/* إجماليات الفترة */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+          <MiniTotal label={L.rev} value={totals.rev} color={C.primary} />
+          <div style={{ width: 1, background: C.borderMid }} />
+          <MiniTotal label={L.exp} value={-totals.exp} color={C.accent} />
+          <div style={{ width: 1, background: C.borderMid }} />
+          <MiniTotal label={L.net} value={totals.net} color={accent} />
+        </div>
+
+        {/* المخطّط */}
+        <div style={{ marginInline: -6, marginTop: 4 }}>
+          <ResponsiveContainer width="100%" height={120}>
+            <ComposedChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+              <defs>
+                <linearGradient id={`${gid}-fill`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={accent} stopOpacity={0.32} />
+                  <stop offset="100%" stopColor={accent} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="month" tick={{ fontSize: 9, fill: C.textDim }} axisLine={false} tickLine={false} interval={0} height={16} />
+              <YAxis hide domain={['auto', 'auto']} />
+              <ReferenceLine y={0} stroke={C.borderMid} strokeWidth={1} />
+              <Tooltip content={<ChartTip lang={lang} />} cursor={{ stroke: accent, strokeOpacity: 0.25, strokeWidth: 1 }} />
+              <Area
+                type="monotone" dataKey="v" stroke={accent} strokeWidth={2.5}
+                fill={`url(#${gid}-fill)`} dot={false}
+                isAnimationActive={inView} animationDuration={1100}
+                activeDot={{ r: 4, fill: accent, stroke: C.surface, strokeWidth: 2 }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </PremiumShell>
+    </div>
+  )
+}
+
+// ─── صفّ مشروع فخم (شريط هامش + حالة ملوّنة) ──────────────────────────────────────
+function ProjectRow({ project, revenue, expenses, rank, onClick, lang }) {
+  const profit = revenue - expenses
+  const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : null
+  const isGood = profit >= 0
+  const accent = isGood ? C.success : C.accent
+  const status = project.status || (lang === 'he' ? 'פעיל' : lang === 'en' ? 'Active' : 'نشط')
+  const statusColor = status === 'مكتمل' ? C.cyan : status === 'نشط' ? C.success : C.textDim
+  return (
+    <motion.div whileTap={{ scale: 0.985 }} onClick={onClick}
+      style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px', background: C.card, border: `1px solid ${accent}22`, borderRadius: 14, cursor: 'pointer', marginBottom: 8 }}>
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <IconChip icon={Building2} accent={accent} size={38} r={12} />
+        {rank <= 3 && (
+          <div style={{ position: 'absolute', top: -5, insetInlineStart: -5, width: 17, height: 17, borderRadius: '50%', background: rank === 1 ? C.gold : C.surface, border: `1px solid ${rank === 1 ? C.gold : C.borderMid}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: rank === 1 ? '#fff' : C.textDim }}>
+            {rank}
           </div>
         )}
       </div>
-      <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4 }}>
-        ₪{fmt(value)}
-      </div>
-      <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>{label}</div>
-      {sub && <div style={{ fontSize: 10, color: color, marginTop: 4, fontWeight: 700 }}>{sub}</div>}
-    </BentoCard>
-  )
-}
-
-// ─── Mini Chart ───────────────────────────────────────────────────────────────
-function MiniChart({ data, color }) {
-  if (!data?.length) return null
-  return (
-    <ResponsiveContainer width="100%" height={64}>
-      <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id={`grad-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-            <stop offset="100%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <Area type="monotone" dataKey="v" stroke={color} strokeWidth={2} fill={`url(#grad-${color.replace('#', '')})`} dot={false} />
-        <Tooltip
-          contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 10 }}
-          formatter={v => [`₪${fmt(v)}`, '']}
-          labelFormatter={() => ''}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
-  )
-}
-
-// ─── Project Row ──────────────────────────────────────────────────────────────
-function ProjectRow({ project, revenue, expenses, onClick }) {
-  const profit = revenue - expenses
-  const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(0) : null
-  const isGood = profit >= 0
-  return (
-    <motion.div whileTap={{ scale: 0.98 }} onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, cursor: 'pointer', marginBottom: 8 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 11, background: `${C.primary}18`, border: `1px solid ${C.primary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Building2 size={16} color={C.primary} strokeWidth={2} />
-      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</div>
-        <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{project.status || 'نشط'}</div>
-      </div>
-      <div style={{ textAlign: 'end' }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: isGood ? C.success : C.accent }}>
-          {isGood ? '+' : ''}₪{fmt(profit)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</span>
+          <span style={{ fontSize: 9, fontWeight: 700, color: statusColor, background: `${statusColor}18`, border: `1px solid ${statusColor}30`, borderRadius: 6, padding: '1px 7px', flexShrink: 0 }}>{status}</span>
         </div>
-        {margin !== null && (
-          <div style={{ fontSize: 9, color: C.textDim, marginTop: 1 }}>{margin}%</div>
-        )}
+        <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+          <motion.div
+            initial={{ width: 0 }} animate={{ width: `${Math.min(100, Math.max(0, margin ?? 0))}%` }}
+            transition={{ duration: 0.9, ease: 'easeOut' }}
+            style={{ height: '100%', borderRadius: 99, background: accent, boxShadow: `0 0 8px ${accent}66` }}
+          />
+        </div>
       </div>
-      <ArrowUpRight size={13} color={C.textDim} />
+      <div style={{ textAlign: 'end', flexShrink: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 900, color: accent, fontVariantNumeric: 'tabular-nums' }}>
+          {isGood ? '+' : '−'}₪{fmt(Math.abs(profit))}
+        </div>
+        {margin !== null && <div style={{ fontSize: 9, color: C.textDim, marginTop: 2, fontWeight: 700 }}>{margin}%</div>}
+      </div>
+      <ChevronLeft size={15} color={C.textDim} style={{ flexShrink: 0 }} />
     </motion.div>
   )
 }
@@ -139,7 +282,6 @@ export default function DashboardScreen({
     const pendingWD     = workDays.filter(w => w.status === 'pending').length
 
     // ── السيولة الحقيقية (تدفّق نقدي فعلي، مش ربح دفتري) ──────────────────────
-    // نقد بالجيب = كل المقبوض − كل المدفوع فعلياً (مصاريف مدفوعة + رواتب + سلف)
     const cashIn      = totalRevenue
     const cashOut     = totalExpenses + totalWasel
     const cashOnHand  = cashIn - cashOut
@@ -178,7 +320,13 @@ export default function DashboardScreen({
       return { month: key.slice(5), v: rev - exp - labor, rev, exp: exp + labor }
     })
 
-    return { totalRevenue, totalExpenses, totalPayments, totalAdvances, totalWasel, netProfit, activeCount, pendingWD, workerCosts, monthlyData, cashOnHand, owedToWorkers, owedByClients, overdueCount, pendingExpenses }
+    // إجماليات الفترة + اتّجاه شهر-مقابل-شهر للصافي
+    const periodTotals = monthlyData.reduce((a, m) => ({ rev: a.rev + m.rev, exp: a.exp + m.exp, net: a.net + m.v }), { rev: 0, exp: 0, net: 0 })
+    const lm = monthlyData[5]?.v ?? 0
+    const pm = monthlyData[4]?.v ?? 0
+    const netTrend = pm !== 0 ? Math.round(((lm - pm) / Math.abs(pm)) * 100) : null
+
+    return { totalRevenue, totalExpenses, totalPayments, totalAdvances, totalWasel, netProfit, activeCount, pendingWD, workerCosts, monthlyData, periodTotals, netTrend, cashOnHand, owedToWorkers, owedByClients, overdueCount, pendingExpenses }
   }, [projects, employees, workDays, expenses, payments, advances, clientReceipts])
 
   // Top projects by profit
@@ -211,7 +359,7 @@ export default function DashboardScreen({
     monthlyData:  stats.monthlyData,
   }), [stats])
 
-  // الذمّة الصافية — عدسة الميزانية: «لو صفّيت كل حساباتك اليوم كم بضل ملكك؟»
+  // الذمّة الصافية — عدسة الميزانية
   const netWorth = useMemo(() => computeNetWorth({
     cashOnHand:      stats.cashOnHand,
     owedByClients:   stats.owedByClients,
@@ -219,7 +367,7 @@ export default function DashboardScreen({
     pendingExpenses: stats.pendingExpenses,
   }), [stats])
 
-  // مركز القيادة الذكي — يجمّع إشارات كل المحرّكات (مشاريع/تحصيل/مصاريف/عمّال)
+  // مركز القيادة الذكي
   const now2 = new Date()
   const monthKey = `${now2.getFullYear()}-${String(now2.getMonth() + 1).padStart(2, '0')}`
   const commandCenter = useMemo(() => computeCommandCenter({
@@ -228,14 +376,14 @@ export default function DashboardScreen({
   }), [projects, employees, workDays, expenses, payments, advances, clientReceipts, monthKey, permissions?.isOwner])
 
   const hasData = projects.length > 0 || employees.length > 0
-
-  const cardAnim = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } }
+  const cashPositive = stats.cashOnHand >= 0
+  const cashAccent = cashPositive ? C.success : C.accent
 
   return (
     <div dir={dir} style={{ padding: '16px 16px 8px', maxWidth: 900, margin: '0 auto' }}>
 
       {/* ─── Header ─── */}
-      <motion.div {...cardAnim} transition={{ delay: 0 }} style={{ marginBottom: 20 }}>
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>
           {t('dashboard.title')}
         </div>
@@ -244,137 +392,94 @@ export default function DashboardScreen({
         </div>
       </motion.div>
 
-      {/* ─── مركز القيادة الذكي (تجميع كل المؤشّرات) ─── */}
+      {/* ─── مركز القيادة الذكي ─── */}
       {hasData && <CommandCenter cc={commandCenter} onNav={onNav} />}
 
-      {/* ─── نبض المصلحة (مؤشّر الصحّة الذكي) ─── */}
+      {/* ─── نبض المصلحة ─── */}
       {hasData && <BusinessPulse pulse={pulse} onNav={onNav} />}
 
-      {/* ─── التوقّع الذكي للسيولة (المسار + عدّاد الأمان) ─── */}
+      {/* ─── التوقّع الذكي للسيولة ─── */}
       {hasData && forecast && <CashForecast forecast={forecast} onNav={onNav} />}
 
-      {/* ─── الذمّة الصافية (عدسة الميزانية — صافي مركزك) ─── */}
+      {/* ─── الذمّة الصافية ─── */}
       {hasData && <NetWorth netWorth={netWorth} onNav={onNav} />}
 
-      {/* ─── Cash on Hand (السيولة الحقيقية) ─── */}
-      <motion.div {...cardAnim} transition={{ delay: 0.04 }} style={{ marginBottom: 12 }}>
-        <BentoCard style={{ background: stats.cashOnHand >= 0 ? 'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(6,182,212,0.06))' : 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(249,115,22,0.06))', borderColor: stats.cashOnHand >= 0 ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)' }} onClick={() => onNav?.('finance')}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <Wallet size={16} color={stats.cashOnHand >= 0 ? C.success : C.accent} strokeWidth={2} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: C.textDim }}>
-              {language === 'he' ? 'מזומן ביד עכשיו' : language === 'en' ? 'Cash on hand now' : 'نقد بالجيب الآن'}
-            </span>
+      {/* ─── Cash on Hand (السيولة الحقيقية) — بطاقة بطل فخمة ─── */}
+      <div style={{ marginBottom: 12 }}>
+        <PremiumShell accent={cashAccent} radius={22} padding="18px 16px" delay={0.04} onClick={() => onNav?.('finance')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
+            <IconChip icon={Wallet} accent={cashAccent} size={32} r={10} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+                {language === 'he' ? 'מזומן ביד עכשיו' : language === 'en' ? 'Cash on hand now' : 'نقد بالجيب الآن'}
+              </div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
+                {language === 'he' ? 'תזרים בפועל, לא רווח על הנייר' : language === 'en' ? 'Real cash flow, not paper profit' : 'تدفّق نقدي فعلي، مش ربح دفتري'}
+              </div>
+            </div>
+            {stats.netTrend != null && <TrendChip trend={stats.netTrend} />}
           </div>
-          <div style={{ fontSize: 30, fontWeight: 900, color: stats.cashOnHand >= 0 ? C.success : C.accent, letterSpacing: '-0.02em', lineHeight: 1 }}>
-            {stats.cashOnHand < 0 ? '−' : ''}₪{fmt(Math.abs(stats.cashOnHand))}
-          </div>
-          <div style={{ fontSize: 10, color: C.textDim, marginTop: 5 }}>
+          <CashHero value={stats.cashOnHand} accent={cashAccent} />
+          <div style={{ fontSize: 10, color: C.textDim, marginTop: 7 }}>
             {language === 'he' ? 'כל מה שנכנס פחות כל מה ששולם בפועל' : language === 'en' ? 'All received minus all actually paid out' : 'كل المقبوض ناقص كل المدفوع فعلياً'}
           </div>
-        </BentoCard>
-      </motion.div>
+        </PremiumShell>
+      </div>
 
       {/* ─── مستحق للعمال + باقي لك عند العملاء ─── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
-        <motion.div {...cardAnim} transition={{ delay: 0.06 }}>
-          <BentoCard onClick={() => onNav?.('payments')}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.warning}18`, border: `1px solid ${C.warning}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <Users size={15} color={C.warning} strokeWidth={2} />
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: stats.owedToWorkers > 0 ? C.warning : C.text, letterSpacing: '-0.02em' }}>₪{fmt(stats.owedToWorkers)}</div>
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>
-              {language === 'he' ? 'חוב לעובדים' : language === 'en' ? 'Owed to workers' : 'مستحق للعمال'}
-            </div>
-          </BentoCard>
-        </motion.div>
-        <motion.div {...cardAnim} transition={{ delay: 0.08 }}>
-          <BentoCard onClick={() => onNav?.('projects')}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.primary}18`, border: `1px solid ${C.primary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-              <DollarSign size={15} color={C.primary} strokeWidth={2} />
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: stats.owedByClients > 0 ? C.primary : C.text, letterSpacing: '-0.02em' }}>₪{fmt(stats.owedByClients)}</div>
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>
-              {language === 'he' ? 'נותר לגבות מלקוחות' : language === 'en' ? 'Owed by clients' : 'باقي لك عند العملاء'}
-            </div>
-            {stats.overdueCount > 0 && (
-              <div style={{ fontSize: 9, color: C.accent, fontWeight: 700, marginTop: 3 }}>
-                {stats.overdueCount} {language === 'he' ? 'באיחור' : language === 'en' ? 'overdue' : 'متأخّر'}
-              </div>
-            )}
-          </BentoCard>
-        </motion.div>
+        <StatTile
+          icon={Users} accent={C.warning} value={stats.owedToWorkers} delay={0.06} glowSide="start"
+          label={language === 'he' ? 'חוב לעובדים' : language === 'en' ? 'Owed to workers' : 'مستحق للعمال'}
+          onClick={() => onNav?.('payments')}
+        />
+        <StatTile
+          icon={DollarSign} accent={C.primary} value={stats.owedByClients} delay={0.08}
+          label={language === 'he' ? 'נותר לגבות מלקוחות' : language === 'en' ? 'Owed by clients' : 'باقي لك عند العملاء'}
+          sub={stats.overdueCount > 0 ? `${stats.overdueCount} ${language === 'he' ? 'באיחור' : language === 'en' ? 'overdue' : 'متأخّر'}` : undefined}
+          onClick={() => onNav?.('projects')}
+        />
       </div>
 
-      {/* ─── Primary Stats Row ─── */}
+      {/* ─── صافي الربح (عريض) ─── */}
+      <div style={{ marginBottom: 12 }}>
+        <StatTile
+          icon={TrendingUp} accent={stats.netProfit >= 0 ? C.success : C.accent} value={stats.netProfit} big delay={0.05}
+          trend={stats.netTrend}
+          label={t('dashboard.netProfit')}
+          sub={language === 'he' ? 'הכנסות פחות הוצאות' : language === 'en' ? 'Revenue minus expenses' : 'الإيرادات ناقص المصاريف'}
+        />
+      </div>
+
+      {/* ─── الإيرادات + المصاريف ─── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
-        <motion.div {...cardAnim} transition={{ delay: 0.05 }} style={{ gridColumn: '1 / -1' }}>
-          <StatCard
-            label={t('dashboard.netProfit')}
-            value={stats.netProfit}
-            icon={TrendingUp}
-            color={stats.netProfit >= 0 ? C.success : C.accent}
-            sub={language === 'he' ? 'הכנסות פחות הוצאות' : language === 'en' ? 'Revenue minus expenses' : 'الإيرادات ناقص المصاريف'}
-            style={{ minHeight: 90 }}
-          />
-        </motion.div>
-        <motion.div {...cardAnim} transition={{ delay: 0.08 }}>
-          <StatCard label={t('dashboard.totalRevenue')} value={stats.totalRevenue} icon={DollarSign} color={C.primary} />
-        </motion.div>
-        <motion.div {...cardAnim} transition={{ delay: 0.1 }}>
-          <StatCard label={t('dashboard.totalExpenses')} value={stats.totalExpenses + stats.workerCosts} icon={CreditCard} color={C.accent} />
-        </motion.div>
+        <StatTile icon={DollarSign} accent={C.primary} value={stats.totalRevenue} delay={0.08} glowSide="start"
+          label={t('dashboard.totalRevenue')} onClick={() => onNav?.('finance')} />
+        <StatTile icon={CreditCard} accent={C.accent} value={stats.totalExpenses + stats.workerCosts} delay={0.1}
+          label={t('dashboard.totalExpenses')} onClick={() => onNav?.('finance')} />
       </div>
 
-      {/* ─── Chart + Quick Stats ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginBottom: 12 }}>
-        <motion.div {...cardAnim} transition={{ delay: 0.12 }}>
-          <BentoCard>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
-                  {language === 'he' ? 'ביצועים חודשיים' : language === 'en' ? 'Monthly Performance' : 'الأداء الشهري'}
-                </div>
-                <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>
-                  {language === 'he' ? '6 חודשים אחרונים' : language === 'en' ? 'Last 6 months' : 'آخر 6 أشهر'}
-                </div>
-              </div>
-              <div style={{ padding: '4px 10px', background: `${C.primary}18`, border: `1px solid ${C.primary}28`, borderRadius: 8, fontSize: 10, fontWeight: 800, color: C.primary }}>
-                <BarChart3 size={12} style={{ display: 'inline', marginInlineEnd: 4 }} />
-                P&L
-              </div>
-            </div>
-            <MiniChart data={stats.monthlyData} color={stats.netProfit >= 0 ? C.success : C.accent} />
-          </BentoCard>
-        </motion.div>
+      {/* ─── مخطّط الأداء الشهري ─── */}
+      <div style={{ marginBottom: 12 }}>
+        <PerformanceCard data={stats.monthlyData} totals={stats.periodTotals} lang={language} delay={0.12} />
       </div>
 
-      {/* ─── Quick Numbers ─── */}
+      {/* ─── الأرقام السريعة ─── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
-        {[
-          { label: t('dashboard.activeProjects'), value: stats.activeCount, icon: Building2, color: C.primary, screen: 'projects' },
-          { label: t('dashboard.totalWorkers'),   value: employees.length,  icon: Users,     color: C.secondary, screen: 'workers' },
-          { label: t('dashboard.pendingDays'),    value: stats.pendingWD,   icon: Clock,     color: stats.pendingWD > 0 ? C.warning : C.textDim, screen: 'workdays' },
-        ].map((item, i) => (
-          <motion.div key={item.label} {...cardAnim} transition={{ delay: 0.14 + i * 0.03 }}>
-            <BentoCard onClick={() => onNav?.(item.screen)}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: `${item.color}18`, border: `1px solid ${item.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-                <item.icon size={15} color={item.color} strokeWidth={2} />
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{item.value}</div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 3, lineHeight: 1.3 }}>{item.label}</div>
-            </BentoCard>
-          </motion.div>
-        ))}
+        <StatTile icon={Building2} accent={C.primary} value={stats.activeCount} money={false} delay={0.14}
+          label={t('dashboard.activeProjects')} onClick={() => onNav?.('projects')} />
+        <StatTile icon={Users} accent={C.secondary} value={employees.length} money={false} delay={0.17} glowSide="start"
+          label={t('dashboard.totalWorkers')} onClick={() => onNav?.('workers')} />
+        <StatTile icon={Clock} accent={stats.pendingWD > 0 ? C.warning : C.textDim} value={stats.pendingWD} money={false} delay={0.2}
+          label={t('dashboard.pendingDays')} onClick={() => onNav?.('workdays')} />
       </div>
 
-      {/* ─── Smart Insights ─── */}
+      {/* ─── تنبيه ذكي: أيام بانتظار الموافقة ─── */}
       {stats.pendingWD > 0 && (
-        <motion.div {...cardAnim} transition={{ delay: 0.22 }} style={{ marginBottom: 12 }}>
-          <BentoCard style={{ background: 'rgba(234,179,8,0.06)', borderColor: 'rgba(234,179,8,0.2)' }} onClick={() => onNav?.('workdays')}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 11, background: 'rgba(234,179,8,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <AlertTriangle size={18} color={C.warning} strokeWidth={2} />
-              </div>
+        <div style={{ marginBottom: 12 }}>
+          <PremiumShell accent={C.warning} radius={16} padding="12px 13px" delay={0.22} onClick={() => onNav?.('workdays')}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+              <IconChip icon={AlertTriangle} accent={C.warning} size={36} r={11} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
                   {stats.pendingWD} {language === 'he' ? 'ימי עבודה ממתינים לאישור' : language === 'en' ? 'work days pending approval' : 'يوم عمل بانتظار الموافقة'}
@@ -383,41 +488,46 @@ export default function DashboardScreen({
                   {language === 'he' ? 'לחץ לאישור' : language === 'en' ? 'Tap to review' : 'اضغط للمراجعة'}
                 </div>
               </div>
-              <ArrowUpRight size={16} color={C.warning} />
+              <ChevronLeft size={16} color={C.warning} />
             </div>
-          </BentoCard>
-        </motion.div>
+          </PremiumShell>
+        </div>
       )}
 
-      {/* ─── Top Projects ─── */}
+      {/* ─── أفضل المشاريع ─── */}
       {topProjects.length > 0 && (
-        <motion.div {...cardAnim} transition={{ delay: 0.25 }} style={{ marginBottom: 12 }}>
-          <BentoCard>
+        <div style={{ marginBottom: 12 }}>
+          <PremiumShell accent={C.gold} radius={22} padding="16px 14px" delay={0.25}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Trophy size={15} color={C.gold} strokeWidth={2} />
-                <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
-                  {language === 'he' ? 'פרויקטים מובילים' : language === 'en' ? 'Top Projects' : 'أفضل المشاريع'}
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <IconChip icon={Trophy} accent={C.gold} size={30} r={10} />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>
+                    {language === 'he' ? 'פרויקטים מובילים' : language === 'en' ? 'Top Projects' : 'أفضل المشاريع'}
+                  </div>
+                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
+                    {language === 'he' ? 'לפי רווח' : language === 'en' ? 'By profit' : 'حسب الربح'}
+                  </div>
+                </div>
               </div>
-              <button onClick={() => onNav?.('projects')}
-                style={{ background: `${C.primary}15`, border: `1px solid ${C.primary}25`, borderRadius: 8, padding: '4px 10px', fontSize: 10, fontWeight: 800, color: C.primary, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={(e) => { e.stopPropagation(); onNav?.('projects') }}
+                style={{ background: `${C.gold}1f`, border: `1px solid ${C.gold}3a`, borderRadius: 9, padding: '5px 12px', fontSize: 11, fontWeight: 800, color: C.gold, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {language === 'he' ? 'הכל' : language === 'en' ? 'All' : 'الكل'}
               </button>
             </div>
-            {topProjects.map(({ project, revenue, expenses: exp, profit }) => (
-              <ProjectRow key={project.id} project={project} revenue={revenue} expenses={exp} onClick={() => onNav?.('projects')} />
+            {topProjects.map(({ project, revenue, expenses: exp }, i) => (
+              <ProjectRow key={project.id} project={project} revenue={revenue} expenses={exp} rank={i + 1} lang={language} onClick={() => onNav?.('projects')} />
             ))}
-          </BentoCard>
-        </motion.div>
+          </PremiumShell>
+        </div>
       )}
 
       {/* ─── Empty state ─── */}
       {projects.length === 0 && employees.length === 0 && (
-        <motion.div {...cardAnim} transition={{ delay: 0.2 }}>
-          <BentoCard style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <PremiumShell accent={C.primary} radius={22} padding="40px 20px" style={{ textAlign: 'center' }}>
             <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 12px 32px rgba(249,115,22,0.3)' }}>
-              <Zap size={32} color="#fff" strokeWidth={1.5} />
+              <Trophy size={32} color="#fff" strokeWidth={1.5} />
             </div>
             <div style={{ fontSize: 17, fontWeight: 900, color: C.text, marginBottom: 8 }}>
               {language === 'he' ? 'ברוכים הבאים!' : language === 'en' ? 'Welcome!' : 'أهلاً بك!'}
@@ -429,9 +539,15 @@ export default function DashboardScreen({
               style={{ padding: '12px 28px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px rgba(249,115,22,0.35)' }}>
               {language === 'he' ? 'הוסף פרויקט' : language === 'en' ? 'Add Project' : 'إضافة مشروع'}
             </motion.button>
-          </BentoCard>
+          </PremiumShell>
         </motion.div>
       )}
     </div>
   )
+}
+
+// رقم البطل لبطاقة النقد (عدّاد كبير)
+function CashHero({ value, accent }) {
+  const v = useCountUp(value, 1300)
+  return <Money v={v} color={accent} size={34} />
 }
