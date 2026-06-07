@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
@@ -18,34 +18,7 @@ import BusinessPulse from '../../components/BusinessPulse.jsx'
 import CashForecast from '../../components/CashForecast.jsx'
 import CommandCenter from '../../components/CommandCenter.jsx'
 import NetWorth from '../../components/NetWorth.jsx'
-
-// ─── عدّاد تصاعدي ناعم (نفس لغة المكوّنات الجديدة، يدعم السالب) ───────────────────
-function useCountUp(target, duration = 1100, start = true) {
-  const [val, setVal] = useState(0)
-  useEffect(() => {
-    if (!start) return
-    let raf, t0
-    const tick = (t) => {
-      if (!t0) t0 = t
-      const p = Math.min(1, (t - t0) / duration)
-      const eased = 1 - Math.pow(1 - p, 3)   // easeOutCubic
-      setVal(Math.round(eased * target))
-      if (p < 1) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [target, duration, start])
-  return val
-}
-
-// مبلغ بالشيكل مع إشارة سالب صريحة + أرقام جدوليّة
-function Money({ v, color, size = 22 }) {
-  return (
-    <span style={{ fontSize: size, fontWeight: 900, color, letterSpacing: '-0.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-      {v < 0 ? '−' : ''}₪{fmt(Math.abs(v))}
-    </span>
-  )
-}
+import { useCountUp, Money } from '../../ui/Premium.jsx'
 
 // شارة اتّجاه صغيرة (شهر مقابل شهر)
 function TrendChip({ trend }) {
@@ -95,7 +68,7 @@ function IconChip({ icon: Icon, accent, size = 36, r = 11 }) {
 
 // ─── بطاقة إحصائيّة فخمة (نقد/مستحقّات/ربح/إيراد/مصاريف/أرقام) ─────────────────────
 function StatTile({ icon, accent, value, label, sub, money = true, trend, onClick, delay = 0, big = false, glowSide = 'end' }) {
-  const v = useCountUp(value, 1100)
+  const v = useCountUp(value, 1100, true)
   return (
     <PremiumShell accent={accent} onClick={onClick} delay={delay} glowSide={glowSide} padding={big ? '16px 16px' : '14px 13px'} radius={big ? 20 : 18}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: big ? 12 : 10 }}>
@@ -548,6 +521,6 @@ export default function DashboardScreen({
 
 // رقم البطل لبطاقة النقد (عدّاد كبير)
 function CashHero({ value, accent }) {
-  const v = useCountUp(value, 1300)
+  const v = useCountUp(value, 1300, true)
   return <Money v={v} color={accent} size={34} />
 }

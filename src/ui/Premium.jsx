@@ -1,6 +1,8 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { motion, useInView } from 'framer-motion'
+import { ChevronLeft } from 'lucide-react'
 import { C } from '../constants/index.js'
+import { fmt } from '../lib/helpers.js'
 
 // ─── نظام النبرة (Tone) — مستخرَج من أسلوب «مركز القيادة» ──────────────────────
 // كل نبرة = لون أساسي + خلفية ناعمة + توهّج، تُلوّن البطاقة حسب الحالة.
@@ -48,7 +50,7 @@ export function IconChip({ icon: Icon, tone = 'brand', color, size = 30, iconSiz
 // نفس روح بطاقة «مركز القيادة»: خلفية متدرّجة بلون النبرة + بقعة توهّج + حدّ ملوّن.
 export function PremiumCard({
   children, tone = 'brand', color, onClick,
-  glow = true, gradient = true, radius = 20, padding = '16px 14px',
+  glow = true, glowSide = 'end', gradient = true, radius = 20, padding = '16px 14px',
   animate = true, delay = 0, style = {},
 }) {
   const ref = useRef(null)
@@ -67,7 +69,7 @@ export function PremiumCard({
   }
 
   const Blob = glow ? (
-    <div aria-hidden style={{ position: 'absolute', top: -60, insetInlineEnd: -40, width: 180, height: 180, borderRadius: '50%', background: `radial-gradient(circle, ${t.glow} 0%, transparent 70%)`, opacity: 0.4, pointerEvents: 'none' }} />
+    <div aria-hidden style={{ position: 'absolute', top: -60, [glowSide === 'start' ? 'insetInlineStart' : 'insetInlineEnd']: -40, width: 180, height: 180, borderRadius: '50%', background: `radial-gradient(circle, ${t.glow} 0%, transparent 70%)`, opacity: 0.4, pointerEvents: 'none' }} />
   ) : null
 
   const inner = (
@@ -132,5 +134,63 @@ export function HolographicSheen({ width = '55%', duration = 4.5, repeatDelay = 
         }}
       />
     </div>
+  )
+}
+
+// ─── useCountUp — عدّاد تصاعدي ناعم (easeOutCubic عبر RAF، يدعم السالب) ────────────
+// المصدر الموحّد للعدّادات: كان مكرَّراً في BusinessPulse/CashForecast/NetWorth/Dashboard.
+export function useCountUp(target, duration = 1300, start = false) {
+  const [val, setVal] = useState(0)
+  useEffect(() => {
+    if (!start) return
+    let raf, t0
+    const tick = (t) => {
+      if (!t0) t0 = t
+      const p = Math.min(1, (t - t0) / duration)
+      const eased = 1 - Math.pow(1 - p, 3)   // easeOutCubic
+      setVal(Math.round(eased * target))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, duration, start])
+  return val
+}
+
+// ─── Money — مبلغ بالشيكل مع إشارة سالب صريحة «−» وأرقام جدوليّة ───────────────────
+export function Money({ v, color = C.text, size = 22 }) {
+  return (
+    <span style={{ fontSize: size, fontWeight: 900, color, letterSpacing: '-0.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+      {v < 0 ? '−' : ''}₪{fmt(Math.abs(v))}
+    </span>
+  )
+}
+
+// ─── INSIGHT_TONE — نبرة صفوف الرؤى الداخلية ──────────────────────────────────────
+export const INSIGHT_TONE = { warn: C.accent, tip: C.cyan, good: C.success }
+
+// ─── InsightRow — صفّ رؤية داخلي موحّد (شريحة أيقونة + نصّ + سهم للقابل للنقر) ──────
+// كان مكرَّراً حرفياً في BusinessPulse/CashForecast/NetWorth/CommandCenter.
+export function InsightRow({ icon: Icon, color = C.cyan, text, onClick, delay = 0, inView = true }) {
+  const clickable = !!onClick
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 12 }}
+      animate={inView ? { opacity: 1, x: 0 } : {}}
+      transition={{ delay }}
+      onClick={onClick}
+      whileTap={clickable ? { scale: 0.98 } : undefined}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+        background: C.card, border: `1px solid ${color}26`, borderRadius: 13,
+        cursor: clickable ? 'pointer' : 'default',
+      }}
+    >
+      <div style={{ width: 28, height: 28, borderRadius: 9, background: `${color}1c`, border: `1px solid ${color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {Icon && <Icon size={14} color={color} strokeWidth={2.2} />}
+      </div>
+      <span style={{ flex: 1, fontSize: 12, color: C.text, lineHeight: 1.5 }}>{text}</span>
+      {clickable && <ChevronLeft size={15} color={C.textDim} />}
+    </motion.div>
   )
 }
