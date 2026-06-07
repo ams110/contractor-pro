@@ -18,7 +18,7 @@ import BusinessPulse from '../../components/BusinessPulse.jsx'
 import CashForecast from '../../components/CashForecast.jsx'
 import CommandCenter from '../../components/CommandCenter.jsx'
 import NetWorth from '../../components/NetWorth.jsx'
-import { useCountUp, Money } from '../../ui/Premium.jsx'
+import { PremiumCard, IconChip as KitIconChip, useCountUp, Money } from '../../ui/Premium.jsx'
 
 // شارة اتّجاه صغيرة (شهر مقابل شهر)
 function TrendChip({ trend }) {
@@ -32,38 +32,20 @@ function TrendChip({ trend }) {
   )
 }
 
-// ─── القشرة الفخمة المشتركة (تدرّج ناعم + وميض زاوية + دخول متحرّك) ────────────────
-function PremiumShell({ children, accent = C.primary, glowSide = 'end', radius = 20, padding = '16px 14px', onClick, delay = 0, style = {} }) {
-  const Comp = onClick ? motion.button : motion.div
+// ─── القشرة الفخمة = نفس kit الفخامة (ui/Premium · PremiumCard) ────────────────────
+// محوّل رفيع: يحافظ على تسمية props الخاصّة بالداشبورد (accent) ويمرّرها للـkit،
+// فيصير كل توهّج/تدرّج/دخول البطاقات الصغيرة مطابقاً للبطاقات الكبيرة (المعيار الموحّد).
+function PremiumShell({ children, accent = C.primary, glowSide = 'end', radius = 20, padding = '16px 14px', onClick, delay = 0, style }) {
   return (
-    <Comp
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay }}
-      whileHover={onClick ? { scale: 1.015, y: -2 } : undefined}
-      whileTap={onClick ? { scale: 0.98 } : undefined}
-      onClick={onClick}
-      style={{
-        position: 'relative', overflow: 'hidden', textAlign: 'start', width: '100%',
-        background: `linear-gradient(135deg, ${accent}14, ${C.surface} 70%)`,
-        border: `1px solid ${accent}2e`, borderRadius: radius, padding,
-        cursor: onClick ? 'pointer' : 'default', fontFamily: 'inherit',
-        ...style,
-      }}
-    >
-      <div aria-hidden style={{ position: 'absolute', top: -50, [glowSide === 'start' ? 'insetInlineStart' : 'insetInlineEnd']: -40, width: 150, height: 150, borderRadius: '50%', background: `radial-gradient(circle, ${accent}55 0%, transparent 70%)`, opacity: 0.35, pointerEvents: 'none' }} />
-      <div style={{ position: 'relative' }}>{children}</div>
-    </Comp>
+    <PremiumCard color={accent} glowSide={glowSide} radius={radius} padding={padding} onClick={onClick} delay={delay} style={style}>
+      {children}
+    </PremiumCard>
   )
 }
 
-// شريحة أيقونة موحّدة
-function IconChip({ icon: Icon, accent, size = 36, r = 11 }) {
-  return (
-    <div style={{ width: size, height: size, borderRadius: r, background: `${accent}1f`, border: `1px solid ${accent}3a`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <Icon size={size * 0.46} color={accent} strokeWidth={2.2} />
-    </div>
-  )
+// شريحة أيقونة = kit IconChip (accent→color، r→radius)
+function IconChip({ icon, accent, size = 36, r = 11 }) {
+  return <KitIconChip icon={icon} color={accent} size={size} radius={r} />
 }
 
 // ─── بطاقة إحصائيّة فخمة (نقد/مستحقّات/ربح/إيراد/مصاريف/أرقام) ─────────────────────
