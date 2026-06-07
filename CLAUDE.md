@@ -48,6 +48,19 @@ npm run test:e2e:ui   # واجهة Playwright التفاعلية
 
 **قواعد التصميم**: أيقونات **Lucide React** فقط (ممنوع إيموجي في UI). أوزان خط ثقيلة (700–900)، `letter-spacing` ضيّق (-0.02em). طبقات ألوان: لون أساسي + `18` (خلفية ناعمة) + `28` (حدود) + `45` (توهّج). حركات **Framer Motion** بـ spring (stiffness 340/damping 30 للـ sheets، 400/20 للبطاقات، 400/17 للأزرار).
 
+### 2.1 لغة «البطاقة الفخمة» (Premium Card DNA)
+
+اللغة البصرية الموحّدة لبطاقات الرؤى الكبيرة. مرجعها الحيّ: `BusinessPulse.jsx`، `CashForecast.jsx`، `NetWorth.jsx`، `CommandCenter.jsx`، و`DashboardScreen.jsx`. **أي بطاقة/لوحة جديدة لازم تتبع هالنمط** بدل اختراع شكل جديد.
+
+- **خريطة النبرة `TONE`** (تُكرَّر محلياً في كل مكوّن — هاد النمط القائم): `excellent→success` · `good→cyan` · `fair→warning` · `weak→primary` · `critical→accent`. كل نبرة لها `main` (اللون) + `soft` (`rgba` ~0.14) + `glow` (`rgba` ~0.45). نبرة الرؤى الداخلية: `warn→accent` · `tip→cyan` · `good→success`.
+- **القشرة**: `position:relative; overflow:hidden`، خلفية `linear-gradient(135deg, ${accent}14, ${C.surface} 70%)` (أو `tone.soft`)، حدّ `1px solid ${accent}2e–33`، `borderRadius` **18–22**، حشوة `16–18px`، `marginBottom:12`. + **وميض دائري** بالزاوية: عنصر `absolute` 150–180px، `radial-gradient(circle, glow, transparent 70%)`، `opacity:0.35–0.4`، `insetInlineEnd/Start:-40`. + دخول `initial{opacity:0,y:14–18}→animate{opacity:1,y:0}` مدّة ~0.5s.
+- **الرأس**: شريحة أيقونة 30×30 (`borderRadius:10`، خلفية `tone.soft`، حدّ `main44`) **متحرّكة** (نبض scale أو rotate لانهائي)، + عنوان 14/900، + سطر فرعي 10 `textDim`، + شارة حالة على الطرف المقابل (حشوة `4px 9px`، `radius:9`، خلفية `main16`، حدّ `main3a`).
+- **الأرقام**: عدّاد تصاعدي `useCountUp` (easeOutCubic، RAF)، `fontVariantNumeric:'tabular-nums'`، وزن 900، إشارة سالب **صريحة `−`** قبل `₪`.
+- **صفوف الرؤى الداخلية**: خلفية `C.card`، حدّ `${color}26`، `radius:13`، حشوة `10px 12px`، + شريحة أيقونة 28×28 (`color1c`/`color33`) + نصّ 12 `lineHeight:1.5` + `ChevronLeft` 15 `textDim` للقابل للنقر.
+- **مكوّنات مساعدة قابلة لإعادة الاستخدام داخل `DashboardScreen.jsx`**: `PremiumShell` (القشرة) · `IconChip` (الشريحة) · `StatTile` (بطاقة إحصائية) · `Money` / `TrendChip`. عند بناء بطاقة جديدة في شاشة أخرى، طابق نفس البِنية.
+
+> ملاحظة: `useCountUp` و`TONE` و`Money` مُكرَّرة عمداً في كل مكوّن (لا يوجد ملف helper مشترك بعد) — حافظ على التطابق عند النسخ.
+
 ---
 
 ## 3. المكتبات
