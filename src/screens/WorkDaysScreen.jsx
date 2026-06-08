@@ -55,7 +55,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const [rejectTarget,   setRejectTarget]   = useState(null)
   const [rejectReason,   setRejectReason]   = useState('')
 
-  const emptyForm = { date: todayStr(), employee_id: '', project_id: '', day_type: 'كامل', hours: '8', customAmount: '' }
+  const emptyForm = { date: todayStr(), employee_id: '', project_id: '', location: '', day_type: 'كامل', hours: '8', customAmount: '' }
   const [form, setForm] = useState(emptyForm)
   const [holidayWorked,    setHolidayWorked]    = useState(false)  // عطلة: اشتغل أو ما اشتغل
   const [holidaySubType,   setHolidaySubType]   = useState('كامل') // نوع اليوم لما اشتغل بالعيد
@@ -207,7 +207,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
           const amount = effectiveType === 'مبلغ مسكر'
             ? parseFloat(form.customAmount)
             : calcSalary(emp.daily_rate, effectiveType, form.hours)
-          return addWorkDay({ date: form.date, employee_id: empId, project_id: form.project_id || null, day_type: effectiveType, hours: parseFloat(form.hours) || 8, amount })
+          return addWorkDay({ date: form.date, employee_id: empId, project_id: form.project_id || null, location: form.location || undefined, day_type: effectiveType, hours: parseFloat(form.hours) || 8, amount })
         }))
         closeForm()
       } catch (e) { setFormError(e.message) }
