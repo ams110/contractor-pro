@@ -29,7 +29,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    const { emp_id, token, credential } = await req.json()
+    const { emp_id, token, credential, prev_credential_id } = await req.json()
     if (!emp_id || !token || !credential) return json({ error: 'بيانات غير صالحة' }, 400)
 
     const { data: emp } = await supabase
@@ -68,8 +68,11 @@ serve(async (req) => {
     const publicKeyBytes = registrationInfo!.credentialPublicKey
     const counter        = registrationInfo!.counter
 
-    // بصمة واحدة لكل عامل (نمسح القديمة)
-    await supabase.from('worker_passkey_credentials').delete().eq('employee_id', emp.id)
+    // دعم عدّة أجهزة: نستبدل بصمة هذا الجهاز فقط (إن وُجدت) ونُبقي بقية الأجهزة
+    if (prev_credential_id) {
+      await supabase.from('worker_passkey_credentials').delete()
+        .eq('employee_id', emp.id).eq('credential_id', prev_credential_id)
+    }
     await supabase.from('worker_passkey_credentials').insert({
       employee_id:   emp.id,
       credential_id: credentialID,

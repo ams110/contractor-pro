@@ -162,7 +162,11 @@ export function useWorkerPortal() {
       if (e.name === 'NotAllowedError') throw new Error('تم إلغاء التسجيل')
       throw new Error('فشل تسجيل البصمة: ' + (e.message || ''))
     }
-    const result = await callEdge('worker-webauthn-register-verify', { emp_id: session.id, token: session.token, credential })
+    const prev = getStoredPasskey()
+    const result = await callEdge('worker-webauthn-register-verify', {
+      emp_id: session.id, token: session.token, credential,
+      prev_credential_id: prev?.credentialId || null,   // استبدل بصمة هذا الجهاز فقط
+    })
     if (result.error) throw new Error(result.error)
     localStorage.setItem(PASSKEY_KEY, JSON.stringify({ credentialId: result.credentialId, empId: session.id }))
     return result
@@ -170,8 +174,10 @@ export function useWorkerPortal() {
 
   async function removePasskey() {
     const session = loadSession()
+    const stored  = getStoredPasskey()
     if (session?.token) {
-      try { await supabase.rpc('worker_remove_passkey', { p_emp_id: session.id, p_token: session.token }) } catch { /* ignore */ }
+      // ألغِ بصمة هذا الجهاز فقط — تبقى الأجهزة الأخرى مفعّلة
+      try { await supabase.rpc('worker_remove_passkey', { p_emp_id: session.id, p_token: session.token, p_credential_id: stored?.credentialId || null }) } catch { /* ignore */ }
     }
     localStorage.removeItem(PASSKEY_KEY)
   }
