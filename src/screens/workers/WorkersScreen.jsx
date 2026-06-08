@@ -6,7 +6,7 @@ import {
   TrendingUp, Phone, Star, BarChart3, CreditCard,
   Check, AlertTriangle, Trash2, ChevronRight, CalendarDays,
   Link2, Copy, CheckCheck, UserPlus, UserMinus, MessageCircle, GitCommitHorizontal,
-  Wallet, X, HardHat, Clock,
+  Wallet, X, HardHat, Clock, Activity,
 } from 'lucide-react'
 import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
@@ -23,6 +23,7 @@ import {
 } from '../../components/WorkerInsights.jsx'
 import WorkDaysScreen from '../WorkDaysScreen.jsx'
 import WorkerDNA, { WorkerDNABadge } from '../../components/WorkerDNA.jsx'
+import WorkerActivityLog from '../../components/WorkerActivityLog.jsx'
 import WorkerCard from '../../components/WorkerCard.jsx'
 import WorkDayTicket from '../../components/WorkDayTicket.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
@@ -262,6 +263,7 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
     { id: 'workdays', icon: Calendar,  label: language === 'he' ? 'ימים' : language === 'en' ? 'Days' : 'أيام' },
     { id: 'payments', icon: Banknote,  label: language === 'he' ? 'שכר' : language === 'en' ? 'Salary' : 'رواتب' },
     { id: 'advances', icon: CreditCard, label: language === 'he' ? 'מקדמות' : language === 'en' ? 'Advances' : 'سلف' },
+    ...(permissions?.isOwner ? [{ id: 'activity', icon: Activity, label: language === 'he' ? 'פעילות' : language === 'en' ? 'Activity' : 'نشاط' }] : []),
   ]
 
   const colors = [C.secondary, C.primary, C.gold, C.cyan]
@@ -460,6 +462,15 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
                 </div>
               </PremiumCard>
             ))}
+          </div>
+        )}
+
+        {tab === 'activity' && permissions?.isOwner && (
+          <div>
+            <div style={{ fontSize: 11, color: C.textDim, marginBottom: 10, lineHeight: 1.6 }}>
+              {language === 'he' ? 'כל הפעולות שהעובד ביצע דרך הפורטל' : language === 'en' ? 'Everything this worker did via the portal' : 'كل ما قام به العامل من بوّابته (دخول، أيام، مصاريف، طلبات، بضاعة)'}
+            </div>
+            <WorkerActivityLog empId={worker.id} />
           </div>
         )}
       </div>
