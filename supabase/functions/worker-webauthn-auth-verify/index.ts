@@ -79,9 +79,10 @@ serve(async (req) => {
 
     // إنشاء توكن جلسة جديد للعامل (نفس آلية worker_login)
     const newToken = crypto.randomUUID()
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     const { data: emp, error: updErr } = await supabase
       .from('employees')
-      .update({ worker_session_token: newToken })
+      .update({ worker_session_token: newToken, worker_session_expires_at: expiresAt })
       .eq('id', storedCred.employee_id)
       .select('id, name, specialization, daily_rate, status, user_id')
       .single()
