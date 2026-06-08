@@ -263,6 +263,12 @@ export default function App() {
     )
   }
 
+  return <OwnerApp />
+}
+
+// المكوّن الرئيسي للمالك — مفصول عن App كي تبقى كل الـ hooks بلا أي return مبكّر
+// قبلها (App يقرّر بين بوّابة العامل وتطبيق المالك دون استدعاء أي hook).
+function OwnerApp() {
   const { user, loading: authLoading } = useAuth()
   const isDesktop = useIsDesktop()
 

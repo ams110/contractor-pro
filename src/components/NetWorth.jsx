@@ -20,11 +20,12 @@ function segColor(seg, t) {
 export default function NetWorth({ netWorth, onNav }) {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.2 })
+  // الـ hook يُستدعى قبل أي return مبكّر (قاعدة React Hooks)
+  const netDisplay = useCountUp(netWorth?.netWorth ?? 0, 1300, inView)
   if (!netWorth || !netWorth.hasData) return null
 
   const t = TONES[netWorth.tone] || TONES.fair
   const { netWorth: net, coverage, liabilities, segments, insights } = netWorth
-  const netDisplay = useCountUp(net, 1300, inView)
 
   // ── مقياس الشلال: نطاق يشمل كل البدايات/النهايات والصفر ──
   const bounds = segments.flatMap(s => [s.start, s.end]).concat(0)

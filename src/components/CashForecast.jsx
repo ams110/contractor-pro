@@ -35,11 +35,12 @@ function ChartTip({ active, payload, main }) {
 export default function CashForecast({ forecast, onNav }) {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.25 })
+  // الـ hook يُستدعى قبل أي return مبكّر (قاعدة React Hooks)
+  const projDisplay = useCountUp(forecast?.projected ?? 0, 1300, inView)
   if (!forecast) return null
 
   const t = TONES[forecast.tone] || TONES.fair
   const { avgFlow, projected, runway, rising, horizon, series, insights } = forecast
-  const projDisplay = useCountUp(projected, 1300, inView)
 
   // فهرس نقطة الوصل (آخر نقطة تاريخية) لرسم خط «الآن»
   const junctionIdx = series.findIndex(s => s.kind === 'future')

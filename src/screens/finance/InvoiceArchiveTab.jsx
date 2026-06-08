@@ -674,8 +674,8 @@ export default function InvoiceArchiveTab({ projects = [], userId }) {
     if (val) showToast('تم تعليمها مرسلة للمحاسب')
   }
   async function handleDelete(id) {
-    const entry = entries.find(e => e.id === id)
-    const sig = await bioConfirm(`حذف فاتورة: ${entry?.vendor_name || typeLabel(entry?.type)}`, 'invoice_archive')
+    const entry = archive.find(e => e.id === id)
+    const sig = await bioConfirm(`حذف فاتورة: ${entry?.vendor_name || entry?.type || 'فاتورة'}`, 'invoice_archive')
     if (!sig) return
     await supabase.from('invoice_archive').delete().eq('id', id)
     setArchive(prev => prev.filter(e => e.id !== id))

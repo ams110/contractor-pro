@@ -1,11 +1,12 @@
 {
   "name": "contractor-pro",
-  "version": "2.0.107",
+  "version": "2.0.108",
   "private": true,
   "scripts": {
     "dev": "vite",
     "prebuild": "node scripts/bump-version.mjs",
     "build": "vite build",
+    "lint": "eslint src",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
@@ -54,9 +55,13 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.60.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.5.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.6.0",
     "postcss": "^8.5.14",
     "tailwindcss": "^4.3.0",
     "vite": "^5.1.0",

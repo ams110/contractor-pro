@@ -362,7 +362,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
 
         {form.method === 'تحويل بنكي' && (
           <div style={{ marginBottom:14 }}>
-            <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600, display:'flex', alignItems:'center', gap:5 }}><Paperclip size={12} strokeWidth={2} /> إثبات التحويل</label>
+            <label style={{ fontSize:12, color:C.textDim, marginBottom:6, fontWeight:600, display:'flex', alignItems:'center', gap:5 }}><Paperclip size={12} strokeWidth={2} /> إثبات التحويل</label>
             <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={pickFile} />
             {preview
               ? <div style={{ position:'relative' }}>
