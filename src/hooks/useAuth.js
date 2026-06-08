@@ -97,8 +97,11 @@ export function useAuth() {
       throw new Error('فشل تسجيل البصمة: ' + (e.message || ''))
     }
 
-    // 3. Verify and store on server
-    const result = await callEdge('webauthn-register-verify', { credential }, session.access_token)
+    // 3. Verify and store on server.
+    // مرّر بصمة هذا الجهاز الحالية (إن وُجدت) ليستبدلها الخادم فقط — تبقى بقية الأجهزة مفعّلة.
+    let prevCredentialId = null
+    try { prevCredentialId = JSON.parse(localStorage.getItem(PASSKEY_KEY) || 'null')?.credentialId || null } catch { /* ignore */ }
+    const result = await callEdge('webauthn-register-verify', { credential, prev_credential_id: prevCredentialId }, session.access_token)
     if (result.error) throw new Error(result.error)
 
     // Store credential ID locally (not a secret — public identifier only)
@@ -166,9 +169,14 @@ export function useAuth() {
   }
 
   async function removePasskey() {
-    // Remove from DB (requires authenticated user — RLS allows uid = user_id)
+    // Remove from DB (requires authenticated user — RLS allows uid = user_id).
+    // ألغِ بصمة هذا الجهاز فقط إن توفّر معرّفها محلياً — تبقى الأجهزة الأخرى مفعّلة.
+    let localCredId = null
+    try { localCredId = JSON.parse(localStorage.getItem(PASSKEY_KEY) || 'null')?.credentialId || null } catch { /* ignore */ }
     if (user) {
-      await supabase.from('passkey_credentials').delete().eq('user_id', user.id)
+      let q = supabase.from('passkey_credentials').delete().eq('user_id', user.id)
+      if (localCredId) q = q.eq('credential_id', localCredId)
+      await q
     }
     localStorage.removeItem(PASSKEY_KEY)
     localStorage.removeItem('cpro_passkey_enc')

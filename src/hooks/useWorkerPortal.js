@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase.js'
+import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
+import { supabase, SUPABASE_URL } from '../lib/supabase.js'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../lib/calculations.js'
 
 const SESSION_KEY = 'worker_session'
+const PASSKEY_KEY = 'worker_passkey_cred'   // localStorage دائم: { credentialId, empId }
 
 function saveSession(data) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(data))
@@ -14,6 +16,30 @@ function loadSession() {
 
 function clearSession() {
   sessionStorage.removeItem(SESSION_KEY)
+}
+
+// ── بصمة العامل (WebAuthn) ──────────────────────────────────────────────────
+async function callEdge(path, body) {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  return res.json()
+}
+
+export function isWorkerPasskeySupported() {
+  return typeof window !== 'undefined'
+    && window.PublicKeyCredential !== undefined
+    && typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
+}
+
+function getStoredPasskey() {
+  try { return JSON.parse(localStorage.getItem(PASSKEY_KEY)) } catch { return null }
+}
+
+export function hasWorkerPasskey() {
+  return !!getStoredPasskey()?.credentialId
 }
 
 export function useWorkerPortal() {
@@ -93,6 +119,67 @@ export function useWorkerPortal() {
     setWorkDays([])
     setPayments([])
     setProjects([])
+  }
+
+  // ── دخول بالبصمة (passkey) ────────────────────────────────────────────────
+  async function loginWithPasskey() {
+    const stored = getStoredPasskey()
+    if (!stored?.credentialId) { setLoginErr('لا توجد بصمة مسجلة على هذا الجهاز'); return }
+    setLoggingIn(true)
+    setLoginErr('')
+    try {
+      const options = await callEdge('worker-webauthn-auth-options', { credentialId: stored.credentialId })
+      if (options.error) throw new Error(options.error)
+      let assertion
+      try {
+        assertion = await startAuthentication(options)
+      } catch (e) {
+        if (e.name === 'NotAllowedError') throw new Error('تم إلغاء عملية البصمة')
+        throw new Error('فشلت البصمة — أعد المحاولة')
+      }
+      const result = await callEdge('worker-webauthn-auth-verify', { credentialId: stored.credentialId, credential: assertion })
+      if (result.error) throw new Error(result.error)
+      saveSession(result)
+      setWorker(result)
+      await loadData(result.id)
+    } catch (e) {
+      setLoginErr(e.message)
+    } finally {
+      setLoggingIn(false)
+    }
+  }
+
+  // ── تسجيل البصمة (من إعدادات البوّابة بعد الدخول) ──────────────────────────
+  async function registerPasskey() {
+    const session = loadSession()
+    if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
+    const options = await callEdge('worker-webauthn-register-options', { emp_id: session.id, token: session.token })
+    if (options.error) throw new Error(options.error)
+    let credential
+    try {
+      credential = await startRegistration(options)
+    } catch (e) {
+      if (e.name === 'NotAllowedError') throw new Error('تم إلغاء التسجيل')
+      throw new Error('فشل تسجيل البصمة: ' + (e.message || ''))
+    }
+    const prev = getStoredPasskey()
+    const result = await callEdge('worker-webauthn-register-verify', {
+      emp_id: session.id, token: session.token, credential,
+      prev_credential_id: prev?.credentialId || null,   // استبدل بصمة هذا الجهاز فقط
+    })
+    if (result.error) throw new Error(result.error)
+    localStorage.setItem(PASSKEY_KEY, JSON.stringify({ credentialId: result.credentialId, empId: session.id }))
+    return result
+  }
+
+  async function removePasskey() {
+    const session = loadSession()
+    const stored  = getStoredPasskey()
+    if (session?.token) {
+      // ألغِ بصمة هذا الجهاز فقط — تبقى الأجهزة الأخرى مفعّلة
+      try { await supabase.rpc('worker_remove_passkey', { p_emp_id: session.id, p_token: session.token, p_credential_id: stored?.credentialId || null }) } catch { /* ignore */ }
+    }
+    localStorage.removeItem(PASSKEY_KEY)
   }
 
   async function submitWorkDay({ projectId, date, dayType, hours, location }) {
@@ -232,6 +319,8 @@ export function useWorkerPortal() {
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
     login, logout, submitWorkDay, submitExpense, changePassword, requestPayment, requestAdvance,
+    loginWithPasskey, registerPasskey, removePasskey,
+    passkeySupported: isWorkerPasskeySupported(), hasPasskey: hasWorkerPasskey(),
     refetch: () => worker?.id && loadData(worker.id),
     monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalAdvances, totalOwed, pendingDays,
   }
