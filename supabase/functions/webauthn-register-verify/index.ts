@@ -35,7 +35,7 @@ serve(async (req) => {
     const { data: { user }, error: authErr } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authErr || !user) return json({ error: 'Unauthorized' }, 401)
 
-    const { credential } = await req.json()
+    const { credential, prev_credential_id } = await req.json()
     const origin = req.headers.get('origin') || 'https://localhost'
     const rpID   = origin.replace(/^https?:\/\//, '').split(':')[0]
 
@@ -66,7 +66,11 @@ serve(async (req) => {
     const publicKeyBytes = registrationInfo!.credentialPublicKey
     const counter        = registrationInfo!.counter
 
-    await supabase.from('passkey_credentials').delete().eq('user_id', user.id)
+    // دعم عدّة أجهزة: استبدل بصمة هذا الجهاز فقط (إن وُجدت) وأبقِ بقية الأجهزة
+    if (prev_credential_id) {
+      await supabase.from('passkey_credentials').delete()
+        .eq('user_id', user.id).eq('credential_id', prev_credential_id)
+    }
     await supabase.from('passkey_credentials').insert({
       user_id:       user.id,
       credential_id: credentialID,
