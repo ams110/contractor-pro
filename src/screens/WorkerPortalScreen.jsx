@@ -3,7 +3,7 @@ import {
   Gift, HardHat, KeyRound, Bell, HardHat as ConstructionIcon, CalendarDays, Wallet, ClipboardList, Ruler, X,
   LogOut, LogIn, Eye, EyeOff, AlertTriangle, TrendingUp, CheckCircle2, Clock as ClockIcon,
   CalendarPlus, Receipt, Package, HandCoins, Map as MapIcon, Settings, Send, FileText, Download,
-  Check, X as XIcon, ChevronDown, Sparkles, MapPin, Camera, Paperclip,
+  Check, X as XIcon, ChevronDown, Sparkles, MapPin, Camera, Paperclip, Fingerprint, ShieldCheck, Trash2,
 } from 'lucide-react'
 import { C, GRAD, EXP_CATS } from '../constants/index.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
@@ -207,11 +207,12 @@ function MonthRow({ month, data, payments, holidays = [], prevTotal = 0, isCurre
 }
 
 // ─── شاشة تسجيل الدخول ───────────────────────────────────────────────────────
-function LoginScreen({ onLogin, error, loading }) {
+function LoginScreen({ onLogin, error, loading, onPasskeyLogin, hasPasskey, passkeySupported }) {
   const [username,   setUsername]   = useState('')
   const [password,   setPassword]   = useState('')
   const [showPass,   setShowPass]   = useState(false)
   const [showForgot, setShowForgot] = useState(false)
+  const showBiometric = hasPasskey && passkeySupported
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, direction: 'rtl', position: 'relative', overflow: 'hidden', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
@@ -258,6 +259,20 @@ function LoginScreen({ onLogin, error, loading }) {
           style={{ width: '100%', padding: 14, borderRadius: 16, background: loading || !username || !password ? C.border : GRAD.brand, border: 'none', color: loading || !username || !password ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: loading || !username || !password ? 'default' : 'pointer', boxShadow: !loading && username && password ? `0 4px 20px ${C.primary}44` : 'none', transition: 'all .2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
           {loading ? 'جاري التحقق...' : <><LogIn size={17} strokeWidth={2.4} /> دخول</>}
         </button>
+
+        {showBiometric && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0' }}>
+              <div style={{ flex: 1, height: 1, background: C.border }} />
+              <span style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>أو</span>
+              <div style={{ flex: 1, height: 1, background: C.border }} />
+            </div>
+            <button onClick={() => onPasskeyLogin && onPasskeyLogin()} disabled={loading}
+              style={{ width: '100%', padding: 14, borderRadius: 16, background: `${C.secondary}18`, border: `1.5px solid ${C.secondary}44`, color: C.secondary, fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <Fingerprint size={19} strokeWidth={2.2} /> دخول بالبصمة
+            </button>
+          </>
+        )}
 
         <button onClick={() => setShowForgot(s => !s)}
           style={{ width: '100%', marginTop: 12, background: 'none', border: 'none', color: C.textDim, fontSize: 12, cursor: 'pointer', textAlign: 'center', textDecoration: 'underline', padding: 4 }}>
@@ -1150,6 +1165,71 @@ function BlueprintsTab({ projects }) {
   )
 }
 
+// ─── بطاقة الدخول بالبصمة (passkey) ──────────────────────────────────────────
+function PasskeyCard({ supported, enabled: enabledInit, onRegister, onRemove }) {
+  const [enabled, setEnabled] = useState(enabledInit)
+  const [busy,    setBusy]    = useState(false)
+  const [err,     setErr]     = useState('')
+  const [done,    setDone]    = useState(false)
+
+  if (!supported) return null
+
+  async function enable() {
+    setBusy(true); setErr(''); setDone(false)
+    try {
+      await onRegister()
+      setEnabled(true); setDone(true)
+    } catch (e) { setErr(e.message || 'فشل تفعيل البصمة') }
+    finally { setBusy(false) }
+  }
+
+  async function disable() {
+    setBusy(true); setErr(''); setDone(false)
+    try {
+      await onRemove()
+      setEnabled(false)
+    } catch (e) { setErr(e.message || 'فشل إلغاء البصمة') }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <div style={{ background: C.card, borderRadius: 18, border: `1px solid ${C.border}`, padding: 18, marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.secondary}1c`, border: `1px solid ${C.secondary}44`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Fingerprint size={18} strokeWidth={2.2} color={C.secondary} />
+        </div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>الدخول بالبصمة</div>
+          <div style={{ fontSize: 11, color: C.textDim }}>سجّل بصمتك لتدخل بسرعة بدون كلمة مرور</div>
+        </div>
+      </div>
+
+      {enabled ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: `${C.success}14`, borderRadius: 12, border: `1px solid ${C.success}33`, marginTop: 10 }}>
+          <ShieldCheck size={16} strokeWidth={2.2} color={C.success} />
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: C.success, flex: 1 }}>البصمة مفعّلة على هذا الجهاز</span>
+          <button onClick={disable} disabled={busy}
+            style={{ background: 'none', border: 'none', color: C.accent, cursor: busy ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700 }}>
+            <Trash2 size={13} strokeWidth={2.2} /> إلغاء
+          </button>
+        </div>
+      ) : (
+        <button onClick={enable} disabled={busy}
+          style={{ width: '100%', marginTop: 10, padding: 12, borderRadius: 14, background: `${C.secondary}18`, border: `1.5px solid ${C.secondary}44`, color: C.secondary, fontSize: 14, fontWeight: 800, cursor: busy ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Fingerprint size={17} strokeWidth={2.2} /> {busy ? 'جاري التفعيل...' : 'تفعيل البصمة'}
+        </button>
+      )}
+
+      {done && !err && (
+        <div style={{ marginTop: 10, fontSize: 12, color: C.success, fontWeight: 700, textAlign: 'center' }}>تم تفعيل البصمة بنجاح ✓</div>
+      )}
+      {err && (
+        <div style={{ marginTop: 10, padding: '8px 12px', background: `${C.accent}18`, borderRadius: 10, fontSize: 12, color: C.accent, fontWeight: 600, textAlign: 'center' }}>{err}</div>
+      )}
+    </div>
+  )
+}
+
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
   const {
@@ -1157,6 +1237,7 @@ export default function WorkerPortalScreen() {
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
     login, logout, submitWorkDay, submitExpense, changePassword, requestPayment, requestAdvance,
+    loginWithPasskey, registerPasskey, removePasskey, passkeySupported, hasPasskey,
     monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalOwed, pendingDays,
   } = useWorkerPortal()
 
@@ -1173,7 +1254,8 @@ export default function WorkerPortalScreen() {
   }
 
   if (!worker) {
-    return <LoginScreen onLogin={login} error={loginErr} loading={loggingIn} />
+    return <LoginScreen onLogin={login} error={loginErr} loading={loggingIn}
+      onPasskeyLogin={loginWithPasskey} hasPasskey={hasPasskey} passkeySupported={passkeySupported} />
   }
 
   const pendingExpenses = workerExpenses.filter(e => e.status === 'pending')
@@ -1329,7 +1411,11 @@ export default function WorkerPortalScreen() {
 
         {/* تبويب الحساب وتغيير كلمة المرور */}
         {tab === 'account' && (
-          <ChangePasswordForm worker={worker} onChangePassword={changePassword} />
+          <>
+            <PasskeyCard supported={passkeySupported} enabled={hasPasskey}
+              onRegister={registerPasskey} onRemove={removePasskey} />
+            <ChangePasswordForm worker={worker} onChangePassword={changePassword} />
+          </>
         )}
 
         {/* تبويب المدفوعات */}
