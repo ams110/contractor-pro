@@ -1,20 +1,16 @@
 import CryptoJS from 'crypto-js'
 
-const KEY_NAME = 'cp_enc_key'
+const KEY_NAME = 'cp_enc_key_v3'
 
+// مفتاح عشوائي 256-بت يُولَّد مرّة ويُخزَّن محلياً.
+// (سابقاً كان مشتقّاً من بصمة المتصفح: userAgent/screen/timezone + salt ثابت،
+//  وهو قابل للتخمين بدون الوصول للجهاز — استُبدل بمفتاح عشوائي حقيقي.)
 function getKey() {
-  let key = sessionStorage.getItem(KEY_NAME)
+  let key = localStorage.getItem(KEY_NAME)
   if (!key) {
-    // Derive from a stable device fingerprint + app salt
-    const seed = [
-      navigator.userAgent,
-      screen.width,
-      screen.height,
-      Intl.DateTimeFormat().resolvedOptions().timeZone,
-      'cp_v2_salt_2025',
-    ].join('|')
-    key = CryptoJS.SHA256(seed).toString()
-    sessionStorage.setItem(KEY_NAME, key)
+    const bytes = crypto.getRandomValues(new Uint8Array(32))
+    key = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+    localStorage.setItem(KEY_NAME, key)
   }
   return key
 }

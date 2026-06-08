@@ -221,7 +221,6 @@ export function FilterChip({ label, active, onClick, color = C.primary }) {
         background: active ? (color === C.primary ? GRAD.brand : color) : 'rgba(255,255,255,0.05)',
         color: active ? (color === C.primary ? '#000' : '#fff') : C.textDim,
         fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-        boxShadow: active ? `0 4px 16px ${color}44` : 'none',
         transform: active ? 'scale(1.02)' : 'scale(1)',
         transition: 'all .2s cubic-bezier(0.22,1,0.36,1)',
         boxShadow: active ? `0 3px 14px ${color}44` : 'none',

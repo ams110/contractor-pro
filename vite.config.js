@@ -49,6 +49,10 @@ export default defineConfig({
   ],
   base,
   server: { port: 3000 },
+  // اختبارات الوحدة (Vitest) — استثناء مواصفات Playwright E2E كي لا تُلتقط كـ"فشل"
+  test: {
+    exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**'],
+  },
   build: {
     // فصل المكتبات الكبيرة في chunks مستقلة → الصفحة الرئيسية تفتح أسرع،
     // والمكتبات تُحمّل من الكاش بين الإصدارات.
