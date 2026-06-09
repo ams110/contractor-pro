@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   HardHat, Zap, BarChart3, Users, CalendarDays, Receipt,
-  CheckCircle2, ArrowLeft, Star, Shield, Smartphone, TrendingUp,
+  CheckCircle2, ArrowLeft, Shield, Smartphone, TrendingUp,
   ChevronDown, Menu, X, Building2, Wallet, Settings, LayoutDashboard,
   Bell, Search, CircleDot, Plus
 } from 'lucide-react'
@@ -154,21 +154,18 @@ function Hero() {
           </button>
         </div>
 
-        {/* Social proof */}
-        <div className="fade-up" style={{ marginTop: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, animationDelay: '.32s' }}>
-          <div style={{ display: 'flex' }}>
-            {[C.primary, C.secondary, C.gold, C.cyan, '#22C55E'].map((color, i) => (
-              <div key={i} style={{ width: 32, height: 32, borderRadius: '50%', background: C.card, border: `2px solid ${C.bg}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: i > 0 ? -10 : 0, boxShadow: `0 0 0 1px ${color}33` }}>
-                <HardHat size={14} color={color} strokeWidth={2} />
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ display: 'flex', gap: 2 }}>
-              {[0,1,2,3,4].map(i => <Star key={i} size={12} fill={C.gold} color={C.gold} />)}
+        {/* Trust signals */}
+        <div className="fade-up" style={{ marginTop: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, flexWrap: 'wrap', animationDelay: '.32s' }}>
+          {[
+            { icon: Shield,      label: 'آمن ومشفّر' },
+            { icon: Smartphone,  label: 'يعمل بدون إنترنت' },
+            { icon: CheckCircle2, label: 'بدون بطاقة ائتمان' },
+          ].map(({ icon: Icon, label }, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <Icon size={15} color={C.primary} strokeWidth={2.2} />
+              <span style={{ fontSize: 13, color: C.textDim }}>{label}</span>
             </div>
-            <span style={{ fontSize: 13, color: C.textDim }}>+200 مقاول يستخدمون التطبيق</span>
-          </div>
+          ))}
         </div>
       </div>
     </section>
@@ -177,10 +174,10 @@ function Hero() {
 
 // ─── Stats strip ─────────────────────────────────────────────────────────────
 const STATS = [
-  { value: '+200',    label: 'مقاول نشط',          icon: HardHat,     color: C.primary },
-  { value: '₪18M+',  label: 'مشاريع تمت إدارتها',  icon: TrendingUp,  color: C.gold    },
-  { value: '18%',    label: 'ضريبة القيمة المضافة', icon: Receipt,     color: C.cyan    },
-  { value: '14 يوم', label: 'تجربة مجانية',         icon: Shield,      color: C.secondary },
+  { value: '3 لغات', label: 'عربي · עברית · English', icon: Users,       color: C.primary },
+  { value: '18%',    label: 'حساب מע״מ تلقائي',        icon: Receipt,     color: C.cyan    },
+  { value: '100%',   label: 'بياناتك مشفّرة وآمنة',     icon: Shield,      color: C.secondary },
+  { value: '14 يوم', label: 'تجربة مجانية بلا بطاقة',  icon: TrendingUp,  color: C.gold    },
 ]
 function StatsStrip() {
   return (
@@ -391,31 +388,26 @@ function AppShowcase() {
   )
 }
 
-// ─── Testimonials ─────────────────────────────────────────────────────────────
-const TESTIMONIALS = [
+// ─── Why contractors ──────────────────────────────────────────────────────────
+// بطاقات قيمة صادقة (بلا شهادات أو أسماء مُختلَقة).
+const VALUE_CARDS = [
   {
-    name:   'محمد أبو حسين',
-    role:   'مقاول بناء — الناصرة',
-    avatar: 'م',
-    color:  C.primary,
-    text:   'قبل التطبيق كنت أكتب كل شي في ورق وأضيع نصف ساعة كل يوم أحسب. هلق كل شي أمامي في ثانية.',
-    stars:  5,
+    icon:  Receipt,
+    color: C.primary,
+    title: 'وفّر على الضريبة',
+    text:  'يحسب לك מע״מ والخصم الضريبي على كل مصروف تلقائياً حسب الفئة — ما بتضيّع شيكل تقدر تستردّه.',
   },
   {
-    name:   'خالد الزعبي',
-    role:   'مقاول كهرباء — يافا',
-    avatar: 'خ',
-    color:  C.secondary,
-    text:   'ميزة استرداد ضريبة القيمة المضافة وحدها تساوي الاشتراك. وفّرت عليّ آلاف الشواقل هاي السنة.',
-    stars:  5,
+    icon:  CalendarDays,
+    color: C.secondary,
+    title: 'خلص الخلافات على الأيام',
+    text:  'العامل بيسجّل حضوره من بوّابته وأنت بتوافق. كل يوم شغل وكل دفعة موثّقة — بلا أوراق وبلا نسيان.',
   },
   {
-    name:   'أحمد صباح',
-    role:   'مقاول تشطيبات — حيفا',
-    avatar: 'أ',
-    color:  C.gold,
-    text:   'العمال بيسجلوا حضورهم من التطبيق مباشرة وأنا بوافق. انتهى زمن الخلافات على الأيام والرواتب.',
-    stars:  5,
+    icon:  BarChart3,
+    color: C.gold,
+    title: 'شوف وضعك بثانية',
+    text:  'صافي الربح، النقد بالجيب، المستحقّ للعمال والعملاء — كله أمامك بلوحة واحدة بدل ما تحسب براسك.',
   },
 ]
 function Testimonials() {
@@ -424,30 +416,23 @@ function Testimonials() {
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 52 }}>
           <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
-            ماذا يقول المقاولون
+            مبني خصّيصاً لشغل المقاول
           </h2>
-          <p style={{ fontSize: 16, color: C.textDim }}>أصحاب مشاريع حقيقية — نتائج حقيقية.</p>
+          <p style={{ fontSize: 16, color: C.textDim }}>كل ميزة حلّ لمشكلة حقيقية بتواجهك كل يوم.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 20 }}>
-          {TESTIMONIALS.map((t, i) => (
-            <div key={i} style={{ background: C.card, borderRadius: 22, padding: 28, border: `1px solid ${C.border}` }}>
-              <div style={{ display: 'flex', gap: 3, marginBottom: 18 }}>
-                {Array(t.stars).fill(0).map((_, s) => (
-                  <Star key={s} size={14} fill={C.gold} color={C.gold} />
-                ))}
-              </div>
-              <p style={{ fontSize: 14, color: C.textDim, lineHeight: 1.8, marginBottom: 22 }}>"{t.text}"</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: `${t.color}20`, border: `1px solid ${t.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: t.color, flexShrink: 0 }}>
-                  {t.avatar}
+          {VALUE_CARDS.map((c, i) => {
+            const Icon = c.icon
+            return (
+              <div key={i} style={{ background: C.card, borderRadius: 22, padding: 28, border: `1px solid ${C.border}` }}>
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: `${c.color}18`, border: `1px solid ${c.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+                  <Icon size={24} color={c.color} strokeWidth={2} />
                 </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t.name}</div>
-                  <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{t.role}</div>
-                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>{c.title}</div>
+                <p style={{ fontSize: 14, color: C.textDim, lineHeight: 1.8 }}>{c.text}</p>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </section>
@@ -547,9 +532,15 @@ function Footer() {
           <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Contractor Pro</span>
           <span style={{ fontSize: 11, color: C.textDim }}>© {new Date().getFullYear()}</span>
         </div>
-        <div style={{ display: 'flex', gap: 24 }}>
-          {['الخصوصية', 'شروط الاستخدام', 'تواصل معنا'].map(l => (
-            <span key={l} style={{ fontSize: 12, color: C.textDim, cursor: 'pointer' }}>{l}</span>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          {[
+            { l: 'الخصوصية',       path: '/privacy' },
+            { l: 'شروط الاستخدام', path: '/terms'   },
+            { l: 'الإلغاء والاسترجاع', path: '/refund' },
+            { l: 'تواصل معنا',     path: '/contact' },
+          ].map(({ l, path }) => (
+            <span key={l} onClick={() => navigate(path)}
+              style={{ fontSize: 12, color: C.textDim, cursor: 'pointer' }}>{l}</span>
           ))}
         </div>
       </div>

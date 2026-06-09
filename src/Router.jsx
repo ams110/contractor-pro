@@ -3,6 +3,7 @@ import App         from './App.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import PricingPage from './pages/PricingPage.jsx'
 import WelcomePage from './pages/WelcomePage.jsx'
+import LegalPage   from './pages/LegalPage.jsx'
 
 const LoginScreen = lazy(() => import('./screens/auth/LoginScreen.jsx'))
 
@@ -28,6 +29,10 @@ export default function Router() {
   if (path === '/')         return <LandingPage />
   if (path === '/pricing')  return <PricingPage />
   if (path === '/welcome')  return <WelcomePage />
+  if (path === '/terms')    return <LegalPage type="terms" />
+  if (path === '/privacy')  return <LegalPage type="privacy" />
+  if (path === '/refund')   return <LegalPage type="refund" />
+  if (path === '/contact')  return <LegalPage type="contact" />
   if (path === '/login')    return <Suspense fallback={null}><LoginScreen /></Suspense>
   if (path === '/register') return <Suspense fallback={null}><LoginScreen initialView="register" /></Suspense>
   return <App />

@@ -368,9 +368,19 @@ export default function PricingPage() {
               <span style={{ fontSize:13, fontWeight:700, color:C.text }}>Contractor Pro</span>
               <span style={{ fontSize:11, color:C.textDim }}>© {new Date().getFullYear()}</span>
             </div>
-            <button onClick={() => navigate('/')} style={{ background:'transparent', border:'none', color:C.textDim, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
-              <ArrowLeft size={13} strokeWidth={2.2} /> الرجوع للرئيسية
-            </button>
+            <div style={{ display:'flex', gap:18, flexWrap:'wrap', alignItems:'center' }}>
+              {[
+                { l: 'الخصوصية',          path: '/privacy' },
+                { l: 'شروط الاستخدام',    path: '/terms'   },
+                { l: 'الإلغاء والاسترجاع', path: '/refund' },
+                { l: 'تواصل معنا',        path: '/contact' },
+              ].map(({ l, path }) => (
+                <span key={l} onClick={() => navigate(path)} style={{ fontSize:12, color:C.textDim, cursor:'pointer' }}>{l}</span>
+              ))}
+              <button onClick={() => navigate('/')} style={{ background:'transparent', border:'none', color:C.textDim, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
+                <ArrowLeft size={13} strokeWidth={2.2} /> الرئيسية
+              </button>
+            </div>
           </div>
         </footer>
       </div>
