@@ -81,7 +81,7 @@ function Navbar({ loggedIn }) {
           </div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>Contractor Pro</div>
-            <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.06em' }}>قبلן פרו</div>
+            <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.06em' }}>إدارة مقاولات</div>
           </div>
         </div>
 
@@ -174,8 +174,8 @@ function Hero() {
 
 // ─── Stats strip ─────────────────────────────────────────────────────────────
 const STATS = [
-  { value: '3 لغات', label: 'عربي · עברית · English', icon: Users,       color: C.primary },
-  { value: '18%',    label: 'حساب מע״מ تلقائي',        icon: Receipt,     color: C.cyan    },
+  { value: '3 لغات', label: 'عربي · عبري · إنجليزي', icon: Users,       color: C.primary },
+  { value: '18%',    label: 'حساب ضريبة القيمة المضافة', icon: Receipt,  color: C.cyan    },
   { value: '100%',   label: 'بياناتك مشفّرة وآمنة',     icon: Shield,      color: C.secondary },
   { value: '14 يوم', label: 'تجربة مجانية بلا بطاقة',  icon: TrendingUp,  color: C.gold    },
 ]
@@ -365,7 +365,7 @@ function AppShowcase() {
             <span className="grad-text">في شاشة واحدة</span>
           </h2>
           <p style={{ fontSize: 15, color: C.textDim, lineHeight: 1.8, marginBottom: 36 }}>
-            من تسجيل أيام العمل اليومية إلى حساب ضريبة الدخل والبيتواح ليئومي — Contractor Pro يغطيك بالكامل.
+            من تسجيل أيام العمل اليومية إلى حساب ضريبة الدخل والتأمين الوطني — Contractor Pro يغطيك بالكامل.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {FEATURES.map(({ Icon, text }, i) => (
@@ -395,7 +395,7 @@ const VALUE_CARDS = [
     icon:  Receipt,
     color: C.primary,
     title: 'وفّر على الضريبة',
-    text:  'يحسب לك מע״מ والخصم الضريبي على كل مصروف تلقائياً حسب الفئة — ما بتضيّع شيكل تقدر تستردّه.',
+    text:  'يحسب لك ضريبة القيمة المضافة والخصم الضريبي على كل مصروف تلقائياً حسب الفئة — ما بتضيّع شيكل تقدر تستردّه.',
   },
   {
     icon:  CalendarDays,
@@ -441,45 +441,77 @@ function Testimonials() {
 
 // ─── Pricing teaser ───────────────────────────────────────────────────────────
 const PLANS = [
-  { name: 'Starter',  price: '₪129', desc: 'للمقاول المستقل',             color: C.primary,   highlight: false },
-  { name: 'Pro',      price: '₪249', desc: 'لفريق حتى 5 أشخاص',          color: C.secondary, highlight: true  },
-  { name: 'Business', price: '₪499', desc: 'غير محدود + تقارير متقدمة',   color: C.gold,      highlight: false },
+  { name: 'Starter',  price: 129, desc: 'للمقاول المستقل',             color: C.primary,   highlight: false },
+  { name: 'Pro',      price: 249, desc: 'لفريق حتى 5 أشخاص',          color: C.secondary, highlight: true  },
+  { name: 'Business', price: 499, desc: 'غير محدود + تقارير متقدمة',   color: C.gold,      highlight: false },
 ]
 function PricingTeaser() {
+  const [cycle, setCycle] = useState('month')   // 'month' | 'year'
+  const isYear = cycle === 'year'
   return (
     <section style={{ padding: '72px 24px', direction: 'rtl' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 52 }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
             خطط بسيطة وواضحة
           </h2>
           <p style={{ fontSize: 16, color: C.textDim }}>كل الخطط تبدأ بتجربة مجانية 14 يوم — بدون بطاقة ائتمان.</p>
         </div>
+
+        {/* مبدّل دورة الفوترة */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
+          <div style={{ display: 'inline-flex', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: 4, gap: 4 }}>
+            {[{ key: 'month', label: 'شهري' }, { key: 'year', label: 'سنوي' }].map(opt => {
+              const active = cycle === opt.key
+              return (
+                <button key={opt.key} onClick={() => setCycle(opt.key)} className="lp-btn"
+                  style={{ position: 'relative', background: active ? GRAD.brand : 'transparent', border: 'none', color: active ? '#fff' : C.textDim, fontSize: 13, fontWeight: 800, cursor: 'pointer', padding: '8px 22px', borderRadius: 11 }}>
+                  {opt.label}
+                  {opt.key === 'year' && (
+                    <span style={{ marginInlineStart: 6, fontSize: 9, fontWeight: 800, color: active ? '#fff' : C.success }}>وفّر شهرين</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16, maxWidth: 820, margin: '0 auto' }}>
-          {PLANS.map((plan, i) => (
-            <div key={i} style={{
-              background: plan.highlight ? `${plan.color}12` : C.surface,
-              borderRadius: 22, padding: '28px 24px',
-              border: `1px solid ${plan.highlight ? plan.color + '40' : C.border}`,
-              position: 'relative', overflow: 'hidden',
-              transform: plan.highlight ? 'scale(1.03)' : 'none',
-              boxShadow: plan.highlight ? `0 8px 40px ${plan.color}20` : 'none',
-            }}>
-              {plan.highlight && (
-                <div style={{ position: 'absolute', top: 14, left: 14, background: GRAD.premium, borderRadius: 8, padding: '3px 10px', fontSize: 10, fontWeight: 800, color: '#fff' }}>
-                  الأكثر شيوعاً
+          {PLANS.map((plan, i) => {
+            const annual     = plan.price * 10            // خصم شهرين
+            const effMonthly = Math.round(annual / 12)
+            return (
+              <div key={i} style={{
+                background: plan.highlight ? `${plan.color}12` : C.surface,
+                borderRadius: 22, padding: '28px 24px',
+                border: `1px solid ${plan.highlight ? plan.color + '40' : C.border}`,
+                position: 'relative', overflow: 'hidden',
+                transform: plan.highlight ? 'scale(1.03)' : 'none',
+                boxShadow: plan.highlight ? `0 8px 40px ${plan.color}20` : 'none',
+              }}>
+                {plan.highlight && (
+                  <div style={{ position: 'absolute', top: 14, left: 14, background: GRAD.premium, borderRadius: 8, padding: '3px 10px', fontSize: 10, fontWeight: 800, color: '#fff' }}>
+                    الأكثر شيوعاً
+                  </div>
+                )}
+                <div style={{ fontSize: 15, fontWeight: 800, color: plan.color, marginBottom: 8 }}>{plan.name}</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: C.text, lineHeight: 1, marginBottom: 6 }}>
+                  ₪{isYear ? effMonthly : plan.price}
                 </div>
-              )}
-              <div style={{ fontSize: 15, fontWeight: 800, color: plan.color, marginBottom: 8 }}>{plan.name}</div>
-              <div style={{ fontSize: 28, fontWeight: 900, color: C.text, lineHeight: 1, marginBottom: 6 }}>{plan.price}</div>
-              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 20 }}>/ شهر</div>
-              <div style={{ fontSize: 13, color: C.textDim, marginBottom: 24, lineHeight: 1.5 }}>{plan.desc}</div>
-              <button onClick={() => navigate('/register')} className="lp-btn"
-                style={{ width: '100%', background: plan.highlight ? `linear-gradient(135deg, ${plan.color}, ${plan.color}CC)` : `${plan.color}15`, border: `1px solid ${plan.color}30`, color: plan.highlight ? '#fff' : plan.color, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '10px', borderRadius: 12 }}>
-                ابدأ مجاناً
-              </button>
-            </div>
-          ))}
+                <div style={{ fontSize: 11, color: C.textDim, marginBottom: isYear ? 6 : 20 }}>/ شهر</div>
+                {isYear && (
+                  <div style={{ fontSize: 11, color: C.success, fontWeight: 700, marginBottom: 20, lineHeight: 1.5 }}>
+                    يُدفع ₪{annual} سنوياً · وفّر ₪{plan.price * 2}
+                  </div>
+                )}
+                <div style={{ fontSize: 13, color: C.textDim, marginBottom: 24, lineHeight: 1.5 }}>{plan.desc}</div>
+                <button onClick={() => navigate('/register')} className="lp-btn"
+                  style={{ width: '100%', background: plan.highlight ? `linear-gradient(135deg, ${plan.color}, ${plan.color}CC)` : `${plan.color}15`, border: `1px solid ${plan.color}30`, color: plan.highlight ? '#fff' : plan.color, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '10px', borderRadius: 12 }}>
+                  ابدأ مجاناً
+                </button>
+              </div>
+            )
+          })}
         </div>
       </div>
     </section>
