@@ -12,12 +12,20 @@ const WEBHOOK_SECRET = Deno.env.get('PADDLE_WEBHOOK_SECRET') ?? ''
 // Price ID → internal plan name (set as Supabase Edge Function secrets)
 function buildPriceMap(): Record<string, string> {
   const map: Record<string, string> = {}
+  // الأسعار الشهرية
   const starter  = Deno.env.get('PADDLE_PRICE_ID_STARTER')
   const pro      = Deno.env.get('PADDLE_PRICE_ID_PRO')
   const business = Deno.env.get('PADDLE_PRICE_ID_BUSINESS')
   if (starter)  map[starter]  = 'starter'
   if (pro)      map[pro]      = 'pro'
   if (business) map[business] = 'business'
+  // الأسعار السنوية — تُحوَّل لنفس اسم الخطة (الدورة لا تغيّر الميزات)
+  const starterY  = Deno.env.get('PADDLE_PRICE_ID_STARTER_ANNUAL')
+  const proY      = Deno.env.get('PADDLE_PRICE_ID_PRO_ANNUAL')
+  const businessY = Deno.env.get('PADDLE_PRICE_ID_BUSINESS_ANNUAL')
+  if (starterY)  map[starterY]  = 'starter'
+  if (proY)      map[proY]      = 'pro'
+  if (businessY) map[businessY] = 'business'
   return map
 }
 const PRICE_MAP = buildPriceMap()

@@ -3,7 +3,7 @@ import { HardHat, Star, Check, X, CheckCircle2, AlertTriangle, Lightbulb, ArrowL
 import { navigate } from '../Router.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { useOrganization } from '../hooks/useOrganization.js'
-import { openCheckout, PLAN_META, PLAN_PRICES } from '../lib/paddle.js'
+import { openCheckout, PLAN_META, pricesFor } from '../lib/paddle.js'
 
 const C = {
   bg:        '#07080F',
@@ -119,9 +119,13 @@ const PLANS = [
   },
 ]
 
-function PricingCard({ plan, onSubscribe, currentPlan, loading }) {
+function PricingCard({ plan, onSubscribe, currentPlan, loading, cycle }) {
   const isCurrent = currentPlan === plan.key
   const borderColor = plan.popular ? plan.color : C.border
+  const isYear      = cycle === 'year'
+  const annual      = plan.price * 10                 // خصم شهرين
+  const effMonthly  = Math.round(annual / 12)
+  const displayPrice = isYear ? effMonthly : plan.price
 
   return (
     <div style={{
@@ -154,9 +158,18 @@ function PricingCard({ plan, onSubscribe, currentPlan, loading }) {
         </div>
         <p style={{ fontSize:12, color:C.textDim, lineHeight:1.5, marginBottom:16 }}>{plan.desc}</p>
         <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-          <span style={{ fontSize:40, fontWeight:900, color:plan.color }}>₪{plan.price}</span>
-          <span style={{ fontSize:13, color:C.textDim }}>/ {plan.period}</span>
+          <span style={{ fontSize:40, fontWeight:900, color:plan.color }}>₪{displayPrice}</span>
+          <span style={{ fontSize:13, color:C.textDim }}>/ شهر</span>
         </div>
+        {isYear ? (
+          <div style={{ fontSize:12, color:C.success, fontWeight:700, marginTop:6 }}>
+            يُدفع ₪{annual} سنوياً · وفّر ₪{plan.price * 2}
+          </div>
+        ) : (
+          <div style={{ fontSize:12, color:C.textDim, marginTop:6, opacity:0.7 }}>
+            أو ₪{effMonthly}/شهر بالاشتراك السنوي
+          </div>
+        )}
       </div>
 
       {/* CTA button */}
@@ -251,6 +264,7 @@ function FAQ() {
 export default function PricingPage() {
   const { user } = useAuth()
   const { org }  = useOrganization(user?.id)
+  const [cycle, setCycle] = useState('month')   // 'month' | 'year'
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError,   setCheckoutError]   = useState('')
   const [checkoutSuccess, setCheckoutSuccess] = useState(
@@ -263,11 +277,12 @@ export default function PricingPage() {
     if (!user) {
       // Not logged in → go to register (starts free trial, then plan selection after login)
       sessionStorage.setItem('pending_plan', plan)
+      sessionStorage.setItem('pending_cycle', cycle)
       navigate('/register')
       return
     }
 
-    if (!PLAN_PRICES[plan]) {
+    if (!pricesFor(cycle)[plan]) {
       setCheckoutError('لم يتم إعداد رابط الدفع بعد — تواصل معنا.')
       return
     }
@@ -279,7 +294,7 @@ export default function PricingPage() {
 
     setCheckoutLoading(true)
     try {
-      await openCheckout({ plan, user, org })
+      await openCheckout({ plan, user, org, cycle })
     } catch (err) {
       setCheckoutError(err.message || 'حدث خطأ أثناء فتح صفحة الدفع.')
     } finally {
@@ -310,6 +325,31 @@ export default function PricingPage() {
           </div>
         </section>
 
+        {/* ── Billing cycle toggle ── */}
+        <div style={{ display:'flex', justifyContent:'center', marginBottom:32, direction:'rtl' }}>
+          <div style={{ display:'inline-flex', background:C.surface, border:`1px solid ${C.borderMid}`, borderRadius:14, padding:4, gap:4 }}>
+            {[
+              { key:'month', label:'شهري' },
+              { key:'year',  label:'سنوي' },
+            ].map(opt => {
+              const active = cycle === opt.key
+              return (
+                <button key={opt.key} onClick={() => setCycle(opt.key)} className="lp-btn"
+                  style={{ display:'inline-flex', alignItems:'center', gap:7, border:'none', cursor:'pointer', borderRadius:11, padding:'9px 20px', fontSize:13, fontWeight:800,
+                    background: active ? GRAD.brand : 'transparent',
+                    color: active ? '#fff' : C.textDim }}>
+                  {opt.label}
+                  {opt.key === 'year' && (
+                    <span style={{ fontSize:10, fontWeight:800, background: active ? 'rgba(255,255,255,0.22)' : `${C.success}22`, color: active ? '#fff' : C.success, borderRadius:7, padding:'2px 7px' }}>
+                      وفّر شهرين
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* ── Checkout feedback ── */}
         {checkoutSuccess && (
           <div style={{ maxWidth:600, margin:'0 auto 24px', padding:'16px 24px', background:`${C.success}18`, border:`1px solid ${C.success}44`, borderRadius:16, textAlign:'center', direction:'rtl', fontSize:14, color:C.success, fontWeight:700 }}>
@@ -335,6 +375,7 @@ export default function PricingPage() {
                 onSubscribe={handleSubscribe}
                 currentPlan={org?.plan}
                 loading={checkoutLoading}
+                cycle={cycle}
               />
             ))}
           </div>
