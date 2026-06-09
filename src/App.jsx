@@ -19,6 +19,9 @@ import { useDataStore }        from './store/useDataStore.js'
 import FirstTimeSetup          from './screens/onboarding/FirstTimeSetup.jsx'
 import { useAuth }             from './hooks/useAuth.js'
 import { useOrganization }     from './hooks/useOrganization.js'
+import { setPlanInfo }         from './store/usePlanStore.js'
+import FeatureGate             from './components/FeatureGate.jsx'
+import { setSentryUser }       from './lib/sentry.js'
 import { useProjects, useEmployees, useWorkDays, useExpenses, usePayments, useClientReceipts, useHolidays, useAdvances, useTaxAdvances } from './hooks/useData.js'
 import { useSettings }         from './hooks/useSettings.js'
 import { useProfile }          from './hooks/useProfile.js'
@@ -342,6 +345,18 @@ function OwnerApp() {
 
   const { org, loading: orgLoading, isPlanActive, isTrialActive, trialDaysLeft } = useOrganization(uid)
 
+  // ربط هوية المستخدم بتقارير الأخطاء (Sentry) — خامل ما لم يُضبط DSN
+  useEffect(() => { setSentryUser(user || null) }, [user])
+
+  // مزامنة معلومات الخطة لمخزن مشترك تقرأه الشاشات لتقييد الميزات (بدون prop-drilling)
+  useEffect(() => {
+    setPlanInfo({
+      plan:          org?.plan ?? 'free',
+      trialActive:   isTrialActive(),
+      paddleEnabled: !!import.meta.env.VITE_PADDLE_CLIENT_TOKEN,
+    })
+  }, [org, org?.plan, org?.trial_ends_at])
+
   useEffect(() => {
     if (uid && !localStorage.getItem('cp_onboarded')) setShowOnboarding(true)
   }, [uid])
@@ -515,7 +530,7 @@ function OwnerApp() {
       case 'materials':  content = p?.viewProjects  ? <MaterialsScreen userId={eid} employees={visibleEmployees} projects={visibleProjects} /> : <NoAccess />; break
       case 'accounting': setScreen('finance'); content = null; break
       case 'activity':   content = (p?.viewActivity || p?.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />; break
-      case 'team':       content = p?.isOwner ? <TeamScreen projects={visibleProjects} teamMembers={teamMembers} permissions={p} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} getAllActivity={getAllActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} /> : <NoAccess />; break
+      case 'team':       content = p?.isOwner ? <FeatureGate requiredPlan="pro" title="إدارة الفريق" description="أضف أعضاء فريق بصلاحيات دقيقة وتابع نشاطهم. هذه الميزة متاحة في خطّتَي Pro و Business."><TeamScreen projects={visibleProjects} teamMembers={teamMembers} permissions={p} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} getAllActivity={getAllActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} /></FeatureGate> : <NoAccess />; break
       default:           content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} />
     }
     return <ErrorBoundary key={screen}>{content}</ErrorBoundary>

@@ -19,6 +19,8 @@ jobs:
           supabase functions deploy create-team-member --project-ref rvhjrzbhugvytvktdhor
           supabase functions deploy update-member-password --project-ref rvhjrzbhugvytvktdhor
           supabase functions deploy send-push --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
+          supabase functions deploy send-auth-email --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
+          supabase functions deploy paddle-webhook --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
           supabase functions deploy worker-webauthn-register-options --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
           supabase functions deploy worker-webauthn-register-verify --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
           supabase functions deploy worker-webauthn-auth-options --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt

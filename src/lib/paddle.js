@@ -24,10 +24,22 @@ export async function getPaddle() {
 }
 
 // ─── Plan → Paddle price ID (set via Vite env vars) ──────────────────────────
+// الأسعار الشهرية
 export const PLAN_PRICES = {
   starter:  import.meta.env.VITE_PADDLE_PRICE_STARTER  || '',
   pro:      import.meta.env.VITE_PADDLE_PRICE_PRO       || '',
   business: import.meta.env.VITE_PADDLE_PRICE_BUSINESS  || '',
+}
+// الأسعار السنوية (خصم ~شهرين)
+export const PLAN_PRICES_ANNUAL = {
+  starter:  import.meta.env.VITE_PADDLE_PRICE_STARTER_ANNUAL  || '',
+  pro:      import.meta.env.VITE_PADDLE_PRICE_PRO_ANNUAL      || '',
+  business: import.meta.env.VITE_PADDLE_PRICE_BUSINESS_ANNUAL || '',
+}
+
+/** يعيد خريطة الأسعار حسب دورة الفوترة ('month' | 'year') */
+export function pricesFor(cycle) {
+  return cycle === 'year' ? PLAN_PRICES_ANNUAL : PLAN_PRICES
 }
 
 export const PLAN_META = {
@@ -67,12 +79,15 @@ export const PLAN_META = {
  * @param {{ id: string, email: string }} opts.user  - Supabase auth user
  * @param {{ id: string }} opts.org                  - organization from useOrganization
  */
-export async function openCheckout({ plan, user, org }) {
+export async function openCheckout({ plan, user, org, cycle = 'month' }) {
   const paddle  = await getPaddle()
-  const priceId = PLAN_PRICES[plan]
+  const priceId = pricesFor(cycle)[plan]
 
   if (!paddle) throw new Error('Paddle failed to initialize')
-  if (!priceId) throw new Error(`No Paddle price configured for plan "${plan}". Set VITE_PADDLE_PRICE_${plan.toUpperCase()} in your .env`)
+  if (!priceId) {
+    const suffix = cycle === 'year' ? `${plan.toUpperCase()}_ANNUAL` : plan.toUpperCase()
+    throw new Error(`No Paddle price configured for plan "${plan}" (${cycle}). Set VITE_PADDLE_PRICE_${suffix} in your .env`)
+  }
 
   paddle.Checkout.open({
     items: [{ priceId, quantity: 1 }],
@@ -81,6 +96,7 @@ export async function openCheckout({ plan, user, org }) {
       user_id: user.id,
       org_id:  org.id,
       plan,
+      cycle,
     },
     settings: {
       displayMode: 'overlay',

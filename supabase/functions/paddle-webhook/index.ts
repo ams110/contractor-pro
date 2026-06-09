@@ -12,12 +12,20 @@ const WEBHOOK_SECRET = Deno.env.get('PADDLE_WEBHOOK_SECRET') ?? ''
 // Price ID → internal plan name (set as Supabase Edge Function secrets)
 function buildPriceMap(): Record<string, string> {
   const map: Record<string, string> = {}
+  // الأسعار الشهرية
   const starter  = Deno.env.get('PADDLE_PRICE_ID_STARTER')
   const pro      = Deno.env.get('PADDLE_PRICE_ID_PRO')
   const business = Deno.env.get('PADDLE_PRICE_ID_BUSINESS')
   if (starter)  map[starter]  = 'starter'
   if (pro)      map[pro]      = 'pro'
   if (business) map[business] = 'business'
+  // الأسعار السنوية — تُحوَّل لنفس اسم الخطة (الدورة لا تغيّر الميزات)
+  const starterY  = Deno.env.get('PADDLE_PRICE_ID_STARTER_ANNUAL')
+  const proY      = Deno.env.get('PADDLE_PRICE_ID_PRO_ANNUAL')
+  const businessY = Deno.env.get('PADDLE_PRICE_ID_BUSINESS_ANNUAL')
+  if (starterY)  map[starterY]  = 'starter'
+  if (proY)      map[proY]      = 'pro'
+  if (businessY) map[businessY] = 'business'
   return map
 }
 const PRICE_MAP = buildPriceMap()
@@ -75,6 +83,13 @@ function resolvePlan(data: Record<string, unknown>): string {
 // active/trialing → keep plan; all others → downgrade to free
 function orgPlanFromStatus(status: string, plan: string): string {
   return ['active', 'trialing'].includes(status) ? plan : 'free'
+}
+
+// ─── إشعار داخل التطبيق ──────────────────────────────────────────────────────
+async function notifyUser(userId: string | null | undefined, title: string, body: string, type = 'info') {
+  if (!userId) return
+  const { error } = await supabase.from('notifications').insert({ user_id: userId, title, body, type })
+  if (error) console.error('paddle-webhook: notification insert error', error)
 }
 
 // ─── Event handlers ───────────────────────────────────────────────────────────
@@ -138,12 +153,13 @@ async function handleUpdated(data: Record<string, unknown>) {
       paddle_price_id:       priceId,
     })
     .eq('paddle_subscription_id', paddleSubId)
-    .select('org_id')
+    .select('org_id, user_id')
     .maybeSingle()
 
   if (updateErr) console.error('paddle-webhook: update error', updateErr)
 
-  const orgId = (updated as { org_id?: string } | null)?.org_id
+  const row = updated as { org_id?: string; user_id?: string } | null
+  const orgId = row?.org_id
     ?? (data.custom_data as Record<string, string> | null)?.org_id
 
   if (orgId) {
@@ -151,6 +167,16 @@ async function handleUpdated(data: Record<string, unknown>) {
       .update({ plan: effectivePlan, updated_at: new Date().toISOString() })
       .eq('id', orgId)
     if (orgErr) console.error('paddle-webhook: org plan update error', orgErr)
+  }
+
+  // فشل الدفع → أبلغ المستخدم ليحدّث وسيلة الدفع قبل تعليق الاشتراك
+  if (status === 'past_due') {
+    await notifyUser(
+      row?.user_id,
+      'فشلت عملية الدفع',
+      'تعذّر تجديد اشتراكك. يُرجى تحديث وسيلة الدفع من إعدادات الاشتراك لتجنّب تعليق الحساب.',
+      'warning',
+    )
   }
 }
 
@@ -161,17 +187,24 @@ async function handleCanceled(data: Record<string, unknown>) {
     .from('subscriptions')
     .update({ status: 'canceled', plan: 'free', cancel_at_period_end: false })
     .eq('paddle_subscription_id', paddleSubId)
-    .select('org_id')
+    .select('org_id, user_id')
     .maybeSingle()
 
   if (cancelErr) console.error('paddle-webhook: cancel error', cancelErr)
 
-  const orgId = (canceled as { org_id?: string } | null)?.org_id
-  if (orgId) {
+  const row = canceled as { org_id?: string; user_id?: string } | null
+  if (row?.org_id) {
     await supabase.from('organizations')
       .update({ plan: 'free', updated_at: new Date().toISOString() })
-      .eq('id', orgId)
+      .eq('id', row.org_id)
   }
+
+  await notifyUser(
+    row?.user_id,
+    'تم إلغاء الاشتراك',
+    'تمّ إلغاء اشتراكك. يمكنك إعادة الاشتراك في أي وقت من صفحة الأسعار للعودة لكامل الميزات.',
+    'info',
+  )
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────

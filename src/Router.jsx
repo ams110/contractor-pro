@@ -3,6 +3,8 @@ import App         from './App.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import PricingPage from './pages/PricingPage.jsx'
 import WelcomePage from './pages/WelcomePage.jsx'
+import LegalPage   from './pages/LegalPage.jsx'
+import CookieConsent from './components/CookieConsent.jsx'
 
 const LoginScreen = lazy(() => import('./screens/auth/LoginScreen.jsx'))
 
@@ -25,10 +27,17 @@ export default function Router() {
   const params = new URLSearchParams(window.location.search)
   if (params.has('portal') || params.has('worker')) return <App />
 
-  if (path === '/')         return <LandingPage />
-  if (path === '/pricing')  return <PricingPage />
-  if (path === '/welcome')  return <WelcomePage />
-  if (path === '/login')    return <Suspense fallback={null}><LoginScreen /></Suspense>
-  if (path === '/register') return <Suspense fallback={null}><LoginScreen initialView="register" /></Suspense>
-  return <App />
+  let page
+  if (path === '/')              page = <LandingPage />
+  else if (path === '/pricing')  page = <PricingPage />
+  else if (path === '/welcome')  page = <WelcomePage />
+  else if (path === '/terms')    page = <LegalPage type="terms" />
+  else if (path === '/privacy')  page = <LegalPage type="privacy" />
+  else if (path === '/refund')   page = <LegalPage type="refund" />
+  else if (path === '/contact')  page = <LegalPage type="contact" />
+  else if (path === '/login')    page = <Suspense fallback={null}><LoginScreen /></Suspense>
+  else if (path === '/register') page = <Suspense fallback={null}><LoginScreen initialView="register" /></Suspense>
+  else                           page = <App />
+
+  return <>{page}<CookieConsent /></>
 }
