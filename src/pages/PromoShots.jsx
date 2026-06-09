@@ -66,42 +66,94 @@ function PhoneFrame({ title, sub, children }) {
   )
 }
 
-// ─── إطار البوست (الخلفية + العنوان + الفوتر) ───────────────────────────────────
-function Creative({ badge, title, accent, sub, children }) {
+// ─── مقاسات سوشال ميديا ─────────────────────────────────────────────────────────
+const FMT = {
+  story:  { w: 1080, h: 1920, scale: 1.16, pad: '124px 90px 0', title: 76, sub: 32, badge: 23, gap: 70 },
+  post:   { w: 1080, h: 1350, scale: 1.0,  pad: '60px 80px 0',  title: 64, sub: 26, badge: 19, gap: 40 },
+  square: { w: 1080, h: 1080, scale: 0.84, pad: '42px 70px 0',  title: 50, sub: 23, badge: 18, gap: 20 },
+  wide:   { w: 1200, h: 630,  scale: 0.62, title: 46, sub: 22, badge: 17 },
+}
+
+function Brand() {
   return (
-    <div style={{ width: 1080, height: 1350, position: 'relative', overflow: 'hidden', background: C.bg, fontFamily: "'Noto Sans Arabic', system-ui, sans-serif", direction: 'rtl' }}>
-      {/* Ambient orbs */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ width: 56, height: 56, borderRadius: 17, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 26px rgba(249,115,22,0.45)' }}>
+        <HardHat size={28} color="#fff" strokeWidth={2.5} />
+      </div>
+      <div>
+        <div style={{ fontSize: 26, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>Contractor Pro</div>
+        <div style={{ fontSize: 16, color: C.textDim }}>إدارة مقاولات — للمقاول العربي</div>
+      </div>
+    </div>
+  )
+}
+function CTA() {
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: GRAD.brand, borderRadius: 16, padding: '16px 26px', fontSize: 22, fontWeight: 800, color: '#fff', boxShadow: '0 10px 30px rgba(249,115,22,0.45)', whiteSpace: 'nowrap' }}>
+      جرّب 14 يوم مجاناً <ArrowLeft size={22} strokeWidth={2.5} />
+    </div>
+  )
+}
+
+// ─── إطار البوست — يتكيّف مع المقاس (عمودي يتكدّس · عريض أفقي) ────────────────────
+function Creative({ badge, title, accent, sub, fmt = 'post', children }) {
+  const F = FMT[fmt] || FMT.post
+  const isWide = fmt === 'wide'
+
+  const orbs = (
+    <>
       <div style={{ position: 'absolute', top: -160, insetInlineEnd: -120, width: 720, height: 720, borderRadius: '50%', background: `radial-gradient(circle, ${accent}22 0%, transparent 65%)`, pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: -200, insetInlineStart: -160, width: 640, height: 640, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.14) 0%, transparent 65%)', pointerEvents: 'none' }} />
+    </>
+  )
+  const badgeEl = (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: `${accent}1a`, border: `1px solid ${accent}45`, borderRadius: 100, padding: '9px 20px', marginBottom: 24, fontSize: F.badge, color: accent, fontWeight: 800 }}>
+      <CircleDot size={14} strokeWidth={3} /> {badge}
+    </div>
+  )
+  const titleEl = <h1 style={{ fontSize: F.title, fontWeight: 900, color: C.text, lineHeight: 1.12, letterSpacing: '-0.02em', margin: 0 }}>{title}</h1>
+  const subEl   = <p style={{ fontSize: F.sub, color: C.textDim, lineHeight: 1.5, marginTop: 18, maxWidth: 760 }}>{sub}</p>
 
-      {/* Header text */}
-      <div style={{ position: 'relative', textAlign: 'center', padding: '64px 80px 0' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: `${accent}1a`, border: `1px solid ${accent}45`, borderRadius: 100, padding: '9px 20px', marginBottom: 26, fontSize: 19, color: accent, fontWeight: 800 }}>
-          <CircleDot size={14} strokeWidth={3} /> {badge}
+  const canvas = { width: F.w, height: F.h, position: 'relative', overflow: 'hidden', background: C.bg, fontFamily: "'Noto Sans Arabic', system-ui, sans-serif", direction: 'rtl' }
+
+  // ── تخطيط عريض (أفقي): نصّ على جهة، هاتف على الجهة الأخرى ──
+  if (isWide) {
+    return (
+      <div style={{ ...canvas, display: 'flex' }}>
+        {orbs}
+        <div style={{ position: 'relative', width: '44%', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+          <div style={{ transform: `scale(${F.scale})`, transformOrigin: 'top center', marginTop: 26 }}>{children}</div>
+          <div style={{ position: 'absolute', bottom: 0, insetInlineStart: 0, insetInlineEnd: 0, height: 90, background: `linear-gradient(to top, ${C.bg}, transparent)` }} />
         </div>
-        <h1 style={{ fontSize: 64, fontWeight: 900, color: C.text, lineHeight: 1.12, letterSpacing: '-0.02em', margin: 0 }}>{title}</h1>
-        <p style={{ fontSize: 26, color: C.textDim, lineHeight: 1.5, marginTop: 20, maxWidth: 760, marginInline: 'auto' }}>{sub}</p>
-      </div>
-
-      {/* Phone */}
-      <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', marginTop: 40 }}>
-        {children}
-      </div>
-
-      {/* Footer / CTA */}
-      <div style={{ position: 'absolute', bottom: 0, insetInlineStart: 0, insetInlineEnd: 0, padding: '0 80px 50px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 17, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 26px rgba(249,115,22,0.45)' }}>
-            <HardHat size={28} color="#fff" strokeWidth={2.5} />
+        <div style={{ position: 'relative', width: '56%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 64px', textAlign: 'start' }}>
+          {badgeEl}
+          {titleEl}
+          {subEl}
+          <div style={{ marginTop: 30, display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'flex-start' }}>
+            <Brand />
+            <CTA />
           </div>
-          <div>
-            <div style={{ fontSize: 26, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>Contractor Pro</div>
-            <div style={{ fontSize: 16, color: C.textDim }}>إدارة مقاولات — للمقاول العربي</div>
-          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: GRAD.brand, borderRadius: 16, padding: '16px 26px', fontSize: 22, fontWeight: 800, color: '#fff', boxShadow: '0 10px 30px rgba(249,115,22,0.45)' }}>
-          جرّب 14 يوم مجاناً <ArrowLeft size={22} strokeWidth={2.5} />
-        </div>
+      </div>
+    )
+  }
+
+  // ── تخطيط عمودي (ستوري/بوست/مربّع) ──
+  return (
+    <div style={{ ...canvas, display: 'flex', flexDirection: 'column' }}>
+      {orbs}
+      <div style={{ position: 'relative', textAlign: 'center', padding: F.pad }}>
+        {badgeEl}
+        {titleEl}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>{subEl}</div>
+      </div>
+      <div style={{ position: 'relative', flex: 1, overflow: 'hidden', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ transform: `scale(${F.scale})`, transformOrigin: 'top center', marginTop: F.gap }}>{children}</div>
+        <div style={{ position: 'absolute', bottom: 0, insetInlineStart: 0, insetInlineEnd: 0, height: 170, background: `linear-gradient(to top, ${C.bg} 12%, transparent)`, pointerEvents: 'none' }} />
+      </div>
+      <div style={{ position: 'absolute', bottom: 0, insetInlineStart: 0, insetInlineEnd: 0, padding: '0 70px 46px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Brand />
+        <CTA />
       </div>
     </div>
   )
@@ -163,9 +215,9 @@ function PortalContent() {
 }
 
 // ─── الشاشات الأربع ──────────────────────────────────────────────────────────────
-function ShotDashboard() {
+function ShotDashboard({ fmt }) {
   return (
-    <Creative badge="لوحة التحكّم الذكية" accent={C.primary}
+    <Creative fmt={fmt} badge="لوحة التحكّم الذكية" accent={C.primary}
       title={<>كل أرقام مصلحتك<br />أمامك بثانية</>}
       sub="نبض المصلحة، التوقّع الذكي للسيولة، وصافي الربح — محسوبة لك تلقائياً.">
       <PhoneFrame title="الرئيسية" sub="نظرة تنفيذية على مصلحتك">
@@ -175,9 +227,9 @@ function ShotDashboard() {
     </Creative>
   )
 }
-function ShotWorkers() {
+function ShotWorkers({ fmt }) {
   return (
-    <Creative badge="إدارة العمّال" accent={C.secondary}
+    <Creative fmt={fmt} badge="إدارة العمّال" accent={C.secondary}
       title={<>كل عامل، كل يوم،<br />كل سلفة — موثّق</>}
       sub="روستر العمّال، الرواتب والسلف، وبصمة أداء ذكية لكل عامل.">
       <PhoneFrame title="العمّال" sub="الروستر وبصمة الأداء">
@@ -187,9 +239,9 @@ function ShotWorkers() {
     </Creative>
   )
 }
-function ShotFinance() {
+function ShotFinance({ fmt }) {
   return (
-    <Creative badge="المالية والضرائب" accent={C.cyan}
+    <Creative fmt={fmt} badge="المالية والضرائب" accent={C.cyan}
       title={<>الضريبة محسوبة<br />إلك مسبقاً</>}
       sub="ضريبة القيمة المضافة، مدرج الضريبة، وصحّة كل مشروع — بدون حاسبة.">
       <PhoneFrame title="المالية" sub={'الضرائب وصحّة المشاريع'}>
@@ -199,9 +251,9 @@ function ShotFinance() {
     </Creative>
   )
 }
-function ShotPortal() {
+function ShotPortal({ fmt }) {
   return (
-    <Creative badge="بوّابة العامل" accent={C.gold}
+    <Creative fmt={fmt} badge="بوّابة العامل" accent={C.gold}
       title={<>العامل بيشوف<br />حسابه بنفسه</>}
       sub="كشف حساب ذاتي، طلب سلفة، وتسجيل بضاعة — من جيب العامل مباشرة.">
       <PhoneFrame title="بوّابة العامل" sub="محمود عبد الله · بنّاء">
@@ -212,13 +264,15 @@ function ShotPortal() {
 }
 
 export default function PromoShots() {
-  const n = new URLSearchParams(window.location.search).get('promo')
+  const q = new URLSearchParams(window.location.search)
+  const n = q.get('promo')
+  const fmt = q.get('fmt') || 'post'   // story | post | square | wide
   const map = { '1': ShotDashboard, '2': ShotWorkers, '3': ShotFinance, '4': ShotPortal }
   const Shot = map[n] || ShotDashboard
   return (
     <>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap'); *{box-sizing:border-box;margin:0;padding:0}`}</style>
-      <Shot />
+      <Shot fmt={fmt} />
     </>
   )
 }
