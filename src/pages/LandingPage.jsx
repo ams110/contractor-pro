@@ -1,37 +1,26 @@
 import React, { useEffect, useState } from 'react'
 import {
-  HardHat, Zap, BarChart3, Users, CalendarDays, Receipt,
+  HardHat, BarChart3, Users, CalendarDays, Receipt,
   CheckCircle2, ArrowLeft, Shield, Smartphone, TrendingUp,
   Menu, X, Building2, Wallet, Settings, LayoutDashboard,
   Bell, Search, CircleDot, Plus
 } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { C, GRAD } from '../constants/index.js'
+import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import { supabase } from '../lib/supabase.js'
 import { navigate } from '../Router.jsx'
 
-// ─── Design Tokens ────────────────────────────────────────────────────────────
-const C = {
-  bg:        '#07080F',
-  surface:   '#0D0F1C',
-  card:      '#12152A',
-  primary:   '#F97316',
-  secondary: '#7C3AED',
-  gold:      '#D97706',
-  cyan:      '#06B6D4',
-  success:   '#22C55E',
-  warning:   '#EAB308',
-  accent:    '#EF4444',
-  text:      '#F8FAFC',
-  textDim:   '#64748B',
-  border:    'rgba(249,115,22,0.08)',
-  borderMid: 'rgba(249,115,22,0.18)',
-}
-const GRAD = {
-  brand:   'linear-gradient(135deg, #F97316, #DC2626)',
-  premium: 'linear-gradient(135deg, #7C3AED, #2563EB)',
-  gold:    'linear-gradient(135deg, #D97706, #F59E0B)',
-  warm:    'linear-gradient(135deg, #F97316, #F59E0B)',
-  cyan:    'linear-gradient(135deg, #06B6D4, #0EA5E9)',
-}
+// نستعمل نفس توكنات الهوية (C/GRAD) ومكوّنات kit الفخامة (PremiumCard/IconChip)
+// المستعملة في التطبيق — لا توكنات محليّة ولا بطاقات معاد بناؤها (CLAUDE.md §2.1/§19).
+
+// دخول موحّد بنفس روح PremiumCard (tween 0.45 + spring للنقر).
+const rise = (delay = 0) => ({
+  initial: { opacity: 0, y: 18 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.3 },
+  transition: { duration: 0.5, delay },
+})
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap');
@@ -40,17 +29,11 @@ const css = `
   .lp-btn { transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease !important; }
   .lp-btn:hover { opacity: .92; }
   .lp-btn:active { transform: scale(0.96) !important; }
-  @keyframes float      { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-  @keyframes fadeUp     { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
-  @keyframes glow       { 0%,100%{opacity:.5} 50%{opacity:1} }
-  @keyframes spin       { to{transform:rotate(360deg)} }
-  @keyframes shimmer    { 0%{background-position:200% 0} to{background-position:-200% 0} }
-  @keyframes badgePop   { 0%{transform:scale(0)} 70%{transform:scale(1.15)} 100%{transform:scale(1)} }
-  .float     { animation: float 3.5s ease-in-out infinite }
-  .fade-up   { animation: fadeUp .55s cubic-bezier(.22,1,.36,1) both }
-  .glow-orb  { animation: glow 3s ease-in-out infinite }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  @keyframes glow  { 0%,100%{opacity:.5} 50%{opacity:1} }
+  .float    { animation: float 3.5s ease-in-out infinite }
+  .glow-orb { animation: glow 3s ease-in-out infinite }
   .grad-text { background: linear-gradient(135deg,#F97316,#DC2626); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-  .shimmer   { background: linear-gradient(90deg, #F9731618 0%, #F9731632 50%, #F9731618 100%); background-size: 200% 100%; animation: shimmer 2.5s linear infinite; }
   /* Navbar responsive: inline actions on desktop, hamburger on mobile */
   .lp-nav-actions { display: flex; align-items: center; gap: 8px; }
   .lp-burger { display: none; }
@@ -165,25 +148,29 @@ function Hero() {
 
       <div style={{ maxWidth: 740, margin: '0 auto', position: 'relative' }}>
         {/* Badge */}
-        <div className="fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)', borderRadius: 100, padding: '6px 16px', marginBottom: 32, fontSize: 12, color: C.primary, fontWeight: 700 }}>
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${C.primary}1a`, border: `1px solid ${C.primary}40`, borderRadius: 100, padding: '6px 16px', marginBottom: 32, fontSize: 12, color: C.primary, fontWeight: 700 }}>
           <CircleDot size={10} strokeWidth={3} />
           التطبيق الأول للمقاول العربي في إسرائيل
-        </div>
+        </motion.div>
 
         {/* Headline */}
-        <h1 className="fade-up" style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, color: C.text, lineHeight: 1.15, marginBottom: 24, letterSpacing: '-0.02em', animationDelay: '.05s' }}>
+        <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.05 }}
+          style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, color: C.text, lineHeight: 1.15, marginBottom: 24, letterSpacing: '-0.02em' }}>
           كل يوم شغل، كل دفعة،<br />
           كل مصروف —<br />
           <span className="grad-text">محفوظ. مش في دماغك.</span>
-        </h1>
+        </motion.h1>
 
         {/* Sub */}
-        <p className="fade-up" style={{ fontSize: 'clamp(15px,2.5vw,19px)', color: C.textDim, lineHeight: 1.7, marginBottom: 44, maxWidth: 580, margin: '0 auto 44px', animationDelay: '.12s' }}>
+        <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.12 }}
+          style={{ fontSize: 'clamp(15px,2.5vw,19px)', color: C.textDim, lineHeight: 1.7, marginBottom: 44, maxWidth: 580, margin: '0 auto 44px' }}>
           Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
-        </p>
+        </motion.p>
 
         {/* CTAs */}
-        <div className="fade-up" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', animationDelay: '.2s' }}>
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
+          style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => navigate('/register')} className="lp-btn"
             style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 38px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
             جرّب مجاناً 14 يوم
@@ -193,10 +180,11 @@ function Hero() {
             style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 15, fontWeight: 700, cursor: 'pointer', padding: '16px 28px', borderRadius: 16 }}>
             شاهد كيف يعمل
           </button>
-        </div>
+        </motion.div>
 
         {/* Trust signals */}
-        <div className="fade-up" style={{ marginTop: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, flexWrap: 'wrap', animationDelay: '.32s' }}>
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.32 }}
+          style={{ marginTop: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
           {[
             { icon: Shield,      label: 'آمن ومشفّر' },
             { icon: Smartphone,  label: 'يعمل بدون إنترنت' },
@@ -207,7 +195,7 @@ function Hero() {
               <span style={{ fontSize: 13, color: C.textDim }}>{label}</span>
             </div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   )
@@ -215,29 +203,26 @@ function Hero() {
 
 // ─── Stats strip ─────────────────────────────────────────────────────────────
 const STATS = [
-  { value: '3 لغات', label: 'عربي · عبري · إنجليزي', icon: Users,       color: C.primary },
-  { value: '18%',    label: 'حساب ضريبة القيمة المضافة', icon: Receipt,  color: C.cyan    },
+  { value: '3 لغات', label: 'عربي · عبري · إنجليزي', icon: Users,       color: C.primary   },
+  { value: '18%',    label: 'حساب ضريبة القيمة المضافة', icon: Receipt,  color: C.cyan      },
   { value: '100%',   label: 'بياناتك مشفّرة وآمنة',     icon: Shield,      color: C.secondary },
-  { value: '14 يوم', label: 'تجربة مجانية بلا بطاقة',  icon: TrendingUp,  color: C.gold    },
+  { value: '14 يوم', label: 'تجربة مجانية بلا بطاقة',  icon: TrendingUp,  color: C.gold      },
 ]
 function StatsStrip() {
   return (
     <div style={{ padding: '0 24px 72px' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-        {STATS.map((s, i) => {
-          const Icon = s.icon
-          return (
-            <div key={i} style={{ background: C.surface, borderRadius: 18, padding: '24px 20px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 13, background: `${s.color}18`, border: `1px solid ${s.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon size={20} color={s.color} strokeWidth={2} />
-              </div>
+        {STATS.map((s, i) => (
+          <PremiumCard key={i} color={s.color} delay={i * 0.06} padding="20px">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <IconChip icon={s.icon} color={s.color} size={44} radius={13} iconSize={20} strokeWidth={2} />
               <div>
-                <div style={{ fontSize: 22, fontWeight: 900, color: C.text, lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: C.text, lineHeight: 1, letterSpacing: '-0.02em' }}>{s.value}</div>
                 <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{s.label}</div>
               </div>
             </div>
-          )
-        })}
+          </PremiumCard>
+        ))}
       </div>
     </div>
   )
@@ -268,30 +253,24 @@ function PainPoints() {
   return (
     <section style={{ padding: '64px 24px', direction: 'rtl' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 52 }}>
+        <motion.div {...rise()} style={{ textAlign: 'center', marginBottom: 52 }}>
           <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
             شايف نفسك هنا؟
           </h2>
           <p style={{ fontSize: 16, color: C.textDim }}>هذه المشاكل اليومية لها حل واحد.</p>
-        </div>
+        </motion.div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          {PAIN_POINTS.map((p, i) => {
-            const Icon = p.Icon
-            return (
-              <div key={i} style={{ background: C.surface, borderRadius: 22, padding: 28, border: `1px solid ${C.border}`, position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: 0, right: 0, width: 200, height: 200, borderRadius: '50%', background: `radial-gradient(circle, ${p.color}0A 0%, transparent 70%)`, pointerEvents: 'none' }} />
-                <div style={{ width: 52, height: 52, borderRadius: 16, background: `${p.color}15`, border: `1px solid ${p.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                  <Icon size={24} color={p.color} strokeWidth={1.8} />
-                </div>
-                <h3 style={{ fontSize: 16, fontWeight: 800, color: C.accent, marginBottom: 12, lineHeight: 1.4 }}>
-                  {p.problem}
-                </h3>
-                <p style={{ fontSize: 14, color: C.textDim, lineHeight: 1.75 }}>
-                  {p.solution}
-                </p>
-              </div>
-            )
-          })}
+          {PAIN_POINTS.map((p, i) => (
+            <PremiumCard key={i} color={p.color} delay={i * 0.08} radius={22} padding="28px">
+              <IconChip icon={p.Icon} color={p.color} size={52} radius={16} iconSize={24} strokeWidth={1.8} style={{ marginBottom: 20 }} />
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: C.accent, marginBottom: 12, lineHeight: 1.4 }}>
+                {p.problem}
+              </h3>
+              <p style={{ fontSize: 14, color: C.textDim, lineHeight: 1.75 }}>
+                {p.solution}
+              </p>
+            </PremiumCard>
+          ))}
         </div>
       </div>
     </section>
@@ -399,7 +378,7 @@ function AppShowcase() {
     <section id="features" style={{ padding: '40px 24px 88px', direction: 'rtl' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 56, alignItems: 'center' }}>
         {/* Text side */}
-        <div>
+        <motion.div {...rise()}>
           <div style={{ fontSize: 11, color: C.primary, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 12, textTransform: 'uppercase' }}>قوة في جيبك</div>
           <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, lineHeight: 1.25, marginBottom: 20 }}>
             كل شي محتاجه<br />
@@ -410,15 +389,13 @@ function AppShowcase() {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {FEATURES.map(({ Icon, text }, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 9, background: `${C.primary}12`, border: `1px solid ${C.primary}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size={14} color={C.primary} strokeWidth={2} />
-                </div>
+              <motion.div key={i} {...rise(i * 0.05)} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <IconChip icon={Icon} color={C.primary} size={30} radius={9} iconSize={14} strokeWidth={2} />
                 <span style={{ fontSize: 14, color: C.textDim }}>{text}</span>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Phone mockup */}
         <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -455,25 +432,20 @@ function Testimonials() {
   return (
     <section style={{ padding: '64px 24px', direction: 'rtl', background: C.surface, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 52 }}>
+        <motion.div {...rise()} style={{ textAlign: 'center', marginBottom: 52 }}>
           <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
             مبني خصّيصاً لشغل المقاول
           </h2>
           <p style={{ fontSize: 16, color: C.textDim }}>كل ميزة حلّ لمشكلة حقيقية بتواجهك كل يوم.</p>
-        </div>
+        </motion.div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 20 }}>
-          {VALUE_CARDS.map((c, i) => {
-            const Icon = c.icon
-            return (
-              <div key={i} style={{ background: C.card, borderRadius: 22, padding: 28, border: `1px solid ${C.border}` }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: `${c.color}18`, border: `1px solid ${c.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
-                  <Icon size={24} color={c.color} strokeWidth={2} />
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>{c.title}</div>
-                <p style={{ fontSize: 14, color: C.textDim, lineHeight: 1.8 }}>{c.text}</p>
-              </div>
-            )
-          })}
+          {VALUE_CARDS.map((c, i) => (
+            <PremiumCard key={i} color={c.color} delay={i * 0.08} radius={22} padding="28px">
+              <IconChip icon={c.icon} color={c.color} size={48} radius={14} iconSize={24} strokeWidth={2} style={{ marginBottom: 18 }} />
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>{c.title}</div>
+              <p style={{ fontSize: 14, color: C.textDim, lineHeight: 1.8 }}>{c.text}</p>
+            </PremiumCard>
+          ))}
         </div>
       </div>
     </section>
@@ -492,12 +464,12 @@ function PricingTeaser() {
   return (
     <section style={{ padding: '72px 24px', direction: 'rtl' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <motion.div {...rise()} style={{ textAlign: 'center', marginBottom: 32 }}>
           <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
             خطط بسيطة وواضحة
           </h2>
           <p style={{ fontSize: 16, color: C.textDim }}>كل الخطط تبدأ بتجربة مجانية 14 يوم — بدون بطاقة ائتمان.</p>
-        </div>
+        </motion.div>
 
         {/* مبدّل دورة الفوترة */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
@@ -522,21 +494,18 @@ function PricingTeaser() {
             const annual     = plan.price * 10            // خصم شهرين
             const effMonthly = Math.round(annual / 12)
             return (
-              <div key={i} style={{
-                background: plan.highlight ? `${plan.color}12` : C.surface,
-                borderRadius: 22, padding: '28px 24px',
-                border: `1px solid ${plan.highlight ? plan.color + '40' : C.border}`,
-                position: 'relative', overflow: 'hidden',
-                transform: plan.highlight ? 'scale(1.03)' : 'none',
-                boxShadow: plan.highlight ? `0 8px 40px ${plan.color}20` : 'none',
-              }}>
+              <PremiumCard key={i} color={plan.color} delay={i * 0.07} radius={22} padding="28px 24px"
+                style={{
+                  transform: plan.highlight ? 'scale(1.03)' : 'none',
+                  boxShadow: plan.highlight ? `0 8px 40px ${plan.color}20` : 'none',
+                }}>
                 {plan.highlight && (
-                  <div style={{ position: 'absolute', top: 14, left: 14, background: GRAD.premium, borderRadius: 8, padding: '3px 10px', fontSize: 10, fontWeight: 800, color: '#fff' }}>
+                  <div style={{ position: 'absolute', top: 0, insetInlineStart: 0, background: GRAD.premium, borderRadius: 8, padding: '3px 10px', fontSize: 10, fontWeight: 800, color: '#fff' }}>
                     الأكثر شيوعاً
                   </div>
                 )}
-                <div style={{ fontSize: 15, fontWeight: 800, color: plan.color, marginBottom: 8 }}>{plan.name}</div>
-                <div style={{ fontSize: 28, fontWeight: 900, color: C.text, lineHeight: 1, marginBottom: 6 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: plan.color, marginBottom: 8, marginTop: plan.highlight ? 18 : 0 }}>{plan.name}</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: C.text, lineHeight: 1, marginBottom: 6, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
                   ₪{isYear ? effMonthly : plan.price}
                 </div>
                 <div style={{ fontSize: 11, color: C.textDim, marginBottom: isYear ? 6 : 20 }}>/ شهر</div>
@@ -550,7 +519,7 @@ function PricingTeaser() {
                   style={{ width: '100%', background: plan.highlight ? `linear-gradient(135deg, ${plan.color}, ${plan.color}CC)` : `${plan.color}15`, border: `1px solid ${plan.color}30`, color: plan.highlight ? '#fff' : plan.color, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '10px', borderRadius: 12 }}>
                   ابدأ مجاناً
                 </button>
-              </div>
+              </PremiumCard>
             )
           })}
         </div>
@@ -564,7 +533,7 @@ function FinalCTA() {
   return (
     <section style={{ padding: '80px 24px', textAlign: 'center', direction: 'rtl', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(249,115,22,0.08) 0%, transparent 65%)', pointerEvents: 'none' }} />
-      <div style={{ maxWidth: 640, margin: '0 auto', position: 'relative' }}>
+      <motion.div {...rise()} style={{ maxWidth: 640, margin: '0 auto', position: 'relative' }}>
         <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px', boxShadow: '0 16px 56px rgba(249,115,22,0.45)' }}>
           <HardHat size={36} color="#fff" strokeWidth={2} />
         </div>
@@ -588,7 +557,7 @@ function FinalCTA() {
         <p style={{ marginTop: 24, fontSize: 12, color: C.textDim }}>
           Starter ₪129 · Pro ₪249 · Business ₪499
         </p>
-      </div>
+      </motion.div>
     </section>
   )
 }
