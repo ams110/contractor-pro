@@ -5,6 +5,7 @@ import PricingPage from './pages/PricingPage.jsx'
 import WelcomePage from './pages/WelcomePage.jsx'
 import LegalPage   from './pages/LegalPage.jsx'
 import BlogPage    from './pages/BlogPage.jsx'
+import PromoShots  from './pages/PromoShots.jsx'
 import CookieConsent from './components/CookieConsent.jsx'
 
 const LoginScreen = lazy(() => import('./screens/auth/LoginScreen.jsx'))
@@ -27,6 +28,7 @@ export default function Router() {
   // ?portal and ?worker query params always go straight to the app
   const params = new URLSearchParams(window.location.search)
   if (params.has('portal') || params.has('worker')) return <App />
+  if (params.has('promo')) return <PromoShots />   // أداة لقطات الدعاية (مؤقتة)
 
   let page
   if (path === '/')              page = <LandingPage />
