@@ -12,7 +12,7 @@ import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 import { useAppStore } from '../../store/useAppStore.js'
-import { useHasFeature } from '../../store/usePlanStore.js'
+import { useHasFeature, useWorkerLimit } from '../../store/usePlanStore.js'
 import { navigate } from '../../Router.jsx'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi, calcEarned } from '../../lib/calculations.js'
 import { computeWorkerDNA } from '../../lib/insights.js'
@@ -506,10 +506,11 @@ export default function WorkersScreen({
   const [showLimit, setShowLimit] = useState(false)   // نافذة تجاوز حدّ خطة Starter
   const [selected, setSelected] = useState(null)
 
-  // حدّ عمّال خطة Starter (Pro فأعلى أو خلال التجربة = غير محدود)
-  const STARTER_WORKER_LIMIT = 10
-  const unlimitedWorkers = useHasFeature('pro')
-  const atWorkerLimit = !unlimitedWorkers && employees.length >= STARTER_WORKER_LIMIT
+  // حدّ عدد العمّال حسب الخطة: تجربة → 1 · Starter → 10 · Pro/Business → غير محدود
+  const workerLimit = useWorkerLimit()
+  const unlimitedWorkers = workerLimit === Infinity
+  const atWorkerLimit = !unlimitedWorkers && employees.length >= workerLimit
+  const isTrialLimit = workerLimit === 1
   const [confirmDelete, setConfirmDelete] = useState(null) // worker to delete
   const [portalQr, setPortalQr] = useState('')             // QR رابط البوّابة (مشترك للبطاقات)
 
@@ -668,7 +669,7 @@ export default function WorkersScreen({
         <div>
           <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{t('workers.title')}</div>
           <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
-            {employees.length}{!unlimitedWorkers && ` / ${STARTER_WORKER_LIMIT}`} {language === 'he' ? 'עובדים' : language === 'en' ? 'workers' : 'عامل'}
+            {employees.length}{!unlimitedWorkers && ` / ${workerLimit}`} {language === 'he' ? 'עובדים' : language === 'en' ? 'workers' : 'عامل'}
           </div>
         </div>
         {permissions?.addWorkers !== false && (
@@ -757,9 +758,13 @@ export default function WorkersScreen({
               <div style={{ width: 58, height: 58, borderRadius: 17, background: `${C.secondary}1c`, border: `1px solid ${C.secondary}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                 <Lock size={27} color={C.secondary} strokeWidth={2} />
               </div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>وصلت حدّ خطة Starter</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>
+                {isTrialLimit ? 'التجربة المجانية تسمح بعامل واحد' : 'وصلت حدّ خطة Starter'}
+              </div>
               <p style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7, marginBottom: 22 }}>
-                خطة Starter تسمح بحتى {STARTER_WORKER_LIMIT} عمّال. رقِّ إلى خطة Pro لإضافة عمّال غير محدودين.
+                {isTrialLimit
+                  ? 'خلال التجربة المجانية يمكنك إضافة عامل واحد. اشترك بخطة مدفوعة لإضافة المزيد من العمّال.'
+                  : `خطة Starter تسمح بحتى ${workerLimit} عمّال. رقِّ إلى خطة Pro لإضافة عمّال غير محدودين.`}
               </p>
               <button onClick={() => navigate('/pricing')}
                 style={{ width: '100%', background: GRAD.premium, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', padding: '13px', borderRadius: 14, marginBottom: 10 }}>

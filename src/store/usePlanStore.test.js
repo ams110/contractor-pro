@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { usePlanStore, setPlanInfo, planHasFeature } from './usePlanStore.js'
+import { usePlanStore, setPlanInfo, planHasFeature, workerLimitFor } from './usePlanStore.js'
 
 // إعادة الحالة لقيمها الأولية قبل كل اختبار
 beforeEach(() => {
@@ -44,5 +44,23 @@ describe('planHasFeature', () => {
     setPlanInfo({ plan: 'free', trialActive: false, paddleEnabled: true })
     expect(planHasFeature('starter')).toBe(false)
     expect(planHasFeature('pro')).toBe(false)
+  })
+})
+
+describe('workerLimitFor', () => {
+  it('خلال التجربة المجانية → عامل واحد', () => {
+    expect(workerLimitFor({ plan: 'free', trialActive: true })).toBe(1)
+  })
+
+  it('خطة Starter → 10 عمّال', () => {
+    expect(workerLimitFor({ plan: 'starter', trialActive: false })).toBe(10)
+  })
+
+  it('خطة Pro → غير محدود', () => {
+    expect(workerLimitFor({ plan: 'pro', trialActive: false })).toBe(Infinity)
+  })
+
+  it('خطة Business → غير محدود', () => {
+    expect(workerLimitFor({ plan: 'business', trialActive: false })).toBe(Infinity)
   })
 })

@@ -38,3 +38,18 @@ export function useHasFeature(requiredPlan) {
     return (ORDER[s.plan] ?? 0) >= (ORDER[requiredPlan] ?? 0)
   })
 }
+
+// ─── حدّ عدد العمّال حسب الخطة ────────────────────────────────────────────────
+// تجربة مجانية → عامل واحد · Starter → 10 · Pro/Business → غير محدود.
+// دالة نقيّة قابلة للاختبار.
+export function workerLimitFor({ plan, trialActive }) {
+  if (plan === 'pro' || plan === 'business') return Infinity
+  if (plan === 'starter') return 10
+  if (trialActive) return 1     // خلال التجربة المجانية: عامل واحد فقط
+  return 1                       // free منتهية التجربة (التطبيق يحجبها أصلاً)
+}
+
+/** hook تفاعلي لحدّ العمّال */
+export function useWorkerLimit() {
+  return usePlanStore((s) => workerLimitFor(s))
+}
