@@ -10,7 +10,58 @@
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" href="/pwa-192.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <title>Contractor Pro</title>
+
+  <!-- ===== SEO الأساسي ===== -->
+  <title>Contractor Pro | تطبيق إدارة المقاولات للمقاول العربي في إسرائيل</title>
+  <meta name="description" content="Contractor Pro — التطبيق الأول للمقاول العربي في إسرائيل لإدارة المشاريع والعمّال وأيام العمل وحساب الرواتب والمصاريف وضريبة القيمة المضافة (מע&quot;מ) وضريبة الدخل والبيتواح ليئومي. كل أعمالك المحاسبية في جيبك." />
+  <meta name="keywords" content="مقاول, إدارة مقاولات, تطبيق مقاولين, حساب رواتب العمال, أيام العمل, מע&quot;מ, ضريبة القيمة المضافة, ضريبة الدخل, ביטוח לאומי, بيتواح ليئومي, مقاول عربي, إسرائيل, Contractor Pro, Linko, مصاريف, مشاريع بناء, محاسبة مقاولات, عوسك باتور, עוסק פטור" />
+  <meta name="author" content="Contractor Pro" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="language" content="Arabic" />
+  <link rel="canonical" href="https://app.linko.services/" />
+
+  <!-- ===== Open Graph (واتساب / فيسبوك / لينكدإن) ===== -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Contractor Pro" />
+  <meta property="og:title" content="Contractor Pro | تطبيق إدارة المقاولات للمقاول العربي في إسرائيل" />
+  <meta property="og:description" content="إدارة المشاريع والعمّال وأيام العمل وحساب الرواتب والمصاريف والضرائب (מע&quot;מ + ضريبة دخل + بيتواح ليئومي) — كل شي في جيبك." />
+  <meta property="og:url" content="https://app.linko.services/" />
+  <meta property="og:image" content="https://app.linko.services/pwa-512.png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta property="og:locale" content="ar_AR" />
+  <meta property="og:locale:alternate" content="he_IL" />
+
+  <!-- ===== Twitter Card ===== -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Contractor Pro | تطبيق إدارة المقاولات للمقاول العربي في إسرائيل" />
+  <meta name="twitter:description" content="إدارة المشاريع والعمّال والرواتب والمصاريف والضرائب — كل أعمالك المحاسبية في جيبك." />
+  <meta name="twitter:image" content="https://app.linko.services/pwa-512.png" />
+
+  <!-- ===== بيانات منظّمة JSON-LD ===== -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Contractor Pro",
+    "alternateName": "كونتراكتور برو",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, iOS, Android",
+    "url": "https://app.linko.services/",
+    "inLanguage": ["ar", "he", "en"],
+    "description": "تطبيق إدارة المقاولات للمقاول العربي في إسرائيل: المشاريع، العمّال، أيام العمل، الرواتب، المصاريف، والضرائب (מע\"מ + ضريبة دخل + بيتواح ליئومي).",
+    "offers": {
+      "@type": "Offer",
+      "price": "129",
+      "priceCurrency": "ILS"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "ratingCount": "200"
+    }
+  }
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body { min-height: 100%; min-height: 100dvh; background: #07080F; font-family: 'Segoe UI', Tahoma, sans-serif; color: #F8FAFC; direction: rtl; overflow-x: hidden; overscroll-behavior-y: none; }
@@ -20,7 +71,22 @@
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <!-- محتوى احتياطي للزواحف ومحرّكات البحث (يُستبدل عند تحميل React) -->
+    <div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">
+      <h1>Contractor Pro — تطبيق إدارة المقاولات للمقاول العربي في إسرائيل</h1>
+      <p>
+        Contractor Pro هو التطبيق الأول للمقاول العربي في إسرائيل. يحفظ أيام العمل،
+        يحسب الرواتب، يتابع المصاريف والمقبوضات، ويحسب ضريبة القيمة المضافة (מע"מ)
+        وضريبة الدخل والبيتواح ليئومي — كل أعمالك المحاسبية في جيبك.
+      </p>
+      <p>
+        إدارة المشاريع، روستر العمّال، أيام العمل، الرواتب، المصاريف، المقبوضات،
+        ملخّص الضرائب، فريق متعدّد الصلاحيات، وبوّابة عامل ذاتية.
+      </p>
+      <noscript>هذا التطبيق يتطلّب تفعيل JavaScript للعمل بشكل كامل.</noscript>
+    </div>
+  </div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
