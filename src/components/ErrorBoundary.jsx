@@ -1,6 +1,7 @@
 import React from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
+import { Sentry } from '../lib/sentry.js'
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -14,6 +15,7 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     console.error('[ErrorBoundary]', error, info)
+    Sentry.captureException(error, { extra: { componentStack: info?.componentStack, screen: this.props.screen } })
   }
 
   render() {

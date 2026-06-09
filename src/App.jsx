@@ -21,6 +21,7 @@ import { useAuth }             from './hooks/useAuth.js'
 import { useOrganization }     from './hooks/useOrganization.js'
 import { setPlanInfo }         from './store/usePlanStore.js'
 import FeatureGate             from './components/FeatureGate.jsx'
+import { setSentryUser }       from './lib/sentry.js'
 import { useProjects, useEmployees, useWorkDays, useExpenses, usePayments, useClientReceipts, useHolidays, useAdvances, useTaxAdvances } from './hooks/useData.js'
 import { useSettings }         from './hooks/useSettings.js'
 import { useProfile }          from './hooks/useProfile.js'
@@ -343,6 +344,9 @@ function OwnerApp() {
   const { permission: pushPermission, requestPermission: requestPushPermission, subStatus: pushSubStatus, forceResubscribe: forceResubscribePush } = usePushNotifications(uid)
 
   const { org, loading: orgLoading, isPlanActive, isTrialActive, trialDaysLeft } = useOrganization(uid)
+
+  // ربط هوية المستخدم بتقارير الأخطاء (Sentry) — خامل ما لم يُضبط DSN
+  useEffect(() => { setSentryUser(user || null) }, [user])
 
   // مزامنة معلومات الخطة لمخزن مشترك تقرأه الشاشات لتقييد الميزات (بدون prop-drilling)
   useEffect(() => {
