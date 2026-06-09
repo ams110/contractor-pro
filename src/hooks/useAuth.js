@@ -239,6 +239,28 @@ export function useAuth() {
     localStorage.removeItem(PIN_CREDS_KEY)
   }
 
+  // ─── Delete account (self) ──────────────────────────────────────────────────
+
+  // حذف الحساب نهائياً: يستدعي edge function (service role) لحذف مستخدم auth
+  // وكل بياناته (cascade)، ثم يمسح بيانات الاعتماد المحلية ويُنهي الجلسة.
+  async function deleteAccount() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('انتهت الجلسة، سجّل الدخول من جديد')
+
+    const result = await callEdge('delete-account', { confirm: true }, session.access_token)
+    if (result.error) throw new Error(result.error)
+
+    // امسح بيانات الاعتماد المحلية (PIN/passkey) — الصفوف بالـ DB حُذفت بالتتالي
+    localStorage.removeItem(PIN_HASH_KEY)
+    localStorage.removeItem('cpro_pin_email')
+    localStorage.removeItem(PIN_CREDS_KEY)
+    localStorage.removeItem(PASSKEY_KEY)
+    localStorage.removeItem('cpro_passkey_enc')
+    localStorage.removeItem('cpro_passkey_creds')
+
+    await supabase.auth.signOut().catch(() => {})
+  }
+
   // ─── Magic Link ───────────────────────────────────────────────────────────
 
   async function signInWithMagicLink(email) {
@@ -256,5 +278,6 @@ export function useAuth() {
     registerPasskey, signInWithPasskey,
     isPasskeySupported, hasPasskeyRegistered, removePasskey,
     setPin, signInWithPin, hasPinSet, removePin,
+    deleteAccount,
   }
 }

@@ -26,8 +26,9 @@ import SmartList from '../../components/SmartList.jsx'
 import { fmtDate } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 import { useSubscription } from '../../hooks/useSubscription.js'
-import { usePlanStore } from '../../store/usePlanStore.js'
+import { usePlanStore, useHasFeature } from '../../store/usePlanStore.js'
 import { openCustomerPortal } from '../../lib/paddle.js'
+import PortalUpsell from '../../components/PortalUpsell.jsx'
 
 const PLAN_META_UI = {
   free:     { label: 'مجانية', color: C.textDim },
@@ -165,6 +166,7 @@ function ContractorCard({ profile, business, lang }) {
   const [flipped, setFlipped] = useState(false)
   const [qr, setQr] = useState('')
   const [copied, setCopied] = useState(false)
+  const portalEnabled = useHasFeature('pro')   // بوّابة العامل ميزة خطة Pro
   const portalUrl = `${window.location.origin}${window.location.pathname}?portal`
   const typeLabel = BUSINESS_TYPES.find(t => t.id === business?.type)?.label || ''
   const name = profile?.display_name || (lang === 'en' ? 'Your Name' : lang === 'he' ? 'השם שלך' : 'اسمك هنا')
@@ -245,6 +247,7 @@ function ContractorCard({ profile, business, lang }) {
           boxShadow: '0 14px 40px rgba(0,0,0,0.5)', padding: 16,
           display: 'flex', alignItems: 'center', gap: 16,
         }}>
+          {portalEnabled ? (<>
           <div style={{ width: 112, height: 112, borderRadius: 16, background: '#fff', padding: 7, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
             {qr ? <img src={qr} style={{ width: '100%', height: '100%' }} /> : <QrCode size={48} color={C.surface} />}
           </div>
@@ -265,6 +268,9 @@ function ContractorCard({ profile, business, lang }) {
               </button>
             </div>
           </div>
+          </>) : (
+            <PortalUpsell lang={lang} />
+          )}
         </div>
       </motion.div>
     </div>
@@ -333,7 +339,7 @@ export default function SettingsScreen({
   const trialActive = usePlanStore(s => s.trialActive)
   const { subscription, isActive: subIsActive, isCanceling, daysUntilPeriodEnd } = useSubscription(userId)
 
-  const { registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey } = useAuth()
+  const { registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, deleteAccount } = useAuth()
   const { supported: pushSupported, permission, requestPermission } = usePushNotifications(userId)
   const [notifLoading, setNotifLoading] = useState(false)
   const [testNotifLoading, setTestNotifLoading] = useState(false)
@@ -537,6 +543,24 @@ export default function SettingsScreen({
     supabase.auth.signOut({ scope: 'global' })
   }
 
+  // حذف الحساب الذاتي — يتطلّب كتابة كلمة تأكيد قبل التنفيذ النهائي
+  const DELETE_WORD = language === 'he' ? 'מחק' : language === 'en' ? 'DELETE' : 'حذف'
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  async function handleDeleteAccount() {
+    if (deleteConfirmText.trim() !== DELETE_WORD) return
+    setDeleting(true); setDeleteError('')
+    try {
+      await deleteAccount()
+      // إنهاء الجلسة داخل deleteAccount يُحوّل التطبيق لشاشة الدخول تلقائياً
+    } catch (e) {
+      setDeleteError(e.message || 'فشل حذف الحساب')
+      setDeleting(false)
+    }
+  }
+
   return (
     <div dir={dir} style={{ position: 'relative', padding: '16px 16px 8px', minHeight: '100%' }}>
       {/* ── خلفية Aurora حيّة ── */}
@@ -638,6 +662,16 @@ export default function SettingsScreen({
         <Row icon={Smartphone} label={language === 'he' ? 'התנתק מכל המכשירים' : language === 'en' ? 'Sign out everywhere' : 'تسجيل الخروج من كل الأجهزة'} color={C.cyan} value={globalConfirm ? (language === 'en' ? 'Tap to confirm' : 'اضغط للتأكيد') : ''} onClick={globalSignout} />
         <Row icon={LogOut} label={language === 'he' ? 'יציאה' : language === 'en' ? 'Sign Out' : 'تسجيل الخروج'} danger onClick={() => supabase.auth.signOut()} last />
       </Section>
+
+      {/* ── منطقة الخطر: حذف الحساب نهائياً (للمالك فقط) ── */}
+      {permissions?.isOwner && (
+        <Section icon={AlertTriangle} accent={C.accent} title={language === 'he' ? 'אזור מסוכן' : language === 'en' ? 'Danger zone' : 'منطقة الخطر'}>
+          <Row icon={Trash2}
+            label={language === 'he' ? 'מחק את חשבוני לצמיתות' : language === 'en' ? 'Delete my account permanently' : 'حذف حسابي نهائياً'}
+            danger last
+            onClick={() => { setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteError('') }} />
+        </Section>
+      )}
 
       </>)}
 
@@ -1353,6 +1387,62 @@ export default function SettingsScreen({
 
         </motion.div>
       )}
+      </AnimatePresence>
+
+      {/* ── نافذة تأكيد حذف الحساب نهائياً ── */}
+      <AnimatePresence>
+        {showDeleteAccount && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => !deleting && setShowDeleteAccount(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <motion.div onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.92, y: 14 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 14 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+              style={{ width: '100%', maxWidth: 420, background: C.surface, border: `1px solid ${C.accent}3a`, borderRadius: 22, padding: 22, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: -40, insetInlineEnd: -40, width: 170, height: 170, borderRadius: '50%', background: `radial-gradient(circle, ${C.accent}45, transparent 70%)`, opacity: 0.4, pointerEvents: 'none' }} />
+              <div style={{ position: 'relative' }}>
+                <div style={{ width: 46, height: 46, borderRadius: 14, background: `${C.accent}1c`, border: `1px solid ${C.accent}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                  <AlertTriangle size={24} color={C.accent} strokeWidth={2.2} />
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 900, color: C.text, letterSpacing: '-0.02em', marginBottom: 6 }}>
+                  {language === 'he' ? 'מחיקת חשבון לצמיתות' : language === 'en' ? 'Delete account permanently' : 'حذف الحساب نهائياً'}
+                </div>
+                <div style={{ fontSize: 12.5, color: C.textDim, lineHeight: 1.6, marginBottom: 16 }}>
+                  {language === 'he'
+                    ? 'פעולה זו בלתי הפיכה. כל הנתונים שלך — פרויקטים, עובדים, כספים, צוות — יימחקו לצמיתות ולא ניתן יהיה לשחזרם.'
+                    : language === 'en'
+                    ? 'This action is irreversible. All your data — projects, workers, finances, team — will be permanently deleted and cannot be recovered.'
+                    : 'هذا الإجراء لا رجعة فيه. كل بياناتك — المشاريع، العمّال، المالية، الفريق — ستُحذف نهائياً ولا يمكن استعادتها.'}
+                </div>
+                <div style={{ fontSize: 11.5, color: C.text, marginBottom: 8 }}>
+                  {language === 'he' ? <>הקלד <b style={{ color: C.accent }}>{DELETE_WORD}</b> לאישור</>
+                    : language === 'en' ? <>Type <b style={{ color: C.accent }}>{DELETE_WORD}</b> to confirm</>
+                    : <>اكتب <b style={{ color: C.accent }}>{DELETE_WORD}</b> للتأكيد</>}
+                </div>
+                <input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} disabled={deleting}
+                  autoFocus dir={dir}
+                  style={{ width: '100%', padding: '11px 14px', background: C.card, border: `1px solid ${deleteConfirmText.trim() === DELETE_WORD ? C.accent : C.borderMid}`, borderRadius: 12, color: C.text, fontSize: 14, fontWeight: 700, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                {deleteError && (
+                  <div style={{ fontSize: 11, color: C.accent, marginTop: 8 }}>{deleteError}</div>
+                )}
+                <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+                  <button onClick={() => setShowDeleteAccount(false)} disabled={deleting}
+                    style={{ flex: 1, padding: '12px', borderRadius: 12, background: C.card, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, fontWeight: 800, cursor: deleting ? 'default' : 'pointer', fontFamily: 'inherit', opacity: deleting ? 0.5 : 1 }}>
+                    {language === 'he' ? 'ביטול' : language === 'en' ? 'Cancel' : 'إلغاء'}
+                  </button>
+                  <motion.button whileTap={{ scale: 0.97 }}
+                    onClick={handleDeleteAccount}
+                    disabled={deleting || deleteConfirmText.trim() !== DELETE_WORD}
+                    style={{ flex: 1, padding: '12px', borderRadius: 12, background: deleteConfirmText.trim() === DELETE_WORD ? GRAD.danger : `${C.accent}22`, border: 'none', color: '#fff', fontSize: 13, fontWeight: 900, fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: (deleting || deleteConfirmText.trim() !== DELETE_WORD) ? 'default' : 'pointer', opacity: (deleting || deleteConfirmText.trim() !== DELETE_WORD) ? 0.55 : 1 }}>
+                    {deleting
+                      ? (language === 'he' ? 'מוחק…' : language === 'en' ? 'Deleting…' : 'جارٍ الحذف…')
+                      : <><Trash2 size={15} />{language === 'he' ? 'מחק לצמיתות' : language === 'en' ? 'Delete forever' : 'حذف نهائي'}</>}
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* App version */}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Building2, Plus, Sparkles, ChevronLeft, HardHat } from 'lucide-react'
+import { Building2, Plus, Sparkles, ChevronLeft, HardHat, Users, Wallet } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import BusinessSetup from '../finance/BusinessSetup.jsx'
@@ -16,6 +16,7 @@ const LANG = {
     creating:     'جاري الإنشاء...',
     back:         'رجوع',
     default_name: 'عامة',
+    features:     ['المشاريع', 'العمّال', 'المالية الذكية'],
   },
   he: {
     welcome:      'ברוך הבא ל-Contractor Pro',
@@ -27,6 +28,7 @@ const LANG = {
     creating:     '...יוצר',
     back:         'חזרה',
     default_name: 'כללי',
+    features:     ['פרויקטים', 'עובדים', 'כספים חכמים'],
   },
   en: {
     welcome:      'Welcome to Contractor Pro',
@@ -38,11 +40,15 @@ const LANG = {
     creating:     'Creating...',
     back:         'Back',
     default_name: 'General',
+    features:     ['Projects', 'Workers', 'Smart finance'],
   },
 }
 
+const FEATURE_ICONS = [Building2, Users, Wallet]
+
 export default function FirstTimeSetup({ language = 'ar' }) {
   const t = LANG[language] ?? LANG.ar
+  const dir = language === 'en' ? 'ltr' : 'rtl'
   const { create, load } = useBusinessStore()
   const [mode,     setMode]     = useState(null)  // null | 'manual'
   const [creating, setCreating] = useState(false)
@@ -64,7 +70,7 @@ export default function FirstTimeSetup({ language = 'ar' }) {
   // بعد ما BusinessSetup ينتهي → load() → businesses.length > 0 → هذا المكون يختفي
   if (mode === 'manual') {
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: C.bg, overflowY: 'auto' }}>
+      <div dir={dir} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: C.bg, overflowY: 'auto' }}>
         <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 0 40px' }}>
           {/* Back button */}
           <button
@@ -81,7 +87,7 @@ export default function FirstTimeSetup({ language = 'ar' }) {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px', overflowY: 'auto' }}>
+    <div dir={dir} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px', overflowY: 'auto' }}>
 
       {/* Aurora */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 80% 50% at 50% 30%, rgba(245,158,11,0.1) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(124,58,237,0.06) 0%, transparent 60%)' }} />
@@ -103,11 +109,27 @@ export default function FirstTimeSetup({ language = 'ar' }) {
           <div style={{ fontSize: 13, color: C.textDim, textAlign: 'center', lineHeight: 1.7, maxWidth: 340 }}>
             {t.subtitle}
           </div>
+
+          {/* شريط الميزات — يبرز قيمة التطبيق بنظرة واحدة */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 18, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {t.features.map((f, i) => {
+              const Icon = FEATURE_ICONS[i]
+              return (
+                <motion.div key={f}
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + i * 0.08 }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: `${C.primary}10`, border: `1px solid ${C.primary}26` }}>
+                  <Icon size={13} color={C.primary} strokeWidth={2.2} />
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: C.text }}>{f}</span>
+                </motion.div>
+              )
+            })}
+          </div>
         </div>
 
         {/* خيار 1: مصلحة عامة تلقائية */}
         <motion.button
           whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
           onClick={handleAutoCreate}
           disabled={creating}
           style={{
@@ -116,7 +138,7 @@ export default function FirstTimeSetup({ language = 'ar' }) {
             background: creating ? 'rgba(245,158,11,0.08)' : `${C.primary}12`,
             border: `1.5px solid ${C.primary}${creating ? '30' : '50'}`,
             borderRadius: 20, cursor: creating ? 'not-allowed' : 'pointer',
-            fontFamily: 'inherit', textAlign: 'right',
+            fontFamily: 'inherit', textAlign: 'start',
             transition: 'all .2s',
           }}
         >
@@ -141,6 +163,7 @@ export default function FirstTimeSetup({ language = 'ar' }) {
         {/* خيار 2: إعداد يدوي */}
         <motion.button
           whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.53 }}
           onClick={() => setMode('manual')}
           disabled={creating}
           style={{
@@ -149,7 +172,7 @@ export default function FirstTimeSetup({ language = 'ar' }) {
             background: 'rgba(255,255,255,0.04)',
             border: `1.5px solid ${C.border}`,
             borderRadius: 20, cursor: creating ? 'not-allowed' : 'pointer',
-            fontFamily: 'inherit', textAlign: 'right',
+            fontFamily: 'inherit', textAlign: 'start',
             transition: 'all .2s',
           }}
         >

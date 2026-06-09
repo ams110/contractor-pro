@@ -8,6 +8,7 @@ import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../lib/whatsapp.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
+import PortalUpsell from './PortalUpsell.jsx'
 
 // ════════════════════════════════════════════════════════════════════════
 //  بطاقة هوية العامل — Wallet-style، لمعة holographic، تنقلب 3D لـ QR البوّابة
@@ -17,7 +18,7 @@ function initialsOf(name) {
   return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
-export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'ar', qr, portalUrl, onOpen, delay = 0 }) {
+export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'ar', qr, portalUrl, portalEnabled = true, onOpen, delay = 0 }) {
   const [flipped, setFlipped] = useState(false)
   const [copied, setCopied] = useState(false)
   const L = (ar, he, en) => (lang === 'en' ? en : lang === 'he' ? he : ar)
@@ -141,26 +142,30 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
             boxShadow: '0 12px 36px rgba(0,0,0,0.5)', padding: 14,
             display: 'flex', alignItems: 'center', gap: 14,
           }}>
-          <div style={{ width: 100, height: 100, borderRadius: 14, background: '#fff', padding: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
-            {qr ? <img src={qr} alt="" style={{ width: '100%', height: '100%' }} /> : <QrCode size={44} color={C.surface} />}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-              <QrCode size={14} color={C.primary} strokeWidth={2.4} />
-              <span style={{ fontSize: 13, fontWeight: 900, color: C.text }}>{L('بوّابة العامل', 'פורטל העובד', 'Worker Portal')}</span>
+          {portalEnabled ? (<>
+            <div style={{ width: 100, height: 100, borderRadius: 14, background: '#fff', padding: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
+              {qr ? <img src={qr} alt="" style={{ width: '100%', height: '100%' }} /> : <QrCode size={44} color={C.surface} />}
             </div>
-            <div style={{ fontSize: 10, color: C.textDim, lineHeight: 1.5, marginBottom: 9 }}>
-              {L('امسح الكود أو شارك الرابط ليدخل العامل بوّابته', 'סרוק או שתף את הקישור', 'Scan or share the link with your worker')}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                <QrCode size={14} color={C.primary} strokeWidth={2.4} />
+                <span style={{ fontSize: 13, fontWeight: 900, color: C.text }}>{L('بوّابة العامل', 'פורטל העובד', 'Worker Portal')}</span>
+              </div>
+              <div style={{ fontSize: 10, color: C.textDim, lineHeight: 1.5, marginBottom: 9 }}>
+                {L('امسح الكود أو شارك الرابط ليدخل العامل بوّابته', 'סרוק או שתף את הקישור', 'Scan or share the link with your worker')}
+              </div>
+              <div style={{ display: 'flex', gap: 7 }}>
+                <button onClick={shareWa} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, background: `${C.success}1c`, border: `1px solid ${C.success}40`, color: C.success, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <MessageCircle size={13} strokeWidth={2.4} /> {L('واتساب', 'וואטסאפ', 'WhatsApp')}
+                </button>
+                <button onClick={copyLink} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, background: copied ? `${C.success}1c` : `${C.primary}1c`, border: `1px solid ${copied ? C.success : C.primary}40`, color: copied ? C.success : C.primary, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {copied ? <Check size={13} strokeWidth={2.6} /> : <Copy size={13} strokeWidth={2.4} />} {copied ? L('تم', 'הועתק', 'Copied') : L('نسخ', 'העתק', 'Copy')}
+                </button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 7 }}>
-              <button onClick={shareWa} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, background: `${C.success}1c`, border: `1px solid ${C.success}40`, color: C.success, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-                <MessageCircle size={13} strokeWidth={2.4} /> {L('واتساب', 'וואטסאפ', 'WhatsApp')}
-              </button>
-              <button onClick={copyLink} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, background: copied ? `${C.success}1c` : `${C.primary}1c`, border: `1px solid ${copied ? C.success : C.primary}40`, color: copied ? C.success : C.primary, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {copied ? <Check size={13} strokeWidth={2.6} /> : <Copy size={13} strokeWidth={2.4} />} {copied ? L('تم', 'הועתק', 'Copied') : L('نسخ', 'העתק', 'Copy')}
-              </button>
-            </div>
-          </div>
+          </>) : (
+            <PortalUpsell lang={lang} />
+          )}
         </div>
       </motion.div>
     </motion.div>
