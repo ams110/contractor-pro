@@ -6,12 +6,14 @@ import {
   TrendingUp, Phone, Star, BarChart3, CreditCard,
   Check, AlertTriangle, Trash2, ChevronRight, CalendarDays,
   Link2, Copy, CheckCheck, UserPlus, UserMinus, MessageCircle, GitCommitHorizontal,
-  Wallet, X, HardHat, Clock, Activity,
+  Wallet, X, HardHat, Clock, Activity, Lock,
 } from 'lucide-react'
 import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { useHasFeature } from '../../store/usePlanStore.js'
+import { navigate } from '../../Router.jsx'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi, calcEarned } from '../../lib/calculations.js'
 import { computeWorkerDNA } from '../../lib/insights.js'
 import {
@@ -501,7 +503,13 @@ export default function WorkersScreen({
   const [search, setSearch] = useState('')
   const [specFilter, setSpecFilter] = useState('all')
   const [showAdd, setShowAdd] = useState(false)
+  const [showLimit, setShowLimit] = useState(false)   // نافذة تجاوز حدّ خطة Starter
   const [selected, setSelected] = useState(null)
+
+  // حدّ عمّال خطة Starter (Pro فأعلى أو خلال التجربة = غير محدود)
+  const STARTER_WORKER_LIMIT = 10
+  const unlimitedWorkers = useHasFeature('pro')
+  const atWorkerLimit = !unlimitedWorkers && employees.length >= STARTER_WORKER_LIMIT
   const [confirmDelete, setConfirmDelete] = useState(null) // worker to delete
   const [portalQr, setPortalQr] = useState('')             // QR رابط البوّابة (مشترك للبطاقات)
 
@@ -659,10 +667,12 @@ export default function WorkersScreen({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{t('workers.title')}</div>
-          <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{employees.length} {language === 'he' ? 'עובדים' : language === 'en' ? 'workers' : 'عامل'}</div>
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
+            {employees.length}{!unlimitedWorkers && ` / ${STARTER_WORKER_LIMIT}`} {language === 'he' ? 'עובדים' : language === 'en' ? 'workers' : 'عامل'}
+          </div>
         </div>
         {permissions?.addWorkers !== false && (
-          <motion.button whileTap={{ scale: 0.94 }} onClick={() => setShowAdd(true)}
+          <motion.button whileTap={{ scale: 0.94 }} onClick={() => atWorkerLimit ? setShowLimit(true) : setShowAdd(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 14, background: GRAD.premium, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' }}>
             <Plus size={15} strokeWidth={2.5} />
             {language === 'he' ? 'חדש' : language === 'en' ? 'New' : 'جديد'}
@@ -733,6 +743,36 @@ export default function WorkersScreen({
       )}
 
       <AddWorkerModal open={showAdd} onClose={() => setShowAdd(false)} onSave={addEmployee} specs={specs} language={language} />
+
+      {/* نافذة تجاوز حدّ عمّال خطة Starter */}
+      <AnimatePresence>
+        {showLimit && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowLimit(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, direction: 'rtl' }}>
+            <motion.div initial={{ scale: 0.92, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              style={{ position: 'relative', overflow: 'hidden', maxWidth: 380, width: '100%', background: `linear-gradient(135deg, ${C.secondary}14, ${C.surface} 70%)`, border: `1px solid ${C.secondary}33`, borderRadius: 22, padding: '28px 22px', textAlign: 'center' }}>
+              <div style={{ position: 'absolute', insetInlineEnd: -40, top: -40, width: 160, height: 160, background: `radial-gradient(circle, ${C.secondary}45, transparent 70%)`, opacity: 0.35, pointerEvents: 'none' }} />
+              <div style={{ width: 58, height: 58, borderRadius: 17, background: `${C.secondary}1c`, border: `1px solid ${C.secondary}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Lock size={27} color={C.secondary} strokeWidth={2} />
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>وصلت حدّ خطة Starter</div>
+              <p style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7, marginBottom: 22 }}>
+                خطة Starter تسمح بحتى {STARTER_WORKER_LIMIT} عمّال. رقِّ إلى خطة Pro لإضافة عمّال غير محدودين.
+              </p>
+              <button onClick={() => navigate('/pricing')}
+                style={{ width: '100%', background: GRAD.premium, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', padding: '13px', borderRadius: 14, marginBottom: 10 }}>
+                عرض الخطط والترقية
+              </button>
+              <button onClick={() => setShowLimit(false)}
+                style={{ width: '100%', background: 'transparent', border: 'none', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '6px' }}>
+                لاحقاً
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
