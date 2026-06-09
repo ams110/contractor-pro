@@ -25,6 +25,16 @@ import { computeListUsage } from '../../lib/listUsage.js'
 import SmartList from '../../components/SmartList.jsx'
 import { fmtDate } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
+import { useSubscription } from '../../hooks/useSubscription.js'
+import { usePlanStore } from '../../store/usePlanStore.js'
+import { openCustomerPortal } from '../../lib/paddle.js'
+
+const PLAN_META_UI = {
+  free:     { label: 'مجانية', color: C.textDim },
+  starter:  { label: 'Starter', color: C.primary },
+  pro:      { label: 'Pro',      color: C.secondary },
+  business: { label: 'Business', color: C.gold },
+}
 
 const LANGS = [
   { code: 'ar', label: 'العربية', dir: 'rtl' },
@@ -318,6 +328,10 @@ export default function SettingsScreen({
   const { language, setLanguage } = useAppStore()
   const activeBusiness = useBusinessStore(s => s.activeBusiness)
   const dir = language === 'en' ? 'ltr' : 'rtl'
+
+  const plan = usePlanStore(s => s.plan)
+  const trialActive = usePlanStore(s => s.trialActive)
+  const { subscription, isActive: subIsActive, isCanceling, daysUntilPeriodEnd } = useSubscription(userId)
 
   const { registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey } = useAuth()
   const { supported: pushSupported, permission, requestPermission } = usePushNotifications(userId)
@@ -882,9 +896,38 @@ export default function SettingsScreen({
       )}
 
       {/* ── Subscription ── */}
-      <Section icon={Shield} accent={C.gold} title={t('settings.subscription')}>
-        <Row icon={Shield} label={language === 'he' ? 'ניהול מנוי' : language === 'en' ? 'Manage Subscription' : 'إدارة الاشتراك'} color={C.gold} onClick={() => navigate('/pricing')} last />
-      </Section>
+      {permissions?.isOwner && (() => {
+        const pm = PLAN_META_UI[plan] || PLAN_META_UI.free
+        const paid = subIsActive()
+        const statusText = paid
+          ? (isCanceling()
+              ? `يُلغى بعد ${daysUntilPeriodEnd() ?? 0} يوم`
+              : `نشط${daysUntilPeriodEnd() != null ? ` · تجديد بعد ${daysUntilPeriodEnd()} يوم` : ''}`)
+          : trialActive ? 'تجربة مجانية' : 'بدون اشتراك'
+        return (
+          <Section icon={Shield} accent={C.gold} title={t('settings.subscription')}>
+            {/* بطاقة الخطة الحالية */}
+            <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: `${pm.color}18`, border: `1px solid ${pm.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Shield size={16} color={pm.color} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>خطتك الحالية: {pm.label}</div>
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{statusText}</div>
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 800, color: pm.color, background: `${pm.color}16`, border: `1px solid ${pm.color}3a`, borderRadius: 9, padding: '4px 9px', whiteSpace: 'nowrap' }}>{pm.label}</span>
+            </div>
+            {/* زر الإدارة: المشترك → بوّابة Paddle · غير المشترك → صفحة الأسعار */}
+            {paid && subscription?.paddle_subscription_id ? (
+              <Row icon={SlidersHorizontal} label={language === 'he' ? 'ניהול / ביטול מנוי' : language === 'en' ? 'Manage / Cancel' : 'إدارة / إلغاء الاشتراك'} color={C.gold}
+                onClick={() => openCustomerPortal(subscription.paddle_subscription_id)} last />
+            ) : (
+              <Row icon={Shield} label={language === 'he' ? 'בחר תוכנית' : language === 'en' ? 'Choose a plan' : 'اختر خطة اشتراك'} color={C.gold}
+                onClick={() => navigate('/pricing')} last />
+            )}
+          </Section>
+        )
+      })()}
 
       </>)}
 
