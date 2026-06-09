@@ -27,6 +27,7 @@ import WorkDaysScreen from '../WorkDaysScreen.jsx'
 import WorkerDNA, { WorkerDNABadge } from '../../components/WorkerDNA.jsx'
 import WorkerActivityLog from '../../components/WorkerActivityLog.jsx'
 import WorkerCard from '../../components/WorkerCard.jsx'
+import PortalUpsell from '../../components/PortalUpsell.jsx'
 import WorkDayTicket from '../../components/WorkDayTicket.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { PremiumCard, IconChip, PremiumStat } from '../../ui/Premium.jsx'
@@ -190,6 +191,7 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
   const [tab, setTab] = useState('overview')
   const [advRequests, setAdvRequests] = useState([])
   const [advProject, setAdvProject] = useState({})   // req.id → project_id (اختياري)
+  const portalEnabled = useHasFeature('pro')          // بوّابة العامل ميزة خطة Pro
 
   useEffect(() => {
     if (!worker?.id || !permissions?.isOwner) return
@@ -342,22 +344,26 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
               </PremiumCard>
             )}
 
-            {/* Portal link */}
-            <PremiumCard tone="brand" glow={false} radius={14} padding="12px 14px">
-              <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Link2 size={10} strokeWidth={2} /> بورتال العامل
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ flex: 1, fontSize: 11, color: C.textDim, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr' }}>{PORTAL_URL}</span>
-                <button onClick={sharePortalWhatsApp} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .2s' }}>
-                  <MessageCircle size={13} strokeWidth={2} />
-                  واتساب
-                </button>
-                <button onClick={copyPortalLink} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10, background: copied ? `${C.success}22` : `${C.primary}18`, border: `1.5px solid ${copied ? C.success+'55' : C.primary+'44'}`, color: copied ? C.success : C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .2s' }}>
-                  {copied ? <CheckCheck size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
-                  {copied ? 'تم النسخ' : 'نسخ'}
-                </button>
-              </div>
+            {/* Portal link — ميزة Pro */}
+            <PremiumCard tone={portalEnabled ? 'brand' : 'premium'} glow={false} radius={14} padding="12px 14px">
+              {portalEnabled ? (<>
+                <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Link2 size={10} strokeWidth={2} /> بورتال العامل
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ flex: 1, fontSize: 11, color: C.textDim, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr' }}>{PORTAL_URL}</span>
+                  <button onClick={sharePortalWhatsApp} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .2s' }}>
+                    <MessageCircle size={13} strokeWidth={2} />
+                    واتساب
+                  </button>
+                  <button onClick={copyPortalLink} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10, background: copied ? `${C.success}22` : `${C.primary}18`, border: `1.5px solid ${copied ? C.success+'55' : C.primary+'44'}`, color: copied ? C.success : C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .2s' }}>
+                    {copied ? <CheckCheck size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
+                    {copied ? 'تم النسخ' : 'نسخ'}
+                  </button>
+                </div>
+              </>) : (
+                <PortalUpsell lang={language} />
+              )}
             </PremiumCard>
           </div>
         )}
@@ -505,6 +511,8 @@ export default function WorkersScreen({
   const [showAdd, setShowAdd] = useState(false)
   const [showLimit, setShowLimit] = useState(false)   // نافذة تجاوز حدّ خطة Starter
   const [selected, setSelected] = useState(null)
+
+  const portalEnabled = useHasFeature('pro')          // بوّابة العامل ميزة خطة Pro
 
   // حدّ عدد العمّال حسب الخطة: تجربة → 1 · Starter → 10 · Pro/Business → غير محدود
   const workerLimit = useWorkerLimit()
@@ -736,6 +744,7 @@ export default function WorkersScreen({
               lang={language}
               qr={portalQr}
               portalUrl={PORTAL_URL}
+              portalEnabled={portalEnabled}
               onOpen={setSelected}
               delay={Math.min(i * 0.04, 0.3)}
             />

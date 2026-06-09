@@ -164,7 +164,7 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 | `projects/ProjectsScreen.jsx` | CRUD مشاريع + لوحة تفصيل بتبويبات (نظرة/أيام عمل/عمّال/مصاريف/مقبوضات)، إدارة مواقع للمشاريع اليومية، تذكير واتساب، أرشفة/حذف ذكي |
 | `workers/WorkersScreen.jsx` | روستر العمّال + تبويب أيام العمل، لوحة تفصيل لكل عامل (إحصائيات/أيام/دفعات/سلف)، رابط بوّابة العامل، تأكيد بصمة للحذف |
 | `finance/FinanceScreen.jsx` | حاوية المالية + **BusinessSwitcher** + 6 تبويبات (انظر §8). يدعم `pendingAction` لفتح sheet مع مشروع مُمرّر من شاشة المشاريع |
-| `settings/SettingsScreen.jsx` | البروفايل، اللغة، التخصّصات/فئات المصاريف/طرق الدفع، الإشعارات، الاشتراك، تحديث التطبيق، **الأمان** (read-only، حدّ صرف يومي، مهلة الجلسة، سجلّ الدخول)، passkey/PIN، سجلّ التواقيع |
+| `settings/SettingsScreen.jsx` | البروفايل، اللغة، التخصّصات/فئات المصاريف/طرق الدفع، الإشعارات، الاشتراك، تحديث التطبيق، **الأمان** (read-only، حدّ صرف يومي، مهلة الجلسة، سجلّ الدخول)، passkey/PIN، سجلّ التواقيع، **منطقة الخطر**: حذف الحساب الذاتي نهائياً (للمالك، بنافذة تأكيد بكتابة كلمة، عبر `useAuth.deleteAccount` → edge `delete-account`) |
 | `team/TeamScreen.jsx` (+ `useTeamManager`, `teamConstants`, `AddMemberModal`, `EditPermsPanel`, `MemberCard`, `MemberActivity`) | إدارة أعضاء الفريق: إضافة/صلاحيات دقيقة/حظر/إعادة كلمة سر/انتهاء صلاحية/تقييد بمشاريع |
 | `onboarding/FirstTimeSetup.jsx` | شاشة أول مرة (لا مصالح): إعداد سريع (osek_patur عام) أو يدوي |
 | `auth/LoginScreen.jsx` | دخول متعدّد: **Passkey / PIN / كلمة سر** (مالك) + **عضو فريق** (username+password)، تسجيل، استعادة كلمة سر، مبدّل لغة |
@@ -232,6 +232,7 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 | `WorkerStatsPanel.jsx` | ملخّص أداء/ساعات/رواتب العامل |
 | `ErrorBoundary.jsx` | حدّ خطأ React (يلفّ كل شاشة بمفتاح `screen`) + يبلّغ Sentry عبر `captureException` |
 | `FeatureGate.jsx` | يلفّ ميزة مدفوعة: يعرض المحتوى إن كانت الخطة تكفي (`useHasFeature`)، وإلا بطاقة ترقية. مُستعمل لشاشة الفريق (Pro+) |
+| `PortalUpsell.jsx` | بطاقة ترقية مدمجة لبوّابة العامل (قفل + شارة Pro + زر → `/pricing`). تُستبدل بها أدوات مشاركة البوّابة/QR عندما تكون خطة المالك < Pro. مُستعملة في `ContractorCard` (الإعدادات)، `WorkerCard`، وتفاصيل العامل |
 | `CookieConsent.jsx` | لافتة موافقة كوكيز خفيفة (تخزين ضروري فقط، بلا تتبّع) — تُركّب في `Router` وتظهر مرّة |
 | `index.jsx` | مكوّنات مساعدة: `LoadingSpinner`, `GlassCard`, `Card`, `StatCard`, `Modal`, `Input`, `Btn`, `FilterChip`, `TabBar`, `Badge`, `EmptyState`, `ConfirmDialog`, `AnimatedNumber`, ... |
 | `sheets/AddExpenseSheet.jsx` | bottom-sheet إضافة مصروف (رفع إيصال، فئة، מע"מ، طريقة دفع) |
@@ -310,6 +311,7 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 |--------|-------|
 | `create-team-member` | إنشاء عضو فريق (auth user + صف صلاحيات) — للمالك |
 | `update-member-password` | إعادة تعيين كلمة سر عضو (admin API) |
+| `delete-account` | حذف الحساب الذاتي نهائياً (للمالك): يتحقّق من الجلسة، يحذف مستخدم auth (يتتالى حذف كل بياناته عبر `ON DELETE CASCADE`)، ويحذف حسابات أعضاء الفريق الفرعية التابعة. يتطلّب `{confirm:true}` |
 | `paddle-webhook` | استقبال أحداث Paddle (تحقّق HMAC) ومزامنة `subscriptions`+`organizations` + إشعار داخل التطبيق عند `past_due`/`canceled`. خريطة الأسعار تشمل الشهري والسنوي |
 | `send-auth-email` | إيميلات مصادقة مخصّصة عبر **Resend** (تأكيد/استعادة/دخول سحري/تغيير بريد/دعوة) بقوالب عربية RTL. يُفعَّل كـ Supabase Auth "Send Email Hook". أسرار: `RESEND_API_KEY`/`SEND_EMAIL_HOOK_SECRET`/`EMAIL_FROM`/`APP_URL` |
 | `scan-receipt` | OCR للإيصالات عبر Claude Haiku vision (rate-limited) → {amount, vendor, date, category} |
@@ -317,7 +319,7 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 | `webauthn-register-options` / `-verify` | تسجيل passkey (challenge 5د) |
 | `webauthn-auth-options` / `-verify` | دخول passkey → magic link لجلسة Supabase. **credential_id يُخزّن base64url** |
 
-**نشر الـ edge functions**: عبر `.github/workflows/deploy.yml` عند push لـ main (`create-team-member`, `update-member-password`, `send-push`, `send-auth-email`, `paddle-webhook` (الأخيرة `--no-verify-jwt`)، + دوال webauthn).
+**نشر الـ edge functions**: عبر `.github/workflows/deploy.yml` عند push لـ main (`create-team-member`, `update-member-password`, `delete-account`, `send-push`, `send-auth-email`, `paddle-webhook` (الأخيرة `--no-verify-jwt`)، + دوال webauthn).
 
 ---
 
@@ -333,7 +335,7 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 - `App.jsx` يكتب `{plan, trialActive, paddleEnabled}` للمخزن من `useOrganization`.
 - `planHasFeature(reqPlan)` / `useHasFeature(reqPlan)`: **الدفع غير مُفعّل** (`!paddleEnabled`) أو **خلال التجربة** → وصول كامل؛ غير ذلك مقارنة هرمية (free<starter<pro<business).
 - `workerLimitFor({plan,trialActive})` / `useWorkerLimit()`: **تجربة → عامل واحد** · Starter → 10 · Pro/Business → غير محدود. مطبّق في `WorkersScreen` (نافذة ترقية + عدّاد `X/الحد`).
-- تقييدات فعلية حالياً: **شاشة الفريق** على Pro+ (`FeatureGate`) · **حدّ العمّال**. (تصدير PDF/Excel وبوّابة العامل موعودان كـ Pro بالتسعير لكن غير مقيّدَين بعد.)
+- تقييدات فعلية حالياً: **شاشة الفريق** على Pro+ (`FeatureGate`) · **بوّابة العامل** على Pro (`PortalUpsell` — مشاركة الرابط/QR محجوبة عند خطة < Pro) · **حدّ العمّال**. (تصدير PDF/Excel موعود كـ Pro بالتسعير لكن غير مقيَّد بعد.)
 - **حساب المالك** مضبوط `plan=business` دائماً في `organizations` (لا يُقفل ولا يدفع).
 
 ---
@@ -406,7 +408,7 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 
 - Branch رئيسي: `main`. الإصدار يتزايد تلقائياً (حالياً ~2.0.12x).
 - وحدة المالية مكتملة (Phases 0→5)، المصادقة WebAuthn passkey حقيقية، الفريق متعدّد الصلاحيات، بوّابة العامل، اشتراكات Paddle، Push.
-- **جهوزية الإطلاق** (مدموجة): صفحات قانونية (`/terms`,`/privacy`,`/refund`,`/contact`) + تنظيف الهبوط من محتوى وهمي · تقييد الميزات حسب الخطة + إدارة اشتراك بالإعدادات + حدّ عمّال (تجربة=1) · فوترة سنوية · مراقبة أخطاء Sentry · إيميلات Resend · لافتة كوكيز · إشعارات فشل الدفع.
+- **جهوزية الإطلاق** (مدموجة): صفحات قانونية (`/terms`,`/privacy`,`/refund`,`/contact`) + تنظيف الهبوط من محتوى وهمي · تقييد الميزات حسب الخطة (شاشة الفريق + **بوّابة العامل** على Pro + حدّ عمّال تجربة=1) + إدارة اشتراك بالإعدادات · فوترة سنوية · مراقبة أخطاء Sentry · إيميلات Resend · لافتة كوكيز · إشعارات فشل الدفع · **حذف الحساب الذاتي** (وعد سياسة الخصوصية + متطلّب App Store) · شارة الخطة بلوحة التحكم + شاشة ترحيب محسّنة.
 - **متبقٍّ للإطلاق التجاري**: ضبط مفاتيح Paddle/Resend/Sentry للإنتاج (أو اعتماد بوّابة دفع إسرائيلية مثل iCount) + تفعيل Send Email Hook + توثيق نطاق Resend + تفعيل Leaked Password Protection. (الكود جاهز وخامل بأمان حتى تُضبط المفاتيح.)
 - **طبقة الذكاء المالي** مدموجة وموسّعة: نبض المصلحة · التوقّع الذكي للسيولة · مركز القيادة · الذمّة الصافية · صحّة المشروع · رادار التحصيل · كشف شذوذ المصاريف · مدرج الضريبة · نبض الفريق · بصمة العامل · جاهزية الحساب — كلها دوال نقيّة في `insights.js`/`accountReadiness.js`/`workerInsights.js` مغطّاة باختبارات.
 - **توحيد بصري**: kit الفخامة `ui/Premium.jsx` + هياكل تحميل (Skeleton) + مؤشّر اتصال، وبطاقات هوية موحّدة (مشروع/عامل/إيصال). جارٍ مطابقة باقي الشاشات على نفس اللغة (انظر §2.1).
