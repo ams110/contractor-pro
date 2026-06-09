@@ -26,8 +26,9 @@ import SmartList from '../../components/SmartList.jsx'
 import { fmtDate } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 import { useSubscription } from '../../hooks/useSubscription.js'
-import { usePlanStore } from '../../store/usePlanStore.js'
+import { usePlanStore, useHasFeature } from '../../store/usePlanStore.js'
 import { openCustomerPortal } from '../../lib/paddle.js'
+import PortalUpsell from '../../components/PortalUpsell.jsx'
 
 const PLAN_META_UI = {
   free:     { label: 'مجانية', color: C.textDim },
@@ -165,6 +166,7 @@ function ContractorCard({ profile, business, lang }) {
   const [flipped, setFlipped] = useState(false)
   const [qr, setQr] = useState('')
   const [copied, setCopied] = useState(false)
+  const portalEnabled = useHasFeature('pro')   // بوّابة العامل ميزة خطة Pro
   const portalUrl = `${window.location.origin}${window.location.pathname}?portal`
   const typeLabel = BUSINESS_TYPES.find(t => t.id === business?.type)?.label || ''
   const name = profile?.display_name || (lang === 'en' ? 'Your Name' : lang === 'he' ? 'השם שלך' : 'اسمك هنا')
@@ -245,6 +247,7 @@ function ContractorCard({ profile, business, lang }) {
           boxShadow: '0 14px 40px rgba(0,0,0,0.5)', padding: 16,
           display: 'flex', alignItems: 'center', gap: 16,
         }}>
+          {portalEnabled ? (<>
           <div style={{ width: 112, height: 112, borderRadius: 16, background: '#fff', padding: 7, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
             {qr ? <img src={qr} style={{ width: '100%', height: '100%' }} /> : <QrCode size={48} color={C.surface} />}
           </div>
@@ -265,6 +268,9 @@ function ContractorCard({ profile, business, lang }) {
               </button>
             </div>
           </div>
+          </>) : (
+            <PortalUpsell lang={lang} />
+          )}
         </div>
       </motion.div>
     </div>
