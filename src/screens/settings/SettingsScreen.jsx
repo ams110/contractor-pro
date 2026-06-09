@@ -21,7 +21,6 @@ import { useAuth } from '../../hooks/useAuth.js'
 import { useBusinessStore, BUSINESS_TYPES } from '../../store/useBusinessStore.js'
 import { computeAccountReadiness } from '../../lib/accountReadiness.js'
 import AccountReadiness from '../../components/AccountReadiness.jsx'
-import { exportAllDataJSON } from '../../lib/export.js'
 import { fmtDate } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 
@@ -485,10 +484,11 @@ export default function SettingsScreen({
   const [holName, setHolName] = useState('')
   const [holDate, setHolDate] = useState('')
 
-  function doBackup() {
+  async function doBackup() {
     setBackingUp(true)
     try {
-      exportAllDataJSON({ projects, employees, workDays, expenses, payments, clientReceipts, advances, holidays })
+      const m = await import('../../lib/export.js')
+      m.exportAllDataJSON({ projects, employees, workDays, expenses, payments, clientReceipts, advances, holidays })
       const now = new Date().toISOString()
       if (backupKey) localStorage.setItem(backupKey, now)
       setBackupAt(now)

@@ -6,7 +6,6 @@ import { fmt, fmtDate, todayStr, validateExpense } from '../lib/helpers.js'
 import { GlassCard, Modal, Input, Btn, FilterChip, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import { uploadReceipt } from '../lib/storage.js'
-import { exportExpensesToExcel } from '../lib/export.js'
 import { supabase } from '../lib/supabase.js'
 import { useBusinessStore } from '../store/useBusinessStore.js'
 
@@ -134,7 +133,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
         </div>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
           {permissions?.isOwner && approvedExpenses.length > 0 && (
-            <motion.button whileTap={{ scale: 0.93 }} onClick={() => exportExpensesToExcel(approvedExpenses, projects)}
+            <motion.button whileTap={{ scale: 0.93 }} onClick={async () => { const m = await import('../lib/export.js'); m.exportExpensesToExcel(approvedExpenses, projects) }}
               style={{ padding:'8px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, cursor:'pointer', display:'flex', alignItems:'center', fontFamily:'inherit' }}>
               <BarChart2 size={15} strokeWidth={2} />
             </motion.button>

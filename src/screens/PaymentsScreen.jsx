@@ -7,7 +7,6 @@ import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../lib/calcul
 import { GlassCard, Modal, Input, Btn, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import { uploadReceipt } from '../lib/storage.js'
-import { exportPaymentsToExcel } from '../lib/export.js'
 import { openWhatsApp, waMessages } from '../lib/whatsapp.js'
 
 function fmtMonth(ym) {
@@ -135,7 +134,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
         </motion.div>
         <div style={{ display:'flex', gap:8 }}>
           {permissions?.isOwner && payments.length > 0 && (
-            <motion.button whileTap={{ scale: 0.93 }} onClick={() => exportPaymentsToExcel(payments, employees)}
+            <motion.button whileTap={{ scale: 0.93 }} onClick={async () => { const m = await import('../lib/export.js'); m.exportPaymentsToExcel(payments, employees) }}
               style={{ padding:'8px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, cursor:'pointer', display:'flex', alignItems:'center', fontFamily:'inherit' }}>
               <BarChart2 size={15} strokeWidth={2} />
             </motion.button>
