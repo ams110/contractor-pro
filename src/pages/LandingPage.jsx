@@ -81,7 +81,7 @@ function Navbar({ loggedIn }) {
           </div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>Contractor Pro</div>
-            <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.06em' }}>قبلן פרו</div>
+            <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.06em' }}>إدارة مقاولات</div>
           </div>
         </div>
 
