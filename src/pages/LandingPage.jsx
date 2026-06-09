@@ -534,6 +534,7 @@ function Footer() {
         </div>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           {[
+            { l: 'المدوّنة',       path: '/blog'    },
             { l: 'الخصوصية',       path: '/privacy' },
             { l: 'شروط الاستخدام', path: '/terms'   },
             { l: 'الإلغاء والاسترجاع', path: '/refund' },
