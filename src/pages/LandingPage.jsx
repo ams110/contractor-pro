@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import {
   HardHat, Zap, BarChart3, Users, CalendarDays, Receipt,
   CheckCircle2, ArrowLeft, Shield, Smartphone, TrendingUp,
-  ChevronDown, Menu, X, Building2, Wallet, Settings, LayoutDashboard,
+  Menu, X, Building2, Wallet, Settings, LayoutDashboard,
   Bell, Search, CircleDot, Plus
 } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
@@ -51,6 +51,14 @@ const css = `
   .glow-orb  { animation: glow 3s ease-in-out infinite }
   .grad-text { background: linear-gradient(135deg,#F97316,#DC2626); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
   .shimmer   { background: linear-gradient(90deg, #F9731618 0%, #F9731632 50%, #F9731618 100%); background-size: 200% 100%; animation: shimmer 2.5s linear infinite; }
+  /* Navbar responsive: inline actions on desktop, hamburger on mobile */
+  .lp-nav-actions { display: flex; align-items: center; gap: 8px; }
+  .lp-burger { display: none; }
+  @media (max-width: 640px) {
+    .lp-nav-pad     { padding-inline: 16px !important; }
+    .lp-nav-actions { display: none !important; }
+    .lp-burger      { display: flex !important; }
+  }
 `
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
@@ -65,18 +73,18 @@ function Navbar({ loggedIn }) {
   }, [])
 
   return (
-    <nav style={{
+    <nav className="lp-nav-pad" style={{
       position: 'sticky', top: 0, zIndex: 100,
-      background: scrolled ? 'rgba(7,8,15,0.96)' : 'rgba(7,8,15,0.72)',
+      background: (scrolled || menuOpen) ? 'rgba(7,8,15,0.96)' : 'rgba(7,8,15,0.72)',
       backdropFilter: 'blur(24px)',
-      borderBottom: `1px solid ${scrolled ? C.borderMid : C.border}`,
+      borderBottom: `1px solid ${(scrolled || menuOpen) ? C.borderMid : C.border}`,
       padding: '0 24px',
       transition: 'background .3s, border-color .3s',
     }}>
       <div style={{ maxWidth: 1120, margin: '0 auto', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', direction: 'rtl' }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => navigate('/')}>
-          <div style={{ width: 40, height: 40, borderRadius: 13, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(249,115,22,0.35)' }}>
+          <div style={{ width: 40, height: 40, borderRadius: 13, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(249,115,22,0.35)', flexShrink: 0 }}>
             <HardHat size={20} color="#fff" strokeWidth={2.5} />
           </div>
           <div>
@@ -85,8 +93,8 @@ function Navbar({ loggedIn }) {
           </div>
         </div>
 
-        {/* Desktop Nav */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* Desktop actions (hidden ≤640px) */}
+        <div className="lp-nav-actions">
           <button onClick={() => navigate('/pricing')} className="lp-btn"
             style={{ background: 'transparent', border: 'none', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '8px 14px', borderRadius: 10 }}>
             الأسعار
@@ -109,7 +117,40 @@ function Navbar({ loggedIn }) {
             </>
           )}
         </div>
+
+        {/* Mobile hamburger (shown ≤640px) */}
+        <button className="lp-burger lp-btn" onClick={() => setMenuOpen(o => !o)} aria-label="القائمة"
+          style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, cursor: 'pointer', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          {menuOpen ? <X size={20} strokeWidth={2.4} /> : <Menu size={20} strokeWidth={2.4} />}
+        </button>
       </div>
+
+      {/* Mobile dropdown menu */}
+      {menuOpen && (
+        <div className="lp-burger" style={{ maxWidth: 1120, margin: '0 auto', flexDirection: 'column', gap: 10, padding: '6px 0 18px', direction: 'rtl' }}>
+          <button onClick={() => { setMenuOpen(false); navigate('/pricing') }} className="lp-btn"
+            style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '13px', borderRadius: 13 }}>
+            الأسعار
+          </button>
+          {loggedIn ? (
+            <button onClick={() => { setMenuOpen(false); navigate('/app') }} className="lp-btn"
+              style={{ width: '100%', background: GRAD.brand, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', padding: '13px', borderRadius: 13, boxShadow: '0 4px 18px rgba(249,115,22,0.4)' }}>
+              الدخول للتطبيق
+            </button>
+          ) : (
+            <>
+              <button onClick={() => { setMenuOpen(false); navigate('/login') }} className="lp-btn"
+                style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '13px', borderRadius: 13 }}>
+                تسجيل الدخول
+              </button>
+              <button onClick={() => { setMenuOpen(false); navigate('/register') }} className="lp-btn"
+                style={{ width: '100%', background: GRAD.brand, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', padding: '13px', borderRadius: 13, boxShadow: '0 4px 18px rgba(249,115,22,0.4)' }}>
+                ابدأ مجاناً
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </nav>
   )
 }
