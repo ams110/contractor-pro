@@ -94,7 +94,8 @@ export const VAT     = 0.18
 export const VAT_OLD = 0.17
 
 export const OSEK_PATUR_THRESHOLD = 120000
-export const BITUACH_LEUMI_RATE   = 0.105
+// ملاحظة: ביטוח לאומי للعمل الحر يُحسب بشريحتين (مخفّضة/كاملة) في helpers.calcBituachLeumiAnnual —
+// لا تستعمل نسبة مسطّحة واحدة.
 
 // ─── Navigation — 5 tabs ─────────────────────────────────────────────────────
 export const NAV = [

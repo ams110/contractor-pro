@@ -13,9 +13,8 @@ import {
   C, GRAD,
   VAT, EXP_CAT_VAT,
   OSEK_PATUR_THRESHOLD,
-  BITUACH_LEUMI_RATE,
 } from '../../constants/index.js'
-import { fmt, fmtDate } from '../../lib/helpers.js'
+import { fmt, fmtDate, calcBituachLeumiAnnual } from '../../lib/helpers.js'
 import { supabase } from '../../lib/supabase.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { computeTaxRunway } from '../../lib/insights.js'
@@ -185,8 +184,9 @@ export default function TaxSummaryTab({ pensionMonthly = 0 }) {
     ? yearProfit * 0.23                  // ضريبة شركات 23%
     : calcIncomeTaxAnnual(yearProfit, 2.25, (pensionMonthly || 0) * 12)   // محرّك مركزي: شرائح + نقاط زكاء + خصم پنسيה
 
+  // ביטוח לאומי + בריאות للعمل الحر: شريحتان (مخفّضة/كاملة) عبر المحرّك المركزي — لا نسبة مسطّحة
   const bituachLeumi = bizType !== 'hevra'
-    ? Math.max(0, yearProfit) * BITUACH_LEUMI_RATE
+    ? calcBituachLeumiAnnual(Math.max(0, yearProfit))
     : 0
 
   const totalTax = incomeTax + bituachLeumi + (period === 'year' ? 0 : 0) // VAT shown separately
