@@ -71,13 +71,40 @@ export function useProjects(userId) {
     await refetch()
   }
 
+  // حذف المشروع فقط — بياناته المالية تبقى (project_id يصير NULL عبر FK SET NULL)
   async function deleteProject(id) {
     const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
   }
 
-  return { projects: data, loading, error, addProject, updateProject, deleteProject, refetch }
+  // أرشفة/استعادة — يخفي المشروع دون فقدان أي بيانات
+  async function archiveProject(id) {
+    const { error } = await supabase.from('projects').update({ archived_at: new Date().toISOString() }).eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+  async function restoreProject(id) {
+    const { error } = await supabase.from('projects').update({ archived_at: null }).eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
+  // حذف المشروع مع كل بياناته المالية المرتبطة نهائياً
+  async function deleteProjectWithAll(id) {
+    await Promise.all([
+      supabase.from('work_days').delete().eq('project_id', id).eq('user_id', userId),
+      supabase.from('expenses').delete().eq('project_id', id).eq('user_id', userId),
+      supabase.from('payments').delete().eq('project_id', id).eq('user_id', userId),
+      supabase.from('advances').delete().eq('project_id', id).eq('user_id', userId),
+      supabase.from('client_receipts').delete().eq('project_id', id).eq('user_id', userId),
+    ])
+    const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', userId)
+    if (error) throw error
+    await refetch()
+  }
+
+  return { projects: data, loading, error, addProject, updateProject, deleteProject, archiveProject, restoreProject, deleteProjectWithAll, refetch }
 }
 
 /* ─── Employees ─── */

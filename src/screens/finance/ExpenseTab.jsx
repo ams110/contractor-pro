@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, TrendingDown, Trash2,
   Calendar, FolderOpen, Receipt,
-  Banknote, Smartphone, CreditCard, Building,
+  Banknote, Smartphone, CreditCard, Building, AlertTriangle,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT } from '../../constants/index.js'
@@ -231,11 +231,13 @@ export default function ExpenseTab({
   }, [entries, thisMonthKey])
 
   // ─── Filtered ─────────────────────────────────────────────────────────────
+  const orphanCount = useMemo(() => entries.filter(e => !e.project_id && !e.is_general).length, [entries])
   const filtered = useMemo(() => {
     let res = entries
     if (filterMonth) res = res.filter(e => e.date?.startsWith(filterMonth))
     if (filterCat)   res = res.filter(e => e.category === filterCat)
-    if (filterProj)  res = res.filter(e => e.project_id === filterProj)
+    if (filterProj === '__orphan__') res = res.filter(e => !e.project_id && !e.is_general)
+    else if (filterProj) res = res.filter(e => e.project_id === filterProj)
     return res
   }, [entries, filterMonth, filterCat, filterProj])
 
@@ -277,6 +279,15 @@ export default function ExpenseTab({
 
   return (
     <div>
+      {/* تحذير المصاريف اليتيمة (بلا مشروع وليست عامة — غالباً بعد حذف مشروع) */}
+      {orphanCount > 0 && (
+        <button onClick={() => setFilterProj(f => f === '__orphan__' ? '' : '__orphan__')}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', marginBottom: 12, borderRadius: 12, background: `${C.secondary}14`, border: `1px solid ${C.secondary}3a`, color: C.text, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start' }}>
+          <AlertTriangle size={15} color={C.secondary} strokeWidth={2.2} />
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 700 }}>{orphanCount} مصروف بلا مشروع مرتبط</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: C.secondary }}>{filterProj === '__orphan__' ? 'إخفاء' : 'عرضها'}</span>
+        </button>
+      )}
       {/* ─── Stats ──────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <StatCard label="هذا الشهر" value={totalMonth} color={C.accent} icon={TrendingDown} />

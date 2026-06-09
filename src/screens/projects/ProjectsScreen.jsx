@@ -7,7 +7,7 @@ import {
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
   ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users, MessageCircle,
-  Wallet, Percent, FolderKanban,
+  Wallet, Percent, FolderKanban, Archive, RotateCcw,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { PremiumCard, IconChip, PremiumStat } from '../../ui/Premium.jsx'
@@ -228,7 +228,7 @@ function QuickActionBtn({ icon: Icon, color, label, onClick }) {
 }
 
 // ─── Project Detail ───────────────────────────────────────────────────────────
-function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
+function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRestore, onDeleteAll, addReceipt, updateReceipt, deleteReceipt, addExpense, deleteExpense, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, expCats, payMethods, permissions, holidays, language, userId,
   businesses = [] }) {
   // البيانات المشتركة من المخزن مباشرة — لا تمرير يدوي من الشاشة الأم
   const { workDays, expenses, clientReceipts, employees, payments, advances } = useDataStore()
@@ -289,19 +289,24 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
     { id: 'receipts',  icon: ReceiptText,  label: language === 'he' ? 'קבלות' : language === 'en' ? 'Receipts' : 'قبضات' },
   ]
 
-  async function handleDelete() {
-    const sig = await bioConfirm(`حذف المشروع: ${project.name}`, 'projects')
-    if (!sig) return
+  // ── خيارات إدارة المشروع (أرشفة / حذف فقط / حذف مع البيانات) — كلها بتوقيع ──
+  async function handleArchive() {
+    const sig = await bioConfirm(`أرشفة المشروع: ${project.name}`, 'projects'); if (!sig) return
     setDeleting(true)
-    try { await onDelete(project.id); onClose() }
-    catch { setDeleting(false) }
+    try { await onArchive?.(project.id); onClose() } catch { setDeleting(false) }
   }
-
-  // fallback للـ confirm dialog اليدوي (يُستخدم من زر الحذف مباشرة)
-  async function handleDeleteConfirmed() {
+  async function handleDeleteOnly() {
+    const sig = await bioConfirm(`حذف المشروع (مع إبقاء البيانات المالية): ${project.name}`, 'projects'); if (!sig) return
     setDeleting(true)
-    try { await onDelete(project.id); onClose() }
-    catch { setDeleting(false); setConfirmDel(false) }
+    try { await onDelete(project.id); onClose() } catch { setDeleting(false) }
+  }
+  async function handleDeleteAll() {
+    const sig = await bioConfirm(`حذف المشروع وكل بياناته نهائياً: ${project.name}`, 'projects'); if (!sig) return
+    setDeleting(true)
+    try { await onDeleteAll?.(project.id); onClose() } catch { setDeleting(false) }
+  }
+  async function handleRestore() {
+    try { await onRestore?.(project.id); onClose() } catch { /* ignore */ }
   }
 
   function closeReceiptForm() {
@@ -381,6 +386,12 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
             <Edit3 size={14} color={C.primary} strokeWidth={2} />
           </button>
         )}
+        {project.archived_at && (
+          <button onClick={handleRestore} title="استعادة"
+            style={{ width: 34, height: 34, borderRadius: 10, background: `${C.success}18`, border: `1px solid ${C.success}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            <RotateCcw size={14} color={C.success} strokeWidth={2} />
+          </button>
+        )}
         {permissions?.canDelete !== false && (
           <button onClick={() => setConfirmDel(true)}
             style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
@@ -396,29 +407,67 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
         businesses={businesses}
       />
 
-      {/* Delete Confirm */}
+      {/* Manage / Delete options sheet */}
       <AnimatePresence>
         {confirmDel && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-              style={{ width: '100%', maxWidth: 300, background: C.surface, border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: '24px 20px' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 8, textAlign: 'center' }}>
-                {language === 'en' ? 'Delete Project?' : 'حذف المشروع؟'}
+            onClick={() => !deleting && setConfirmDel(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 30 }} onClick={e => e.stopPropagation()}
+              style={{ width: '100%', maxWidth: 460, background: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, border: `1px solid ${C.borderMid}`, padding: '20px 18px 26px' }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border, margin: '0 auto 16px' }} />
+              <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 3 }}>إدارة المشروع</div>
+              <div style={{ fontSize: 12, color: C.textDim, marginBottom: 12 }}>{project.name}</div>
+
+              {/* عدّ البيانات المرتبطة */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                {[
+                  { n: pWorkDays.length, l: 'أيام عمل' },
+                  { n: pExpenses.length, l: 'مصاريف' },
+                  { n: pReceipts.length, l: 'قبضات' },
+                  { n: pPayments.length, l: 'دفعات' },
+                ].filter(x => x.n > 0).map(x => (
+                  <span key={x.l} style={{ fontSize: 10.5, fontWeight: 700, color: C.textDim, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '4px 9px' }}>
+                    {x.n} {x.l}
+                  </span>
+                ))}
               </div>
-              <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>
-                {language === 'en' ? 'This cannot be undone.' : 'لا يمكن التراجع عن هذا الإجراء.'}
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setConfirmDel(false)}
-                  style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {language === 'en' ? 'Cancel' : 'إلغاء'}
-                </button>
-                <button onClick={handleDeleteConfirmed} disabled={deleting}
-                  style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(239,68,68,0.9)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', opacity: deleting ? 0.7 : 1 }}>
-                  {deleting ? '...' : (language === 'en' ? 'Delete' : 'حذف')}
-                </button>
-              </div>
+
+              {/* خيار 1: أرشفة (موصى به) */}
+              <button onClick={handleArchive} disabled={deleting}
+                style={{ width: '100%', textAlign: 'start', padding: '13px 14px', borderRadius: 14, marginBottom: 9, background: `${C.secondary}14`, border: `1.5px solid ${C.secondary}44`, color: C.text, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 11 }}>
+                <Archive size={18} color={C.secondary} strokeWidth={2.2} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800 }}>أرشفة <span style={{ fontSize: 10, color: C.secondary }}>✦ موصى به</span></div>
+                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>يخفي المشروع دون فقدان أي بيانات — قابل للاستعادة</div>
+                </div>
+              </button>
+
+              {/* خيار 2: حذف المشروع فقط */}
+              <button onClick={handleDeleteOnly} disabled={deleting}
+                style={{ width: '100%', textAlign: 'start', padding: '13px 14px', borderRadius: 14, marginBottom: 9, background: `${C.warning}12`, border: `1.5px solid ${C.warning}38`, color: C.text, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 11 }}>
+                <Trash2 size={18} color={C.warning} strokeWidth={2.2} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800 }}>حذف المشروع فقط</div>
+                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>تبقى المقبوضات والمصاريف وأيام العمل (تصبح بلا مشروع)</div>
+                </div>
+              </button>
+
+              {/* خيار 3: حذف مع كل البيانات */}
+              <button onClick={handleDeleteAll} disabled={deleting}
+                style={{ width: '100%', textAlign: 'start', padding: '13px 14px', borderRadius: 14, marginBottom: 14, background: 'rgba(239,68,68,0.12)', border: '1.5px solid rgba(239,68,68,0.4)', color: C.text, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 11 }}>
+                <AlertTriangle size={18} color={C.accent} strokeWidth={2.2} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: C.accent }}>حذف مع كل البيانات</div>
+                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>يمحو المشروع وكل مقبوضاته/مصاريفه/أيامه نهائياً — لا تراجع</div>
+                </div>
+              </button>
+
+              <button onClick={() => setConfirmDel(false)} disabled={deleting}
+                style={{ width: '100%', padding: '11px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {language === 'en' ? 'Cancel' : 'إلغاء'}
+              </button>
             </motion.div>
           </motion.div>
         )}
@@ -909,7 +958,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, addReceipt, updat
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function ProjectsScreen({
-  addProject, updateProject, deleteProject,
+  addProject, updateProject, deleteProject, archiveProject, restoreProject, deleteProjectWithAll,
   addReceipt, updateReceipt, deleteReceipt,
   addWorkDay, bulkAddWorkDays, updateWorkDay, deleteWorkDay,
   approveWorkDay, rejectWorkDay,
@@ -930,16 +979,19 @@ export default function ProjectsScreen({
   const [statusFilter, setStatusFilter] = useState('all')
   const [showAdd, setShowAdd] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [showArchived, setShowArchived] = useState(false)
+  const archivedCount = useMemo(() => projects.filter(p => p.archived_at).length, [projects])
 
   const statusFilters = ['all', 'نشط', 'مكتمل', 'عرض سعر', 'ملغي']
   const statusLabel = s => ({ all: language === 'he' ? 'הכל' : language === 'en' ? 'All' : 'الكل', 'نشط': language === 'he' ? 'פעיל' : language === 'en' ? 'Active' : 'نشط', 'مكتمل': language === 'he' ? 'הושלם' : language === 'en' ? 'Done' : 'مكتمل', 'عرض سعر': language === 'he' ? 'הצעת מחיר' : language === 'en' ? 'Quote' : 'عرض سعر', 'ملغي': language === 'he' ? 'בוטל' : language === 'en' ? 'Cancelled' : 'ملغي' })[s] || s
 
   const filtered = useMemo(() => {
-    let list = projects
+    // افتراضياً نُخفي المؤرشفة؛ وضع الأرشيف يعرض المؤرشفة فقط
+    let list = projects.filter(p => showArchived ? p.archived_at : !p.archived_at)
     if (search) list = list.filter(p => p.name?.toLowerCase().includes(search.toLowerCase()))
     if (statusFilter !== 'all') list = list.filter(p => p.status === statusFilter)
     return list
-  }, [projects, search, statusFilter])
+  }, [projects, search, statusFilter, showArchived])
 
   if (selected) {
     return (
@@ -947,6 +999,7 @@ export default function ProjectsScreen({
         project={selected}
         onClose={() => setSelected(null)}
         onUpdate={updateProject} onDelete={deleteProject}
+        onArchive={archiveProject} onRestore={restoreProject} onDeleteAll={deleteProjectWithAll}
         addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt}
         addExpense={addExpense} deleteExpense={deleteExpense}
         addWorkDay={addWorkDay} deleteWorkDay={deleteWorkDay}
@@ -978,6 +1031,20 @@ export default function ProjectsScreen({
           </motion.button>
         )}
       </div>
+
+      {/* مبدّل الأرشيف */}
+      {(archivedCount > 0 || showArchived) && (
+        <div style={{ marginBottom: 12 }}>
+          <button onClick={() => setShowArchived(v => !v)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 11, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              background: showArchived ? `${C.secondary}1e` : C.card, border: `1px solid ${showArchived ? C.secondary + '55' : C.border}`, color: showArchived ? C.secondary : C.textDim }}>
+            <Archive size={13} strokeWidth={2.2} />
+            {showArchived
+              ? (language === 'en' ? 'Show active' : 'إظهار النشطة')
+              : `${language === 'en' ? 'Archive' : 'الأرشيف'} (${archivedCount})`}
+          </button>
+        </div>
+      )}
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 12 }}>
