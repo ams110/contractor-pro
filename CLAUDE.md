@@ -14,13 +14,13 @@
 npm run dev           # Vite dev server على المنفذ 3000
 npm run build         # prebuild يرفع رقم الإصدار تلقائياً ثم vite build (PWA)
 npm run preview       # معاينة بناء الإنتاج
-npm test              # Vitest (اختبارات الوحدة) — ملاحظة: يلتقط ملفات e2e بالخطأ (انظر §18)
+npm test              # Vitest (اختبارات الوحدة) — يستثني tests/e2e (انظر §18)
+npm run lint          # ESLint على src
 npm run test:e2e      # Playwright E2E (يشغّل dev server تلقائياً)
 npm run test:e2e:ui   # واجهة Playwright التفاعلية
 ```
 
 - **Node**: 20 (في CI). **Package manager**: npm.
-- لا يوجد سكربت `lint` في `package.json` حالياً (كان هناك إعداد ESLint في PR قديم غير مدموج).
 
 ---
 
@@ -69,7 +69,8 @@ npm run test:e2e:ui   # واجهة Playwright التفاعلية
 - **State/Data**: Zustand 5، @supabase/supabase-js 2، @tanstack/react-query + react-table + react-virtual، react-hook-form + zod.
 - **Auth/Security**: @simplewebauthn/browser (WebAuthn passkeys)، crypto-js (AES تشفير محلي).
 - **Billing**: @paddle/paddle-js.
-- **Export/PDF**: jspdf + jspdf-autotable، xlsx (Excel).
+- **Monitoring**: @sentry/react (مراقبة أخطاء — خاملة ما لم يُضبط `VITE_SENTRY_DSN`، انظر §11).
+- **Export/PDF**: jspdf + jspdf-autotable، xlsx (Excel). ⚠️ `xlsx@0.18.5` فيه ثغرتان معروفتان (Prototype Pollution + ReDoS) — مؤجّل الإصلاح: الاستخدام **كتابة فقط** (تصدير) بلا قراءة ملفات غير موثوقة، فالخطر العملي شبه معدوم. الإصلاح الرسمي: الترقية لنسخة CDN 0.20.x من SheetJS.
 - **i18n**: i18next + react-i18next (ar/he/en).
 - **PWA**: vite-plugin-pwa (Workbox، استراتيجية injectManifest).
 - **Testing**: Vitest (unit)، @playwright/test (E2E).
@@ -88,9 +89,12 @@ main.jsx → Router.jsx → App.jsx (بعد الدخول) → الشاشات
 | `/` | `LandingPage` |
 | `/pricing` | `PricingPage` (Paddle) |
 | `/welcome` | `WelcomePage` |
+| `/terms` `/privacy` `/refund` `/contact` | `LegalPage` (صفحة قانونية موحّدة حسب `type`) |
 | `/login` `/register` | `LoginScreen` (lazy) |
 | `/app` أو أي شيء آخر | `App` |
 | `?portal` أو `?worker` | **بوّابة العامل** (`WorkerPortalScreen`) مباشرة بلا دخول مالك |
+
+> `Router` يلفّ كل الصفحات (عدا بوّابة العامل) بـ `<CookieConsent/>` (لافتة موافقة كوكيز خفيفة تظهر مرّة).
 
 **App.jsx** هو القلب — يدير:
 1. **المصادقة** عبر `useAuth` (مالك Supabase) أو `teamMemberSignIn` (عضو فريق).
@@ -99,6 +103,7 @@ main.jsx → Router.jsx → App.jsx (بعد الدخول) → الشاشات
 4. **مزامنة للمخزن المشترك**: البيانات المفلترة تُكتب في `useDataStore` (مرآة قراءة فقط) لتجنّب prop-drilling.
 5. **Early returns** بالترتيب: `authLoading` → splash · لا user → `LoginScreen` · `isBlocked/isExpired` → شاشة منع · انتهاء التجربة + خطة غير نشطة → شاشة اشتراك · لا مصالح → `FirstTimeSetup`.
 6. **layout**: موبايل (≤768px) = bottom nav + more drawer · ديسكتوب = `DesktopSidebar`.
+7. **مزامنة الخطة**: يكتب `{plan, trialActive, paddleEnabled}` في `usePlanStore` (من `useOrganization`) ليقرأها أي شاشة لتقييد ميزة. كما يربط هوية المستخدم بـ Sentry (`setSentryUser`).
 
 > قاعدة ذهبية: **لا prop drilling للـ state العام** — استعمل Zustand. لكن دوال الـ CRUD والبيانات المفلترة تُمرّر props من App للشاشات (هذا النمط القائم).
 
@@ -117,10 +122,11 @@ src/
 │                              PROJECT_STATUS/TYPES, VAT, OSEK_PATUR_THRESHOLD, NAV, MORE_SCREENS, BP
 ├── ui/                      ← مكتبة التصميم: Button, Card(+GlassCard), Input, Modal, Badge, StatCard,
 │                              Premium (kit الفخامة المشترك — انظر §2.1), Skeleton
-├── pages/                   ← LandingPage, PricingPage, WelcomePage  (AuthPage حُذف — استبدله LoginScreen الموحّد)
+├── pages/                   ← LandingPage, PricingPage, WelcomePage, LegalPage (شروط/خصوصية/استرجاع/تواصل)
 ├── store/
 │   ├── useAppStore.js       ← navigation, overlays, toast, signer, lock, readOnly, biometric promise
 │   ├── useBusinessStore.js  ← multi-business (load/create/update/remove) + BUSINESS_TYPES (persist)
+│   ├── usePlanStore.js      ← معلومات الخطة + تقييد الميزات: planHasFeature/useHasFeature/useWorkerLimit (مغطّى باختبارات)
 │   └── useDataStore.js      ← مرآة قراءة فقط للبيانات المفلترة
 ├── hooks/                   ← انظر §10
 ├── lib/                     ← انظر §11
@@ -224,7 +230,9 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 | `SmartSearch.jsx` / `SearchOverlay.jsx` | بحث شامل (cmdk) عبر المشاريع/العمّال/المصاريف/الدفعات |
 | `SignaturePad.jsx` | لوحة توقيع canvas |
 | `WorkerStatsPanel.jsx` | ملخّص أداء/ساعات/رواتب العامل |
-| `ErrorBoundary.jsx` | حدّ خطأ React (يلفّ كل شاشة بمفتاح `screen`) |
+| `ErrorBoundary.jsx` | حدّ خطأ React (يلفّ كل شاشة بمفتاح `screen`) + يبلّغ Sentry عبر `captureException` |
+| `FeatureGate.jsx` | يلفّ ميزة مدفوعة: يعرض المحتوى إن كانت الخطة تكفي (`useHasFeature`)، وإلا بطاقة ترقية. مُستعمل لشاشة الفريق (Pro+) |
+| `CookieConsent.jsx` | لافتة موافقة كوكيز خفيفة (تخزين ضروري فقط، بلا تتبّع) — تُركّب في `Router` وتظهر مرّة |
 | `index.jsx` | مكوّنات مساعدة: `LoadingSpinner`, `GlassCard`, `Card`, `StatCard`, `Modal`, `Input`, `Btn`, `FilterChip`, `TabBar`, `Badge`, `EmptyState`, `ConfirmDialog`, `AnimatedNumber`, ... |
 | `sheets/AddExpenseSheet.jsx` | bottom-sheet إضافة مصروف (رفع إيصال، فئة، מע"מ، طريقة دفع) |
 | `sheets/AddReceiptSheet.jsx` | bottom-sheet إضافة مقبوض/فاتورة |
@@ -272,7 +280,8 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 | `storage.js` | `compressImage`، `uploadReceipt`، `uploadWorkerReceipt`، `refreshSignedUrl` (TTL سنة). buckets: `receipts`, `worker-receipts`, `avatars` |
 | `whatsapp.js` | `normalizePhone` (972)، `openWhatsApp`، قوالب `waMessages` (دعوة بوّابة/راتب مدفوع/كشف حساب/تذكير دفع). **مغطّى باختبارات** |
 | `export.js` | تصدير Excel (مصاريف/أيام/دفعات/تقرير كامل/ضرائب) + PDF (مشروع/راتب عامل/عقد عمل) |
-| `paddle.js` | تكامل Paddle: `getPaddle`، `PLAN_PRICES`، `PLAN_META`، `openCheckout`، `openCustomerPortal` |
+| `paddle.js` | تكامل Paddle: `getPaddle`، `PLAN_PRICES` (شهري) + `PLAN_PRICES_ANNUAL` (سنوي) + `pricesFor(cycle)`، `PLAN_META`، `openCheckout({plan,user,org,cycle})`، `openCustomerPortal` |
+| `sentry.js` | تهيئة Sentry (خاملة ما لم يُضبط `VITE_SENTRY_DSN`؛ إنتاج فقط) + `setSentryUser(user)` |
 
 ---
 
@@ -301,13 +310,14 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 |--------|-------|
 | `create-team-member` | إنشاء عضو فريق (auth user + صف صلاحيات) — للمالك |
 | `update-member-password` | إعادة تعيين كلمة سر عضو (admin API) |
-| `paddle-webhook` | استقبال أحداث Paddle (تحقّق HMAC) ومزامنة `subscriptions`+`organizations` |
+| `paddle-webhook` | استقبال أحداث Paddle (تحقّق HMAC) ومزامنة `subscriptions`+`organizations` + إشعار داخل التطبيق عند `past_due`/`canceled`. خريطة الأسعار تشمل الشهري والسنوي |
+| `send-auth-email` | إيميلات مصادقة مخصّصة عبر **Resend** (تأكيد/استعادة/دخول سحري/تغيير بريد/دعوة) بقوالب عربية RTL. يُفعَّل كـ Supabase Auth "Send Email Hook". أسرار: `RESEND_API_KEY`/`SEND_EMAIL_HOOK_SECRET`/`EMAIL_FROM`/`APP_URL` |
 | `scan-receipt` | OCR للإيصالات عبر Claude Haiku vision (rate-limited) → {amount, vendor, date, category} |
 | `send-push` | إرسال Web Push عبر VAPID (يُستدعى من trigger أو client) |
 | `webauthn-register-options` / `-verify` | تسجيل passkey (challenge 5د) |
 | `webauthn-auth-options` / `-verify` | دخول passkey → magic link لجلسة Supabase. **credential_id يُخزّن base64url** |
 
-**نشر الـ edge functions**: عبر `.github/workflows/deploy.yml` عند push لـ main (`create-team-member`, `update-member-password`, `send-push --no-verify-jwt`).
+**نشر الـ edge functions**: عبر `.github/workflows/deploy.yml` عند push لـ main (`create-team-member`, `update-member-password`, `send-push`, `send-auth-email`, `paddle-webhook` (الأخيرة `--no-verify-jwt`)، + دوال webauthn).
 
 ---
 
@@ -318,6 +328,13 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 - **تأكيد بصمة** للعمليات الحسّاسة (حذف، دفعة كبيرة، إنشاء مشروع) عبر `useBiometricConfirm` + تسجيل في `signature_log`.
 - **قفل الجلسة** عند الخمول (`session_timeout` من `app_config`، افتراضي 30د) → `SessionLockScreen` بدل الخروج.
 - **read-only mode** و**حدّ صرف يومي** (`daily_spend_limit`) و**قفل فترات** (`locked_periods` — منع تعديل أشهر ماضية) — كلها للمالك.
+
+### تقييد الميزات حسب الخطة (Monetization) — `store/usePlanStore.js`
+- `App.jsx` يكتب `{plan, trialActive, paddleEnabled}` للمخزن من `useOrganization`.
+- `planHasFeature(reqPlan)` / `useHasFeature(reqPlan)`: **الدفع غير مُفعّل** (`!paddleEnabled`) أو **خلال التجربة** → وصول كامل؛ غير ذلك مقارنة هرمية (free<starter<pro<business).
+- `workerLimitFor({plan,trialActive})` / `useWorkerLimit()`: **تجربة → عامل واحد** · Starter → 10 · Pro/Business → غير محدود. مطبّق في `WorkersScreen` (نافذة ترقية + عدّاد `X/الحد`).
+- تقييدات فعلية حالياً: **شاشة الفريق** على Pro+ (`FeatureGate`) · **حدّ العمّال**. (تصدير PDF/Excel وبوّابة العامل موعودان كـ Pro بالتسعير لكن غير مقيّدَين بعد.)
+- **حساب المالك** مضبوط `plan=business` دائماً في `organizations` (لا يُقفل ولا يدفع).
 
 ---
 
@@ -347,8 +364,10 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 ## 16. متغيّرات البيئة (Vite)
 
 تُحقن وقت البناء (GitHub Secrets في `pages.yml`؛ Vercel env):
-`VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY` · `VITE_VAPID_PUBLIC_KEY` · `VITE_PADDLE_CLIENT_TOKEN` · `VITE_PADDLE_ENVIRONMENT` · `VITE_PADDLE_PRICE_STARTER` · `VITE_PADDLE_PRICE_PRO` · `VITE_PADDLE_PRICE_BUSINESS`.
-(`supabase.js` فيه fallback defaults للساندبوكس).
+`VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY` · `VITE_VAPID_PUBLIC_KEY` · `VITE_PADDLE_CLIENT_TOKEN` · `VITE_PADDLE_ENVIRONMENT` · `VITE_PADDLE_PRICE_{STARTER,PRO,BUSINESS}` (شهري) · `VITE_PADDLE_PRICE_{STARTER,PRO,BUSINESS}_ANNUAL` (سنوي) · `VITE_SENTRY_DSN`.
+(`supabase.js` فيه fallback defaults للساندبوكس.)
+
+**أسرار Edge Functions (Supabase)**: `PADDLE_WEBHOOK_SECRET` · `PADDLE_PRICE_ID_{STARTER,PRO,BUSINESS}` (+`_ANNUAL`) · `RESEND_API_KEY` · `SEND_EMAIL_HOOK_SECRET` · `EMAIL_FROM` · `APP_URL`. (كلها خاملة بأمان حتى تُضبط — التطبيق يعمل بدونها.)
 
 ---
 
@@ -362,8 +381,8 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 
 ## 18. الاختبارات
 
-- **Vitest (unit)**: `npm test`. الملفات: `src/lib/insights.test.js`، `calculations.test.js`، `whatsapp.test.js`، `accountReadiness.test.js`، `workerInsights.test.js`، `export.test.js`، و`src/hooks/useTaxEngine.test.js`.
-  > ⚠️ Vitest حالياً يلتقط `tests/e2e/*.spec.js` ويُظهرها "فشل suites" (نسختا Playwright) — اختبارات الوحدة نفسها كلها تمرّ. (إصلاح مستقبلي: استثناء `tests/e2e` في إعداد Vitest.)
+- **Vitest (unit)**: `npm test`. الملفات: `src/lib/insights.test.js`، `calculations.test.js`، `whatsapp.test.js`، `accountReadiness.test.js`، `workerInsights.test.js`، `export.test.js`، `src/hooks/useTaxEngine.test.js`، و`src/store/usePlanStore.test.js` (تقييد الخطط + حدّ العمّال).
+  > `vite.config.js` يستثني `tests/e2e/**` من Vitest، فما عاد يلتقط ملفات Playwright. (المجموع حالياً ~143 اختباراً ناجحاً.)
 - **Playwright (E2E)**: `tests/e2e/` — تغطية **client-side فقط** (تنقّل + تحقّق فورمات، بلا باكند): `landing.spec.js`، `navigation.spec.js`، `auth-forms.spec.js`. على viewport موبايل (Pixel 7) + ديسكتوب، locale عربي. تفاصيل في `docs/TESTING.md`.
 - **Playwright MCP**: للتحقّق البصري التفاعلي (المتصفح يُثبّت بـ `npx playwright install chrome` عند الحاجة).
 
@@ -385,8 +404,10 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
 
 ## 20. الحالة الحالية
 
-- Branch رئيسي: `main`. الإصدار يتزايد تلقائياً (حالياً ~2.0.10x).
+- Branch رئيسي: `main`. الإصدار يتزايد تلقائياً (حالياً ~2.0.12x).
 - وحدة المالية مكتملة (Phases 0→5)، المصادقة WebAuthn passkey حقيقية، الفريق متعدّد الصلاحيات، بوّابة العامل، اشتراكات Paddle، Push.
+- **جهوزية الإطلاق** (مدموجة): صفحات قانونية (`/terms`,`/privacy`,`/refund`,`/contact`) + تنظيف الهبوط من محتوى وهمي · تقييد الميزات حسب الخطة + إدارة اشتراك بالإعدادات + حدّ عمّال (تجربة=1) · فوترة سنوية · مراقبة أخطاء Sentry · إيميلات Resend · لافتة كوكيز · إشعارات فشل الدفع.
+- **متبقٍّ للإطلاق التجاري**: ضبط مفاتيح Paddle/Resend/Sentry للإنتاج (أو اعتماد بوّابة دفع إسرائيلية مثل iCount) + تفعيل Send Email Hook + توثيق نطاق Resend + تفعيل Leaked Password Protection. (الكود جاهز وخامل بأمان حتى تُضبط المفاتيح.)
 - **طبقة الذكاء المالي** مدموجة وموسّعة: نبض المصلحة · التوقّع الذكي للسيولة · مركز القيادة · الذمّة الصافية · صحّة المشروع · رادار التحصيل · كشف شذوذ المصاريف · مدرج الضريبة · نبض الفريق · بصمة العامل · جاهزية الحساب — كلها دوال نقيّة في `insights.js`/`accountReadiness.js`/`workerInsights.js` مغطّاة باختبارات.
 - **توحيد بصري**: kit الفخامة `ui/Premium.jsx` + هياكل تحميل (Skeleton) + مؤشّر اتصال، وبطاقات هوية موحّدة (مشروع/عامل/إيصال). جارٍ مطابقة باقي الشاشات على نفس اللغة (انظر §2.1).
 - النشر: Vercel (أساسي) + GitHub Pages (مرآة) + Supabase edge functions — كلها تلقائية عند push لـ main.
