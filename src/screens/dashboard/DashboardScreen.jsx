@@ -7,11 +7,13 @@ import {
 import {
   TrendingUp, TrendingDown, Building2, Users, Wallet,
   AlertTriangle, Trophy, Clock, ChevronLeft,
-  DollarSign, CreditCard, BarChart3,
+  DollarSign, CreditCard, BarChart3, Crown, Sparkles,
 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { fmt, isPaymentOverdue } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { usePlanStore } from '../../store/usePlanStore.js'
+import { navigate } from '../../Router.jsx'
 import { calcEarned, calcPaid, calcAdvances, calcRevenue, calcProjectStats, calcMutabqi } from '../../lib/calculations.js'
 import { computeBusinessPulse, computeCashForecast, computeCommandCenter, computeNetWorth } from '../../lib/insights.js'
 import BusinessPulse from '../../components/BusinessPulse.jsx'
@@ -216,6 +218,32 @@ function ProjectRow({ project, revenue, expenses, rank, onClick, lang }) {
   )
 }
 
+// ── شارة الخطة في رأس الشاشة — لمسة فخمة + اختصار للترقية ──
+const PLAN_META = {
+  free:     { ar: 'مجانية',  he: 'חינם',     en: 'Free',     color: C.textDim },
+  starter:  { ar: 'Starter', he: 'Starter',  en: 'Starter',  color: C.primary },
+  pro:      { ar: 'Pro',     he: 'Pro',      en: 'Pro',      color: C.secondary },
+  business: { ar: 'Business', he: 'Business', en: 'Business', color: C.gold },
+}
+function PlanBadge({ lang }) {
+  const plan = usePlanStore(s => s.plan)
+  const trialActive = usePlanStore(s => s.trialActive)
+  const L = (ar, he, en) => (lang === 'en' ? en : lang === 'he' ? he : ar)
+  const m = PLAN_META[plan] || PLAN_META.free
+  const color = trialActive ? C.cyan : m.color
+  const Icon = trialActive ? Sparkles : Crown
+  const label = trialActive ? L('تجربة مجانية', 'ניסיון חינם', 'Free trial') : L(m.ar, m.he, m.en)
+  return (
+    <motion.button whileTap={{ scale: 0.94 }} onClick={() => navigate('/pricing')}
+      initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.18 }}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999,
+        background: `${color}16`, border: `1px solid ${color}3a`, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+      <Icon size={13} color={color} strokeWidth={2.4} />
+      <span style={{ fontSize: 11.5, fontWeight: 900, color, letterSpacing: '-0.01em' }}>{label}</span>
+    </motion.button>
+  )
+}
+
 export default function DashboardScreen({
   projects = [], employees = [], workDays = [], expenses = [],
   payments = [], advances = [], clientReceipts = [], onNav, permissions,
@@ -338,13 +366,16 @@ export default function DashboardScreen({
     <div dir={dir} style={{ padding: '16px 16px 8px', maxWidth: 900, margin: '0 auto' }}>
 
       {/* ─── Header ─── */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>
-          {t('dashboard.title')}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>
+            {t('dashboard.title')}
+          </div>
+          <div style={{ fontSize: 12, color: C.textDim, marginTop: 3 }}>
+            {language === 'he' ? 'סיכום כל הפעילות שלך' : language === 'en' ? 'Overview of all your activity' : 'نظرة شاملة على نشاطك'}
+          </div>
         </div>
-        <div style={{ fontSize: 12, color: C.textDim, marginTop: 3 }}>
-          {language === 'he' ? 'סיכום כל הפעילות שלך' : language === 'en' ? 'Overview of all your activity' : 'نظرة شاملة على نشاطك'}
-        </div>
+        {permissions?.isOwner && <PlanBadge lang={language} />}
       </motion.div>
 
       {/* ─── مركز القيادة الذكي ─── */}
