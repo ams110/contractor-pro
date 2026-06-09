@@ -3,7 +3,7 @@ import {
   HardHat, BarChart3, Users, CalendarDays, Receipt,
   CheckCircle2, ArrowLeft, Shield, Smartphone, TrendingUp,
   Menu, X, Building2, Wallet, Settings, LayoutDashboard,
-  Bell, Search, CircleDot, Plus
+  Bell, Search, CircleDot
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { C, GRAD } from '../constants/index.js'
@@ -278,16 +278,20 @@ function PainPoints() {
 }
 
 // ─── Phone Mockup ─────────────────────────────────────────────────────────────
+// يحاكي لوحة التطبيق الحقيقية: نبض المصلحة (العدّاد الدائري) + KPIs + مخطّط شهري + مشاريع.
 function PhoneMockup() {
-  const mockStats = [
-    { label: 'المشاريع',  value: '12', color: C.primary   },
-    { label: 'العمال',    value: '8',  color: C.secondary  },
-    { label: 'هذا الشهر', value: '94', color: C.gold       },
+  const score = 87
+  const R = 26
+  const CIRC = 2 * Math.PI * R
+  const months = [42, 58, 50, 71, 64, 88]
+  const kpis = [
+    { label: 'صافي الربح', value: '₪94K', color: C.success },
+    { label: 'نقد بالجيب', value: '₪31K', color: C.cyan    },
+    { label: 'مستحق',      value: '₪12K', color: C.gold    },
   ]
   const mockProjects = [
-    { name: 'فيلا رهط',       amount: '₪42,500', pct: 68,  active: true  },
-    { name: 'شقة الناصرة',    amount: '₪18,000', pct: 100, active: false },
-    { name: 'مستودع صناعي',   amount: '₪31,200', pct: 45,  active: true  },
+    { name: 'فيلا رهط',    amount: '₪42,500', pct: 68,  active: true  },
+    { name: 'شقة الناصرة', amount: '₪18,000', pct: 100, active: false },
   ]
   const navIcons = [
     { Icon: LayoutDashboard, active: true  },
@@ -320,20 +324,67 @@ function PhoneMockup() {
           </div>
         </div>
       </div>
-      {/* Stats row */}
-      <div style={{ padding: '12px 10px 8px', background: C.bg }}>
+      {/* Business Pulse — العدّاد الدائري (توقيع التطبيق) */}
+      <div style={{ padding: '12px 10px 0', background: C.bg }}>
+        <div style={{ position: 'relative', overflow: 'hidden', background: `linear-gradient(135deg, ${C.success}14, ${C.card} 70%)`, border: `1px solid ${C.success}33`, borderRadius: 14, padding: 11, display: 'flex', alignItems: 'center', gap: 11 }}>
+          <div aria-hidden style={{ position: 'absolute', top: -30, insetInlineEnd: -20, width: 90, height: 90, borderRadius: '50%', background: `radial-gradient(circle, ${C.success}45 0%, transparent 70%)`, opacity: 0.4, pointerEvents: 'none' }} />
+          {/* gauge */}
+          <div style={{ position: 'relative', width: 60, height: 60, flexShrink: 0 }}>
+            <svg width={60} height={60} viewBox="0 0 60 60">
+              <circle cx="30" cy="30" r={R} fill="none" stroke={C.card} strokeWidth="6" />
+              <circle cx="30" cy="30" r={R} fill="none" stroke="url(#pulseGrad)" strokeWidth="6" strokeLinecap="round"
+                strokeDasharray={`${(CIRC * score) / 100} ${CIRC}`} transform="rotate(-90 30 30)" />
+              <defs>
+                <linearGradient id="pulseGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor={C.success} />
+                  <stop offset="1" stopColor={C.cyan} />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: 16, fontWeight: 900, color: C.text, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{score}</span>
+              <span style={{ fontSize: 6, color: C.textDim, marginTop: 1 }}>من 100</span>
+            </div>
+          </div>
+          {/* text */}
+          <div style={{ position: 'relative', flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: C.text }}>نبض المصلحة</div>
+            <div style={{ fontSize: 8, color: C.textDim, marginTop: 2 }}>صحة مالية ممتازة</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 6, background: `${C.success}1c`, border: `1px solid ${C.success}3a`, borderRadius: 7, padding: '2px 7px' }}>
+              <TrendingUp size={9} color={C.success} strokeWidth={2.5} />
+              <span style={{ fontSize: 8, fontWeight: 800, color: C.success }}>+12% هذا الشهر</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* KPI row */}
+      <div style={{ padding: '10px 10px 0', background: C.bg }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
-          {mockStats.map((s, i) => (
-            <div key={i} style={{ background: C.card, borderRadius: 12, padding: '10px 8px', textAlign: 'center', border: `1px solid ${s.color}18` }}>
-              <div style={{ fontSize: 14, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 8, color: C.textDim, marginTop: 3, lineHeight: 1.3 }}>{s.label}</div>
+          {kpis.map((k, i) => (
+            <div key={i} style={{ background: C.card, borderRadius: 11, padding: '9px 6px', textAlign: 'center', border: `1px solid ${k.color}20` }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: k.color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
+              <div style={{ fontSize: 7, color: C.textDim, marginTop: 3 }}>{k.label}</div>
             </div>
           ))}
         </div>
       </div>
+      {/* Monthly income chart */}
+      <div style={{ padding: '10px 10px 0', background: C.bg }}>
+        <div style={{ background: C.card, borderRadius: 12, padding: '9px 10px', border: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
+            <span style={{ fontSize: 8, fontWeight: 700, color: C.textDim }}>الدخل الشهري</span>
+            <span style={{ fontSize: 8, fontWeight: 800, color: C.primary }}>₪88K</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 4, height: 34 }}>
+            {months.map((m, i) => (
+              <div key={i} style={{ flex: 1, height: `${m}%`, borderRadius: '3px 3px 0 0', background: i === months.length - 1 ? GRAD.brand : `${C.primary}40` }} />
+            ))}
+          </div>
+        </div>
+      </div>
       {/* Projects */}
-      <div style={{ padding: '0 10px 10px', background: C.bg }}>
-        <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, marginBottom: 7, marginTop: 2 }}>المشاريع النشطة</div>
+      <div style={{ padding: '10px 10px 10px', background: C.bg }}>
+        <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, marginBottom: 7 }}>المشاريع النشطة</div>
         {mockProjects.map((proj, i) => (
           <div key={i} style={{ background: C.card, borderRadius: 11, padding: '9px 10px', marginBottom: 5, border: `1px solid ${C.border}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
@@ -345,11 +396,6 @@ function PhoneMockup() {
             </div>
           </div>
         ))}
-        {/* Add btn */}
-        <div style={{ background: `${C.primary}10`, border: `1px dashed ${C.primary}30`, borderRadius: 11, padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-          <Plus size={10} color={C.primary} />
-          <span style={{ fontSize: 9, color: C.primary, fontWeight: 600 }}>مشروع جديد</span>
-        </div>
       </div>
       {/* Bottom nav */}
       <div style={{ background: `${C.bg}F8`, padding: '8px 6px 10px', display: 'flex', justifyContent: 'space-around', borderTop: `1px solid ${C.border}` }}>
