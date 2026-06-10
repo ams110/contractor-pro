@@ -104,46 +104,44 @@ function Tower({ shared }) {
   )
 }
 
-// ─── الرافعة — تدور وتمدّ الكيبل بلا توقّف، وخطافها يحمل التلفون الحي ─────────
-// phoneRef: عنصر DOM (التلفون الحي) يُزامَن مع موضع الخطاف كل فريم عبر إسقاط
-// إحداثيات العالم لإحداثيات الشاشة — التطبيق يبقى DOM حقيقياً (عدادات تعدّ
-// ومخطّط ينمو) معلّقاً جوّا المشهد الثلاثي.
-const HOOK_TMP = new THREE.Vector3()
-const HOOK_PROJ = new THREE.Vector3()
-function Crane({ shared, phoneRef, low }) {
+// ─── الرافعة — تدور وتمدّ الكيبل بلا توقّف، وخطافها يحمل حمولة حيّة ──────────
+// الحمولة 3D حقيقية جوّا المشهد (تنحجب وراء البرج وتاخد الإضاءة والضباب):
+// كتلة بناء هولوغرام amber افتراضياً — وبمشهد الرواتب تتبدّل لمنصّة سبائك ذهبية.
+const LOAD_BOX = new THREE.BoxGeometry(0.78, 0.78, 0.78)
+const LOAD_EDGES = new THREE.EdgesGeometry(LOAD_BOX)
+const INGOTS = [
+  [-0.2, 0.08, -0.1], [0.2, 0.08, -0.1], [0, 0.08, 0.16],
+  [-0.1, 0.24, 0.02], [0.12, 0.24, 0.02],
+  [0, 0.4, 0.02],
+]
+function Crane({ shared }) {
   const slew = useRef()
   const trolley = useRef()
   const cable = useRef()
   const hook = useRef()
-  useFrame(({ camera, size }) => {
+  const load = useRef()
+  const block = useRef()
+  const gold = useRef()
+  useFrame(() => {
     const t = shared.t
-    // الذراع مائلة نحو الكاميرا وبعيدة عن البرج — حتى ما يتداخل التلفون المعلّق معه
+    // الذراع مائلة نحو الكاميرا وبعيدة عن البرج — حتى تبان الحمولة بوضوح
     if (slew.current) slew.current.rotation.y = Math.sin(t * 0.16) * 0.45 - 1.2
     if (trolley.current) trolley.current.position.x = 1.5 + Math.sin(t * 0.23 + 1) * 1.1
-    // كيبل أهدأ — في حمولة ثمينة معلّقة فيه. بمشهد العنوان (p≈0) أطول حتى
-    // يتدلّى التلفون بعيداً عن النص المركزي، ويرتفع لما تبدأ المشاهد.
+    // كيبل أهدأ — في حمولة معلّقة فيه. بمشهد العنوان (p≈0) أطول حتى تتدلّى
+    // الحمولة بعيداً عن النص المركزي، وترتفع لما تبدأ المشاهد.
     const len = 2.4 + Math.sin(t * 0.3) * 0.5 + 1.2 * (1 - smooth(0.12, 0.26, shared.p))
     if (cable.current) { cable.current.scale.y = len; cable.current.position.y = -len / 2 }
     if (hook.current) hook.current.position.y = -len
-
-    // مزامنة التلفون المعلّق: إسقاط موضع الخطاف على الشاشة + مقياس حسب البعد
-    const el = phoneRef?.current
-    if (el && hook.current) {
-      hook.current.getWorldPosition(HOOK_TMP)
-      HOOK_TMP.y -= 0.14                              // التعليق أسفل الخطاف
-      const dist = camera.position.distanceTo(HOOK_TMP)
-      HOOK_PROJ.copy(HOOK_TMP).project(camera)
-      if (HOOK_PROJ.z < 1) {
-        const x = (HOOK_PROJ.x * 0.5 + 0.5) * size.width
-        const y = (-HOOK_PROJ.y * 0.5 + 0.5) * size.height
-        const scale = Math.min(1, Math.max(0.24, 8.2 / dist)) * (low ? 0.58 : 1)
-        const sway = Math.sin(t * 0.7) * 2.6           // تأرجح بندولي خفيف
-        el.style.visibility = 'visible'
-        el.style.transform = `translate(${x}px, ${y}px) translate(-50%, 0) rotate(${sway}deg) scale(${scale})`
-      } else {
-        el.style.visibility = 'hidden'
-      }
+    // الحمولة: تتبع الخطاف + تأرجح بندولي + دوران بطيء
+    if (load.current) {
+      load.current.position.y = -len - 0.62
+      load.current.rotation.z = Math.sin(t * 0.7) * 0.07
+      load.current.rotation.y = t * 0.25
     }
+    // تبديل الحمولة: كتلة بناء ↔ سبائك ذهب (مشهد الرواتب)
+    const g = shared.coins
+    if (block.current) block.current.scale.setScalar(Math.max(0.001, 1 - g))
+    if (gold.current) gold.current.scale.setScalar(Math.max(0.001, g))
   })
   const steel = { color: C.primary, roughness: 0.4, metalness: 0.45, emissive: C.primary, emissiveIntensity: 0.22 }
   return (
@@ -166,6 +164,38 @@ function Crane({ shared, phoneRef, low }) {
             <boxGeometry args={[0.24, 0.24, 0.24]} />
             <meshStandardMaterial color={C.gold} emissive={C.gold} emissiveIntensity={0.6} roughness={0.3} metalness={0.5} />
           </mesh>
+          {/* الحمولة المعلّقة تحت الخطاف */}
+          <group ref={load} position={[0, -3.3, 0]}>
+            {/* جنازير التعليق الأربعة */}
+            {[[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]].map(([x, z], i) => (
+              <mesh key={i} position={[x * 0.55, 0.36, z * 0.55]} rotation={[z * 0.72, 0, -x * 0.72]}>
+                <cylinderGeometry args={[0.012, 0.012, 0.55, 4]} />
+                <meshBasicMaterial color={C.gold} />
+              </mesh>
+            ))}
+            {/* كتلة بناء هولوغرام — نفس لغة مكعبات البرج */}
+            <group ref={block}>
+              <mesh geometry={LOAD_BOX}>
+                <meshStandardMaterial color={C.card} roughness={0.3} metalness={0.55} emissive={C.primary} emissiveIntensity={0.22} transparent opacity={0.88} />
+              </mesh>
+              <lineSegments geometry={LOAD_EDGES}>
+                <lineBasicMaterial color={C.primary} transparent opacity={0.85} />
+              </lineSegments>
+            </group>
+            {/* منصّة سبائك ذهبية — تظهر بمشهد الرواتب */}
+            <group ref={gold} scale={[0.001, 0.001, 0.001]} position={[0, -0.32, 0]}>
+              <mesh position={[0, -0.04, 0]}>
+                <boxGeometry args={[0.78, 0.07, 0.62]} />
+                <meshStandardMaterial color={C.card} roughness={0.5} metalness={0.4} emissive={C.gold} emissiveIntensity={0.12} />
+              </mesh>
+              {INGOTS.map(([x, y, z], i) => (
+                <mesh key={i} position={[x, y, z]} rotation={[0, (i % 3) * 0.5, 0]}>
+                  <boxGeometry args={[0.34, 0.13, 0.17]} />
+                  <meshStandardMaterial color={C.gold} emissive={C.gold} emissiveIntensity={0.65} roughness={0.25} metalness={0.75} />
+                </mesh>
+              ))}
+            </group>
+          </group>
         </group>
       </group>
     </group>
@@ -286,7 +316,7 @@ function Particles({ count, shared }) {
 const KEYS = [
   { p: 0.00, pos: new THREE.Vector3(0, 3.6, 11.6), look: new THREE.Vector3(0, 2.8, 0) },     // الهيرو: واجهة الورشة
   { p: 0.24, pos: new THREE.Vector3(4.8, 3.4, 9.2), look: new THREE.Vector3(-0.4, 3.0, 0) }, // مشهد 1: قريب من البرج وهو ينبني
-  { p: 0.50, pos: new THREE.Vector3(9.2, 5.6, 6.2), look: new THREE.Vector3(-0.6, 3.2, 0) }, // مشهد 2: مدار العملات
+  { p: 0.50, pos: new THREE.Vector3(9.4, 5.6, 7.0), look: new THREE.Vector3(-1.9, 3.3, 0) }, // مشهد 2: مدار العملات + سبائك الرافعة
   { p: 0.76, pos: new THREE.Vector3(-7.2, 4.6, 7.2), look: new THREE.Vector3(0.4, 3.2, 0) }, // انتقال من جهة الرافعة
   { p: 1.001, pos: new THREE.Vector3(1.2, 6.0, 11.6), look: new THREE.Vector3(1.5, 2.1, 1.2) }, // مشهد 3: مخطّط الأرباح (+التلفون عاليسار)
 ]
@@ -326,11 +356,8 @@ function Rig({ shared, mouse }) {
 }
 
 // ─── المشهد الكامل ────────────────────────────────────────────────────────────
-// phone: عنصر React (PhoneMockup الحي) يُمرَّر من LandingPage — يُعلَّق على
-// خطاف الرافعة كـDOM overlay فوق الـCanvas (يتفادى استيراداً دائرياً).
-export default function HeroScene({ progress, mouse, low = false, phone = null }) {
+export default function HeroScene({ progress, mouse, low = false }) {
   const shared = useMemo(() => ({ p: 0, t: 0, build: 0.34, coins: 0, bars: 0 }), [])
-  const phoneRef = useRef(null)
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
       <Canvas
@@ -352,7 +379,7 @@ export default function HeroScene({ progress, mouse, low = false, phone = null }
         <pointLight position={[0, 2.5, 6.5]} intensity={36} color={C.cyan} />
 
         <Tower shared={shared} />
-        <Crane shared={shared} phoneRef={phoneRef} low={low} />
+        <Crane shared={shared} />
         <Coins shared={shared} />
         <Bars shared={shared} />
         <Particles count={low ? 120 : 220} shared={shared} />
@@ -364,25 +391,6 @@ export default function HeroScene({ progress, mouse, low = false, phone = null }
         </mesh>
         <gridHelper args={[60, 48, C.primary, '#241B3D']} position={[0, 0.01, 0]} material-transparent material-opacity={0.3} />
       </Canvas>
-
-      {/* التلفون الحي معلّق على الخطاف — transform يُكتب مباشرة من useFrame */}
-      {phone && (
-        <div ref={phoneRef} style={{
-          position: 'absolute', top: 0, left: 0, visibility: 'hidden',
-          transformOrigin: 'top center', willChange: 'transform', pointerEvents: 'none',
-        }}>
-          {/* مشبك التعليق: حبلان للزاويتين + عارضة ذهبية */}
-          <div aria-hidden style={{ display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 120, height: 30, position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 0, left: '50%', width: 2, height: 12, background: C.gold, transform: 'translateX(-50%)' }} />
-              <div style={{ position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)', width: 120, height: 3, borderRadius: 2, background: C.gold, boxShadow: `0 0 10px ${C.gold}88` }} />
-              <div style={{ position: 'absolute', top: 13, left: 8, width: 2, height: 17, background: `${C.gold}AA`, transform: 'rotate(-14deg)', transformOrigin: 'top' }} />
-              <div style={{ position: 'absolute', top: 13, right: 8, width: 2, height: 17, background: `${C.gold}AA`, transform: 'rotate(14deg)', transformOrigin: 'top' }} />
-            </div>
-          </div>
-          {phone}
-        </div>
-      )}
     </div>
   )
 }
