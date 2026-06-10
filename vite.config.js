@@ -63,8 +63,6 @@ export default defineConfig({
           charts: ['recharts'],
           motion: ['framer-motion'],
           icons:  ['lucide-react'],
-          // مشهد هيرو صفحة الهبوط (المدينة الحيّة) — يُحمَّل lazy فقط
-          three:  ['three', '@react-three/fiber'],
         },
       },
     },
