@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contractor Pro — ريلز تسويقي 9:16</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&family=Noto+Sans+Hebrew:wght@400;500;600;700;800;900&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+/* ─────────────────────────────────────────────────────────────────────────────
+   Contractor Pro — Promo Reel (9:16, 1080×1920)
+   هوية التطبيق: Amber/Orange Dark · RTL عربي · مبني للتسجيل بالشاشة.
+   كيف تسجّل فيديو نظيف:
+   1) افتح الملف بمتصفّح (Chrome مفضّل) واضغط F11 (ملء الشاشة).
+   2) شغّل تسجيل الشاشة (OBS / QuickTime / تسجيل شاشة الويندوز Win+G) بمقاس 1080×1920.
+      أو استعمل سكربت marketing/record-reel.mjs لإخراج إطارات/فيديو تلقائياً.
+   3) الريلز يبدأ تلقائياً ويعيد نفسه. مدّته ~28 ثانية.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root{
+  --bg:#07080F; --surface:#0D0F1C; --card:#12152A;
+  --primary:#F97316; --secondary:#7C3AED; --gold:#D97706; --cyan:#06B6D4;
+  --success:#22C55E; --warning:#EAB308; --accent:#EF4444;
+  --text:#F8FAFC; --dim:#64748B;
+  --g-primary:linear-gradient(135deg,#F97316,#DC2626);
+  --g-premium:linear-gradient(135deg,#7C3AED,#2563EB);
+  --g-gold:linear-gradient(135deg,#D97706,#F59E0B);
+  --g-success:linear-gradient(135deg,#22C55E,#06B6D4);
+  --g-warm:linear-gradient(135deg,#F97316,#F59E0B);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+html,body{background:#000;height:100%;overflow:hidden;font-family:'Noto Sans Arabic','Noto Sans Hebrew','Inter',system-ui,sans-serif}
+bdi{font-family:'Noto Sans Hebrew','Noto Sans Arabic',sans-serif;unicode-bidi:isolate}
+
+/* مسرح التحجيم: نحافظ على 1080×1920 ونقيس حسب الشاشة */
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000}
+#reel{
+  position:relative;width:1080px;height:1920px;flex:0 0 auto;
+  background:radial-gradient(120% 80% at 50% -10%, #15101f 0%, var(--bg) 55%);
+  color:var(--text);overflow:hidden;direction:rtl;
+  transform-origin:center center;
+}
+
+/* شبكة خلفية + توهّجات */
+.grid{position:absolute;inset:0;opacity:.5;
+  background-image:linear-gradient(rgba(249,115,22,.045) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(249,115,22,.045) 1px,transparent 1px);
+  background-size:90px 90px;mask-image:radial-gradient(80% 70% at 50% 40%,#000 40%,transparent 100%)}
+.glow{position:absolute;border-radius:50%;filter:blur(20px);pointer-events:none}
+.glow.a{width:760px;height:760px;background:radial-gradient(circle,rgba(249,115,22,.34),transparent 70%);top:-220px;inset-inline-end:-180px}
+.glow.b{width:680px;height:680px;background:radial-gradient(circle,rgba(124,58,237,.28),transparent 70%);bottom:-200px;inset-inline-start:-160px}
+.glow.c{width:520px;height:520px;background:radial-gradient(circle,rgba(6,182,212,.18),transparent 70%);top:42%;inset-inline-start:-220px}
+
+/* المشاهد */
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:120px 90px;opacity:0;visibility:hidden;text-align:center;gap:34px}
+.scene.active{opacity:1;visibility:visible}
+
+/* أدوات نص */
+.kicker{font-size:30px;font-weight:800;letter-spacing:.02em;color:var(--primary);
+  background:rgba(249,115,22,.12);border:1.5px solid rgba(249,115,22,.30);
+  padding:14px 30px;border-radius:999px;display:inline-flex;align-items:center;gap:14px}
+.h1{font-size:96px;font-weight:900;line-height:1.06;letter-spacing:-.02em}
+.h2{font-size:74px;font-weight:900;line-height:1.12;letter-spacing:-.02em}
+.lead{font-size:42px;font-weight:600;line-height:1.5;color:#cbd5e1;max-width:840px}
+.grad{background:var(--g-primary);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.grad.warm{background:var(--g-warm);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.grad.gold{background:var(--g-gold);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.dim{color:var(--dim)}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* حركات دخول قابلة لإعادة التشغيل (تُطبّق عند .active) */
+.scene .up{opacity:0;transform:translateY(46px)}
+.scene .pop{opacity:0;transform:scale(.82)}
+.scene .fade{opacity:0}
+.scene.active .up{animation:up .7s cubic-bezier(.2,.8,.2,1) forwards}
+.scene.active .pop{animation:pop .65s cubic-bezier(.2,1.2,.3,1) forwards}
+.scene.active .fade{animation:fade .8s ease forwards}
+.scene.active .d1{animation-delay:.12s}.scene.active .d2{animation-delay:.26s}
+.scene.active .d3{animation-delay:.42s}.scene.active .d4{animation-delay:.58s}
+.scene.active .d5{animation-delay:.74s}.scene.active .d6{animation-delay:.9s}
+@keyframes up{to{opacity:1;transform:translateY(0)}}
+@keyframes pop{to{opacity:1;transform:scale(1)}}
+@keyframes fade{to{opacity:1}}
+
+/* شعار */
+.logo{display:flex;align-items:center;gap:26px;justify-content:center}
+.logo .mark{width:150px;height:150px;border-radius:42px;background:var(--g-primary);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 30px 90px rgba(249,115,22,.55)}
+.logo .mark svg{width:84px;height:84px}
+.logo .name{font-size:64px;font-weight:900;letter-spacing:-.02em;line-height:1}
+.logo .sub{font-size:30px;color:var(--dim);margin-top:8px;letter-spacing:.12em}
+.pulse-ring{animation:ring 2.4s ease-in-out infinite}
+@keyframes ring{0%,100%{box-shadow:0 30px 90px rgba(249,115,22,.55),0 0 0 0 rgba(249,115,22,.45)}50%{box-shadow:0 30px 90px rgba(249,115,22,.55),0 0 0 36px rgba(249,115,22,0)}}
+
+/* بطاقات الميزات */
+.feat{width:100%;max-width:880px;display:flex;align-items:center;gap:30px;text-align:right;
+  background:linear-gradient(135deg,rgba(249,115,22,.10),var(--surface) 72%);
+  border:1.5px solid rgba(249,115,22,.22);border-radius:34px;padding:38px 40px}
+.feat .ic{width:104px;height:104px;border-radius:28px;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.feat .ic svg{width:56px;height:56px}
+.feat h3{font-size:46px;font-weight:900;letter-spacing:-.01em}
+.feat p{font-size:30px;color:#94a3b8;margin-top:8px;line-height:1.4}
+.t-primary{background:rgba(249,115,22,.14);border:1.5px solid rgba(249,115,22,.4);color:var(--primary)}
+.t-cyan{background:rgba(6,182,212,.14);border:1.5px solid rgba(6,182,212,.4);color:var(--cyan)}
+.t-violet{background:rgba(124,58,237,.16);border:1.5px solid rgba(124,58,237,.45);color:#a78bfa}
+.t-success{background:rgba(34,197,94,.14);border:1.5px solid rgba(34,197,94,.4);color:var(--success)}
+
+/* بطاقة الموك-أب (نبض المصلحة) */
+.mock{width:560px;background:linear-gradient(135deg,rgba(34,197,94,.10),var(--surface) 70%);
+  border:1.5px solid rgba(34,197,94,.30);border-radius:40px;padding:44px;position:relative;overflow:hidden}
+.mock .mglow{position:absolute;width:360px;height:360px;border-radius:50%;
+  background:radial-gradient(circle,rgba(34,197,94,.4),transparent 70%);inset-inline-end:-120px;top:-120px;opacity:.4}
+.mock .mhead{display:flex;align-items:center;gap:18px;margin-bottom:34px;position:relative}
+.mock .mhead .chip{width:74px;height:74px;border-radius:22px;background:rgba(34,197,94,.16);
+  border:1.5px solid rgba(34,197,94,.45);display:flex;align-items:center;justify-content:center}
+.mock .mhead .chip svg{width:42px;height:42px;color:var(--success)}
+.mock .mhead .t{font-size:38px;font-weight:900}
+.mock .mhead .s{font-size:24px;color:var(--dim)}
+.gauge{width:300px;height:300px;margin:0 auto 26px;position:relative}
+.gauge svg{transform:rotate(-90deg)}
+.gauge .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge .num{font-size:118px;font-weight:900;line-height:1;color:var(--success)}
+.gauge .lab{font-size:26px;color:var(--dim);margin-top:6px}
+.mrow{display:flex;justify-content:space-between;align-items:center;background:var(--card);
+  border:1.5px solid rgba(34,197,94,.18);border-radius:20px;padding:22px 26px;margin-top:16px}
+.mrow .l{font-size:28px;color:#cbd5e1}.mrow .r{font-size:32px;font-weight:900;color:var(--success)}
+
+/* بطاقة السعر */
+.price-card{width:760px;background:linear-gradient(135deg,rgba(217,119,6,.14),var(--surface) 70%);
+  border:1.5px solid rgba(217,119,6,.40);border-radius:42px;padding:60px;position:relative;overflow:hidden}
+.price-card .pglow{position:absolute;width:420px;height:420px;border-radius:50%;
+  background:radial-gradient(circle,rgba(245,158,11,.4),transparent 70%);inset-inline-end:-140px;top:-160px;opacity:.4}
+.price-old{font-size:40px;color:var(--dim);text-decoration:line-through;text-decoration-color:var(--accent);text-decoration-thickness:4px}
+.price-big{font-size:150px;font-weight:900;line-height:1;letter-spacing:-.03em}
+.price-cur{font-size:64px;font-weight:900}
+.price-per{font-size:34px;color:var(--dim)}
+
+/* زر CTA */
+.cta{font-size:50px;font-weight:900;color:#fff;background:var(--g-primary);
+  padding:38px 78px;border-radius:30px;box-shadow:0 24px 80px rgba(249,115,22,.55);
+  display:inline-flex;align-items:center;gap:24px}
+.cta svg{width:48px;height:48px}
+.cta-pulse{animation:ctap 1.8s ease-in-out infinite}
+@keyframes ctap{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.url{font-size:36px;font-weight:800;letter-spacing:.04em;color:var(--primary)}
+.trust{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.trust span{font-size:28px;color:var(--dim);display:inline-flex;align-items:center;gap:12px}
+.trust svg{width:30px;height:30px;color:var(--success)}
+
+/* بادچ صغيرة فوق */
+.badges{display:flex;gap:22px;flex-wrap:wrap;justify-content:center}
+.badges .b{font-size:30px;font-weight:800;padding:16px 30px;border-radius:18px;background:var(--card);border:1.5px solid rgba(249,115,22,.2)}
+
+/* شريط تقدّم + ووترمارك علوي */
+.topbar{position:absolute;top:64px;inset-inline:64px;display:flex;align-items:center;justify-content:space-between;z-index:30}
+.topbar .brand{display:flex;align-items:center;gap:16px;font-size:34px;font-weight:900}
+.topbar .brand .m{width:58px;height:58px;border-radius:16px;background:var(--g-primary);display:flex;align-items:center;justify-content:center}
+.topbar .brand .m svg{width:34px;height:34px}
+.progress{position:absolute;top:0;inset-inline:0;height:10px;background:rgba(255,255,255,.06);z-index:30}
+.progress .bar{height:100%;width:0;background:var(--g-primary);box-shadow:0 0 24px rgba(249,115,22,.7)}
+.dots{position:absolute;bottom:64px;inset-inline:0;display:flex;gap:16px;justify-content:center;z-index:30}
+.dots i{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.18);transition:.3s}
+.dots i.on{background:var(--primary);width:46px;border-radius:9px}
+
+/* لوحة تحكّم صغيرة (تختفي بالتسجيل) */
+#ctrl{position:fixed;bottom:18px;left:18px;z-index:99;display:flex;gap:10px;font-family:'Inter',sans-serif}
+#ctrl button{background:#12152A;color:#F8FAFC;border:1px solid rgba(249,115,22,.4);
+  padding:10px 18px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer}
+#ctrl button:hover{background:#1b2036}
+.hide-ui .topbar,.hide-ui .progress,.hide-ui .dots,.hide-ui #ctrl{display:none!important}
+
+/* جزيئات عائمة */
+.spark{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--primary);opacity:.0}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="reel">
+    <div class="grid"></div>
+    <div class="glow a"></div><div class="glow b"></div><div class="glow c"></div>
+
+    <div class="progress"><div class="bar" id="bar"></div></div>
+
+    <!-- ووترمارك علوي ثابت -->
+    <div class="topbar">
+      <div class="brand">
+        <div class="m">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a6 6 0 0 1 6-6"/><path d="M14 6a6 6 0 0 1 6 6v3"/></svg>
+        </div>
+        <span>Contractor&nbsp;Pro</span>
+      </div>
+      <div style="font-size:28px;color:var(--dim);font-weight:700">إدارة مقاولات</div>
+    </div>
+
+    <!-- ════════ مشهد 1 — الخطّاف (الألم) ════════ -->
+    <section class="scene" data-i="0">
+      <div class="kicker up d1">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        مقاول؟ هاي قصّتك كل شهر
+      </div>
+      <div class="h1 up d2">الزبون بيأخّر الدفع<br><span class="grad">٧٠ يوم…</span></div>
+      <div class="lead up d3">بس الـ <b style="color:#fff"><bdi>מע"מ</bdi></b> والرواتب <b style="color:var(--accent)">ما بستنّوا حدا</b>.</div>
+    </section>
+
+    <!-- ════════ مشهد 2 — تكبير المشكلة (المحاسب) ════════ -->
+    <section class="scene" data-i="1">
+      <div class="h2 up d1">المحاسب بياخد منك<br><span class="grad warm tnum" id="accNum">٠</span> <span class="grad warm">شيكل بالسنة</span></div>
+      <div class="lead up d3">…وما بيدير لك <b style="color:#fff">ولا عامل واحد</b>.</div>
+      <div class="badges up d4">
+        <div class="b">حسابات بالليل</div>
+        <div class="b">خلافات على الأيام</div>
+        <div class="b">غرامات ضريبة</div>
+      </div>
+    </section>
+
+    <!-- ════════ مشهد 3 — الحل (الشعار) ════════ -->
+    <section class="scene" data-i="2">
+      <div class="kicker pop d1">التطبيق الأول للمقاول العربي في إسرائيل</div>
+      <div class="logo pop d2">
+        <div class="mark pulse-ring">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a6 6 0 0 1 6-6"/><path d="M14 6a6 6 0 0 1 6 6v3"/></svg>
+        </div>
+        <div style="text-align:right">
+          <div class="name">Contractor Pro</div>
+          <div class="sub">إدارة مقاولات</div>
+        </div>
+      </div>
+      <div class="lead up d4">كل شغلك — عمّال، رواتب، مصاريف، وضريبة —<br><b style="color:#fff">بالعربي ١٠٠٪ وعلى موبايلك</b>.</div>
+    </section>
+
+    <!-- ════════ مشهد 4 — الميزات السريعة ════════ -->
+    <section class="scene" data-i="3" style="gap:26px;justify-content:center">
+      <div class="h2 up d1" style="font-size:60px;margin-bottom:8px">كل شي محتاجه <span class="grad">في شاشة وحدة</span></div>
+      <div class="feat up d2">
+        <div class="ic t-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div><h3>عمّالك ورواتبهم</h3><p>أيام الشغل، السلف، والخصومات — محسوبة لحالها.</p></div>
+      </div>
+      <div class="feat up d3">
+        <div class="ic t-cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div>
+        <div><h3>ضريبة مظبوطة</h3><p><bdi>מע"מ</bdi> ١٨٪ + ضريبة دخل + <bdi>ביטוח לאומי</bdi> تلقائياً.</p></div>
+      </div>
+      <div class="feat up d4">
+        <div class="ic t-violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></div>
+        <div><h3>بوّابة للعامل</h3><p>يشوف حسابه ويطلب سلفته بنفسه — بدون مكالمات.</p></div>
+      </div>
+      <div class="feat up d5">
+        <div class="ic t-success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg></div>
+        <div><h3>توقّع السيولة</h3><p>تنبيه قبل التورّط + سقف עוסק פטור قبل ما توصله.</p></div>
+      </div>
+    </section>
+
+    <!-- ════════ مشهد 5 — نبض المصلحة (موك-أب حيّ) ════════ -->
+    <section class="scene" data-i="4">
+      <div class="kicker up d1">شوف صحّة مصلحتك بثانية</div>
+      <div class="mock pop d2">
+        <div class="mglow"></div>
+        <div class="mhead">
+          <div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+          <div><div class="t">نبض المصلحة</div><div class="s">صحّة مالية لحظية</div></div>
+        </div>
+        <div class="gauge">
+          <svg width="300" height="300" viewBox="0 0 300 300">
+            <circle cx="150" cy="150" r="130" fill="none" stroke="#12152A" stroke-width="26"/>
+            <circle id="gaugeArc" cx="150" cy="150" r="130" fill="none" stroke="url(#gg)" stroke-width="26" stroke-linecap="round" stroke-dasharray="816.8" stroke-dashoffset="816.8"/>
+            <defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C55E"/><stop offset="1" stop-color="#06B6D4"/></linearGradient></defs>
+          </svg>
+          <div class="val"><div class="num tnum" id="pulseNum">0</div><div class="lab">ممتاز</div></div>
+        </div>
+        <div class="mrow"><span class="l">نقد بالجيب</span><span class="r tnum" id="cashNum">₪0</span></div>
+        <div class="mrow"><span class="l">صافي الربح هالشهر</span><span class="r tnum" id="profNum">+0%</span></div>
+      </div>
+    </section>
+
+    <!-- ════════ مشهد 6 — السعر ════════ -->
+    <section class="scene" data-i="5">
+      <div class="h2 up d1">أرخص من <span class="grad warm">نص سنة محاسب</span></div>
+      <div class="price-card pop d2">
+        <div class="pglow"></div>
+        <div class="price-old up d3">محاسب: ١,٨٠٠₪+ / سنة</div>
+        <div style="display:flex;align-items:baseline;gap:18px;justify-content:center;margin-top:14px" class="up d4">
+          <span class="price-cur grad gold">₪</span>
+          <span class="price-big grad gold tnum" id="priceNum">0</span>
+        </div>
+        <div class="price-per up d5">سنة كاملة — كل المزايا · بدون بطاقة للتجربة</div>
+      </div>
+    </section>
+
+    <!-- ════════ مشهد 7 — CTA ════════ -->
+    <section class="scene" data-i="6">
+      <div class="logo pop d1">
+        <div class="mark pulse-ring">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a6 6 0 0 1 6-6"/><path d="M14 6a6 6 0 0 1 6 6v3"/></svg>
+        </div>
+      </div>
+      <div class="h1 up d2" style="font-size:84px">جرّبه <span class="grad">مجاناً</span> اليوم</div>
+      <div class="cta cta-pulse pop d3" style="margin-top:10px">
+        ابدأ التجربة المجانية
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+      </div>
+      <div class="trust up d5">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>١٤ يوم مجاناً</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>بدون بطاقة</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>بالعربي</span>
+      </div>
+      <div class="url up d6">contractorpro.app</div>
+    </section>
+
+    <div class="dots" id="dots"></div>
+  </div>
+</div>
+
+<div id="ctrl">
+  <button onclick="Reel.replay()">↻ إعادة</button>
+  <button onclick="Reel.toggleUI()">إخفاء الواجهة</button>
+  <button onclick="Reel.fs()">⛶ ملء الشاشة</button>
+</div>
+
+<script>
+/* ── جدول المشاهد (ms) — المجموع ~28s ───────────────────────────────── */
+const SCENES = [
+  { id:0, dur:3600 },  // الألم
+  { id:1, dur:4200 },  // المحاسب
+  { id:2, dur:4200 },  // الحل/الشعار
+  { id:3, dur:6200 },  // الميزات
+  { id:4, dur:4400 },  // نبض المصلحة
+  { id:5, dur:3400 },  // السعر
+  { id:6, dur:5200 },  // CTA
+];
+const TOTAL = SCENES.reduce((a,s)=>a+s.dur,0);
+
+const reel = document.getElementById('reel');
+const scenes = [...document.querySelectorAll('.scene')];
+const bar = document.getElementById('bar');
+const dotsWrap = document.getElementById('dots');
+scenes.forEach((_,i)=>{ const d=document.createElement('i'); dotsWrap.appendChild(d); });
+const dots=[...dotsWrap.children];
+
+/* تحجيم 1080×1920 ليملأ النافذة مع الحفاظ على النسبة */
+function fit(){
+  const s = Math.min(window.innerWidth/1080, window.innerHeight/1920);
+  reel.style.transform = `scale(${s})`;
+}
+window.addEventListener('resize', fit); fit();
+
+/* عدّاد تصاعدي */
+function countUp(el, to, dur, fmt){
+  const start=performance.now();
+  function tick(now){
+    const t=Math.min(1,(now-start)/dur);
+    const e=1-Math.pow(1-t,3);
+    el.textContent = fmt(Math.round(to*e));
+    if(t<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+const arNum = n => n.toLocaleString('ar-EG');
+
+/* مؤثّرات خاصة لكل مشهد عند تفعيله */
+const fx = {
+  1(){ countUp(document.getElementById('accNum'),1800,1400,arNum); },
+  4(){
+    countUp(document.getElementById('pulseNum'),87,1500,n=>n);
+    const arc=document.getElementById('gaugeArc'); const C=816.8;
+    arc.style.transition='stroke-dashoffset 1.5s cubic-bezier(.2,.8,.2,1)';
+    requestAnimationFrame(()=> arc.style.strokeDashoffset = C*(1-0.87));
+    countUp(document.getElementById('cashNum'),84250,1500,n=>'₪'+arNum(n));
+    const pf=document.getElementById('profNum'); countUp({set textContent(v){pf.textContent='+'+v+'%'}},18,1500,n=>n);
+  },
+  5(){ countUp(document.getElementById('priceNum'),990,1400,arNum); },
+};
+function resetFx(){
+  document.getElementById('accNum').textContent='٠';
+  document.getElementById('pulseNum').textContent='0';
+  document.getElementById('cashNum').textContent='₪0';
+  document.getElementById('profNum').textContent='+0%';
+  document.getElementById('priceNum').textContent='0';
+  const arc=document.getElementById('gaugeArc'); arc.style.transition='none'; arc.style.strokeDashoffset=816.8;
+}
+
+let idx=-1, raf, startedAt, paused=false, elapsedBefore=0;
+function show(i){
+  scenes.forEach((s,k)=> s.classList.toggle('active', k===i));
+  dots.forEach((d,k)=> d.classList.toggle('on', k===i));
+  idx=i;
+  if(fx[SCENES[i].id]) fx[SCENES[i].id]();
+}
+function loop(now){
+  if(paused) return;
+  const t=(elapsedBefore + (now-startedAt)) % TOTAL;
+  bar.style.width=(t/TOTAL*100)+'%';
+  // أي مشهد؟
+  let acc=0, cur=0;
+  for(let i=0;i<SCENES.length;i++){ if(t<acc+SCENES[i].dur){cur=i;break;} acc+=SCENES[i].dur; }
+  if(cur!==idx){ if(cur===0) resetFx(); show(cur); }
+  raf=requestAnimationFrame(loop);
+}
+function play(){ startedAt=performance.now(); elapsedBefore=0; resetFx(); raf=requestAnimationFrame(loop); }
+
+const Reel = {
+  replay(){ cancelAnimationFrame(raf); idx=-1; play(); },
+  toggleUI(){ document.body.classList.toggle('hide-ui'); },
+  fs(){ if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); },
+};
+window.Reel = Reel;
+play();
+</script>
+</body>
+</html>
