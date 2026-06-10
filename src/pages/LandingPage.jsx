@@ -292,8 +292,138 @@ function Navbar({ loggedIn }) {
 }
 
 // ─── Phone Mockup ─────────────────────────────────────────────────────────────
-// يحاكي لوحة التطبيق الحقيقية: نبض المصلحة (العدّاد الدائري) + KPIs + مخطّط شهري + مشاريع.
-function PhoneMockup() {
+// يحاكي شاشات التطبيق الحقيقية. لما يُمرَّر له `p` (تقدّم سكرول الـMegaHero)
+// تتبدّل شاشته مع كل مشهد لتطابق وصفه: أيام العمل ← الرواتب ← لوحة الأرباح.
+
+// الشريط السفلي مع تبويب نشط متغيّر حسب الشاشة
+function MiniNav({ active = 0 }) {
+  const icons = [LayoutDashboard, Building2, Users, Wallet, Settings]
+  return (
+    <div style={{ background: `${C.bg}F8`, padding: '8px 6px 10px', display: 'flex', justifyContent: 'space-around', borderTop: `1px solid ${C.border}` }}>
+      {icons.map((Icon, i) => (
+        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+          <Icon size={i === active ? 16 : 13} color={i === active ? C.primary : C.textDim} strokeWidth={i === active ? 2.5 : 1.8} />
+          {i === active && <div style={{ width: 12, height: 2.5, borderRadius: 2, background: GRAD.brand }} />}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// شاشة المشهد 1 — تسجيل أيام العمل (موافقة/رفض)
+function WorkDaysScreen() {
+  const days = [
+    { name: 'محمد ع.', date: 'الإثنين 8/6', type: 'يوم كامل',      state: 'ok'      },
+    { name: 'أحمد س.', date: 'الإثنين 8/6', type: 'نص يوم',        state: 'pending' },
+    { name: 'خالد ر.', date: 'الأحد 7/6',   type: 'يوم كامل',      state: 'ok'      },
+    { name: 'يوسف م.', date: 'الأحد 7/6',   type: 'ساعات إضافية',  state: 'ok'      },
+  ]
+  return (
+    <>
+      <div style={{ padding: '12px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 11, fontWeight: 900, color: C.text }}>أيام العمل</span>
+        <span style={{ fontSize: 7.5, fontWeight: 800, color: C.warning, background: `${C.warning}1c`, border: `1px solid ${C.warning}3a`, borderRadius: 7, padding: '2px 7px' }}>1 بانتظار الموافقة</span>
+      </div>
+      <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {days.map((d, i) => (
+          <div key={i} style={{ background: C.card, borderRadius: 11, padding: '8px 10px', border: `1px solid ${d.state === 'pending' ? `${C.warning}40` : C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 24, height: 24, borderRadius: 8, background: `${C.primary}1c`, border: `1px solid ${C.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <CalendarDays size={11} color={C.primary} strokeWidth={2.2} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 9, fontWeight: 800, color: C.text }}>{d.name}</div>
+              <div style={{ fontSize: 7, color: C.textDim, marginTop: 1 }}>{d.date} · {d.type}</div>
+            </div>
+            {d.state === 'ok' ? (
+              <motion.div animate={{ scale: [1, 1.12, 1] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: i * 0.3 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 3, background: `${C.success}1c`, border: `1px solid ${C.success}3a`, borderRadius: 7, padding: '2px 6px' }}>
+                <CheckCircle2 size={8} color={C.success} strokeWidth={2.5} />
+                <span style={{ fontSize: 6.5, fontWeight: 800, color: C.success }}>موافَق</span>
+              </motion.div>
+            ) : (
+              <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ width: 20, height: 20, borderRadius: 7, background: `${C.success}22`, border: `1px solid ${C.success}55`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle2 size={10} color={C.success} strokeWidth={2.5} />
+                </div>
+                <div style={{ width: 20, height: 20, borderRadius: 7, background: `${C.accent}22`, border: `1px solid ${C.accent}55`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={10} color={C.accent} strokeWidth={2.5} />
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: '8px 10px 10px' }}>
+        <div style={{ background: `linear-gradient(135deg, ${C.primary}14, ${C.card} 70%)`, border: `1px solid ${C.primary}33`, borderRadius: 11, padding: '7px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 7.5, color: C.textDim }}>مسجّل هالأسبوع</span>
+          <span style={{ fontSize: 9, fontWeight: 900, color: C.primary, fontVariantNumeric: 'tabular-nums' }}>12 يوم عمل</span>
+        </div>
+      </div>
+      <div style={{ marginTop: 'auto' }}><MiniNav active={2} /></div>
+    </>
+  )
+}
+
+// شاشة المشهد 2 — الرواتب والسلف
+function PayrollScreen() {
+  const rows = [
+    { name: 'محمد ع.', sub: 'راتب نيسان',  amt: '₪4,250', status: 'مدفوع',    color: C.success },
+    { name: 'أحمد س.', sub: 'راتب نيسان',  amt: '₪3,800', status: 'قيد الدفع', color: C.warning },
+    { name: 'خالد ر.', sub: 'راتب نيسان',  amt: '₪5,100', status: 'مدفوع',    color: C.success },
+    { name: 'يوسف م.', sub: 'سلفة',        amt: '₪600',   status: 'سلفة',     color: C.gold    },
+  ]
+  return (
+    <>
+      <div style={{ padding: '12px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 11, fontWeight: 900, color: C.text }}>الرواتب والسلف</span>
+        <span style={{ fontSize: 8, fontWeight: 900, color: C.cyan, fontVariantNumeric: 'tabular-nums' }}>₪13,750</span>
+      </div>
+      <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {rows.map((r, i) => (
+          <div key={i} style={{ background: C.card, borderRadius: 11, padding: '8px 10px', border: `1px solid ${r.color}26`, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 24, height: 24, borderRadius: 8, background: `${r.color}1c`, border: `1px solid ${r.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Wallet size={11} color={r.color} strokeWidth={2.2} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 9, fontWeight: 800, color: C.text }}>{r.name}</div>
+              <div style={{ fontSize: 7, color: C.textDim, marginTop: 1 }}>{r.sub}</div>
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 9, fontWeight: 900, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{r.amt}</div>
+              <div style={{ fontSize: 6.5, fontWeight: 800, color: r.color, marginTop: 1 }}>{r.status}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: '8px 10px 10px' }}>
+        <div style={{ background: C.card, borderRadius: 11, padding: '8px 10px', border: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+            <span style={{ fontSize: 7.5, color: C.textDim }}>نسبة المدفوع</span>
+            <span style={{ fontSize: 7.5, fontWeight: 800, color: C.success }}>72%</span>
+          </div>
+          <div style={{ height: 3.5, background: `${C.success}18`, borderRadius: 2 }}>
+            <div style={{ height: '100%', width: '72%', borderRadius: 2, background: `linear-gradient(90deg, ${C.success}, ${C.cyan})` }} />
+          </div>
+        </div>
+      </div>
+      <div style={{ marginTop: 'auto' }}><MiniNav active={3} /></div>
+    </>
+  )
+}
+
+// طبقة شاشة مشهد — تتراكب فوق لوحة التحكم وتظهر ضمن نافذة مشهدها فقط.
+function SceneScreen({ p, win, children }) {
+  const [a, b] = win
+  const opacity = useTransform(p, [a, a + FADE, b - FADE, b], [0, 1, 1, 0])
+  const yy = useTransform(p, [a, a + FADE, b - FADE, b], [10, 0, 0, -8])
+  return (
+    <motion.div style={{ position: 'absolute', inset: 0, opacity, y: yy, background: C.bg, display: 'flex', flexDirection: 'column', direction: 'rtl' }}>
+      {children}
+    </motion.div>
+  )
+}
+
+function PhoneMockup({ p }) {
   const score = 87
   const R = 26
   const CIRC = 2 * Math.PI * R
@@ -306,13 +436,6 @@ function PhoneMockup() {
   const mockProjects = [
     { name: 'فيلا رهط',    amount: '₪42,500', pct: 68,  active: true  },
     { name: 'شقة الناصرة', amount: '₪18,000', pct: 100, active: false },
-  ]
-  const navIcons = [
-    { Icon: LayoutDashboard, active: true  },
-    { Icon: Building2,       active: false },
-    { Icon: Users,           active: false },
-    { Icon: Wallet,          active: false },
-    { Icon: Settings,        active: false },
   ]
   return (
     <div className="float" style={{ width: 268, background: C.surface, borderRadius: 42, border: `2px solid rgba(249,115,22,0.15)`, overflow: 'hidden', boxShadow: '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(249,115,22,0.06)' }}>
@@ -338,6 +461,8 @@ function PhoneMockup() {
           </div>
         </div>
       </div>
+      {/* منطقة الشاشة — لوحة التحكم + شاشات المشاهد المتراكبة */}
+      <div style={{ position: 'relative' }}>
       {/* Business Pulse — العدّاد الدائري (توقيع التطبيق) */}
       <div style={{ padding: '12px 10px 0', background: C.bg }}>
         <div style={{ position: 'relative', overflow: 'hidden', background: `linear-gradient(135deg, ${C.success}14, ${C.card} 70%)`, border: `1px solid ${C.success}33`, borderRadius: 14, padding: 11, display: 'flex', alignItems: 'center', gap: 11 }}>
@@ -412,13 +537,10 @@ function PhoneMockup() {
         ))}
       </div>
       {/* Bottom nav */}
-      <div style={{ background: `${C.bg}F8`, padding: '8px 6px 10px', display: 'flex', justifyContent: 'space-around', borderTop: `1px solid ${C.border}` }}>
-        {navIcons.map(({ Icon, active }, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-            <Icon size={active ? 16 : 13} color={active ? C.primary : C.textDim} strokeWidth={active ? 2.5 : 1.8} />
-            {active && <div style={{ width: 12, height: 2.5, borderRadius: 2, background: GRAD.brand }} />}
-          </div>
-        ))}
+      <MiniNav active={0} />
+      {/* شاشات المشاهد — تتبدّل مع وصف كل مشهد */}
+      {p && <SceneScreen p={p} win={sceneWin(0)}><WorkDaysScreen /></SceneScreen>}
+      {p && <SceneScreen p={p} win={sceneWin(1)}><PayrollScreen /></SceneScreen>}
       </div>
     </div>
   )
@@ -654,7 +776,7 @@ function MegaHero() {
               <motion.div style={{ rotateX: tiltX, rotateY: tiltY, transformStyle: 'preserve-3d' }}>
                 <div className="lp-mega-phone">
                   <div style={{ position: 'relative', borderRadius: 42, overflow: 'hidden' }}>
-                    <PhoneMockup />
+                    <PhoneMockup p={p} />
                     <HolographicSheen duration={5} repeatDelay={2.2} opacity={0.22} />
                   </div>
                 </div>
