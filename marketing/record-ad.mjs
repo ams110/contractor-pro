@@ -44,7 +44,7 @@ const initScript = `(() => {
   // شريط النصوص (caption)
   window.__cap = (text) => ready(()=>{ let el=document.getElementById('__cap');
     if(!el){ el=document.createElement('div'); el.id='__cap';
-      el.style.cssText='position:fixed;left:26px;right:26px;bottom:150px;z-index:2147483640;text-align:center;font-weight:800;font-size:31px;line-height:1.35;color:#fff;background:linear-gradient(135deg,rgba(249,115,22,.96),rgba(220,38,38,.94));padding:18px 22px;border-radius:20px;box-shadow:0 16px 46px rgba(0,0,0,.55);pointer-events:none;opacity:0;transition:opacity .4s,transform .4s;transform:translateY(22px)';
+      el.style.cssText='position:fixed;left:30px;right:30px;bottom:185px;z-index:2147483640;text-align:center;font-weight:800;font-size:42px;line-height:1.35;color:#fff;background:linear-gradient(135deg,rgba(249,115,22,.96),rgba(220,38,38,.94));padding:22px 26px;border-radius:24px;box-shadow:0 16px 46px rgba(0,0,0,.55);pointer-events:none;opacity:0;transition:opacity .4s,transform .4s;transform:translateY(22px)';
       document.body.appendChild(el); }
     el.innerHTML=text; requestAnimationFrame(()=>{ el.style.opacity='1'; el.style.transform='translateY(0)'; }); });
   window.__capHide = () => { const el=document.getElementById('__cap'); if(el){ el.style.opacity='0'; el.style.transform='translateY(22px)'; } };
@@ -57,14 +57,14 @@ const initScript = `(() => {
   window.__cardHide = () => { const c=document.getElementById('__card'); if(c) c.style.opacity='0'; };
 })();`;
 
-const HAT = '<svg viewBox="0 0 24 24" width="62" height="62" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a6 6 0 0 1 6-6"/><path d="M14 6a6 6 0 0 1 6 6v3"/></svg>';
+const HAT = '<svg viewBox="0 0 24 24" width="84" height="84" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a6 6 0 0 1 6-6"/><path d="M14 6a6 6 0 0 1 6 6v3"/></svg>';
 const MARK = (sz) => `<div style="width:${sz}px;height:${sz}px;border-radius:${sz*0.28}px;background:linear-gradient(135deg,#F97316,#DC2626);display:flex;align-items:center;justify-content:center;box-shadow:0 24px 70px rgba(249,115,22,.55)">${HAT}</div>`;
 
 const exe = execSync('ls -d /opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell').toString().trim().split('\n')[0];
 const browser = await chromium.launch({ executablePath: exe, args: ['--ignore-certificate-errors'] });
 const ctx = await browser.newContext({
-  viewport: { width: 540, height: 960 }, deviceScaleFactor: 2, ignoreHTTPSErrors: true,
-  recordVideo: { dir: outDir, size: { width: 1080, height: 1920 } },
+  viewport: { width: 720, height: 1280 }, deviceScaleFactor: 2, ignoreHTTPSErrors: true,
+  recordVideo: { dir: outDir, size: { width: 720, height: 1280 } },
 });
 await ctx.addInitScript(([k,v]) => {
   localStorage.setItem(k, v);
@@ -84,31 +84,31 @@ const cardHide = () => page.evaluate(() => window.__cardHide());
 console.log('⏺  تسجيل الإعلان…');
 await page.goto('http://localhost:3000/app', { waitUntil: 'networkidle', timeout: 45000 });
 // إنترو يغطّي التحميل
-await card(`${MARK(150)}
-  <div style="font-size:54px;font-weight:800;line-height:1.15">مقاول؟ كل شغلك<br><span style="color:#F97316">بشاشة وحدة</span></div>
-  <div style="font-size:30px;color:#94a3b8">عمّال · رواتب · ضريبة — بالعربي</div>`);
+await card(`${MARK(190)}
+  <div style="font-size:66px;font-weight:800;line-height:1.15">مقاول؟ كل شغلك<br><span style="color:#F97316">بشاشة وحدة</span></div>
+  <div style="font-size:36px;color:#94a3b8">عمّال · رواتب · ضريبة — بالعربي</div>`);
 await wait(3000);
 await cardHide(); await wait(700);
 
 // لوحة التحكّم
 await cap('نبض مصلحتك ومالك — لحظة بلحظة'); await wait(600);
-await scroll(420, 1400); await wait(1700);
+await scroll(560, 1400); await wait(1700);
 
 // مشاريع
-await page.mouse.click(350, 913); await wait(1500);
-await cap('ربح كل مشروع وهامشه قدامك'); await scroll(300, 1200); await wait(2100);
+await page.mouse.click(440, 1233); await wait(1500);
+await cap('ربح كل مشروع وهامشه قدامك'); await scroll(400, 1200); await wait(2100);
 
 // مالية
-await page.mouse.click(190, 913); await wait(1600);
+await page.mouse.click(280, 1233); await wait(1600);
 await cap('ضريبتك (מע"מ) محسوبة لحالها'); await wait(2400);
 
 // CTA
 await capHide();
-await card(`${MARK(150)}
-  <div style="font-size:60px;font-weight:800;color:#F97316">Contractor Pro</div>
-  <div style="font-size:46px;font-weight:800;line-height:1.2">جرّبه <span style="color:#F97316">مجاناً</span> اليوم</div>
-  <div style="margin-top:6px;font-size:30px;font-weight:700;background:linear-gradient(135deg,#F97316,#DC2626);padding:18px 40px;border-radius:18px;box-shadow:0 18px 50px rgba(249,115,22,.5)">ابدأ التجربة المجانية ←</div>
-  <div style="font-size:26px;color:#94a3b8;margin-top:4px">١٤ يوم مجاناً · بدون بطاقة · بالعربي</div>`);
+await card(`${MARK(190)}
+  <div style="font-size:74px;font-weight:800;color:#F97316">Contractor Pro</div>
+  <div style="font-size:56px;font-weight:800;line-height:1.2">جرّبه <span style="color:#F97316">مجاناً</span> اليوم</div>
+  <div style="margin-top:8px;font-size:36px;font-weight:700;background:linear-gradient(135deg,#F97316,#DC2626);padding:22px 48px;border-radius:22px;box-shadow:0 18px 50px rgba(249,115,22,.5)">ابدأ التجربة المجانية ←</div>
+  <div style="font-size:32px;color:#94a3b8;margin-top:6px">١٤ يوم مجاناً · بدون بطاقة · بالعربي</div>`);
 await wait(3200);
 
 console.log('⏹  انتهى.');

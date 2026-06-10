@@ -73,8 +73,8 @@ const initScript = `(() => {
 const exe = execSync('ls -d /opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell').toString().trim().split('\n')[0];
 const browser = await chromium.launch({ executablePath: exe, args: ['--ignore-certificate-errors'] });
 const ctx = await browser.newContext({
-  viewport: { width: 540, height: 960 }, deviceScaleFactor: 2, ignoreHTTPSErrors: true,
-  recordVideo: { dir: outDir, size: { width: 1080, height: 1920 } },
+  viewport: { width: 720, height: 1280 }, deviceScaleFactor: 2, ignoreHTTPSErrors: true,
+  recordVideo: { dir: outDir, size: { width: 720, height: 1280 } },
 });
 await ctx.addInitScript(([k,v]) => {
   localStorage.setItem(k, v);
@@ -100,7 +100,7 @@ async function tapText(t) {
   return true;
 }
 // مواقع شريط التنقّل السفلي (CSS px في viewport 540×960)
-const NAV = { home:[430,913], projects:[350,913], workers:[270,913], finance:[190,913], settings:[110,913] };
+const NAV = { home:[520,1233], projects:[440,1233], workers:[360,1233], finance:[280,1233], settings:[200,1233] };
 
 console.log('⏺  بدء التسجيل…');
 await page.goto('http://localhost:3000/app', { waitUntil: 'networkidle', timeout: 45000 });
