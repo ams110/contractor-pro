@@ -3,394 +3,275 @@ import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { C } from '../../constants/index.js'
 
-// ─── مشهد الهيرو WebGL (Three.js) ─────────────────────────────────────────────
-// «ورشة بناء حيّة» بهوية amber: برج ينبني طابقاً-طابقاً مع تقدّم السكرول،
-// رافعة تعمل بلا توقّف، عملات رواتب ذهبية تدور حول البرج بمشهد الرواتب،
-// ومخطّط أرباح ثلاثي الأبعاد ينمو بالمشهد الأخير — والكاميرا تطير بين المشاهد.
+// ─── ديوراما «المدينة الحيّة» (Three.js) — هيرو صفحة الهبوط ────────────────────
+// جزيرة عائمة بالفضاء عليها مدينة مقاول مصغّرة: مبانٍ بشبابيك مضيئة بألوان
+// الهوية، شوارع متقاطعة وسيارة تلفّ بلا توقّف، رافعة صغيرة تشتغل، أشجار،
+// ونجوم حوالين الجزيرة. الديوراما تدور ببطء وتتمايل مع الماوس — بلا تثبيت
+// سكرول: مشهد واحد ساحر بيتنفّس.
 //
-// progress: MotionValue من useScroll في LandingPage — يُقرأ بـ.get() داخل
-// useFrame مباشرة (بلا setState ولا re-render — كل الحركة على الـGPU/RAF).
-// الملف يُحمَّل lazy حتى ما يثقّل فتح الصفحة (three بchunk مستقل).
+// يُحمَّل lazy (three بchunk مستقل). useFrame فقط — صفر setState.
 
-const clamp01 = (v) => Math.min(1, Math.max(0, v))
-const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t) }
-const easeOut = (t) => 1 - Math.pow(1 - clamp01(t), 3)
+const TAU = Math.PI * 2
 
-// ─── الحالة المشتركة — تُحدَّث مرة كل فريم ويقرأها كل عنصر ────────────────────
-function Driver({ progress, shared }) {
-  useFrame((state) => {
-    const v = clamp01(progress?.get?.() ?? 0)
-    shared.p = v
-    shared.t = state.clock.elapsedTime
-    // البرج مبني جزئياً بالهيرو، وينبني بالكامل خلال مشهد «أيام الشغل»
-    shared.build = 0.34 + 0.66 * smooth(0.26, 0.47, v)
-    // عملات الرواتب تظهر بمشهد «الرواتب» فقط
-    shared.coins = smooth(0.5, 0.58, v) * (1 - smooth(0.71, 0.78, v))
-    // مخطّط الأرباح ينمو بالمشهد الأخير ويبقى
-    shared.bars = smooth(0.76, 0.92, v)
-  })
-  return null
-}
-
-// ─── البرج — طوابق تنزل من السماء وتتصلّب من هولوغرام لخرسانة ─────────────────
-const FLOORS = 5
-const BLOCK = 1.35
-const GAP = 0.14
-const BLOCKS = []
-{
-  let i = 0
-  for (let f = 0; f < FLOORS; f++)
-    for (let z = 0; z < 2; z++)
-      for (let x = 0; x < 2; x++)
-        BLOCKS.push({
-          i: i++,
-          pos: [(x - 0.5) * (BLOCK + GAP), f * (BLOCK + GAP) + BLOCK / 2, (z - 0.5) * (BLOCK + GAP)],
-        })
-}
-const TOTAL = BLOCKS.length
-const BOX_GEOM = new THREE.BoxGeometry(BLOCK, BLOCK, BLOCK)
-const EDGE_GEOM = new THREE.EdgesGeometry(BOX_GEOM)
-
-function Block({ i, pos, shared }) {
-  const grp = useRef()
-  const solidMat = useRef()
-  const holoMat = useRef()
-  useFrame(() => {
-    const g = grp.current
-    if (!g) return
-    // appear ∈ [0,1]: كل مكعّب يظهر بدوره حسب build (تتابع طابقي)
-    const a = clamp01((shared.build * (TOTAL + 3) - i) / 3)
-    const e = easeOut(a)
-    g.visible = a > 0.002
-    g.position.set(pos[0], pos[1] + (1 - e) * 3.4, pos[2])
-    g.scale.setScalar(0.35 + 0.65 * e)
-    // يبدأ هولوغرام سلكي amber ويتصلّب لكتلة معتمة (يبقى خيط توهّج خفيف)
-    if (solidMat.current) solidMat.current.opacity = e
-    if (holoMat.current) holoMat.current.opacity = 0.9 - 0.65 * e
-  })
-  return (
-    <group ref={grp} visible={false}>
-      <mesh geometry={BOX_GEOM}>
-        <meshStandardMaterial ref={solidMat} color={C.card} roughness={0.3} metalness={0.55}
-          emissive={C.primary} emissiveIntensity={0.06} transparent opacity={0} />
-      </mesh>
-      <lineSegments geometry={EDGE_GEOM}>
-        <lineBasicMaterial ref={holoMat} color={C.primary} transparent opacity={0.9} />
-      </lineSegments>
-    </group>
-  )
-}
-
-function Tower({ shared }) {
-  const beacon = useRef()
-  const topY = FLOORS * (BLOCK + GAP) + 0.32
-  useFrame(() => {
-    const b = beacon.current
-    if (!b) return
-    const k = smooth(0.93, 1, shared.build)
-    b.visible = k > 0.01
-    const pulse = 1 + Math.sin(shared.t * 3) * 0.25
-    b.scale.setScalar(k * pulse)
-  })
-  return (
-    <group>
-      {BLOCKS.map((blk) => <Block key={blk.i} i={blk.i} pos={blk.pos} shared={shared} />)}
-      {/* منارة القمة — تنبض لما يكتمل البناء */}
-      <mesh ref={beacon} position={[0, topY, 0]} visible={false}>
-        <sphereGeometry args={[0.17, 16, 16]} />
-        <meshStandardMaterial color={C.primary} emissive={C.primary} emissiveIntensity={2.2} />
-      </mesh>
-    </group>
-  )
-}
-
-// ─── الرافعة — تدور وتمدّ الكيبل بلا توقّف، وخطافها يحمل حمولة حيّة ──────────
-// الحمولة 3D حقيقية جوّا المشهد (تنحجب وراء البرج وتاخد الإضاءة والضباب):
-// كتلة بناء هولوغرام amber افتراضياً — وبمشهد الرواتب تتبدّل لمنصّة سبائك ذهبية.
-const LOAD_BOX = new THREE.BoxGeometry(0.78, 0.78, 0.78)
-const LOAD_EDGES = new THREE.EdgesGeometry(LOAD_BOX)
-const INGOTS = [
-  [-0.2, 0.08, -0.1], [0.2, 0.08, -0.1], [0, 0.08, 0.16],
-  [-0.1, 0.24, 0.02], [0.12, 0.24, 0.02],
-  [0, 0.4, 0.02],
+// ─── بيانات المدينة (ثابتة) ───────────────────────────────────────────────────
+// مبانٍ موزّعة على 4 أرباع حول تقاطع شارعين. h=الارتفاع، c=لون الشبابيك.
+const BUILDINGS = [
+  { x: -2.3, z: -2.2, w: 1.3, d: 1.3, h: 2.9, c: C.primary   },
+  { x: -0.9, z: -2.5, w: 0.9, d: 0.9, h: 1.7, c: C.cyan      },
+  { x: -2.6, z: -0.8, w: 1.0, d: 1.0, h: 2.2, c: C.gold      },
+  { x:  2.2, z: -2.3, w: 1.4, d: 1.2, h: 3.4, c: C.secondary },
+  { x:  0.9, z: -2.4, w: 0.8, d: 0.8, h: 1.4, c: C.primary   },
+  { x:  2.5, z: -0.9, w: 1.0, d: 1.1, h: 1.9, c: C.cyan      },
+  { x: -2.3, z:  2.3, w: 1.2, d: 1.3, h: 2.4, c: C.cyan      },
+  { x: -0.9, z:  2.5, w: 0.9, d: 0.8, h: 1.6, c: C.secondary },
+  { x:  2.4, z:  2.2, w: 1.3, d: 1.3, h: 2.0, c: C.gold      },
+  { x:  1.0, z:  2.5, w: 0.8, d: 0.9, h: 2.7, c: C.primary   },
+  { x:  2.6, z:  0.9, w: 0.9, d: 0.9, h: 1.3, c: C.gold      },
 ]
-function Crane({ shared }) {
-  const slew = useRef()
-  const trolley = useRef()
-  const cable = useRef()
-  const hook = useRef()
-  const load = useRef()
-  const block = useRef()
-  const gold = useRef()
-  useFrame(() => {
-    const t = shared.t
-    // الذراع مائلة نحو الكاميرا وبعيدة عن البرج — حتى تبان الحمولة بوضوح
-    if (slew.current) slew.current.rotation.y = Math.sin(t * 0.16) * 0.45 - 1.2
-    if (trolley.current) trolley.current.position.x = 1.5 + Math.sin(t * 0.23 + 1) * 1.1
-    // كيبل أهدأ — في حمولة معلّقة فيه. بمشهد العنوان (p≈0) أطول حتى تتدلّى
-    // الحمولة بعيداً عن النص المركزي، وترتفع لما تبدأ المشاهد.
-    const len = 2.4 + Math.sin(t * 0.3) * 0.5 + 1.2 * (1 - smooth(0.12, 0.26, shared.p))
-    if (cable.current) { cable.current.scale.y = len; cable.current.position.y = -len / 2 }
-    if (hook.current) hook.current.position.y = -len
-    // الحمولة: تتبع الخطاف + تأرجح بندولي + دوران بطيء
-    if (load.current) {
-      load.current.position.y = -len - 0.62
-      load.current.rotation.z = Math.sin(t * 0.7) * 0.07
-      load.current.rotation.y = t * 0.25
-    }
-    // تبديل الحمولة: كتلة بناء ↔ سبائك ذهب (مشهد الرواتب)
-    const g = shared.coins
-    if (block.current) block.current.scale.setScalar(Math.max(0.001, 1 - g))
-    if (gold.current) gold.current.scale.setScalar(Math.max(0.001, g))
+const TREES = [
+  [-1.6, -1.4], [1.5, -1.5], [-1.5, 1.5], [1.6, 1.4], [-2.9, 0.2], [2.9, -0.1],
+]
+
+// مبنى واحد: جسم + سطح ملوّن + شرائط شبابيك مضيئة على واجهتين
+function Building({ b, i }) {
+  const winRef = useRef()
+  useFrame(({ clock }) => {
+    // وميض حيوي خفيف للشبابيك — كل مبنى بإيقاعه
+    if (winRef.current) winRef.current.emissiveIntensity = 1.15 + Math.sin(clock.elapsedTime * 1.3 + i * 2.1) * 0.35
   })
-  const steel = { color: C.primary, roughness: 0.4, metalness: 0.45, emissive: C.primary, emissiveIntensity: 0.22 }
+  const floors = Math.max(2, Math.round(b.h / 0.55))
+  const strips = []
+  for (let f = 0; f < floors; f++) {
+    const y = 0.34 + f * (b.h - 0.5) / floors
+    strips.push(y)
+  }
   return (
-    <group position={[-3.7, 0, -1.5]}>
-      <group ref={slew}>
-        {/* الصاري + الكابينة */}
-        <mesh position={[0, 3.9, 0]}><boxGeometry args={[0.22, 7.8, 0.22]} /><meshStandardMaterial {...steel} /></mesh>
-        <mesh position={[0, 7.95, 0]}><boxGeometry args={[0.55, 0.5, 0.55]} /><meshStandardMaterial color={C.card} roughness={0.3} metalness={0.6} emissive={C.primary} emissiveIntensity={0.12} /></mesh>
-        {/* الذراع الأمامية + الخلفية + ثقل الموازنة */}
-        <mesh position={[1.95, 8.3, 0]}><boxGeometry args={[4.4, 0.18, 0.18]} /><meshStandardMaterial {...steel} /></mesh>
-        <mesh position={[-1.2, 8.3, 0]}><boxGeometry args={[1.7, 0.18, 0.18]} /><meshStandardMaterial {...steel} /></mesh>
-        <mesh position={[-1.9, 7.9, 0]}><boxGeometry args={[0.5, 0.62, 0.5]} /><meshStandardMaterial color={C.card} roughness={0.35} metalness={0.55} /></mesh>
-        {/* العربة + الكيبل + الخطاف */}
-        <group ref={trolley} position={[1.5, 8.15, 0]}>
-          <mesh ref={cable} position={[0, -1.35, 0]}>
-            <cylinderGeometry args={[0.016, 0.016, 1, 4]} />
-            <meshBasicMaterial color={C.gold} />
+    <group position={[b.x, 0, b.z]}>
+      {/* الجسم */}
+      <mesh position={[0, b.h / 2, 0]} castShadow>
+        <boxGeometry args={[b.w, b.h, b.d]} />
+        <meshStandardMaterial color="#1C2348" roughness={0.55} metalness={0.25} />
+      </mesh>
+      {/* السطح */}
+      <mesh position={[0, b.h + 0.045, 0]}>
+        <boxGeometry args={[b.w * 0.96, 0.09, b.d * 0.96]} />
+        <meshStandardMaterial color={b.c} emissive={b.c} emissiveIntensity={0.35} roughness={0.4} metalness={0.3} />
+      </mesh>
+      {/* شرائط الشبابيك (واجهتان متعامدتان حتى تبان من كل زوايا الدوران) */}
+      {strips.map((y, f) => (
+        <group key={f}>
+          <mesh position={[0, y, b.d / 2 + 0.012]}>
+            <boxGeometry args={[b.w * 0.72, 0.16, 0.02]} />
+            <meshStandardMaterial ref={f === 0 ? winRef : undefined} color={b.c} emissive={b.c} emissiveIntensity={1.15} toneMapped={false} />
           </mesh>
-          <mesh ref={hook} position={[0, -2.7, 0]}>
-            <boxGeometry args={[0.24, 0.24, 0.24]} />
-            <meshStandardMaterial color={C.gold} emissive={C.gold} emissiveIntensity={0.6} roughness={0.3} metalness={0.5} />
+          <mesh position={[b.w / 2 + 0.012, y, 0]}>
+            <boxGeometry args={[0.02, 0.16, b.d * 0.72]} />
+            <meshStandardMaterial color={b.c} emissive={b.c} emissiveIntensity={0.9} toneMapped={false} />
           </mesh>
-          {/* الحمولة المعلّقة تحت الخطاف */}
-          <group ref={load} position={[0, -3.3, 0]}>
-            {/* جنازير التعليق الأربعة */}
-            {[[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]].map(([x, z], i) => (
-              <mesh key={i} position={[x * 0.55, 0.36, z * 0.55]} rotation={[z * 0.72, 0, -x * 0.72]}>
-                <cylinderGeometry args={[0.012, 0.012, 0.55, 4]} />
-                <meshBasicMaterial color={C.gold} />
-              </mesh>
-            ))}
-            {/* كتلة بناء هولوغرام — نفس لغة مكعبات البرج */}
-            <group ref={block}>
-              <mesh geometry={LOAD_BOX}>
-                <meshStandardMaterial color={C.card} roughness={0.3} metalness={0.55} emissive={C.primary} emissiveIntensity={0.22} transparent opacity={0.88} />
-              </mesh>
-              <lineSegments geometry={LOAD_EDGES}>
-                <lineBasicMaterial color={C.primary} transparent opacity={0.85} />
-              </lineSegments>
-            </group>
-            {/* منصّة سبائك ذهبية — تظهر بمشهد الرواتب */}
-            <group ref={gold} scale={[0.001, 0.001, 0.001]} position={[0, -0.32, 0]}>
-              <mesh position={[0, -0.04, 0]}>
-                <boxGeometry args={[0.78, 0.07, 0.62]} />
-                <meshStandardMaterial color={C.card} roughness={0.5} metalness={0.4} emissive={C.gold} emissiveIntensity={0.12} />
-              </mesh>
-              {INGOTS.map(([x, y, z], i) => (
-                <mesh key={i} position={[x, y, z]} rotation={[0, (i % 3) * 0.5, 0]}>
-                  <boxGeometry args={[0.34, 0.13, 0.17]} />
-                  <meshStandardMaterial color={C.gold} emissive={C.gold} emissiveIntensity={0.65} roughness={0.25} metalness={0.75} />
-                </mesh>
-              ))}
-            </group>
-          </group>
         </group>
+      ))}
+    </group>
+  )
+}
+
+// شجرة مصغّرة: جذع + كرتي أوراق
+function Tree({ x, z }) {
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 0.17, 0]}>
+        <cylinderGeometry args={[0.035, 0.05, 0.34, 5]} />
+        <meshStandardMaterial color="#6B4226" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.46, 0]}>
+        <sphereGeometry args={[0.21, 8, 8]} />
+        <meshStandardMaterial color="#1E8F5A" roughness={0.7} emissive="#1E8F5A" emissiveIntensity={0.12} />
+      </mesh>
+      <mesh position={[0.07, 0.64, 0.04]}>
+        <sphereGeometry args={[0.13, 8, 8]} />
+        <meshStandardMaterial color="#27AE6B" roughness={0.7} emissive="#27AE6B" emissiveIntensity={0.12} />
+      </mesh>
+    </group>
+  )
+}
+
+// رافعة صغيرة بزاوية الجزيرة — توقيع «المقاول» — تدور ببطء
+function MiniCrane() {
+  const slew = useRef()
+  useFrame(({ clock }) => {
+    if (slew.current) slew.current.rotation.y = Math.sin(clock.elapsedTime * 0.22) * 0.9
+  })
+  const steel = { color: C.primary, roughness: 0.45, metalness: 0.4, emissive: C.primary, emissiveIntensity: 0.3 }
+  return (
+    <group position={[-0.1, 0, -0.1]} scale={[0.62, 0.62, 0.62]}>
+      <group ref={slew}>
+        <mesh position={[0, 1.9, 0]}><boxGeometry args={[0.12, 3.8, 0.12]} /><meshStandardMaterial {...steel} /></mesh>
+        <mesh position={[0.85, 3.85, 0]}><boxGeometry args={[2.1, 0.1, 0.1]} /><meshStandardMaterial {...steel} /></mesh>
+        <mesh position={[-0.55, 3.85, 0]}><boxGeometry args={[0.8, 0.1, 0.1]} /><meshStandardMaterial {...steel} /></mesh>
+        <mesh position={[-0.85, 3.65, 0]}><boxGeometry args={[0.26, 0.3, 0.26]} /><meshStandardMaterial color="#1C2348" roughness={0.5} metalness={0.4} /></mesh>
+        <mesh position={[1.55, 3.3, 0]}><cylinderGeometry args={[0.012, 0.012, 1.0, 4]} /><meshBasicMaterial color={C.gold} /></mesh>
+        <mesh position={[1.55, 2.74, 0]}><boxGeometry args={[0.14, 0.14, 0.14]} /><meshStandardMaterial color={C.gold} emissive={C.gold} emissiveIntensity={0.8} /></mesh>
       </group>
     </group>
   )
 }
 
-// ─── عملات الرواتب — حلقة ذهبية تدور حول البرج بمشهد الرواتب ──────────────────
-const COINS = Array.from({ length: 12 }, (_, i) => ({
-  a0: (i / 12) * Math.PI * 2,
-  h: 1.7 + (i % 4) * 1.15,
-  r: 3.1 + (i % 3) * 0.45,
-  sp: 0.4 + (i % 3) * 0.13,
-}))
-function Coins({ shared }) {
+// سيارة صغيرة تلفّ على حلقة الشوارع بلا توقّف
+function Car() {
   const grp = useRef()
-  const refs = useRef([])
-  useFrame(() => {
-    const k = shared.coins
-    if (!grp.current) return
-    grp.current.visible = k > 0.01
-    if (k <= 0.01) return
-    COINS.forEach((c, i) => {
-      const m = refs.current[i]
-      if (!m) return
-      const a = c.a0 + shared.t * c.sp
-      m.position.set(Math.cos(a) * c.r, c.h + Math.sin(shared.t * 1.3 + i) * 0.25, Math.sin(a) * c.r)
-      m.rotation.set(Math.PI / 2, 0, a * 2)
-      m.scale.setScalar(k)
-    })
+  useFrame(({ clock }) => {
+    const g = grp.current
+    if (!g) return
+    const t = clock.elapsedTime * 0.35
+    // مسار مربّع مدوّر الزوايا حول التقاطع (نصف قطر 1.7 مع تليين)
+    const a = (t % 1) * TAU
+    const r = 1.72 / Math.pow(Math.abs(Math.cos(a)) ** 6 + Math.abs(Math.sin(a)) ** 6, 1 / 6)
+    const x = Math.cos(a) * r
+    const z = Math.sin(a) * r
+    g.position.set(x, 0.12, z)
+    g.rotation.y = -a - Math.PI / 2
   })
   return (
-    <group ref={grp} visible={false}>
-      {COINS.map((c, i) => (
-        <mesh key={i} ref={(el) => { refs.current[i] = el }}>
-          <cylinderGeometry args={[0.27, 0.27, 0.07, 20]} />
-          <meshStandardMaterial color={C.gold} emissive={C.gold} emissiveIntensity={0.75} roughness={0.25} metalness={0.7} />
-        </mesh>
+    <group ref={grp}>
+      <mesh position={[0, 0.05, 0]}>
+        <boxGeometry args={[0.34, 0.12, 0.17]} />
+        <meshStandardMaterial color={C.cyan} emissive={C.cyan} emissiveIntensity={0.45} roughness={0.3} metalness={0.5} />
+      </mesh>
+      <mesh position={[0.02, 0.14, 0]}>
+        <boxGeometry args={[0.17, 0.08, 0.14]} />
+        <meshStandardMaterial color="#0E1430" roughness={0.3} metalness={0.5} />
+      </mesh>
+      {/* ضوء أمامي متوهّج */}
+      <mesh position={[0.18, 0.05, 0]}>
+        <boxGeometry args={[0.02, 0.05, 0.12]} />
+        <meshStandardMaterial color="#FFF3D6" emissive="#FFF3D6" emissiveIntensity={2} toneMapped={false} />
+      </mesh>
+    </group>
+  )
+}
+
+// الجزيرة: قاعدة + حافة متوهّجة + شوارع + صخرة سفلية مقلوبة
+function Island() {
+  return (
+    <group>
+      {/* سطح الجزيرة */}
+      <mesh position={[0, -0.14, 0]} receiveShadow>
+        <boxGeometry args={[7.4, 0.28, 7.4]} />
+        <meshStandardMaterial color="#141A38" roughness={0.85} metalness={0.1} />
+      </mesh>
+      {/* حافة متوهّجة amber */}
+      <mesh position={[0, -0.285, 0]}>
+        <boxGeometry args={[7.55, 0.045, 7.55]} />
+        <meshStandardMaterial color={C.primary} emissive={C.primary} emissiveIntensity={1.4} toneMapped={false} />
+      </mesh>
+      {/* قاع الجزيرة — هرم مقلوب (روح الجزيرة العائمة) */}
+      <mesh position={[0, -1.55, 0]} rotation={[Math.PI, Math.PI / 4, 0]}>
+        <coneGeometry args={[5.1, 2.5, 4]} />
+        <meshStandardMaterial color="#0E1330" roughness={0.9} metalness={0.05} />
+      </mesh>
+      {/* شارعان متقاطعان */}
+      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[7.4, 0.85]} />
+        <meshStandardMaterial color="#0B0F26" roughness={0.95} />
+      </mesh>
+      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+        <planeGeometry args={[7.4, 0.85]} />
+        <meshStandardMaterial color="#0B0F26" roughness={0.95} />
+      </mesh>
+      {/* خطوط الشارع المضيئة */}
+      {[-2.8, -1.9, 1.9, 2.8].map((p, i) => (
+        <group key={i}>
+          <mesh position={[p, 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.42, 0.05]} />
+            <meshStandardMaterial color={C.gold} emissive={C.gold} emissiveIntensity={0.9} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 0.012, p]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+            <planeGeometry args={[0.42, 0.05]} />
+            <meshStandardMaterial color={C.gold} emissive={C.gold} emissiveIntensity={0.9} toneMapped={false} />
+          </mesh>
+        </group>
       ))}
     </group>
   )
 }
 
-// ─── مخطّط الأرباح 3D — أعمدة تنمو بتدرّج amber→أخضر بالمشهد الأخير ──────────
-const BARS = [0.6, 0.95, 0.8, 1.35, 1.2, 1.75, 2.3]
-const BAR_COLORS = BARS.map((_, i) =>
-  new THREE.Color(C.primary).lerp(new THREE.Color(C.success), i / (BARS.length - 1)))
-function Bars({ shared }) {
-  const grp = useRef()
-  const refs = useRef([])
-  useFrame(() => {
-    const k = shared.bars
-    if (!grp.current) return
-    grp.current.visible = k > 0.01
-    if (k <= 0.01) return
-    BARS.forEach((h, i) => {
-      const m = refs.current[i]
-      if (!m) return
-      const kk = clamp01(k * 2.1 - i * 0.16)            // نموّ متتابع عمود-عمود
-      const hh = Math.max(0.001, h * easeOut(kk))
-      m.scale.y = hh
-      m.position.y = hh / 2
-    })
-  })
-  return (
-    <group ref={grp} position={[2.7, 0, 2.7]} rotation={[0, -0.55, 0]} visible={false}>
-      {BARS.map((h, i) => (
-        <mesh key={i} ref={(el) => { refs.current[i] = el }} position={[i * 0.56, 0.001, 0]} scale={[1, 0.001, 1]}>
-          <boxGeometry args={[0.42, 1, 0.42]} />
-          <meshStandardMaterial color={BAR_COLORS[i]} emissive={BAR_COLORS[i]} emissiveIntensity={0.45} roughness={0.35} metalness={0.3} />
-        </mesh>
-      ))}
-    </group>
-  )
-}
-
-// ─── غبار مضيء يصعد ببطء (amber/بنفسجي/سماوي) ────────────────────────────────
-function Particles({ count, shared }) {
-  const geo = useRef()
+// نجوم/غبار مضيء حول الجزيرة
+function Stars({ count }) {
   const data = useMemo(() => {
     const pos = new Float32Array(count * 3)
     const col = new Float32Array(count * 3)
-    const sp = new Float32Array(count)
-    const palette = [C.primary, C.secondary, C.cyan].map((c) => new THREE.Color(c))
+    const palette = ['#FFFFFF', C.primary, C.cyan, C.secondary].map((c) => new THREE.Color(c))
     for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 19
-      pos[i * 3 + 1] = Math.random() * 9.5
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 15
-      const c = palette[i % 3]
+      // قشرة كروية حول المشهد
+      const r = 11 + Math.random() * 14
+      const th = Math.random() * TAU
+      const ph = Math.acos(2 * Math.random() - 1)
+      pos[i * 3] = r * Math.sin(ph) * Math.cos(th)
+      pos[i * 3 + 1] = Math.abs(r * Math.cos(ph)) * 0.7 - 2.5
+      pos[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th)
+      const c = palette[i % palette.length]
       col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b
-      sp[i] = 0.25 + Math.random() * 0.6
     }
-    return { pos, col, sp }
+    return { pos, col }
   }, [count])
-  useFrame((_, dt) => {
-    const attr = geo.current?.attributes?.position
-    if (!attr) return
-    for (let i = 0; i < count; i++) {
-      let y = attr.array[i * 3 + 1] + data.sp[i] * Math.min(dt, 0.05)
-      if (y > 9.5) y = 0
-      attr.array[i * 3 + 1] = y
-    }
-    attr.needsUpdate = true
-  })
-  // shared غير مستعمل هنا لكنه يُمرَّر اتساقاً مع باقي العناصر
-  void shared
   return (
     <points>
-      <bufferGeometry ref={geo}>
+      <bufferGeometry>
         <bufferAttribute attach="attributes-position" count={count} array={data.pos} itemSize={3} />
         <bufferAttribute attach="attributes-color" count={count} array={data.col} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial size={0.07} vertexColors transparent opacity={0.75} sizeAttenuation depthWrite={false} blending={THREE.AdditiveBlending} />
+      <pointsMaterial size={0.075} vertexColors transparent opacity={0.85} sizeAttenuation depthWrite={false} blending={THREE.AdditiveBlending} />
     </points>
   )
 }
 
-// ─── الكاميرا — مسار keyframes مربوط بالسكرول + انجراف حي + بارالاكس الماوس ───
-const KEYS = [
-  { p: 0.00, pos: new THREE.Vector3(0, 3.6, 11.6), look: new THREE.Vector3(0, 2.8, 0) },     // الهيرو: واجهة الورشة
-  { p: 0.24, pos: new THREE.Vector3(4.8, 3.4, 9.2), look: new THREE.Vector3(-0.4, 3.0, 0) }, // مشهد 1: قريب من البرج وهو ينبني
-  { p: 0.50, pos: new THREE.Vector3(9.4, 5.6, 7.0), look: new THREE.Vector3(-1.9, 3.3, 0) }, // مشهد 2: مدار العملات + سبائك الرافعة
-  { p: 0.76, pos: new THREE.Vector3(-7.2, 4.6, 7.2), look: new THREE.Vector3(0.4, 3.2, 0) }, // انتقال من جهة الرافعة
-  { p: 1.001, pos: new THREE.Vector3(1.2, 6.0, 11.6), look: new THREE.Vector3(1.5, 2.1, 1.2) }, // مشهد 3: مخطّط الأرباح (+التلفون عاليسار)
-]
-function Rig({ shared, mouse }) {
+// دوران الديوراما + طفو + ميلان مع الماوس
+function Rig({ mouse, diorama }) {
   const { camera } = useThree()
-  const cur = useMemo(() => ({
-    pos: new THREE.Vector3().copy(KEYS[0].pos),
-    look: new THREE.Vector3().copy(KEYS[0].look),
-    tp: new THREE.Vector3(), tl: new THREE.Vector3(),
-  }), [])
-  useFrame((_, dt) => {
-    const v = clamp01(shared.p)
-    let k = 0
-    while (k < KEYS.length - 2 && v > KEYS[k + 1].p) k++
-    const A = KEYS[k], B = KEYS[k + 1]
-    const f = smooth(A.p, B.p, v)
-    cur.tp.lerpVectors(A.pos, B.pos, f)
-    cur.tl.lerpVectors(A.look, B.look, f)
-    // انجراف حي خفيف + بارالاكس الماوس
-    const t = shared.t
-    const mx = mouse?.current?.x || 0
-    const my = mouse?.current?.y || 0
-    cur.tp.x += Math.sin(t * 0.3) * 0.25 + mx * 0.8
-    cur.tp.y += Math.cos(t * 0.23) * 0.15 - my * 0.5
-    // تنعيم مستقل عن معدّل الفريمات
-    const lam = 3.2
-    cur.pos.x = THREE.MathUtils.damp(cur.pos.x, cur.tp.x, lam, dt)
-    cur.pos.y = THREE.MathUtils.damp(cur.pos.y, cur.tp.y, lam, dt)
-    cur.pos.z = THREE.MathUtils.damp(cur.pos.z, cur.tp.z, lam, dt)
-    cur.look.x = THREE.MathUtils.damp(cur.look.x, cur.tl.x, lam, dt)
-    cur.look.y = THREE.MathUtils.damp(cur.look.y, cur.tl.y, lam, dt)
-    cur.look.z = THREE.MathUtils.damp(cur.look.z, cur.tl.z, lam, dt)
-    camera.position.copy(cur.pos)
-    camera.lookAt(cur.look)
+  useFrame(({ clock }, dt) => {
+    const t = clock.elapsedTime
+    const g = diorama.current
+    if (g) {
+      g.rotation.y = t * 0.09
+      g.position.y = Math.sin(t * 0.5) * 0.14
+      // ميلان لطيف نحو المؤشّر
+      const mx = mouse?.current?.x || 0
+      const my = mouse?.current?.y || 0
+      g.rotation.x = THREE.MathUtils.damp(g.rotation.x, my * 0.1, 3, dt)
+      g.rotation.z = THREE.MathUtils.damp(g.rotation.z, -mx * 0.08, 3, dt)
+    }
+    camera.lookAt(0, 0.9, 0)
   })
   return null
 }
 
-// ─── المشهد الكامل ────────────────────────────────────────────────────────────
-export default function HeroScene({ progress, mouse, low = false }) {
-  const shared = useMemo(() => ({ p: 0, t: 0, build: 0.34, coins: 0, bars: 0 }), [])
+export default function HeroScene({ mouse, low = false }) {
+  const diorama = useRef()
   return (
-    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      <Canvas
-        dpr={low ? [1, 1.6] : [1, 2]}
-        gl={{ antialias: !low, powerPreference: 'high-performance' }}
-        camera={{ fov: low ? 54 : 42, near: 0.1, far: 70, position: [0, 3.6, 11.6] }}
-        style={{ position: 'absolute', inset: 0 }}
-      >
-        <color attach="background" args={[C.bg]} />
-        <fog attach="fog" args={[C.bg, 15, 42]} />
-        <Driver progress={progress} shared={shared} />
-        <Rig shared={shared} mouse={mouse} />
+    <Canvas
+      dpr={low ? [1, 1.6] : [1, 2]}
+      gl={{ antialias: !low, powerPreference: 'high-performance', alpha: true }}
+      camera={{ fov: low ? 50 : 34, near: 0.1, far: 80, position: [8.6, 7.0, 8.6] }}
+      style={{ position: 'absolute', inset: 0 }}
+    >
+      {/* خلفية شفافة — توهّجات الصفحة خلف الـCanvas تبان */}
+      <Rig mouse={mouse} diorama={diorama} />
 
-        {/* إضاءة بهوية amber/بنفسجي/سماوي */}
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[6, 10, 5]} intensity={1.5} color="#FFE9D6" />
-        <pointLight position={[5, 6, 5]} intensity={90} color={C.primary} />
-        <pointLight position={[-6, 5, -3]} intensity={70} color={C.secondary} />
-        <pointLight position={[0, 2.5, 6.5]} intensity={36} color={C.cyan} />
+      {/* إضاءة دافئة مشرقة بهوية amber */}
+      <ambientLight intensity={0.55} />
+      <hemisphereLight args={['#3A3F6E', '#0B0F26', 0.7]} />
+      <directionalLight position={[6, 9, 4]} intensity={1.9} color="#FFE2BD" />
+      <pointLight position={[-7, 5, -4]} intensity={55} color={C.secondary} />
+      <pointLight position={[5, 3, 7]} intensity={40} color={C.cyan} />
+      <pointLight position={[0, 5.5, 0]} intensity={28} color={C.primary} />
 
-        <Tower shared={shared} />
-        <Crane shared={shared} />
-        <Coins shared={shared} />
-        <Bars shared={shared} />
-        <Particles count={low ? 120 : 220} shared={shared} />
-
-        {/* الأرضية + شبكة الورشة */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-          <planeGeometry args={[80, 80]} />
-          <meshStandardMaterial color={C.surface} roughness={0.9} metalness={0.1} />
-        </mesh>
-        <gridHelper args={[60, 48, C.primary, '#241B3D']} position={[0, 0.01, 0]} material-transparent material-opacity={0.3} />
-      </Canvas>
-    </div>
+      <group ref={diorama}>
+        <Island />
+        {BUILDINGS.map((b, i) => <Building key={i} b={b} i={i} />)}
+        {TREES.map(([x, z], i) => <Tree key={i} x={x} z={z} />)}
+        <MiniCrane />
+        <Car />
+      </group>
+      <Stars count={low ? 160 : 320} />
+    </Canvas>
   )
 }
