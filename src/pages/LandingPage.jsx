@@ -325,7 +325,7 @@ function MiniNav({ active = 0 }) {
   )
 }
 
-function PhoneMockup() {
+function PhoneMockup({ float = true }) {
   const score = 87
   const R = 26
   const CIRC = 2 * Math.PI * R
@@ -350,7 +350,7 @@ function PhoneMockup() {
     { name: 'شقة الناصرة', amount: '₪18,000', pct: 100, active: false },
   ]
   return (
-    <div className="float" style={{ width: 268, background: C.surface, borderRadius: 42, border: `2px solid rgba(249,115,22,0.15)`, overflow: 'hidden', boxShadow: '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(249,115,22,0.06)' }}>
+    <div className={float ? 'float' : undefined} style={{ width: 268, background: C.surface, borderRadius: 42, border: `2px solid rgba(249,115,22,0.15)`, overflow: 'hidden', boxShadow: '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(249,115,22,0.06)' }}>
       {/* Notch */}
       <div style={{ height: 30, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 72, height: 9, background: C.card, borderRadius: 5 }} />
@@ -648,10 +648,12 @@ function Hero3D() {
       <div onPointerMove={onMove} onPointerLeave={onLeave}
         style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: C.bg }}>
 
-        {/* مشهد WebGL — ورشة البناء الحيّة (lazy: chunk مستقل لthree) */}
+        {/* مشهد WebGL — ورشة البناء الحيّة (lazy: chunk مستقل لthree).
+            التلفون الحي (لوحة التحكم الحقيقية) يُمرَّر كعنصر DOM يُعلَّق على
+            خطاف الرافعة جوّا المشهد ويتزامن معه كل فريم. */}
         <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
           <Suspense fallback={null}>
-            <HeroScene progress={p} mouse={mouseRef} low={isMobile} />
+            <HeroScene progress={p} mouse={mouseRef} low={isMobile} phone={<PhoneMockup float={false} />} />
           </Suspense>
         </div>
         {/* تظليل خفيف لقراءة النصوص فوق المشهد */}
