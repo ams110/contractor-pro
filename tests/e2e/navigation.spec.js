@@ -1,10 +1,18 @@
 import { test, expect } from '@playwright/test'
 
+// زر الـnavbar: على الموبايل (≤640px) الأزرار داخل قائمة برغر — نفتحها أولاً،
+// وننقر النسخة المرئية فقط (نسخة الديسكتوب تبقى بالـDOM مخفيّة بـCSS).
+async function clickNav(page, label) {
+  const burger = page.getByRole('button', { name: 'القائمة' })
+  if (await burger.isVisible()) await burger.click()
+  await page.locator('button:visible', { hasText: new RegExp(`^${label}$`) }).first().click()
+}
+
 // ─── التنقّل بين الصفحات (client-side routing) ─────────────────────────────────
 test.describe('التنقّل بين الصفحات', () => {
   test('"تسجيل الدخول" يفتح شاشة الدخول', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: 'تسجيل الدخول' }).click()
+    await clickNav(page, 'تسجيل الدخول')
 
     await expect(page).toHaveURL(/\/login$/)
     // شاشة الدخول تعرض الشعار وتبويبات صاحب الحساب / عضو فريق
@@ -14,7 +22,7 @@ test.describe('التنقّل بين الصفحات', () => {
 
   test('"ابدأ مجاناً" يفتح شاشة إنشاء الحساب', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: 'ابدأ مجاناً' }).first().click()
+    await clickNav(page, 'ابدأ مجاناً')
 
     await expect(page).toHaveURL(/\/register$/)
     await expect(page.getByText('إنشاء حساب جديد')).toBeVisible()
@@ -23,7 +31,7 @@ test.describe('التنقّل بين الصفحات', () => {
 
   test('"الأسعار" يفتح صفحة الأسعار', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: 'الأسعار', exact: true }).click()
+    await clickNav(page, 'الأسعار')
     await expect(page).toHaveURL(/\/pricing$/)
   })
 
