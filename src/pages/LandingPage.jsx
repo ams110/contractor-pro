@@ -5,7 +5,7 @@ import {
   Menu, X, Building2, Wallet, Settings, LayoutDashboard,
   Bell, Search, CircleDot
 } from 'lucide-react'
-import { motion, useScroll, useTransform, useSpring, useReducedMotion } from 'framer-motion'
+import { motion, useScroll, useTransform, useSpring, useMotionValue, useReducedMotion } from 'framer-motion'
 import { C, GRAD } from '../constants/index.js'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import { supabase } from '../lib/supabase.js'
@@ -47,6 +47,37 @@ const css = `
     .lp-nav-pad     { padding-inline: 16px !important; }
     .lp-nav-actions { display: none !important; }
     .lp-burger      { display: flex !important; }
+  }
+  /* أرضية شبكة 3D بمنظور — تتحرّك للأمام بلا توقّف (روح synthwave بهوية amber) */
+  .lp-grid-floor {
+    position: absolute; left: -50%; right: -50%; bottom: -12%; height: 58%;
+    background-image:
+      linear-gradient(rgba(249,115,22,0.13) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(249,115,22,0.13) 1px, transparent 1px);
+    background-size: 46px 46px;
+    transform: rotateX(63deg);
+    transform-origin: top center;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 62%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 62%, transparent);
+    animation: gridMove 1.7s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes gridMove { from { background-position-y: 0 } to { background-position-y: 46px } }
+  /* بطاقات عائمة بعمق حول عنوان الـHero — تختفي على الشاشات الضيّقة */
+  .lp-float-chip { position: absolute; pointer-events: none; }
+  @media (max-width: 900px) { .lp-float-chip { display: none; } }
+  /* مشهد السينما المثبّت (pinned scroll story) */
+  .lp-cinema-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; max-width: 1000px; width: 100%; }
+  .lp-caption-box { position: relative; min-height: 250px; }
+  .lp-cinema-phone-wrap { position: relative; display: flex; justify-content: center; }
+  @media (max-width: 860px) {
+    .lp-cinema-grid  { grid-template-columns: 1fr; gap: 0; }
+    .lp-caption-box  { min-height: 205px; text-align: center; }
+    .lp-caption-box p { margin-inline: auto; }
+    .lp-cinema-phone { transform: scale(0.7); margin: -24px 0 -95px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lp-grid-floor, .float, .glow-orb { animation: none !important; }
   }
 `
 
@@ -102,6 +133,50 @@ function Flip3D({ children, delay = 0, dir = 1, style = {} }) {
     >
       {children}
     </motion.div>
+  )
+}
+
+// زر مغناطيسي: ينجذب نحو المؤشّر بنطاق صغير ويرجع بـspring (ديسكتوب فقط عملياً).
+function Magnetic({ children, strength = 16 }) {
+  const ref = useRef(null)
+  const reduce = useReducedMotion()
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
+  const sx = useSpring(x, { stiffness: 280, damping: 18, mass: 0.3 })
+  const sy = useSpring(y, { stiffness: 280, damping: 18, mass: 0.3 })
+  if (reduce) return <div style={{ display: 'inline-flex' }}>{children}</div>
+  const onMove = (e) => {
+    const r = ref.current?.getBoundingClientRect()
+    if (!r) return
+    x.set(((e.clientX - r.left) / r.width - 0.5) * strength * 2)
+    y.set(((e.clientY - r.top) / r.height - 0.5) * strength * 2)
+  }
+  const onLeave = () => { x.set(0); y.set(0) }
+  return (
+    <motion.div ref={ref} onPointerMove={onMove} onPointerLeave={onLeave} style={{ x: sx, y: sy, display: 'inline-flex' }}>
+      {children}
+    </motion.div>
+  )
+}
+
+// شريحة عائمة بعمق حول عنوان الـHero (بهوية بطاقات التطبيق).
+function FloatChip({ icon: Icon, color, text, style = {}, dur = 3.5, delay = 0 }) {
+  return (
+    <div className="lp-float-chip" style={style}>
+      <div className="float" style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '9px 13px',
+        background: `linear-gradient(135deg, ${color}1f, ${C.card} 70%)`,
+        border: `1px solid ${color}3a`, borderRadius: 14,
+        boxShadow: `0 14px 40px rgba(0,0,0,0.5), 0 0 24px ${color}22`,
+        animationDuration: `${dur}s`, animationDelay: `${delay}s`,
+        backdropFilter: 'blur(8px)',
+      }}>
+        <div style={{ width: 26, height: 26, borderRadius: 8, background: `${color}1c`, border: `1px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={13} color={color} strokeWidth={2.4} />
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap' }}>{text}</span>
+      </div>
+    </div>
   )
 }
 
@@ -200,7 +275,10 @@ function Navbar({ loggedIn }) {
 }
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
-// المحتوى يميل ويغرق في العمق كل ما تنزل (scroll-linked exit)، والتوهّجات parallax.
+// سينمائي: أرضية شبكة 3D + عنوان ينكشف كلمة-كلمة بقلبة 3D + بطاقات عائمة بعمق
+// + ميلان يتبع الماوس + خروج بالعمق مربوط بالسكرول + parallax للتوهّجات.
+const HEADLINE_WORDS = ['كل', 'يوم', 'شغل،', 'كل', 'دفعة،', '\n', 'كل', 'مصروف', '—']
+
 function Hero() {
   const ref = useRef(null)
   const reduce = useReducedMotion()
@@ -214,50 +292,104 @@ function Hero() {
   const orb2Y = useTransform(p, [0, 1], [0, -140])
   const exit3d = reduce ? {} : { rotateX, scale, y, opacity, transformPerspective: 1100, transformStyle: 'preserve-3d' }
 
+  // ميلان يتبع الماوس (داخل طبقة الخروج — يتركّبان فوق بعض)
+  const mx = useMotionValue(0)
+  const my = useMotionValue(0)
+  const tiltX = useSpring(useTransform(my, [-0.5, 0.5], [4.5, -4.5]), { stiffness: 140, damping: 18 })
+  const tiltY = useSpring(useTransform(mx, [-0.5, 0.5], [-6, 6]), { stiffness: 140, damping: 18 })
+  const onMove = (e) => {
+    const r = ref.current?.getBoundingClientRect()
+    if (!r) return
+    mx.set((e.clientX - r.left) / r.width - 0.5)
+    my.set((e.clientY - r.top) / r.height - 0.5)
+  }
+  const onLeave = () => { mx.set(0); my.set(0) }
+  const tilt3d = reduce ? {} : { rotateX: tiltX, rotateY: tiltY, transformStyle: 'preserve-3d' }
+
+  // انكشاف العنوان كلمة-كلمة
+  let wi = 0
+  const word = (w, k) => {
+    if (w === '\n') return <br key={k} />
+    const d = 0.1 + (wi++) * 0.07
+    if (reduce) return <span key={k} style={{ display: 'inline-block', marginInlineEnd: '0.26em' }}>{w}</span>
+    return (
+      <motion.span key={k}
+        initial={{ opacity: 0, rotateX: -88, y: 22 }}
+        animate={{ opacity: 1, rotateX: 0, y: 0 }}
+        transition={{ duration: 0.7, delay: d, ease: [0.22, 1, 0.36, 1] }}
+        style={{ display: 'inline-block', transformOrigin: 'bottom center', marginInlineEnd: '0.26em' }}>
+        {w}
+      </motion.span>
+    )
+  }
+  const gradDelay = 0.1 + HEADLINE_WORDS.filter(w => w !== '\n').length * 0.07 + 0.12
+
   return (
-    <section ref={ref} style={{ position: 'relative', overflow: 'hidden', padding: '96px 24px 80px', textAlign: 'center', direction: 'rtl' }}>
+    <section ref={ref} onPointerMove={reduce ? undefined : onMove} onPointerLeave={reduce ? undefined : onLeave}
+      style={{ position: 'relative', overflow: 'hidden', padding: '96px 24px 110px', textAlign: 'center', direction: 'rtl' }}>
       {/* Ambient orbs — parallax بسرعات متعاكسة */}
       <motion.div className="glow-orb" style={{ position: 'absolute', top: '-8%', right: '-3%', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.12) 0%, transparent 65%)', pointerEvents: 'none', y: reduce ? 0 : orb1Y }} />
       <motion.div className="glow-orb" style={{ position: 'absolute', bottom: '-12%', left: '-5%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 65%)', pointerEvents: 'none', animationDelay: '1.5s', y: reduce ? 0 : orb2Y }} />
+      {/* أرضية الشبكة 3D */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0, perspective: 620, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div className="lp-grid-floor" />
+      </div>
 
       <motion.div style={{ maxWidth: 740, margin: '0 auto', position: 'relative', ...exit3d }}>
-        {/* Badge */}
-        <motion.div initial={{ opacity: 0, y: 18, rotateX: 30, transformPerspective: 800 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${C.primary}1a`, border: `1px solid ${C.primary}40`, borderRadius: 100, padding: '6px 16px', marginBottom: 32, fontSize: 12, color: C.primary, fontWeight: 700 }}>
-          <CircleDot size={10} strokeWidth={3} />
-          التطبيق الأول للمقاول العربي في إسرائيل
-        </motion.div>
+        <motion.div style={tilt3d}>
+          {/* بطاقات عائمة بعمق (ديسكتوب) */}
+          <FloatChip icon={CheckCircle2} color={C.success} text="يوم عمل — تمت الموافقة"
+            style={{ top: 86, insetInlineStart: -120 }} dur={3.4} />
+          <FloatChip icon={Wallet} color={C.cyan} text="₪4,250 راتب مدفوع"
+            style={{ top: 210, insetInlineEnd: -130 }} dur={4.1} delay={0.7} />
+          <FloatChip icon={TrendingUp} color={C.gold} text="+18% صافي الربح"
+            style={{ bottom: 120, insetInlineStart: -96 }} dur={3.8} delay={1.3} />
 
-        {/* Headline — يطلع من العمق */}
-        <motion.h1 initial={{ opacity: 0, y: 34, rotateX: 28, scale: 0.95, transformPerspective: 1000 }} animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }} transition={{ duration: 0.75, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-          style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, color: C.text, lineHeight: 1.15, marginBottom: 24, letterSpacing: '-0.02em', transformStyle: 'preserve-3d' }}>
-          كل يوم شغل، كل دفعة،<br />
-          كل مصروف —<br />
-          <span className="grad-text">محفوظ. مش في دماغك.</span>
-        </motion.h1>
+          {/* Badge */}
+          <motion.div initial={reduce ? false : { opacity: 0, y: 18, rotateX: 30, transformPerspective: 800 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${C.primary}1a`, border: `1px solid ${C.primary}40`, borderRadius: 100, padding: '6px 16px', marginBottom: 32, fontSize: 12, color: C.primary, fontWeight: 700 }}>
+            <CircleDot size={10} strokeWidth={3} />
+            التطبيق الأول للمقاول العربي في إسرائيل
+          </motion.div>
 
-        {/* Sub */}
-        <motion.p initial={{ opacity: 0, y: 24, rotateX: 18, transformPerspective: 900 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          style={{ fontSize: 'clamp(15px,2.5vw,19px)', color: C.textDim, lineHeight: 1.7, marginBottom: 44, maxWidth: 580, margin: '0 auto 44px' }}>
-          Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
-        </motion.p>
+          {/* Headline — كلمة-كلمة من العمق */}
+          <h1 style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, color: C.text, lineHeight: 1.15, marginBottom: 24, letterSpacing: '-0.02em', perspective: 900 }}>
+            {HEADLINE_WORDS.map(word)}
+            <br />
+            <motion.span className="grad-text"
+              initial={reduce ? false : { opacity: 0, rotateX: -88, y: 26, scale: 0.92 }}
+              animate={{ opacity: 1, rotateX: 0, y: 0, scale: 1 }}
+              transition={{ duration: 0.85, delay: gradDelay, ease: [0.22, 1, 0.36, 1] }}
+              style={{ display: 'inline-block', transformOrigin: 'bottom center' }}>
+              محفوظ. مش في دماغك.
+            </motion.span>
+          </h1>
 
-        {/* CTAs */}
-        <motion.div initial={{ opacity: 0, y: 24, rotateX: 18, transformPerspective: 900 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
-          style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button onClick={() => navigate('/register')} className="lp-btn"
-            style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 38px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            جرّب مجاناً 14 يوم
-            <ArrowLeft size={18} strokeWidth={2.5} />
-          </button>
-          <button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }) }} className="lp-btn"
-            style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 15, fontWeight: 700, cursor: 'pointer', padding: '16px 28px', borderRadius: 16 }}>
-            شاهد كيف يعمل
-          </button>
+          {/* Sub */}
+          <motion.p initial={reduce ? false : { opacity: 0, y: 24, rotateX: 18, transformPerspective: 900 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, delay: gradDelay + 0.15, ease: [0.22, 1, 0.36, 1] }}
+            style={{ fontSize: 'clamp(15px,2.5vw,19px)', color: C.textDim, lineHeight: 1.7, marginBottom: 44, maxWidth: 580, margin: '0 auto 44px' }}>
+            Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
+          </motion.p>
+
+          {/* CTAs */}
+          <motion.div initial={reduce ? false : { opacity: 0, y: 24, rotateX: 18, transformPerspective: 900 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, delay: gradDelay + 0.24, ease: [0.22, 1, 0.36, 1] }}
+            style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Magnetic>
+              <button onClick={() => navigate('/register')} className="lp-btn"
+                style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 38px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                جرّب مجاناً 14 يوم
+                <ArrowLeft size={18} strokeWidth={2.5} />
+              </button>
+            </Magnetic>
+            <button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }) }} className="lp-btn"
+              style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 15, fontWeight: 700, cursor: 'pointer', padding: '16px 28px', borderRadius: 16 }}>
+              شاهد كيف يعمل
+            </button>
+          </motion.div>
         </motion.div>
 
         {/* Trust signals */}
-        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.36 }}
+        <motion.div initial={reduce ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: gradDelay + 0.38 }}
           style={{ marginTop: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
           {[
             { icon: Shield,      label: 'آمن ومشفّر' },
@@ -490,7 +622,161 @@ function PhoneMockup() {
   )
 }
 
-// ─── App Showcase ─────────────────────────────────────────────────────────────
+// ─── Cinema Showcase — مشهد سكرول مثبّت (pinned scroll story) ─────────────────
+// قسم 320vh: الشاشة تثبت والسكرول يتحوّل لكاميرا — الموبايل يدور بالفراغ بين
+// 3 مشاهد، والنصوص والبطاقات الجانبية تطير حواليه حسب موضع السكرول.
+const STORY = [
+  {
+    Icon: CalendarDays, color: C.primary,
+    title: 'سجّل أيام الشغل بلمسة',
+    desc:  'كل يوم عمل لكل عامل — موافقة أو رفض فوري. بلا دفاتر، بلا واتساب ضايع، بلا نسيان.',
+    chip:  { Icon: CheckCircle2, color: C.success, text: 'يوم عمل — تمت الموافقة' },
+  },
+  {
+    Icon: Wallet, color: C.secondary,
+    title: 'الرواتب والسلف محسوبة لحالها',
+    desc:  'ساعات إضافية، سلف، خصومات — الحساب جاهز قبل ما تسأل، وكشف حساب لكل عامل.',
+    chip:  { Icon: Wallet, color: C.cyan, text: '₪4,250 راتب — مدفوع' },
+  },
+  {
+    Icon: TrendingUp, color: C.success,
+    title: 'أرباحك قدامك لحظة بلحظة',
+    desc:  'صافي الربح، نقد الجيب، وضريبة القيمة المضافة — كل شي محتاجه في شاشة واحدة.',
+    chip:  { Icon: BarChart3, color: C.gold, text: '+18% صافي الربح هالشهر' },
+  },
+]
+const N = STORY.length
+const FADE = 0.07
+
+// عنوان/وصف المشهد i — يدخل بدوران من الجنب ويخرج للجهة الثانية ضمن نافذته.
+function StoryCaption({ i, p, story }) {
+  const a = i / N, b = (i + 1) / N
+  const opacity = useTransform(p, [a, a + FADE, b - FADE, b], [i === 0 ? 1 : 0, 1, 1, i === N - 1 ? 1 : 0])
+  const x = useTransform(p, [a, a + FADE, b - FADE, b], [i === 0 ? 0 : -64, 0, 0, i === N - 1 ? 0 : 64])
+  const rotateY = useTransform(p, [a, a + FADE, b - FADE, b], [i === 0 ? 0 : 32, 0, 0, i === N - 1 ? 0 : -24])
+  return (
+    <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', opacity, x, rotateY, transformPerspective: 900 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, justifyContent: 'inherit' }}>
+        <IconChip icon={story.Icon} color={story.color} size={40} radius={12} iconSize={19} strokeWidth={2.2} />
+        <span style={{ fontSize: 11, fontWeight: 800, color: story.color, letterSpacing: '0.1em' }}>{`0${i + 1} / 0${N}`}</span>
+      </div>
+      <h3 style={{ fontSize: 'clamp(22px,3.4vw,34px)', fontWeight: 900, color: C.text, lineHeight: 1.3, marginBottom: 12 }}>
+        {story.title}
+      </h3>
+      <p style={{ fontSize: 15, color: C.textDim, lineHeight: 1.8, maxWidth: 420 }}>{story.desc}</p>
+    </motion.div>
+  )
+}
+
+// شريحة جانبية تطير حول الموبايل ضمن نافذة المشهد i.
+function StoryChip({ i, p, chip, pos }) {
+  const a = i / N, b = (i + 1) / N
+  const opacity = useTransform(p, [a, a + FADE, b - FADE, b], [0, 1, 1, 0])
+  const yy = useTransform(p, [a, a + FADE, b - FADE, b], [50, 0, 0, -36])
+  const scale = useTransform(p, [a, a + FADE, b - FADE, b], [0.8, 1, 1, 0.9])
+  const { Icon, color, text } = chip
+  return (
+    <motion.div style={{ position: 'absolute', zIndex: 2, opacity, y: yy, scale, ...pos }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '9px 13px',
+        background: `linear-gradient(135deg, ${color}1f, ${C.card} 70%)`,
+        border: `1px solid ${color}3a`, borderRadius: 14,
+        boxShadow: `0 14px 40px rgba(0,0,0,0.55), 0 0 24px ${color}22`, backdropFilter: 'blur(8px)',
+      }}>
+        <div style={{ width: 26, height: 26, borderRadius: 8, background: `${color}1c`, border: `1px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={13} color={color} strokeWidth={2.4} />
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap' }}>{text}</span>
+      </div>
+    </motion.div>
+  )
+}
+
+// نقطة تقدّم المشهد i.
+function StoryDot({ i, p, color }) {
+  const a = i / N, b = (i + 1) / N
+  const scale = useTransform(p, [a - 0.03, a + 0.06, b - 0.06, b + 0.03], [1, 1.5, 1.5, 1])
+  const opacity = useTransform(p, [a - 0.03, a + 0.06, b - 0.06, b + 0.03], [0.3, 1, 1, 0.3])
+  return <motion.div style={{ width: 9, height: 9, borderRadius: '50%', background: color, scale, opacity, boxShadow: `0 0 10px ${color}` }} />
+}
+
+function CinemaShowcase() {
+  const ref = useRef(null)
+  const reduce = useReducedMotion()
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
+  const p = useSpring(scrollYProgress, { stiffness: 120, damping: 26, mass: 0.35 })
+  const phoneRotY = useTransform(p, [0, 0.33, 0.66, 1], [26, -20, 20, -6])
+  const phoneRotX = useTransform(p, [0, 0.5, 1], [10, 0, -6])
+  const phoneScale = useTransform(p, [0, 0.1, 0.92, 1], [0.84, 1, 1, 0.95])
+
+  // fallback ثابت لمن طلب تقليل الحركة
+  if (reduce) {
+    return (
+      <section id="features" style={{ padding: '64px 24px', direction: 'rtl' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, textAlign: 'center', marginBottom: 40 }}>
+            كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
+          </h2>
+          <div className="lp-cinema-grid" style={{ margin: '0 auto' }}>
+            <div>
+              {STORY.map((s, i) => (
+                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 22 }}>
+                  <IconChip icon={s.Icon} color={s.color} size={40} radius={12} iconSize={19} strokeWidth={2.2} />
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 5 }}>{s.title}</div>
+                    <p style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7 }}>{s.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}><PhoneMockup /></div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section id="features" ref={ref} style={{ position: 'relative', height: '320vh', direction: 'rtl' }}>
+      <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '76px 24px 20px' }}>
+        {/* توهّج خلفي */}
+        <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 60%, rgba(249,115,22,0.07) 0%, transparent 60%)', pointerEvents: 'none' }} />
+
+        {/* العنوان الثابت */}
+        <div style={{ textAlign: 'center', marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: C.primary, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 8, textTransform: 'uppercase' }}>قوة في جيبك</div>
+          <h2 style={{ fontSize: 'clamp(20px,3.4vw,32px)', fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
+            كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
+          </h2>
+        </div>
+
+        <div className="lp-cinema-grid">
+          {/* المشاهد النصية المتبادلة */}
+          <div className="lp-caption-box">
+            {STORY.map((s, i) => <StoryCaption key={i} i={i} p={p} story={s} />)}
+          </div>
+
+          {/* الموبايل يدور بالفراغ + شرائح طايرة */}
+          <div className="lp-cinema-phone-wrap" style={{ perspective: 1200 }}>
+            <StoryChip i={0} p={p} chip={STORY[0].chip} pos={{ top: 70, insetInlineStart: 'max(0px, calc(50% - 240px))' }} />
+            <StoryChip i={1} p={p} chip={STORY[1].chip} pos={{ top: 150, insetInlineEnd: 'max(0px, calc(50% - 245px))' }} />
+            <StoryChip i={2} p={p} chip={STORY[2].chip} pos={{ bottom: 110, insetInlineStart: 'max(0px, calc(50% - 250px))' }} />
+            <motion.div className="lp-cinema-phone" style={{ rotateY: phoneRotY, rotateX: phoneRotX, scale: phoneScale, transformStyle: 'preserve-3d' }}>
+              <PhoneMockup />
+            </motion.div>
+          </div>
+        </div>
+
+        {/* نقاط التقدّم */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+          {STORY.map((s, i) => <StoryDot key={i} i={i} p={p} color={s.color} />)}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Features grid — باقي الميزات بعد المشهد السينمائي ───────────────────────
 const FEATURES = [
   { Icon: CalendarDays, text: 'تسجيل أيام العمل بالموافقة والرفض'     },
   { Icon: Users,        text: 'متابعة الرواتب والسلف لكل عامل'         },
@@ -499,46 +785,21 @@ const FEATURES = [
   { Icon: Shield,       text: 'فريق عمل مع صلاحيات مخصصة'              },
   { Icon: Bell,         text: 'إشعارات فورية لكل طلب وتغيير'            },
 ]
-function AppShowcase() {
-  const secRef = useRef(null)
-  const reduce = useReducedMotion()
-  // الموبايل يدور بالفراغ (rotateY/rotateX) مربوط بمرور القسم عبر الشاشة.
-  const { scrollYProgress } = useScroll({ target: secRef, offset: ['start end', 'end start'] })
-  const p = useSpring(scrollYProgress, SPRING)
-  const rotateY = useTransform(p, [0, 0.5, 1], [38, 0, -24])
-  const rotateX = useTransform(p, [0, 0.5, 1], [10, 0, -8])
-  const phoneY = useTransform(p, [0, 1], [70, -70])
-  const phoneScale = useTransform(p, [0, 0.5, 1], [0.88, 1, 0.94])
-  const phone3d = reduce ? {} : { rotateY, rotateX, y: phoneY, scale: phoneScale, transformStyle: 'preserve-3d' }
-
+function FeaturesGrid() {
   return (
-    <section id="features" ref={secRef} style={{ padding: '40px 24px 88px', direction: 'rtl' }}>
-      <div style={{ maxWidth: 1120, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 56, alignItems: 'center' }}>
-        {/* Text side */}
-        <motion.div {...rise()}>
-          <div style={{ fontSize: 11, color: C.primary, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 12, textTransform: 'uppercase' }}>قوة في جيبك</div>
-          <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, lineHeight: 1.25, marginBottom: 20 }}>
-            كل شي محتاجه<br />
-            <span className="grad-text">في شاشة واحدة</span>
-          </h2>
-          <p style={{ fontSize: 15, color: C.textDim, lineHeight: 1.8, marginBottom: 36 }}>
-            من تسجيل أيام العمل اليومية إلى حساب ضريبة الدخل والتأمين الوطني — Contractor Pro يغطيك بالكامل.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {FEATURES.map(({ Icon, text }, i) => (
-              <motion.div key={i} {...rise(i * 0.05)} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <IconChip icon={Icon} color={C.primary} size={30} radius={9} iconSize={14} strokeWidth={2} />
-                <span style={{ fontSize: 14, color: C.textDim }}>{text}</span>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Phone mockup — يدور 3D مع السكرول */}
-        <div style={{ display: 'flex', justifyContent: 'center', perspective: 1200 }}>
-          <motion.div style={phone3d}>
-            <PhoneMockup />
-          </motion.div>
+    <section style={{ padding: '24px 24px 80px', direction: 'rtl' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 14 }}>
+          {FEATURES.map(({ Icon, text }, i) => (
+            <Flip3D key={i} delay={i * 0.06} dir={i % 2 ? -1 : 1}>
+              <PremiumCard color={C.primary} animate={false} padding="16px" style={{ height: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <IconChip icon={Icon} color={C.primary} size={34} radius={10} iconSize={16} strokeWidth={2} />
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: C.text }}>{text}</span>
+                </div>
+              </PremiumCard>
+            </Flip3D>
+          ))}
         </div>
       </div>
     </section>
@@ -693,11 +954,13 @@ function FinalCTA() {
             بدون بطاقة ائتمان. بدون التزام.<br />فقط تطبيق يخفف عنك.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/register')} className="lp-btn"
-              style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 44px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              ابدأ التجربة المجانية
-              <ArrowLeft size={18} strokeWidth={2.5} />
-            </button>
+            <Magnetic>
+              <button onClick={() => navigate('/register')} className="lp-btn"
+                style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 44px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                ابدأ التجربة المجانية
+                <ArrowLeft size={18} strokeWidth={2.5} />
+              </button>
+            </Magnetic>
             <button onClick={() => navigate('/pricing')} className="lp-btn"
               style={{ background: 'transparent', border: `1px solid ${C.borderMid}`, color: C.textDim, fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: '16px 30px', borderRadius: 16 }}>
               شاهد الأسعار
@@ -760,7 +1023,8 @@ export default function LandingPage() {
         <Hero />
         <StatsStrip />
         <PainPoints />
-        <AppShowcase />
+        <CinemaShowcase />
+        <FeaturesGrid />
         <Testimonials />
         <PricingTeaser />
         <FinalCTA />
