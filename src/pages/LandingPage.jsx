@@ -5,9 +5,9 @@ import {
   Menu, X, Building2, Wallet, Settings, LayoutDashboard,
   Bell, Search, CircleDot, Sun, CloudSun, Clock, Check, Hourglass
 } from 'lucide-react'
-import { motion, useScroll, useTransform, useSpring, useMotionValue, useReducedMotion } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue, useVelocity, useReducedMotion } from 'framer-motion'
 import { C, GRAD } from '../constants/index.js'
-import { PremiumCard, IconChip, HolographicSheen } from '../ui/Premium.jsx'
+import { PremiumCard, IconChip, HolographicSheen, useCountUp } from '../ui/Premium.jsx'
 import { supabase } from '../lib/supabase.js'
 import { navigate } from '../Router.jsx'
 
@@ -92,6 +92,11 @@ const css = `
     .lp-hud { inset-inline: 14px; top: 132px; margin-top: 0; height: 196px; width: auto; text-align: center; }
     .lp-hud p { margin-inline: auto; }
     .lp-mega-phone { transform: scale(0.62); margin-top: 128px; }
+  }
+  /* حبيبات فيلم سينمائية فوق المسرح */
+  .lp-grain {
+    position: absolute; inset: 0; z-index: 30; pointer-events: none; opacity: 0.05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   @media (prefers-reduced-motion: reduce) {
     .lp-grid-floor, .float, .glow-orb, .lp-rays, .lp-dust { animation: none !important; }
@@ -194,6 +199,37 @@ function FloatChip({ icon: Icon, color, text, style = {}, dur = 3.5, delay = 0 }
         <span style={{ fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap' }}>{text}</span>
       </div>
     </div>
+  )
+}
+
+// ─── Boot Intro — شاشة إقلاع سينمائية (مرة بالجلسة) ──────────────────────────
+// لوغو ينبثق بـspring + شريط تحميل يتعبّى، ثم الستارة تنسحب لفوق وتكشف المسرح.
+function BootIntro({ onDone }) {
+  return (
+    <motion.div
+      exit={{ y: '-100%' }}
+      transition={{ duration: 0.65, ease: [0.76, 0, 0.24, 1] }}
+      style={{ position: 'fixed', inset: 0, zIndex: 400, background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, direction: 'rtl' }}>
+      <motion.div
+        initial={{ scale: 0.3, opacity: 0, rotate: -14 }}
+        animate={{ scale: 1, opacity: 1, rotate: 0 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 14 }}
+        style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 16px 60px rgba(249,115,22,0.5)' }}>
+        <HardHat size={36} color="#fff" strokeWidth={2.2} />
+      </motion.div>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22, duration: 0.4 }}
+        style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 19, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>Contractor Pro</div>
+        <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 3, letterSpacing: '0.08em' }}>إدارة مقاولات</div>
+      </motion.div>
+      <div style={{ width: 150, height: 3, background: C.card, borderRadius: 2, overflow: 'hidden' }}>
+        <motion.div
+          initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
+          transition={{ duration: 0.85, ease: 'easeInOut', delay: 0.2 }}
+          onAnimationComplete={onDone}
+          style={{ height: '100%', background: GRAD.brand, borderRadius: 2, transformOrigin: 'right' }} />
+      </div>
+    </motion.div>
   )
 }
 
@@ -318,13 +354,24 @@ const MINI_TICKETS = [
   { name: 'خالد ر.', day: 7, month: 'يونيو', type: 'كامل',   color: C.primary,            grad: `linear-gradient(160deg, ${C.primary}, ${C.gold})`,            TypeIcon: Sun,      amt: '₪500', state: 'approved' },
   { name: 'يوسف م.', day: 7, month: 'يونيو', type: 'ساعات',  color: C.blue || '#3B82F6',  grad: `linear-gradient(160deg, ${C.blue || '#3B82F6'}, ${C.cyan})`,  TypeIcon: Clock,    amt: '₪380', state: 'approved' },
 ]
-function WorkDaysScreen() {
+function WorkDaysScreen({ p }) {
+  // القصة الحية: مع تقدّم السكرول داخل المشهد تتمّ الموافقة على اليوم المعلّق
+  // قدام عين الزائر — الأزرار تختفي وختم «معتمد» يُطبع ببوب.
+  const flipAt = sceneWin(0)[0] + SCENE_LEN * 0.5
+  const btnOp = useTransform(p, [flipAt - 0.012, flipAt], [1, 0])
+  const stampOp = useTransform(p, [flipAt, flipAt + 0.015], [0, 1])
+  const stampScale = useTransform(p, [flipAt, flipAt + 0.022], [1.7, 1])
   return (
     <>
       <div style={{ padding: '12px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 11, fontWeight: 900, color: C.text }}>أيام العمل</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 7, fontWeight: 800, color: C.warning, background: `${C.warning}1a`, border: `1px solid ${C.warning}40`, borderRadius: 20, padding: '2px 7px' }}>
-          <Hourglass size={7} strokeWidth={2.8} /> 1 بانتظار
+        <span style={{ position: 'relative', display: 'inline-flex' }}>
+          <motion.span style={{ opacity: btnOp, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 7, fontWeight: 800, color: C.warning, background: `${C.warning}1a`, border: `1px solid ${C.warning}40`, borderRadius: 20, padding: '2px 7px' }}>
+            <Hourglass size={7} strokeWidth={2.8} /> 1 بانتظار
+          </motion.span>
+          <motion.span style={{ opacity: stampOp, position: 'absolute', inset: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3, fontSize: 7, fontWeight: 800, color: C.success, background: `${C.success}1a`, border: `1px solid ${C.success}40`, borderRadius: 20, padding: '2px 7px', whiteSpace: 'nowrap' }}>
+            <Check size={7} strokeWidth={2.8} /> الكل معتمد
+          </motion.span>
         </span>
       </div>
       <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -360,14 +407,20 @@ function WorkDaysScreen() {
                     <Check size={6} strokeWidth={2.8} /> معتمد
                   </span>
                 ) : (
-                  <div style={{ display: 'flex', gap: 3 }}>
-                    <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-                      style={{ width: 15, height: 15, borderRadius: 5, background: `${C.success}15`, border: `1px solid ${C.success}33`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Check size={8} color={C.success} strokeWidth={2.8} />
+                  <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                    <motion.div style={{ opacity: btnOp, display: 'flex', gap: 3 }}>
+                      <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                        style={{ width: 15, height: 15, borderRadius: 5, background: `${C.success}15`, border: `1px solid ${C.success}33`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Check size={8} color={C.success} strokeWidth={2.8} />
+                      </motion.div>
+                      <div style={{ width: 15, height: 15, borderRadius: 5, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <X size={8} color={C.accent} strokeWidth={2.8} />
+                      </div>
                     </motion.div>
-                    <div style={{ width: 15, height: 15, borderRadius: 5, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <X size={8} color={C.accent} strokeWidth={2.8} />
-                    </div>
+                    {/* ختم «معتمد» يُطبع ببوب لحظة الموافقة */}
+                    <motion.span style={{ opacity: stampOp, scale: stampScale, position: 'absolute', inset: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, fontSize: 5.5, fontWeight: 800, color: C.success, background: `${C.success}1a`, border: `1px solid ${C.success}40`, borderRadius: 10, padding: '1px 5px', whiteSpace: 'nowrap' }}>
+                      <Check size={6} strokeWidth={2.8} /> معتمد
+                    </motion.span>
                   </div>
                 )}
               </div>
@@ -394,7 +447,12 @@ const MINI_PAYROLL = [
   { init: 'خ', name: 'خالد ر.', sub: 'راتب نيسان · PAY-1044', amt: '₪5,100', color: C.success, status: 'مدفوع',    grad: GRAD.premium },
   { init: 'ي', name: 'يوسف م.', sub: 'سلفة · ADV-218',        amt: '₪600',   color: C.gold,    status: 'سلفة',     grad: GRAD.gold    },
 ]
-function PayrollScreen() {
+function PayrollScreen({ p }) {
+  // القصة الحية: شريط نسبة المدفوع يتعبّى من 4% لـ72% مع تقدّم السكرول والرقم يعدّ.
+  const a2 = sceneWin(1)[0]
+  const pctNum = useTransform(p, [a2 + FADE, a2 + SCENE_LEN * 0.6], [4, 72], { clamp: true })
+  const pctText = useTransform(pctNum, (v) => `${Math.round(v)}%`)
+  const pctWidth = useTransform(pctNum, (v) => `${v}%`)
   return (
     <>
       <div style={{ padding: '12px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -424,10 +482,10 @@ function PayrollScreen() {
         <div style={{ background: C.card, borderRadius: 11, padding: '7px 10px', border: `1px solid ${C.border}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontSize: 7, color: C.textDim }}>نسبة المدفوع</span>
-            <span style={{ fontSize: 7, fontWeight: 800, color: C.success }}>72%</span>
+            <motion.span style={{ fontSize: 7, fontWeight: 800, color: C.success, fontVariantNumeric: 'tabular-nums' }}>{pctText}</motion.span>
           </div>
           <div style={{ height: 4, background: `${C.border}66`, borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: '72%', borderRadius: 3, background: GRAD.success }} />
+            <motion.div style={{ height: '100%', width: pctWidth, borderRadius: 3, background: GRAD.success }} />
           </div>
         </div>
       </div>
@@ -453,10 +511,20 @@ function PhoneMockup({ p }) {
   const R = 26
   const CIRC = 2 * Math.PI * R
   const months = [42, 58, 50, 71, 64, 88]
+  // داشبورد «حي» عند الفتح: العدّاد يلفّ والأرقام تعدّ والمخطّط ينمو
+  const [live, setLive] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setLive(true), 750)
+    return () => clearTimeout(t)
+  }, [])
+  const liveScore = useCountUp(score, 1300, live)
+  const k1 = useCountUp(94, 1300, live)
+  const k2 = useCountUp(31, 1300, live)
+  const k3 = useCountUp(12, 1300, live)
   const kpis = [
-    { label: 'صافي الربح', value: '₪94K', color: C.success },
-    { label: 'نقد بالجيب', value: '₪31K', color: C.cyan    },
-    { label: 'مستحق',      value: '₪12K', color: C.gold    },
+    { label: 'صافي الربح', value: `₪${k1}K`, color: C.success },
+    { label: 'نقد بالجيب', value: `₪${k2}K`, color: C.cyan    },
+    { label: 'مستحق',      value: `₪${k3}K`, color: C.gold    },
   ]
   const mockProjects = [
     { name: 'فيلا رهط',    amount: '₪42,500', pct: 68,  active: true  },
@@ -497,7 +565,7 @@ function PhoneMockup({ p }) {
             <svg width={60} height={60} viewBox="0 0 60 60">
               <circle cx="30" cy="30" r={R} fill="none" stroke={C.card} strokeWidth="6" />
               <circle cx="30" cy="30" r={R} fill="none" stroke="url(#pulseGrad)" strokeWidth="6" strokeLinecap="round"
-                strokeDasharray={`${(CIRC * score) / 100} ${CIRC}`} transform="rotate(-90 30 30)" />
+                strokeDasharray={`${(CIRC * liveScore) / 100} ${CIRC}`} transform="rotate(-90 30 30)" />
               <defs>
                 <linearGradient id="pulseGrad" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0" stopColor={C.success} />
@@ -506,7 +574,7 @@ function PhoneMockup({ p }) {
               </defs>
             </svg>
             <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 16, fontWeight: 900, color: C.text, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{score}</span>
+              <span style={{ fontSize: 16, fontWeight: 900, color: C.text, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{liveScore}</span>
               <span style={{ fontSize: 6, color: C.textDim, marginTop: 1 }}>من 100</span>
             </div>
           </div>
@@ -541,7 +609,11 @@ function PhoneMockup({ p }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 4, height: 34 }}>
             {months.map((m, i) => (
-              <div key={i} style={{ flex: 1, height: `${m}%`, borderRadius: '3px 3px 0 0', background: i === months.length - 1 ? GRAD.brand : `${C.primary}40` }} />
+              <motion.div key={i}
+                initial={{ height: '8%' }}
+                animate={live ? { height: `${m}%` } : {}}
+                transition={{ duration: 0.7, delay: i * 0.09, ease: [0.22, 1, 0.36, 1] }}
+                style={{ flex: 1, borderRadius: '3px 3px 0 0', background: i === months.length - 1 ? GRAD.brand : `${C.primary}40` }} />
             ))}
           </div>
         </div>
@@ -564,8 +636,8 @@ function PhoneMockup({ p }) {
       {/* Bottom nav */}
       <MiniNav active={0} />
       {/* شاشات المشاهد — تتبدّل مع وصف كل مشهد */}
-      {p && <SceneScreen p={p} win={sceneWin(0)}><WorkDaysScreen /></SceneScreen>}
-      {p && <SceneScreen p={p} win={sceneWin(1)}><PayrollScreen /></SceneScreen>}
+      {p && <SceneScreen p={p} win={sceneWin(0)}><WorkDaysScreen p={p} /></SceneScreen>}
+      {p && <SceneScreen p={p} win={sceneWin(1)}><PayrollScreen p={p} /></SceneScreen>}
       </div>
     </div>
   )
@@ -696,17 +768,27 @@ function MegaHero() {
   // عناصر المشاهد (HUD/نقاط/عنوان مصغّر) تظهر بعد انتهاء المشهد 0
   const scenesOpacity = useTransform(p, [0.2, 0.27], [0, 1])
 
-  // ميلان كامل المسرح يتبع الماوس
+  // ميلان كامل المسرح يتبع الماوس + ضوء يتبع المؤشّر
   const mx = useMotionValue(0)
   const my = useMotionValue(0)
+  const lx = useMotionValue(-600)
+  const ly = useMotionValue(-600)
   const tiltX = useSpring(useTransform(my, [-0.5, 0.5], [4.5, -4.5]), { stiffness: 140, damping: 18 })
   const tiltY = useSpring(useTransform(mx, [-0.5, 0.5], [-6, 6]), { stiffness: 140, damping: 18 })
+  const slx = useSpring(lx, { stiffness: 110, damping: 22 })
+  const sly = useSpring(ly, { stiffness: 110, damping: 22 })
   const onMove = (e) => {
     const r = e.currentTarget.getBoundingClientRect()
     mx.set((e.clientX - r.left) / r.width - 0.5)
     my.set((e.clientY - r.top) / r.height - 0.5)
+    lx.set(e.clientX - r.left)
+    ly.set(e.clientY - r.top)
   }
   const onLeave = () => { mx.set(0); my.set(0) }
+
+  // ميلان فيزيائي بسرعة السكرول — التلفون يتمايل مع زخم السكرول
+  const vel = useVelocity(p)
+  const rotZ = useSpring(useTransform(vel, [-1.6, 1.6], [5, -5]), { stiffness: 120, damping: 20 })
 
   // انكشاف العنوان كلمة-كلمة
   let wi = 0
@@ -788,6 +870,10 @@ function MegaHero() {
         {DUST.map((d, i) => (
           <span key={i} className="lp-dust" style={{ left: d.left, top: d.top, width: d.size, height: d.size, background: d.color, boxShadow: `0 0 8px ${d.color}`, animationDuration: `${d.dur}s`, animationDelay: `${d.delay}s` }} />
         ))}
+        {/* ضوء يتبع المؤشّر (ديسكتوب) */}
+        <motion.div aria-hidden style={{ position: 'absolute', top: -280, left: -280, x: slx, y: sly, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.09) 0%, transparent 60%)', pointerEvents: 'none', mixBlendMode: 'screen', zIndex: 1 }} />
+        {/* حبيبات فيلم */}
+        <div className="lp-grain" aria-hidden />
 
         {/* مسرح التلفون — البطل */}
         <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', y: phoneY, zIndex: 2, pointerEvents: 'none', perspective: 1300 }}>
@@ -797,7 +883,7 @@ function MegaHero() {
           {/* دخول درامي بزخم → دوران المشاهد → ميلان الماوس */}
           <motion.div initial={{ y: 280, opacity: 0, rotateX: 24, scale: 0.9 }} animate={{ y: 0, opacity: 1, rotateX: 0, scale: 1 }}
             transition={{ type: 'spring', stiffness: 55, damping: 15, delay: 0.2 }}>
-            <motion.div style={{ rotateY: phoneRotY, rotateX: phoneRotX, scale: phoneScale, transformStyle: 'preserve-3d' }}>
+            <motion.div style={{ rotateY: phoneRotY, rotateX: phoneRotX, rotateZ: rotZ, scale: phoneScale, transformStyle: 'preserve-3d' }}>
               <motion.div style={{ rotateX: tiltX, rotateY: tiltY, transformStyle: 'preserve-3d' }}>
                 <div className="lp-mega-phone">
                   <div style={{ position: 'relative', borderRadius: 42, overflow: 'hidden' }}>
@@ -1219,6 +1305,15 @@ function Footer() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const [loggedIn, setLoggedIn] = useState(false)
+  const reduce = useReducedMotion()
+  // شاشة الإقلاع — مرة واحدة بالجلسة، وتُتخطّى مع تقليل الحركة
+  const [boot, setBoot] = useState(() => {
+    try { return !sessionStorage.getItem('cp_lp_boot') } catch { return true }
+  })
+  const endBoot = () => {
+    setBoot(false)
+    try { sessionStorage.setItem('cp_lp_boot', '1') } catch { /* تخزين غير متاح */ }
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -1229,6 +1324,9 @@ export default function LandingPage() {
   return (
     <>
       <style>{css}</style>
+      <AnimatePresence>
+        {boot && !reduce && <BootIntro onDone={endBoot} />}
+      </AnimatePresence>
       <div style={{ background: C.bg, minHeight: '100vh', color: C.text }}>
         <ScrollProgress />
         <Navbar loggedIn={loggedIn} />
