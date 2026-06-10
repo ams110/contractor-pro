@@ -66,6 +66,7 @@ npm run test:e2e:ui   # واجهة Playwright التفاعلية
 ## 3. المكتبات
 
 - **UI/Styling**: Tailwind CSS 4 (`@tailwindcss/vite`)، Lucide React، Framer Motion، Recharts، vaul (drawers)، cmdk (command palette)، sonner (toasts)، Radix UI.
+- **3D**: Three.js + `@react-three/fiber@8` (متوافقة مع React 18) — حصرياً لمشهد هيرو صفحة الهبوط (`pages/landing3d/HeroScene.jsx`)، يُحمَّل lazy وthree بchunk مستقل (`vite.config.js`). فولباك ثابت تلقائي عند `prefers-reduced-motion` أو غياب WebGL.
 - **State/Data**: Zustand 5، @supabase/supabase-js 2، @tanstack/react-query + react-table + react-virtual، react-hook-form + zod.
 - **Auth/Security**: @simplewebauthn/browser (WebAuthn passkeys)، crypto-js (AES تشفير محلي).
 - **Billing**: @paddle/paddle-js.
@@ -122,7 +123,8 @@ src/
 │                              PROJECT_STATUS/TYPES, VAT, OSEK_PATUR_THRESHOLD, NAV, MORE_SCREENS, BP
 ├── ui/                      ← مكتبة التصميم: Button, Card(+GlassCard), Input, Modal, Badge, StatCard,
 │                              Premium (kit الفخامة المشترك — انظر §2.1), Skeleton
-├── pages/                   ← LandingPage, PricingPage, WelcomePage, LegalPage (شروط/خصوصية/استرجاع/تواصل)
+├── pages/                   ← LandingPage (+landing3d/HeroScene — مشهد WebGL للهيرو), PricingPage, WelcomePage,
+│                              LegalPage (شروط/خصوصية/استرجاع/تواصل)
 ├── store/
 │   ├── useAppStore.js       ← navigation, overlays, toast, signer, lock, readOnly, biometric promise
 │   ├── useBusinessStore.js  ← multi-business (load/create/update/remove) + BUSINESS_TYPES (persist)

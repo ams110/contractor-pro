@@ -63,6 +63,8 @@ export default defineConfig({
           charts: ['recharts'],
           motion: ['framer-motion'],
           icons:  ['lucide-react'],
+          // مشهد الهيرو الثلاثي — يُحمَّل lazy من LandingPage فقط
+          three:  ['three', '@react-three/fiber'],
         },
       },
     },

@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import {
   HardHat, BarChart3, Users, CalendarDays, Receipt,
   CheckCircle2, ArrowLeft, Shield, Smartphone, TrendingUp,
   Menu, X, Building2, Wallet, Settings, LayoutDashboard,
-  Bell, Search, CircleDot, Sun, CloudSun, Clock, Check, Hourglass
+  Bell, Search, CircleDot
 } from 'lucide-react'
-import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue, useVelocity, useReducedMotion } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue, useReducedMotion } from 'framer-motion'
 import { C, GRAD } from '../constants/index.js'
 import { PremiumCard, IconChip, HolographicSheen, useCountUp } from '../ui/Premium.jsx'
 import { supabase } from '../lib/supabase.js'
@@ -14,11 +14,21 @@ import { navigate } from '../Router.jsx'
 // نستعمل نفس توكنات الهوية (C/GRAD) ومكوّنات kit الفخامة (PremiumCard/IconChip)
 // المستعملة في التطبيق — لا توكنات محليّة ولا بطاقات معاد بناؤها (CLAUDE.md §2.1/§19).
 //
-// طبقة السكرول 3D: التلفون هو بطل الصفحة — MegaHero قسم 460vh مثبّت يبدأ
-// بدخول درامي للتلفون من أول ثانية ثم يدير 3 مشاهد حوله بالسكرول، وكل
-// المقاطع الباقية تتحرّك بعمق حقيقي (perspective + rotateX/rotateY) عبر
-// useScroll/useTransform مع useSpring للنعومة. useReducedMotion يطفّي كل
-// الحركة لمن طلب تقليلها من نظامه.
+// الهيرو الجديد = WebGL ثلاثي الأبعاد حقيقي (Three.js عبر @react-three/fiber):
+// «ورشة بناء حيّة» — برج ينبني طابقاً-طابقاً مع السكرول، رافعة تعمل بلا توقّف،
+// عملات رواتب تدور بمشهد الرواتب، ومخطّط أرباح 3D بالمشهد الأخير، والكاميرا
+// تطير بين المشاهد. المشهد في landing3d/HeroScene.jsx ويُحمَّل lazy (chunk
+// مستقل لthree) حتى ما يثقّل أول رسمة. useReducedMotion أو غياب WebGL →
+// نسخة ثابتة كاملة بلا Canvas.
+const HeroScene = lazy(() => import('./landing3d/HeroScene.jsx'))
+
+// فحص توفّر WebGL مرة واحدة (متصفّحات قديمة/سياقات محظورة → فولباك ثابت)
+function hasWebGL() {
+  try {
+    const c = document.createElement('canvas')
+    return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl')))
+  } catch { return false }
+}
 
 // دخول موحّد بروح 3D: يطلع من العمق مع ميلان خفيف.
 const rise = (delay = 0) => ({
@@ -50,54 +60,17 @@ const css = `
     .lp-nav-actions { display: none !important; }
     .lp-burger      { display: flex !important; }
   }
-  /* أرضية شبكة 3D بمنظور — تتحرّك للأمام بلا توقّف (روح synthwave بهوية amber).
-     الحركة بـtransform (مسرَّعة بالكومبوزيتور) لا بـbackground-position (إعادة رسم كل فريم). */
-  .lp-grid-floor {
-    position: absolute; left: -50%; right: -50%; bottom: -12%; height: 58%;
-    transform: rotateX(63deg);
-    transform-origin: top center;
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 62%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 62%, transparent);
-    pointer-events: none;
-  }
-  .lp-grid-floor::before {
-    content: ''; position: absolute; left: 0; right: 0; top: -46px; bottom: -46px;
-    background-image:
-      linear-gradient(rgba(249,115,22,0.13) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(249,115,22,0.13) 1px, transparent 1px);
-    background-size: 46px 46px;
-    animation: gridMove 1.7s linear infinite;
-    will-change: transform;
-  }
-  @keyframes gridMove { from { transform: translateY(0) } to { transform: translateY(46px) } }
   /* بطاقات عائمة بعمق حول عنوان الـHero — تختفي على الشاشات الضيّقة */
   .lp-float-chip { position: absolute; pointer-events: none; }
   @media (max-width: 900px) { .lp-float-chip { display: none; } }
-  /* fallback ثابت لتقليل الحركة */
+  /* شبكة قسم «جوّا التطبيق» + فولباك تقليل الحركة */
   .lp-cinema-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; max-width: 1000px; width: 100%; }
   @media (max-width: 860px) { .lp-cinema-grid { grid-template-columns: 1fr; gap: 24px; } }
-  /* أشعة ضوء دوّارة خلف التلفون (god rays بهوية amber/secondary/cyan) */
-  .lp-rays {
-    position: absolute; inset: 0; margin: auto; width: 780px; height: 780px; border-radius: 50%;
-    background: conic-gradient(from 10deg,
-      transparent 0deg 14deg,  rgba(249,115,22,0.08) 21deg 27deg, transparent 34deg 98deg,
-      rgba(124,58,237,0.07) 106deg 112deg, transparent 119deg 192deg,
-      rgba(249,115,22,0.06) 200deg 206deg, transparent 213deg 288deg,
-      rgba(6,182,212,0.06) 296deg 302deg, transparent 309deg 360deg);
-    animation: raysSpin 32s linear infinite; pointer-events: none;
-  }
-  @keyframes raysSpin { to { transform: rotate(360deg) } }
-  /* غبار مضيء عائم */
-  .lp-dust { position: absolute; border-radius: 50%; pointer-events: none; animation: dustFloat ease-in-out infinite; }
-  @keyframes dustFloat { 0%,100% { transform: translateY(0); opacity: .15 } 50% { transform: translateY(-30px); opacity: .55 } }
   /* لوحات HUD الزجاجية للمشاهد */
   .lp-hud { position: absolute; inset-inline-start: clamp(16px, 5vw, 88px); top: 50%; margin-top: -120px; height: 240px; width: min(390px, 36vw); }
-  .lp-mega-phone { position: relative; }
   @media (max-width: 860px) {
     .lp-hud { inset-inline: 14px; top: 132px; margin-top: 0; height: 196px; width: auto; text-align: center; }
     .lp-hud p { margin-inline: auto; }
-    .lp-mega-phone { transform: scale(0.62); margin-top: 128px; }
   }
   /* حبيبات فيلم سينمائية فوق المسرح (بلا mix-blend — أرخص على الرندر البرمجي) */
   .lp-grain {
@@ -105,7 +78,7 @@ const css = `
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   @media (prefers-reduced-motion: reduce) {
-    .lp-grid-floor::before, .float, .glow-orb, .lp-rays, .lp-dust { animation: none !important; }
+    .float, .glow-orb { animation: none !important; }
   }
 `
 
@@ -333,8 +306,9 @@ function Navbar({ loggedIn }) {
 }
 
 // ─── Phone Mockup ─────────────────────────────────────────────────────────────
-// يحاكي شاشات التطبيق الحقيقية. لما يُمرَّر له `p` (تقدّم سكرول الـMegaHero)
-// تتبدّل شاشته مع كل مشهد لتطابق وصفه: أيام العمل ← الرواتب ← لوحة الأرباح.
+// يحاكي لوحة التحكم الحقيقية للتطبيق (نبض المصلحة + KPIs + مخطّط + مشاريع) —
+// «حيّ» عند ظهوره: العدّاد يلفّ والأرقام تعدّ والمخطّط ينمو. يُعرض بقسم
+// «جوّا التطبيق» وبفولباك تقليل الحركة.
 
 // الشريط السفلي مع تبويب نشط متغيّر حسب الشاشة
 function MiniNav({ active = 0 }) {
@@ -351,167 +325,7 @@ function MiniNav({ active = 0 }) {
   )
 }
 
-// شاشة المشهد 1 — أيام العمل بأسلوب «تذكرة الشِفت» الحقيقي (WorkDayTicket):
-// كعب تاريخ متدرّج + خط تثقيب + كعب أجر + ختم حالة — مُصغَّر لشاشة الموك.
-const MINI_TICKETS = [
-  { name: 'محمد ع.', day: 8, month: 'يونيو', type: 'كامل',   color: C.primary,            grad: `linear-gradient(160deg, ${C.primary}, ${C.gold})`,            TypeIcon: Sun,      amt: '₪450', state: 'approved' },
-  { name: 'أحمد س.', day: 8, month: 'يونيو', type: 'نص يوم', color: C.warning,            grad: `linear-gradient(160deg, ${C.warning}, ${C.gold})`,            TypeIcon: CloudSun, amt: '₪225', state: 'pending'  },
-  { name: 'خالد ر.', day: 7, month: 'يونيو', type: 'كامل',   color: C.primary,            grad: `linear-gradient(160deg, ${C.primary}, ${C.gold})`,            TypeIcon: Sun,      amt: '₪500', state: 'approved' },
-  { name: 'يوسف م.', day: 7, month: 'يونيو', type: 'ساعات',  color: C.blue || '#3B82F6',  grad: `linear-gradient(160deg, ${C.blue || '#3B82F6'}, ${C.cyan})`,  TypeIcon: Clock,    amt: '₪380', state: 'approved' },
-]
-function WorkDaysScreen({ p }) {
-  // القصة الحية: مع تقدّم السكرول داخل المشهد تتمّ الموافقة على اليوم المعلّق
-  // قدام عين الزائر — الأزرار تختفي وختم «معتمد» يُطبع ببوب.
-  const flipAt = sceneWin(0)[0] + SCENE_LEN * 0.5
-  const btnOp = useTransform(p, [flipAt - 0.012, flipAt], [1, 0])
-  const stampOp = useTransform(p, [flipAt, flipAt + 0.015], [0, 1])
-  const stampScale = useTransform(p, [flipAt, flipAt + 0.022], [1.7, 1])
-  return (
-    <>
-      <div style={{ padding: '12px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 11, fontWeight: 900, color: C.text }}>أيام العمل</span>
-        <span style={{ position: 'relative', display: 'inline-flex' }}>
-          <motion.span style={{ opacity: btnOp, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 7, fontWeight: 800, color: C.warning, background: `${C.warning}1a`, border: `1px solid ${C.warning}40`, borderRadius: 20, padding: '2px 7px' }}>
-            <Hourglass size={7} strokeWidth={2.8} /> 1 بانتظار
-          </motion.span>
-          <motion.span style={{ opacity: stampOp, position: 'absolute', inset: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3, fontSize: 7, fontWeight: 800, color: C.success, background: `${C.success}1a`, border: `1px solid ${C.success}40`, borderRadius: 20, padding: '2px 7px', whiteSpace: 'nowrap' }}>
-            <Check size={7} strokeWidth={2.8} /> الكل معتمد
-          </motion.span>
-        </span>
-      </div>
-      <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {MINI_TICKETS.map((t, i) => {
-          const { TypeIcon } = t
-          const stColor = t.state === 'approved' ? C.success : C.warning
-          return (
-            <div key={i} style={{
-              position: 'relative', display: 'flex', alignItems: 'stretch', minHeight: 46, borderRadius: 12, overflow: 'hidden',
-              background: `linear-gradient(135deg, ${t.color}14, ${C.card} 55%)`,
-              border: `1px solid ${t.color}33`, boxShadow: `0 5px 14px ${t.color}1c`,
-            }}>
-              {/* كعب التاريخ المتدرّج */}
-              <div style={{ width: 32, flexShrink: 0, background: t.grad, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                <TypeIcon size={8} color="#fff" strokeWidth={2.2} style={{ opacity: 0.95, marginBottom: 1 }} />
-                <div style={{ fontSize: 12.5, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.04em', textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>{t.day}</div>
-                <div style={{ fontSize: 5.5, fontWeight: 800, opacity: 0.95 }}>{t.month}</div>
-              </div>
-              {/* الوسط: الاسم + شريحة نوع اليوم */}
-              <div style={{ flex: 1, minWidth: 0, padding: '5px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
-                <div style={{ fontSize: 8.5, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{t.name}</div>
-                <span style={{ alignSelf: 'flex-start', fontSize: 6, fontWeight: 800, color: t.color, background: `${t.color}1c`, border: `1px solid ${t.color}38`, borderRadius: 5, padding: '1px 5px' }}>{t.type}</span>
-              </div>
-              {/* خط التثقيب + الحفرتان */}
-              <div style={{ width: 0, borderInlineStart: `1.5px dashed ${t.color}40`, margin: '6px 0', flexShrink: 0 }} />
-              <div aria-hidden style={{ position: 'absolute', insetInlineEnd: 44, top: -4, width: 8, height: 8, borderRadius: '50%', background: C.bg }} />
-              <div aria-hidden style={{ position: 'absolute', insetInlineEnd: 44, bottom: -4, width: 8, height: 8, borderRadius: '50%', background: C.bg }} />
-              {/* كعب الأجر + ختم الحالة / أزرار الموافقة */}
-              <div style={{ width: 48, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '0 3px' }}>
-                <div style={{ fontSize: 8.5, fontWeight: 900, color: t.color, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>{t.amt}</div>
-                {t.state === 'approved' ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 5.5, fontWeight: 800, color: stColor, background: `${stColor}1a`, border: `1px solid ${stColor}40`, borderRadius: 10, padding: '1px 5px' }}>
-                    <Check size={6} strokeWidth={2.8} /> معتمد
-                  </span>
-                ) : (
-                  <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-                    <motion.div style={{ opacity: btnOp, display: 'flex', gap: 3 }}>
-                      <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-                        style={{ width: 15, height: 15, borderRadius: 5, background: `${C.success}15`, border: `1px solid ${C.success}33`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Check size={8} color={C.success} strokeWidth={2.8} />
-                      </motion.div>
-                      <div style={{ width: 15, height: 15, borderRadius: 5, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <X size={8} color={C.accent} strokeWidth={2.8} />
-                      </div>
-                    </motion.div>
-                    {/* ختم «معتمد» يُطبع ببوب لحظة الموافقة */}
-                    <motion.span style={{ opacity: stampOp, scale: stampScale, position: 'absolute', inset: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, fontSize: 5.5, fontWeight: 800, color: C.success, background: `${C.success}1a`, border: `1px solid ${C.success}40`, borderRadius: 10, padding: '1px 5px', whiteSpace: 'nowrap' }}>
-                      <Check size={6} strokeWidth={2.8} /> معتمد
-                    </motion.span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      <div style={{ padding: '7px 10px 10px' }}>
-        <div style={{ background: `linear-gradient(135deg, ${C.primary}14, ${C.card} 70%)`, border: `1px solid ${C.primary}33`, borderRadius: 11, padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 7, color: C.textDim }}>مسجّل هالأسبوع</span>
-          <span style={{ fontSize: 8.5, fontWeight: 900, color: C.primary, fontVariantNumeric: 'tabular-nums' }}>12 يوم عمل</span>
-        </div>
-      </div>
-      <div style={{ marginTop: 'auto' }}><MiniNav active={2} /></div>
-    </>
-  )
-}
-
-// شاشة المشهد 2 — الرواتب بأسلوب شاشة الدفعات الحقيقي: أفاتار دائري متدرّج
-// بحرف العامل + حبّة مبلغ ملوّنة + ترقيم مرجعي PAY- + شريط تقدّم متدرّج.
-const MINI_PAYROLL = [
-  { init: 'م', name: 'محمد ع.', sub: 'راتب نيسان · PAY-1042', amt: '₪4,250', color: C.success, status: 'مدفوع',    grad: GRAD.success },
-  { init: 'أ', name: 'أحمد س.', sub: 'راتب نيسان · PAY-1043', amt: '₪3,800', color: C.warning, status: 'قيد الدفع', grad: GRAD.brand   },
-  { init: 'خ', name: 'خالد ر.', sub: 'راتب نيسان · PAY-1044', amt: '₪5,100', color: C.success, status: 'مدفوع',    grad: GRAD.premium },
-  { init: 'ي', name: 'يوسف م.', sub: 'سلفة · ADV-218',        amt: '₪600',   color: C.gold,    status: 'سلفة',     grad: GRAD.gold    },
-]
-function PayrollScreen({ p }) {
-  // القصة الحية: شريط نسبة المدفوع يتعبّى من 4% لـ72% مع تقدّم السكرول والرقم يعدّ.
-  const a2 = sceneWin(1)[0]
-  const pctNum = useTransform(p, [a2 + FADE, a2 + SCENE_LEN * 0.6], [4, 72], { clamp: true })
-  const pctText = useTransform(pctNum, (v) => `${Math.round(v)}%`)
-  const pctWidth = useTransform(pctNum, (v) => `${v}%`)
-  return (
-    <>
-      <div style={{ padding: '12px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 11, fontWeight: 900, color: C.text }}>الرواتب والسلف</span>
-        <span style={{ fontSize: 8.5, fontWeight: 900, color: C.cyan, fontVariantNumeric: 'tabular-nums' }}>₪13,750</span>
-      </div>
-      <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
-        {MINI_PAYROLL.map((r, i) => (
-          <div key={i} style={{ background: C.card, borderRadius: 11, padding: '7px 9px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 7 }}>
-            {/* أفاتار دائري متدرّج بحرف العامل (توقيع شاشة الدفعات) */}
-            <div style={{ width: 22, height: 22, borderRadius: '50%', background: r.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', flexShrink: 0 }}>
-              {r.init}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 8.5, fontWeight: 800, color: C.text }}>{r.name}</div>
-              <div style={{ fontSize: 6.5, color: C.textDim, marginTop: 1 }}>{r.sub}</div>
-            </div>
-            {/* حبّة المبلغ الملوّنة (نمط owed pill) */}
-            <div style={{ textAlign: 'center', padding: '3px 7px', borderRadius: 8, background: `${r.color}20`, border: `1px solid ${r.color}44` }}>
-              <div style={{ fontSize: 8, fontWeight: 900, color: r.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1.1 }}>{r.amt}</div>
-              <div style={{ fontSize: 5.5, fontWeight: 800, color: r.color, opacity: 0.85 }}>{r.status}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={{ padding: '7px 10px 10px' }}>
-        <div style={{ background: C.card, borderRadius: 11, padding: '7px 10px', border: `1px solid ${C.border}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 7, color: C.textDim }}>نسبة المدفوع</span>
-            <motion.span style={{ fontSize: 7, fontWeight: 800, color: C.success, fontVariantNumeric: 'tabular-nums' }}>{pctText}</motion.span>
-          </div>
-          <div style={{ height: 4, background: `${C.border}66`, borderRadius: 3, overflow: 'hidden' }}>
-            <motion.div style={{ height: '100%', width: pctWidth, borderRadius: 3, background: GRAD.success }} />
-          </div>
-        </div>
-      </div>
-      <div style={{ marginTop: 'auto' }}><MiniNav active={3} /></div>
-    </>
-  )
-}
-
-// طبقة شاشة مشهد — تتراكب فوق لوحة التحكم وتظهر ضمن نافذة مشهدها فقط.
-function SceneScreen({ p, win, children }) {
-  const [a, b] = win
-  const opacity = useTransform(p, [a, a + FADE, b - FADE, b], [0, 1, 1, 0])
-  const yy = useTransform(p, [a, a + FADE, b - FADE, b], [10, 0, 0, -8])
-  return (
-    <motion.div style={{ position: 'absolute', inset: 0, opacity, y: yy, background: C.bg, display: 'flex', flexDirection: 'column', direction: 'rtl' }}>
-      {children}
-    </motion.div>
-  )
-}
-
-function PhoneMockup({ p }) {
+function PhoneMockup() {
   const score = 87
   const R = 26
   const CIRC = 2 * Math.PI * R
@@ -559,7 +373,7 @@ function PhoneMockup({ p }) {
           </div>
         </div>
       </div>
-      {/* منطقة الشاشة — لوحة التحكم + شاشات المشاهد المتراكبة */}
+      {/* منطقة الشاشة — لوحة التحكم */}
       <div style={{ position: 'relative' }}>
       {/* Business Pulse — العدّاد الدائري (توقيع التطبيق) */}
       <div style={{ padding: '12px 10px 0', background: C.bg }}>
@@ -640,18 +454,16 @@ function PhoneMockup({ p }) {
       </div>
       {/* Bottom nav */}
       <MiniNav active={0} />
-      {/* شاشات المشاهد — تتبدّل مع وصف كل مشهد */}
-      {p && <SceneScreen p={p} win={sceneWin(0)}><WorkDaysScreen p={p} /></SceneScreen>}
-      {p && <SceneScreen p={p} win={sceneWin(1)}><PayrollScreen p={p} /></SceneScreen>}
       </div>
     </div>
   )
 }
 
-// ─── Mega Hero — التلفون هو البطل ─────────────────────────────────────────────
-// قسم 460vh مثبّت: التلفون بالمنتصف من أول ثانية (دخول درامي بزخم + أشعة ضوء
-// دوّارة + غبار مضيء)، العنوان يطير للخلف مع أول سكرول، وبعدها 3 مشاهد تلفّ
-// حول التلفون بلوحات HUD زجاجية وشرائح طايرة ونقاط تقدّم.
+// ─── Hero 3D — ورشة البناء هي البطل ──────────────────────────────────────────
+// قسم 400vh مثبّت فوق Canvas ثلاثي الأبعاد (Three.js): العنوان يطير للخلف مع
+// أول سكرول، وبعدها الكاميرا تطير بين 3 مشاهد حول الورشة — البرج ينبني بمشهد
+// أيام الشغل، عملات ذهبية تدور بمشهد الرواتب، ومخطّط أرباح 3D ينمو بالمشهد
+// الأخير — مع لوحات HUD زجاجية وشرائح طايرة ونقاط تقدّم متزامنة كلها مع p.
 const STORY = [
   {
     Icon: CalendarDays, color: C.primary,
@@ -680,16 +492,6 @@ const sceneWin = (i) => {
   return [a, a + SCENE_LEN]
 }
 const FADE = 0.05
-
-// غبار مضيء بمواضع شبه عشوائية ثابتة
-const DUST = Array.from({ length: 12 }, (_, i) => ({
-  left: `${(i * 83 + 7) % 100}%`,
-  top: `${(i * 47 + 11) % 88 + 4}%`,
-  size: 3 + (i % 3),
-  dur: 5 + (i % 5),
-  delay: (i % 7) * 0.8,
-  color: [C.primary, C.secondary, C.cyan][i % 3],
-}))
 
 // لوحة HUD زجاجية للمشهد i — تدخل بدوران وتخرج للجهة الثانية ضمن نافذتها.
 function HudPanel({ i, p, story }) {
@@ -751,10 +553,52 @@ function StoryDot({ i, p, color }) {
 
 const HEADLINE_WORDS = ['كل', 'يوم', 'شغل،', 'كل', 'دفعة،', '\n', 'كل', 'مصروف', '—']
 
-function MegaHero() {
+// فولباك ثابت كامل: لمن طلب تقليل الحركة أو متصفّح بلا WebGL — نفس المحتوى
+// والـCTAs بلا Canvas ولا تثبيت سكرول (قصّة الميزات تبقى بقسم «جوّا التطبيق»).
+function HeroStatic() {
+  return (
+    <section id="features" style={{ padding: '80px 24px 64px', direction: 'rtl', textAlign: 'center' }}>
+      <div style={{ maxWidth: 740, margin: '0 auto' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${C.primary}1a`, border: `1px solid ${C.primary}40`, borderRadius: 100, padding: '6px 16px', marginBottom: 28, fontSize: 12, color: C.primary, fontWeight: 700 }}>
+          <CircleDot size={10} strokeWidth={3} />
+          التطبيق الأول للمقاول العربي في إسرائيل
+        </div>
+        <h1 style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, color: C.text, lineHeight: 1.15, marginBottom: 22, letterSpacing: '-0.02em' }}>
+          كل يوم شغل، كل دفعة،<br />كل مصروف —<br />
+          <span className="grad-text">محفوظ. مش في دماغك.</span>
+        </h1>
+        <p style={{ fontSize: 'clamp(15px,2.5vw,19px)', color: C.textDim, lineHeight: 1.7, maxWidth: 580, margin: '0 auto 36px' }}>
+          Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
+        </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button onClick={() => navigate('/register')} className="lp-btn"
+            style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 38px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            جرّب مجاناً 14 يوم
+            <ArrowLeft size={18} strokeWidth={2.5} />
+          </button>
+        </div>
+        <div style={{ marginTop: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
+          {[
+            { icon: Shield,       label: 'آمن ومشفّر' },
+            { icon: Smartphone,   label: 'يعمل بدون إنترنت' },
+            { icon: CheckCircle2, label: 'بدون بطاقة ائتمان' },
+          ].map(({ icon: Icon, label }, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <Icon size={15} color={C.primary} strokeWidth={2.2} />
+              <span style={{ fontSize: 13, color: C.textDim }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function Hero3D() {
   const ref = useRef(null)
   const reduce = useReducedMotion()
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 860
+  const [webgl] = useState(hasWebGL)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
   const p = useSpring(scrollYProgress, { stiffness: 110, damping: 26, mass: 0.35 })
 
@@ -764,43 +608,23 @@ function MegaHero() {
   const headRotX = useTransform(p, [0, 0.2], [0, 30])
   const headVis = useTransform(p, (v) => (v < 0.22 ? 'visible' : 'hidden'))
 
-  // التلفون — يبدأ منخفضاً وكبيراً، يصعد للمنتصف ثم يدور بين المشاهد
-  const phoneY = useTransform(p, [0, 0.22], [isMobile ? '26vh' : '36vh', '0vh'])
-  const phoneRotY = useTransform(p, [0, 0.22, 0.48, 0.74, 1], [-9, 0, -26, 24, -8])
-  const phoneRotX = useTransform(p, [0, 0.22, 1], [13, 3, -4])
-  const phoneScale = useTransform(p, [0, 0.22, 1], [1.05, 1, 0.95])
-
   // عناصر المشاهد (HUD/نقاط/عنوان مصغّر) تظهر بعد انتهاء المشهد 0
   const scenesOpacity = useTransform(p, [0.2, 0.27], [0, 1])
 
-  // ميلان كامل المسرح يتبع الماوس + ضوء يتبع المؤشّر
-  const mx = useMotionValue(0)
-  const my = useMotionValue(0)
-  const lx = useMotionValue(-600)
-  const ly = useMotionValue(-600)
-  const tiltX = useSpring(useTransform(my, [-0.5, 0.5], [4.5, -4.5]), { stiffness: 140, damping: 18 })
-  const tiltY = useSpring(useTransform(mx, [-0.5, 0.5], [-6, 6]), { stiffness: 140, damping: 18 })
-  const slx = useSpring(lx, { stiffness: 110, damping: 22 })
-  const sly = useSpring(ly, { stiffness: 110, damping: 22 })
+  // بارالاكس الماوس للكاميرا الثلاثية — ref عادي يُقرأ داخل useFrame بلا re-render
+  const mouseRef = useRef({ x: 0, y: 0 })
   const onMove = (e) => {
     const r = e.currentTarget.getBoundingClientRect()
-    mx.set((e.clientX - r.left) / r.width - 0.5)
-    my.set((e.clientY - r.top) / r.height - 0.5)
-    lx.set(e.clientX - r.left)
-    ly.set(e.clientY - r.top)
+    mouseRef.current.x = (e.clientX - r.left) / r.width - 0.5
+    mouseRef.current.y = (e.clientY - r.top) / r.height - 0.5
   }
-  const onLeave = () => { mx.set(0); my.set(0) }
-
-  // ميلان فيزيائي بسرعة السكرول — التلفون يتمايل مع زخم السكرول
-  const vel = useVelocity(p)
-  const rotZ = useSpring(useTransform(vel, [-1.6, 1.6], [5, -5]), { stiffness: 120, damping: 20 })
+  const onLeave = () => { mouseRef.current.x = 0; mouseRef.current.y = 0 }
 
   // انكشاف العنوان كلمة-كلمة
   let wi = 0
   const word = (w, k) => {
     if (w === '\n') return <br key={k} />
     const d = 0.1 + (wi++) * 0.07
-    if (reduce) return <span key={k} style={{ display: 'inline-block', marginInlineEnd: '0.26em' }}>{w}</span>
     return (
       <motion.span key={k}
         initial={{ opacity: 0, rotateX: -88, y: 22 }}
@@ -813,97 +637,27 @@ function MegaHero() {
   }
   const gradDelay = 0.1 + HEADLINE_WORDS.filter(w => w !== '\n').length * 0.07 + 0.12
 
-  // fallback ثابت كامل لمن طلب تقليل الحركة (بلا تثبيت ولا مشاهد)
-  if (reduce) {
-    return (
-      <section id="features" style={{ padding: '80px 24px 64px', direction: 'rtl', textAlign: 'center' }}>
-        <div style={{ maxWidth: 740, margin: '0 auto 56px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${C.primary}1a`, border: `1px solid ${C.primary}40`, borderRadius: 100, padding: '6px 16px', marginBottom: 28, fontSize: 12, color: C.primary, fontWeight: 700 }}>
-            <CircleDot size={10} strokeWidth={3} />
-            التطبيق الأول للمقاول العربي في إسرائيل
-          </div>
-          <h1 style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, color: C.text, lineHeight: 1.15, marginBottom: 22, letterSpacing: '-0.02em' }}>
-            كل يوم شغل، كل دفعة،<br />كل مصروف —<br />
-            <span className="grad-text">محفوظ. مش في دماغك.</span>
-          </h1>
-          <p style={{ fontSize: 'clamp(15px,2.5vw,19px)', color: C.textDim, lineHeight: 1.7, maxWidth: 580, margin: '0 auto 36px' }}>
-            Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
-          </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/register')} className="lp-btn"
-              style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 38px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              جرّب مجاناً 14 يوم
-              <ArrowLeft size={18} strokeWidth={2.5} />
-            </button>
-          </div>
-        </div>
-        <h2 style={{ fontSize: 'clamp(20px,3.4vw,32px)', fontWeight: 900, color: C.text, marginBottom: 36 }}>
-          كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
-        </h2>
-        <div className="lp-cinema-grid" style={{ margin: '0 auto', textAlign: 'start' }}>
-          <div>
-            {STORY.map((s, i) => (
-              <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 22 }}>
-                <IconChip icon={s.Icon} color={s.color} size={40} radius={12} iconSize={19} strokeWidth={2.2} />
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 5 }}>{s.title}</div>
-                  <p style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7 }}>{s.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}><PhoneMockup /></div>
-        </div>
-      </section>
-    )
-  }
+  // تقليل حركة أو لا WebGL → النسخة الثابتة
+  if (reduce || !webgl) return <HeroStatic />
 
   return (
-    <section ref={ref} style={{ position: 'relative', height: '460vh', direction: 'rtl' }}>
+    <section ref={ref} style={{ position: 'relative', height: '400vh', direction: 'rtl' }}>
       {/* مرساة "شاهد كيف يعمل" — تهبط على المشهد الأول */}
       <div id="features" aria-hidden style={{ position: 'absolute', top: '30%' }} />
 
       <div onPointerMove={onMove} onPointerLeave={onLeave}
-        style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden' }}>
+        style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: C.bg }}>
 
-        {/* خلفية: توهّجات + أرضية الشبكة + غبار */}
-        <div className="glow-orb" style={{ position: 'absolute', top: '-12%', right: '-6%', width: 620, height: 620, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.12) 0%, transparent 65%)', pointerEvents: 'none' }} />
-        <div className="glow-orb" style={{ position: 'absolute', bottom: '-16%', left: '-8%', width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 65%)', pointerEvents: 'none', animationDelay: '1.5s' }} />
-        <div aria-hidden style={{ position: 'absolute', inset: 0, perspective: 620, overflow: 'hidden', pointerEvents: 'none' }}>
-          <div className="lp-grid-floor" />
+        {/* مشهد WebGL — ورشة البناء الحيّة (lazy: chunk مستقل لthree) */}
+        <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+          <Suspense fallback={null}>
+            <HeroScene progress={p} mouse={mouseRef} low={isMobile} />
+          </Suspense>
         </div>
-        {DUST.map((d, i) => (
-          <span key={i} className="lp-dust" style={{ left: d.left, top: d.top, width: d.size, height: d.size, background: d.color, boxShadow: `0 0 8px ${d.color}`, animationDuration: `${d.dur}s`, animationDelay: `${d.delay}s` }} />
-        ))}
-        {/* ضوء يتبع المؤشّر (ديسكتوب) */}
-        <motion.div aria-hidden style={{ position: 'absolute', top: -280, left: -280, x: slx, y: sly, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 60%)', pointerEvents: 'none', zIndex: 1 }} />
+        {/* تظليل خفيف لقراءة النصوص فوق المشهد */}
+        <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: `linear-gradient(to bottom, ${C.bg}cc 0%, transparent 26%, transparent 70%, ${C.bg}e6 100%)` }} />
         {/* حبيبات فيلم */}
         <div className="lp-grain" aria-hidden />
-
-        {/* مسرح التلفون — البطل */}
-        <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', y: phoneY, zIndex: 2, pointerEvents: 'none', perspective: 1300 }}>
-          <div className="lp-rays" />
-          {/* توهّج خلف التلفون (بلا blur — التدرّج الشعاعي ناعم أصلاً) */}
-          <div aria-hidden style={{ position: 'absolute', inset: 0, margin: 'auto', width: 460, height: 460, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.16) 0%, transparent 62%)' }} />
-          {/* دخول درامي بزخم → دوران المشاهد → ميلان الماوس */}
-          <motion.div initial={{ y: 280, opacity: 0, rotateX: 24, scale: 0.9 }} animate={{ y: 0, opacity: 1, rotateX: 0, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 55, damping: 15, delay: 0.2 }}>
-            <motion.div style={{ rotateY: phoneRotY, rotateX: phoneRotX, rotateZ: rotZ, scale: phoneScale, transformStyle: 'preserve-3d' }}>
-              <motion.div style={{ rotateX: tiltX, rotateY: tiltY, transformStyle: 'preserve-3d' }}>
-                <div className="lp-mega-phone">
-                  <div style={{ position: 'relative', borderRadius: 42, overflow: 'hidden' }}>
-                    <PhoneMockup p={p} />
-                    <HolographicSheen duration={5} repeatDelay={2.2} opacity={0.22} />
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          </motion.div>
-          {/* شرائح المشاهد الطايرة */}
-          <StoryChip i={0} p={p} chip={STORY[0].chip} pos={{ top: '26%', insetInlineEnd: 'max(8px, calc(50% - 252px))' }} />
-          <StoryChip i={1} p={p} chip={STORY[1].chip} pos={{ top: '40%', insetInlineEnd: 'max(8px, calc(50% - 258px))' }} />
-          <StoryChip i={2} p={p} chip={STORY[2].chip} pos={{ bottom: '22%', insetInlineEnd: 'max(8px, calc(50% - 262px))' }} />
-        </motion.div>
 
         {/* طبقة العنوان — المشهد 0 */}
         <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 'clamp(84px, 11vh, 124px)', textAlign: 'center', opacity: headOpacity, y: headY, rotateX: headRotX, transformPerspective: 1000, zIndex: 4, pointerEvents: 'none', visibility: headVis, padding: '0 20px' }}>
@@ -918,13 +672,13 @@ function MegaHero() {
 
             {/* Badge */}
             <motion.div initial={{ opacity: 0, y: 18, rotateX: 30, transformPerspective: 800 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${C.primary}1a`, border: `1px solid ${C.primary}40`, borderRadius: 100, padding: '6px 16px', marginBottom: 'clamp(16px, 3vh, 30px)', fontSize: 12, color: C.primary, fontWeight: 700 }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${C.primary}1a`, border: `1px solid ${C.primary}40`, borderRadius: 100, padding: '6px 16px', marginBottom: 'clamp(16px, 3vh, 30px)', fontSize: 12, color: C.primary, fontWeight: 700, backdropFilter: 'blur(6px)' }}>
               <CircleDot size={10} strokeWidth={3} />
               التطبيق الأول للمقاول العربي في إسرائيل
             </motion.div>
 
             {/* Headline — كلمة-كلمة من العمق */}
-            <h1 style={{ fontSize: 'clamp(26px,5.2vw,50px)', fontWeight: 900, color: C.text, lineHeight: 1.16, marginBottom: 18, letterSpacing: '-0.02em', perspective: 900 }}>
+            <h1 style={{ fontSize: 'clamp(26px,5.2vw,50px)', fontWeight: 900, color: C.text, lineHeight: 1.16, marginBottom: 18, letterSpacing: '-0.02em', perspective: 900, textShadow: '0 4px 30px rgba(0,0,0,0.6)' }}>
               {HEADLINE_WORDS.map(word)}
               <br />
               <motion.span className="grad-text"
@@ -938,7 +692,7 @@ function MegaHero() {
 
             {/* Sub */}
             <motion.p initial={{ opacity: 0, y: 24, rotateX: 18, transformPerspective: 900 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, delay: gradDelay + 0.15, ease: [0.22, 1, 0.36, 1] }}
-              style={{ fontSize: 'clamp(14px,2.2vw,17px)', color: C.textDim, lineHeight: 1.65, marginBottom: 'clamp(18px, 3.4vh, 34px)', maxWidth: 560, marginInline: 'auto' }}>
+              style={{ fontSize: 'clamp(14px,2.2vw,17px)', color: C.textDim, lineHeight: 1.65, marginBottom: 'clamp(18px, 3.4vh, 34px)', maxWidth: 560, marginInline: 'auto', textShadow: '0 2px 14px rgba(0,0,0,0.7)' }}>
               Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
             </motion.p>
 
@@ -953,7 +707,7 @@ function MegaHero() {
                 </button>
               </Magnetic>
               <button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }) }} className="lp-btn"
-                style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '14px 26px', borderRadius: 16 }}>
+                style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '14px 26px', borderRadius: 16, backdropFilter: 'blur(8px)' }}>
                 شاهد كيف يعمل
               </button>
             </motion.div>
@@ -962,8 +716,8 @@ function MegaHero() {
             <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: gradDelay + 0.38 }}
               style={{ marginTop: 'clamp(14px, 2.6vh, 26px)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
               {[
-                { icon: Shield,      label: 'آمن ومشفّر' },
-                { icon: Smartphone,  label: 'يعمل بدون إنترنت' },
+                { icon: Shield,       label: 'آمن ومشفّر' },
+                { icon: Smartphone,   label: 'يعمل بدون إنترنت' },
                 { icon: CheckCircle2, label: 'بدون بطاقة ائتمان' },
               ].map(({ icon: Icon, label }, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -977,8 +731,8 @@ function MegaHero() {
 
         {/* العنوان المصغّر للمشاهد */}
         <motion.div style={{ position: 'absolute', top: 'clamp(74px, 9.6vh, 94px)', left: 0, right: 0, textAlign: 'center', opacity: scenesOpacity, zIndex: 4, pointerEvents: 'none', padding: '0 18px' }}>
-          <div style={{ fontSize: 11, color: C.primary, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 7, textTransform: 'uppercase' }}>قوة في جيبك</div>
-          <h2 style={{ fontSize: 'clamp(19px,3vw,30px)', fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
+          <div style={{ fontSize: 11, color: C.primary, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 7, textTransform: 'uppercase' }}>ورشتك — حيّة قدامك</div>
+          <h2 style={{ fontSize: 'clamp(19px,3vw,30px)', fontWeight: 900, color: C.text, lineHeight: 1.25, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>
             كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
           </h2>
         </motion.div>
@@ -988,6 +742,11 @@ function MegaHero() {
           {STORY.map((s, i) => <HudPanel key={i} i={i} p={p} story={s} />)}
         </motion.div>
 
+        {/* شرائح المشاهد الطايرة — حول مركز المشهد الثلاثي */}
+        <StoryChip i={0} p={p} chip={STORY[0].chip} pos={{ top: '24%', insetInlineEnd: 'max(14px, calc(50% - 300px))' }} />
+        <StoryChip i={1} p={p} chip={STORY[1].chip} pos={{ top: '38%', insetInlineEnd: 'max(14px, calc(50% - 310px))' }} />
+        <StoryChip i={2} p={p} chip={STORY[2].chip} pos={{ bottom: '24%', insetInlineEnd: 'max(14px, calc(50% - 316px))' }} />
+
         {/* نقاط التقدّم */}
         <motion.div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 10, opacity: scenesOpacity, zIndex: 5, pointerEvents: 'none' }}>
           {STORY.map((s, i) => <StoryDot key={i} i={i} p={p} color={s.color} />)}
@@ -996,6 +755,48 @@ function MegaHero() {
     </section>
   )
 }
+
+// ─── App Showcase — جوّا التطبيق ──────────────────────────────────────────────
+// التلفون الحي (لوحة التحكم الحقيقية) مع قصّة الميزات — يعرض المنتج الفعلي
+// بعد ما المشهد الثلاثي باع الإحساس.
+function AppShowcase() {
+  return (
+    <section id="app-showcase" style={{ padding: '72px 24px', direction: 'rtl', background: C.surface, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        <Depth tilt={16} lift={60}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
+              جوّا التطبيق — <span className="grad-text">لوحة تحكم حيّة</span>
+            </h2>
+            <p style={{ fontSize: 16, color: C.textDim }}>نفس الشاشات اللي رح تشتغل عليها كل يوم.</p>
+          </div>
+        </Depth>
+        <div className="lp-cinema-grid" style={{ margin: '0 auto' }}>
+          <div>
+            {STORY.map((s, i) => (
+              <Flip3D key={i} delay={i * 0.1} dir={i % 2 ? -1 : 1} style={{ height: 'auto' }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 22 }}>
+                  <IconChip icon={s.Icon} color={s.color} size={40} radius={12} iconSize={19} strokeWidth={2.2} />
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 5 }}>{s.title}</div>
+                    <p style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7 }}>{s.desc}</p>
+                  </div>
+                </div>
+              </Flip3D>
+            ))}
+          </div>
+          <Depth tilt={18} lift={80} from={0.9} style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{ position: 'relative', borderRadius: 42, overflow: 'hidden' }}>
+              <PhoneMockup />
+              <HolographicSheen duration={5} repeatDelay={2.2} opacity={0.22} />
+            </div>
+          </Depth>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 
 // ─── Stats strip ─────────────────────────────────────────────────────────────
 const STATS = [
@@ -1335,9 +1136,10 @@ export default function LandingPage() {
       <div style={{ background: C.bg, minHeight: '100vh', color: C.text }}>
         <ScrollProgress />
         <Navbar loggedIn={loggedIn} />
-        <MegaHero />
+        <Hero3D />
         <StatsStrip />
         <PainPoints />
+        <AppShowcase />
         <FeaturesGrid />
         <Testimonials />
         <PricingTeaser />
