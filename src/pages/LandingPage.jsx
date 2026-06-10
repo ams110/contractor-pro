@@ -50,21 +50,27 @@ const css = `
     .lp-nav-actions { display: none !important; }
     .lp-burger      { display: flex !important; }
   }
-  /* أرضية شبكة 3D بمنظور — تتحرّك للأمام بلا توقّف (روح synthwave بهوية amber) */
+  /* أرضية شبكة 3D بمنظور — تتحرّك للأمام بلا توقّف (روح synthwave بهوية amber).
+     الحركة بـtransform (مسرَّعة بالكومبوزيتور) لا بـbackground-position (إعادة رسم كل فريم). */
   .lp-grid-floor {
     position: absolute; left: -50%; right: -50%; bottom: -12%; height: 58%;
+    transform: rotateX(63deg);
+    transform-origin: top center;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 62%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 62%, transparent);
+    pointer-events: none;
+  }
+  .lp-grid-floor::before {
+    content: ''; position: absolute; left: 0; right: 0; top: -46px; bottom: -46px;
     background-image:
       linear-gradient(rgba(249,115,22,0.13) 1px, transparent 1px),
       linear-gradient(90deg, rgba(249,115,22,0.13) 1px, transparent 1px);
     background-size: 46px 46px;
-    transform: rotateX(63deg);
-    transform-origin: top center;
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 62%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 62%, transparent);
     animation: gridMove 1.7s linear infinite;
-    pointer-events: none;
+    will-change: transform;
   }
-  @keyframes gridMove { from { background-position-y: 0 } to { background-position-y: 46px } }
+  @keyframes gridMove { from { transform: translateY(0) } to { transform: translateY(46px) } }
   /* بطاقات عائمة بعمق حول عنوان الـHero — تختفي على الشاشات الضيّقة */
   .lp-float-chip { position: absolute; pointer-events: none; }
   @media (max-width: 900px) { .lp-float-chip { display: none; } }
@@ -73,7 +79,7 @@ const css = `
   @media (max-width: 860px) { .lp-cinema-grid { grid-template-columns: 1fr; gap: 24px; } }
   /* أشعة ضوء دوّارة خلف التلفون (god rays بهوية amber/secondary/cyan) */
   .lp-rays {
-    position: absolute; inset: 0; margin: auto; width: 940px; height: 940px; border-radius: 50%;
+    position: absolute; inset: 0; margin: auto; width: 780px; height: 780px; border-radius: 50%;
     background: conic-gradient(from 10deg,
       transparent 0deg 14deg,  rgba(249,115,22,0.08) 21deg 27deg, transparent 34deg 98deg,
       rgba(124,58,237,0.07) 106deg 112deg, transparent 119deg 192deg,
@@ -93,13 +99,13 @@ const css = `
     .lp-hud p { margin-inline: auto; }
     .lp-mega-phone { transform: scale(0.62); margin-top: 128px; }
   }
-  /* حبيبات فيلم سينمائية فوق المسرح */
+  /* حبيبات فيلم سينمائية فوق المسرح (بلا mix-blend — أرخص على الرندر البرمجي) */
   .lp-grain {
-    position: absolute; inset: 0; z-index: 30; pointer-events: none; opacity: 0.05; mix-blend-mode: overlay;
+    position: absolute; inset: 0; z-index: 30; pointer-events: none; opacity: 0.035;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   @media (prefers-reduced-motion: reduce) {
-    .lp-grid-floor, .float, .glow-orb, .lp-rays, .lp-dust { animation: none !important; }
+    .lp-grid-floor::before, .float, .glow-orb, .lp-rays, .lp-dust { animation: none !important; }
   }
 `
 
@@ -191,7 +197,6 @@ function FloatChip({ icon: Icon, color, text, style = {}, dur = 3.5, delay = 0 }
         border: `1px solid ${color}3a`, borderRadius: 14,
         boxShadow: `0 14px 40px rgba(0,0,0,0.5), 0 0 24px ${color}22`,
         animationDuration: `${dur}s`, animationDelay: `${delay}s`,
-        backdropFilter: 'blur(8px)',
       }}>
         <div style={{ width: 26, height: 26, borderRadius: 8, background: `${color}1c`, border: `1px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon size={13} color={color} strokeWidth={2.4} />
@@ -725,7 +730,7 @@ function StoryChip({ i, p, chip, pos }) {
         display: 'flex', alignItems: 'center', gap: 8, padding: '9px 13px',
         background: `linear-gradient(135deg, ${color}1f, ${C.card} 70%)`,
         border: `1px solid ${color}3a`, borderRadius: 14,
-        boxShadow: `0 14px 40px rgba(0,0,0,0.55), 0 0 24px ${color}22`, backdropFilter: 'blur(8px)',
+        boxShadow: `0 14px 40px rgba(0,0,0,0.55), 0 0 24px ${color}22`,
       }}>
         <div style={{ width: 26, height: 26, borderRadius: 8, background: `${color}1c`, border: `1px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon size={13} color={color} strokeWidth={2.4} />
@@ -871,15 +876,15 @@ function MegaHero() {
           <span key={i} className="lp-dust" style={{ left: d.left, top: d.top, width: d.size, height: d.size, background: d.color, boxShadow: `0 0 8px ${d.color}`, animationDuration: `${d.dur}s`, animationDelay: `${d.delay}s` }} />
         ))}
         {/* ضوء يتبع المؤشّر (ديسكتوب) */}
-        <motion.div aria-hidden style={{ position: 'absolute', top: -280, left: -280, x: slx, y: sly, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.09) 0%, transparent 60%)', pointerEvents: 'none', mixBlendMode: 'screen', zIndex: 1 }} />
+        <motion.div aria-hidden style={{ position: 'absolute', top: -280, left: -280, x: slx, y: sly, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 60%)', pointerEvents: 'none', zIndex: 1 }} />
         {/* حبيبات فيلم */}
         <div className="lp-grain" aria-hidden />
 
         {/* مسرح التلفون — البطل */}
         <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', y: phoneY, zIndex: 2, pointerEvents: 'none', perspective: 1300 }}>
           <div className="lp-rays" />
-          {/* توهّج خلف التلفون */}
-          <div aria-hidden style={{ position: 'absolute', inset: 0, margin: 'auto', width: 460, height: 460, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.16) 0%, transparent 62%)', filter: 'blur(6px)' }} />
+          {/* توهّج خلف التلفون (بلا blur — التدرّج الشعاعي ناعم أصلاً) */}
+          <div aria-hidden style={{ position: 'absolute', inset: 0, margin: 'auto', width: 460, height: 460, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.16) 0%, transparent 62%)' }} />
           {/* دخول درامي بزخم → دوران المشاهد → ميلان الماوس */}
           <motion.div initial={{ y: 280, opacity: 0, rotateX: 24, scale: 0.9 }} animate={{ y: 0, opacity: 1, rotateX: 0, scale: 1 }}
             transition={{ type: 'spring', stiffness: 55, damping: 15, delay: 0.2 }}>
