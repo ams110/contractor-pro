@@ -5,8 +5,9 @@ import { fileURLToPath } from 'url'
 import path from 'path'
 
 const __dir = path.dirname(fileURLToPath(import.meta.url))
-const FILE = 'file://' + path.resolve(__dir, '../docs/ad/cp_15s_ad.html')
-const FPS = 30, DUR = 15, OUT = path.resolve(__dir, 'frames')
+const SRC = process.argv[2] || '../docs/ad/cp_15s_ad.html'
+const FILE = 'file://' + path.resolve(__dir, SRC)
+const FPS = 30, DUR = 15, OUT = path.resolve(__dir, process.argv[3] || 'frames')
 
 const browser = await chromium.launch({ channel: 'chrome' })
 const page = await browser.newPage({ deviceScaleFactor: 3, viewport: { width: 820, height: 720 } })
@@ -20,12 +21,10 @@ const stage = await page.$('.stage')
 const N = FPS * DUR
 for (let i = 0; i < N; i++) {
   const t = i / FPS
-  // زحلقة كل الأنميشن للحظة t وتجميدها (animation-delay سالب + paused)
-  await page.evaluate((tt) => {
-    let s = document.getElementById('seek')
-    if (!s) { s = document.createElement('style'); s.id = 'seek'; document.head.appendChild(s) }
-    s.textContent = `*{animation-play-state:paused!important;animation-delay:-${tt}s!important}`
-  }, t)
+  // تحكّم محكم: نضبط currentTime لكل أنميشن مباشرةً ونجمّده (بلا اعتماد على animation-delay).
+  await page.evaluate((ms) => {
+    for (const a of document.getAnimations()) { a.pause(); a.currentTime = ms }
+  }, t * 1000)
   await stage.screenshot({ path: path.join(OUT, `f${String(i).padStart(4, '0')}.png`) })
   if (i % 60 === 0) process.stdout.write(`  frame ${i}/${N}\n`)
 }

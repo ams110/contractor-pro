@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<title>Contractor Pro — إعلان 15ث v2 (ماستركلاس)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700;800;900&display=swap');
+  :root{
+    --bg:#07080F;--surface:#0D0F1C;--card:#12152A;
+    --primary:#F97316;--secondary:#7C3AED;--gold:#D97706;--cyan:#06B6D4;
+    --success:#22C55E;--warning:#EAB308;--accent:#EF4444;
+    --text:#F8FAFC;--dim:#64748B;
+    --brand:linear-gradient(135deg,#F97316,#DC2626);
+    --gradSuccess:linear-gradient(90deg,#22C55E,#06B6D4);
+    --T:15s;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;font-family:'Noto Sans Arabic',system-ui,sans-serif;
+    display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;-webkit-font-smoothing:antialiased}
+  .stage{position:relative;width:360px;height:640px;background:var(--bg);overflow:hidden;border-radius:28px;box-shadow:0 30px 90px rgba(0,0,0,.7)}
+  .layer{position:absolute;inset:0;opacity:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center}
+  .orb{position:absolute;border-radius:50%;filter:blur(6px);pointer-events:none}
+  h1{color:var(--text);font-weight:900;letter-spacing:-.02em;line-height:1.28}
+  .big-num{font-weight:900;font-size:74px;font-variant-numeric:tabular-nums;
+    background:var(--brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+  /* كابشن محروق */
+  .caption{position:absolute;left:18px;right:18px;bottom:82px;z-index:60;height:64px;
+    color:#fff;font-weight:800;font-size:21px;line-height:1.45;text-align:center;text-shadow:0 2px 12px rgba(0,0,0,.95)}
+  .cap{position:absolute;left:0;right:0}
+
+  /* فوضى الإيصالات (المشهد الأول) */
+  .chip{position:absolute;font-size:13px;font-weight:800;color:var(--dim);
+    background:var(--card);border:1px solid rgba(100,116,139,.25);border-radius:8px;padding:4px 9px;white-space:nowrap}
+
+  /* ساعة الليل */
+  .clock{font-size:15px;font-weight:800;color:var(--accent);letter-spacing:.1em;
+    background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:20px;padding:5px 14px}
+
+  /* حلقة التحوّل (ripple) */
+  .ripple{position:absolute;width:30px;height:30px;border-radius:50%;border:2px solid var(--primary);left:50%;top:50%;margin:-15px}
+
+  /* عدّاد نبض المصلحة */
+  .gauge-wrap{position:relative;width:138px;height:138px;margin-bottom:16px}
+  .gauge-fg{stroke-dasharray:163;stroke-dashoffset:163}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+  .kpi{background:var(--card);border-radius:13px;padding:12px 6px;text-align:center}
+  .kpi .v{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+  .kpi .l{font-size:9px;color:var(--dim);margin-top:5px}
+
+  /* تذكرة + ختم */
+  .ticket{display:flex;align-items:stretch;width:100%;min-height:56px;border-radius:13px;overflow:hidden;
+    background:linear-gradient(135deg,rgba(249,115,22,.12),var(--card) 55%);border:1px solid rgba(249,115,22,.33);margin-bottom:9px}
+  .stub{width:44px;background:linear-gradient(160deg,var(--primary),var(--gold));display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff}
+  .stub .d{font-size:19px;font-weight:900;line-height:1}
+  .mid{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 11px;align-items:flex-start;gap:4px}
+  .nm{font-size:12px;font-weight:900;color:var(--text)}
+  .badge{font-size:9px;font-weight:800;border-radius:6px;padding:2px 7px}
+  .amt{width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+  .stamp{display:inline-flex;align-items:center;gap:3px;font-size:8px;font-weight:800;color:var(--success);background:rgba(34,197,94,.16);border:1px solid rgba(34,197,94,.4);border-radius:10px;padding:2px 6px}
+
+  /* شريط الرواتب */
+  .bar-card{background:var(--card);border-radius:14px;padding:14px;width:100%;margin-top:6px}
+  .bar-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:8px}
+  .bar-track{height:8px;background:rgba(100,116,139,.25);border-radius:5px;overflow:hidden}
+  .bar-fill{height:100%;width:4%;background:var(--gradSuccess);border-radius:5px}
+
+  /* CTA */
+  .logo{width:88px;height:88px;border-radius:27px;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:42px;box-shadow:0 16px 55px rgba(249,115,22,.55);margin-bottom:16px}
+  .cta-btn{margin-top:18px;background:var(--brand);color:#fff;font-weight:900;font-size:18px;padding:14px 30px;border-radius:16px;box-shadow:0 10px 30px rgba(249,115,22,.5)}
+
+  /* ════ الجدول الزمني (ماستركلاس: Hook→Hold→Payoff) ════
+     b1 0-2.2 hook(ساعة+فوضى) · b2 2.2-4.4 ألم(1800) · b3 4.4-6.0 تحوّل(صمت+ripple)
+     b4 6.0-8.8 داشبورد · b5 8.8-11 أيام · b6 11-12.8 رواتب · b7 12.8-15 راحة+CTA */
+  .b1{animation:b1 var(--T) linear infinite}
+  .b2{animation:b2 var(--T) linear infinite}
+  .b3{animation:b3 var(--T) linear infinite}
+  .b4{animation:b4 var(--T) linear infinite}
+  .b5{animation:b5 var(--T) linear infinite}
+  .b6{animation:b6 var(--T) linear infinite}
+  .b7{animation:b7 var(--T) linear infinite}
+  @keyframes b1{0%{opacity:0}2%{opacity:1}13.3%{opacity:1}14.7%{opacity:0}100%{opacity:0}}
+  @keyframes b2{0%,13.3%{opacity:0}14.7%{opacity:1}27.3%{opacity:1}29.3%{opacity:0}100%{opacity:0}}
+  @keyframes b3{0%,27.3%{opacity:0}29.3%{opacity:1}38%{opacity:1}40%{opacity:0}100%{opacity:0}}
+  @keyframes b4{0%,38%{opacity:0}41%{opacity:1}57%{opacity:1}58.6%{opacity:0}100%{opacity:0}}
+  @keyframes b5{0%,57%{opacity:0}58.6%{opacity:1}72%{opacity:1}73.3%{opacity:0}100%{opacity:0}}
+  @keyframes b6{0%,72%{opacity:0}73.3%{opacity:1}84%{opacity:1}85.3%{opacity:0}100%{opacity:0}}
+  @keyframes b7{0%,84%{opacity:0}85.3%{opacity:1}100%{opacity:1}}
+
+  /* كينيتك: الرقم ينبض */
+  .pop{animation:pop var(--T) linear infinite}
+  @keyframes pop{0%,14.7%{transform:scale(.6);opacity:0}17%{transform:scale(1.12);opacity:1}19%{transform:scale(1)}27.3%{opacity:1}29.3%{opacity:0}100%{opacity:0}}
+
+  /* الشيبس تطفو ثم تنشفط للمركز عند التحوّل */
+  .chips{animation:chipsuck var(--T) linear infinite}
+  @keyframes chipsuck{0%,29.3%{transform:scale(1);opacity:1}33%{transform:scale(1.05);opacity:1}38%{transform:scale(.05) translate(0,0);opacity:0}100%{opacity:0}}
+
+  /* حلقة التحوّل تتمدّد */
+  .ripple{animation:rip var(--T) linear infinite;opacity:0}
+  @keyframes rip{0%,31%{transform:scale(0);opacity:0}32%{opacity:.9}38%{transform:scale(14);opacity:0}100%{opacity:0}}
+
+  /* العدّاد يتعبّى 0→87 (مزامن مع كشف الداشبورد) */
+  .gauge-fg{animation:gauge var(--T) linear infinite}
+  @keyframes gauge{0%,41%{stroke-dashoffset:163}52%{stroke-dashoffset:21}57%{stroke-dashoffset:21}58.6%,100%{stroke-dashoffset:163}}
+
+  /* الختم يُطبع ببوب (مزامن مع SFX ding عند ~10ث) */
+  .stamp-pop{opacity:0;animation:stamp var(--T) linear infinite}
+  @keyframes stamp{0%,65%{opacity:0;transform:scale(1.7)}67%{opacity:1;transform:scale(1)}72%{opacity:1}73.3%{opacity:0}100%{opacity:0}}
+  .pending-fade{animation:pend var(--T) linear infinite}
+  @keyframes pend{0%,65%{opacity:1}66%{opacity:0}100%{opacity:0}}
+
+  /* شريط الرواتب */
+  .bar-fill{animation:fill var(--T) linear infinite}
+  @keyframes fill{0%,74%{width:4%}81%{width:72%}84%{width:72%}85.3%,100%{width:4%}}
+
+  /* كابشن متزامن */
+  .c1{animation:c1 var(--T) linear infinite}.c2{animation:c2 var(--T) linear infinite}
+  .c3{animation:c3 var(--T) linear infinite}.c4{animation:c4 var(--T) linear infinite}
+  .c5{animation:c5 var(--T) linear infinite}.c6{animation:c6 var(--T) linear infinite}
+  .c7{animation:c7 var(--T) linear infinite}
+  @keyframes c1{0%{opacity:0}1%{opacity:1}13.3%{opacity:1}13.4%{opacity:0}100%{opacity:0}}
+  @keyframes c2{0%,14.7%{opacity:0}14.8%{opacity:1}27.3%{opacity:1}27.4%{opacity:0}100%{opacity:0}}
+  @keyframes c3{0%,29.3%{opacity:0}29.4%{opacity:1}38%{opacity:1}38.1%{opacity:0}100%{opacity:0}}
+  @keyframes c4{0%,41%{opacity:0}41.1%{opacity:1}57%{opacity:1}57.1%{opacity:0}100%{opacity:0}}
+  @keyframes c5{0%,58.6%{opacity:0}58.7%{opacity:1}72%{opacity:1}72.1%{opacity:0}100%{opacity:0}}
+  @keyframes c6{0%,73.3%{opacity:0}73.4%{opacity:1}84%{opacity:1}84.1%{opacity:0}100%{opacity:0}}
+  @keyframes c7{0%,85.3%{opacity:0}85.4%{opacity:1}100%{opacity:1}}
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+
+    <!-- b1: HOOK — ليل + فوضى -->
+    <div class="layer b1">
+      <div class="orb" style="width:260px;height:260px;background:radial-gradient(circle,rgba(239,68,68,.22),transparent 70%);top:150px"></div>
+      <div class="clock">🕒 11:47 مساءً</div>
+      <h1 style="font-size:30px;margin-top:22px">لسّا قاعد<br>تحسب؟</h1>
+      <div class="chip" style="top:120px;right:34px;transform:rotate(-8deg)">إيصال ₪320</div>
+      <div class="chip" style="top:175px;left:30px;transform:rotate(6deg)">راتب محمد؟</div>
+      <div class="chip" style="bottom:200px;right:44px;transform:rotate(4deg)">سلفة ₪600</div>
+      <div class="chip" style="bottom:165px;left:40px;transform:rotate(-5deg)">מע"מ؟</div>
+    </div>
+
+    <!-- b2: الألم — 1,800₪ -->
+    <div class="layer b2">
+      <div class="orb" style="width:240px;height:240px;background:radial-gradient(circle,rgba(249,115,22,.28),transparent 70%);top:150px"></div>
+      <div style="font-size:14px;color:var(--dim);margin-bottom:6px">المحاسب بياخد منك</div>
+      <div class="big-num pop">1,800₪</div>
+      <div style="font-size:15px;color:var(--text);font-weight:800;margin-top:10px">وما بيدير ولا عامل واحد</div>
+    </div>
+
+    <!-- b3: التحوّل — صمت + ripple -->
+    <div class="layer b3">
+      <div class="ripple"></div>
+      <h1 style="font-size:28px">خلص.<br><span style="background:var(--brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent">في طريقة أسهل.</span></h1>
+    </div>
+
+    <!-- b4: الداشبورد -->
+    <div class="layer b4">
+      <div class="orb" style="width:200px;height:200px;background:radial-gradient(circle,rgba(34,197,94,.28),transparent 70%);top:80px"></div>
+      <div class="gauge-wrap">
+        <svg width="138" height="138" viewBox="0 0 138 138">
+          <circle cx="69" cy="69" r="52" fill="none" stroke="#12152A" stroke-width="12"/>
+          <circle class="gauge-fg" cx="69" cy="69" r="52" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" transform="rotate(-90 69 69)"/>
+          <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C55E"/><stop offset="1" stop-color="#06B6D4"/></linearGradient></defs>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <span style="font-size:38px;font-weight:900;color:var(--text)">87</span>
+          <span style="font-size:10px;color:var(--dim)">نبض المصلحة</span>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="v" style="color:var(--success)">₪94K</div><div class="l">صافي الربح</div></div>
+        <div class="kpi"><div class="v" style="color:var(--cyan)">₪31K</div><div class="l">نقد بالجيب</div></div>
+        <div class="kpi"><div class="v" style="color:var(--gold)">₪12K</div><div class="l">مستحق</div></div>
+      </div>
+    </div>
+
+    <!-- b5: أيام العمل + ختم -->
+    <div class="layer b5">
+      <div style="width:100%">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <span style="font-size:15px;font-weight:900;color:var(--text)">أيام العمل</span>
+          <span class="badge pending-fade" style="color:var(--warning);background:rgba(234,179,8,.16);border:1px solid rgba(234,179,8,.4)">1 بانتظار</span>
+        </div>
+        <div class="ticket">
+          <div class="stub"><div class="d">8</div><div style="font-size:7px">يونيو</div></div>
+          <div class="mid"><span class="nm">أحمد س.</span><span class="badge" style="color:var(--warning);background:rgba(234,179,8,.11)">نص يوم</span></div>
+          <div class="amt"><div style="font-size:13px;font-weight:900;color:var(--warning)">₪225</div>
+            <div style="position:relative;height:18px;width:56px">
+              <span class="badge pending-fade" style="position:absolute;inset:0;color:var(--warning);background:rgba(234,179,8,.16);border:1px solid rgba(234,179,8,.4)">⏳ بانتظار</span>
+              <span class="stamp stamp-pop" style="position:absolute;inset:0;justify-content:center">✓ معتمد</span>
+            </div></div>
+        </div>
+        <div class="ticket">
+          <div class="stub"><div class="d">8</div><div style="font-size:7px">يونيو</div></div>
+          <div class="mid"><span class="nm">محمد ع.</span><span class="badge" style="color:var(--primary);background:rgba(249,115,22,.11)">كامل</span></div>
+          <div class="amt"><div style="font-size:13px;font-weight:900;color:var(--primary)">₪450</div><span class="stamp">✓ معتمد</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- b6: الرواتب -->
+    <div class="layer b6">
+      <div style="width:100%">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <span style="font-size:15px;font-weight:900;color:var(--text)">الرواتب والسلف</span>
+          <span style="font-size:13px;font-weight:900;color:var(--cyan)">₪13,750</span>
+        </div>
+        <div class="ticket" style="background:var(--card);border:1px solid rgba(249,115,22,.08);align-items:center;padding:9px 11px">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--gradSuccess);display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff">م</div>
+          <div class="mid"><span class="nm">محمد ع.</span><span style="font-size:9px;color:var(--dim)">راتب نيسان · PAY-1042</span></div>
+          <div class="badge" style="color:var(--success);background:rgba(34,197,94,.18);border:1px solid rgba(34,197,94,.4);font-size:11px">₪4,250</div>
+        </div>
+        <div class="bar-card">
+          <div class="bar-row"><span style="color:var(--dim)">نسبة المدفوع</span><span style="color:var(--success);font-weight:800">72%</span></div>
+          <div class="bar-track"><div class="bar-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- b7: الراحة + CTA (Payoff) -->
+    <div class="layer b7">
+      <div class="orb" style="width:300px;height:300px;background:radial-gradient(circle,rgba(249,115,22,.26),transparent 70%);top:80px"></div>
+      <div class="logo">👷</div>
+      <h1 style="font-size:25px">Contractor&nbsp;Pro</h1>
+      <div style="color:var(--dim);font-size:13px;margin-top:6px">أول تطبيق مقاولات بالعربي</div>
+      <div class="cta-btn">جرّب مجاناً 14 يوم</div>
+      <div style="color:var(--dim);font-size:11px;margin-top:10px">سنة بـ 990₪ · بدون بطاقة</div>
+    </div>
+
+    <!-- ════ الكابشن المحروق ════ -->
+    <div class="caption">
+      <div class="cap c1">آخر الليل… ولسّا بتحسب بإيدك؟</div>
+      <div class="cap c2">المحاسب بـ 1,800₪، وما بيدير عامل.</div>
+      <div class="cap c3">خلص. في طريقة أسهل.</div>
+      <div class="cap c4">كل شغلك بشاشة وحدة — بالعربي.</div>
+      <div class="cap c5">يوم عمل بلمسة. راتب محسوب لحاله.</div>
+      <div class="cap c6">ضريبة مظبوطة. بوّابة للعامل.</div>
+      <div class="cap c7">نام مرتاح — جرّبه مجاناً 👈</div>
+    </div>
+  </div>
+</body>
+</html>
