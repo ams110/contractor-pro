@@ -1,6 +1,6 @@
 {
   "name": "contractor-pro",
-  "version": "2.0.129",
+  "version": "2.0.139",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -26,6 +26,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@react-three/fiber": "^8.18.0",
     "@sentry/react": "^10.57.0",
     "@simplewebauthn/browser": "^9.0.1",
     "@supabase/supabase-js": "^2.39.0",
@@ -49,6 +50,7 @@
     "react-i18next": "^17.0.7",
     "recharts": "^2.12.7",
     "sonner": "^2.0.7",
+    "three": "^0.170.0",
     "vaul": "^1.1.2",
     "vite-plugin-pwa": "^1.2.0",
     "xlsx": "^0.18.5",

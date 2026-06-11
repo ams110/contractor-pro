@@ -3,22 +3,28 @@ import {
   HardHat, BarChart3, Users, CalendarDays, Receipt,
   CheckCircle2, ArrowLeft, Shield, Smartphone, TrendingUp,
   Menu, X, Building2, Wallet, Settings, LayoutDashboard,
-  Bell, Search, CircleDot, Sun, CloudSun, Clock, Check, Hourglass
+  Bell, Search, CircleDot, Sun, CloudSun, MapPin, Check, Hourglass,
+  Activity, Clock, ChevronLeft, Sparkles,
 } from 'lucide-react'
-import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue, useVelocity, useReducedMotion } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue, useReducedMotion } from 'framer-motion'
 import { C, GRAD } from '../constants/index.js'
-import { PremiumCard, IconChip, HolographicSheen, useCountUp } from '../ui/Premium.jsx'
+import { PremiumCard, IconChip, HolographicSheen, useCountUp, TONES } from '../ui/Premium.jsx'
 import { supabase } from '../lib/supabase.js'
 import { navigate } from '../Router.jsx'
 
 // نستعمل نفس توكنات الهوية (C/GRAD) ومكوّنات kit الفخامة (PremiumCard/IconChip)
 // المستعملة في التطبيق — لا توكنات محليّة ولا بطاقات معاد بناؤها (CLAUDE.md §2.1/§19).
 //
-// طبقة السكرول 3D: التلفون هو بطل الصفحة — MegaHero قسم 460vh مثبّت يبدأ
-// بدخول درامي للتلفون من أول ثانية ثم يدير 3 مشاهد حوله بالسكرول، وكل
-// المقاطع الباقية تتحرّك بعمق حقيقي (perspective + rotateX/rotateY) عبر
-// useScroll/useTransform مع useSpring للنعومة. useReducedMotion يطفّي كل
-// الحركة لمن طلب تقليلها من نظامه.
+// النسخة «التطبيق نفسه» — كل المحتوى والتصميم من التطبيق الحقيقي بنفس الـDNA:
+// 1) الهيرو = لوحة التحكم الحيّة داخل إطار التطبيق: نبض المصلحة بعدّاده الدائري
+//    النابض + بطاقات KPI + مخطّط شهري + كرت مشروع — مبنية بنفس kit الفخامة
+//    (PremiumCard/IconChip/useCountUp/HolographicSheen/Gauge) وتتنفّس قدام الزائر.
+// 2) «من الفوضى للنظام»: تذاكر شِفت وكروت مشاريع وصفوف رواتب طبق الأصل من
+//    مكوّنات التطبيق تنشفط جوّا التلفون الحي.
+// 3) ورقة CP-01 «نماذج حية» · CP-02 الميزات · CP-03 الأسعار.
+//
+// 💾 نسخ محفوظة بتاريخ الفرع: المدينة الحيّة b8a0ab7 · الفوضى→النظام 7986143 ·
+//    المخطط الهندسي 6f9006e · الهجينة 09ab2df.
 
 // دخول موحّد بروح 3D: يطلع من العمق مع ميلان خفيف.
 const rise = (delay = 0) => ({
@@ -50,62 +56,31 @@ const css = `
     .lp-nav-actions { display: none !important; }
     .lp-burger      { display: flex !important; }
   }
-  /* أرضية شبكة 3D بمنظور — تتحرّك للأمام بلا توقّف (روح synthwave بهوية amber).
-     الحركة بـtransform (مسرَّعة بالكومبوزيتور) لا بـbackground-position (إعادة رسم كل فريم). */
-  .lp-grid-floor {
-    position: absolute; left: -50%; right: -50%; bottom: -12%; height: 58%;
-    transform: rotateX(63deg);
-    transform-origin: top center;
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 62%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 62%, transparent);
-    pointer-events: none;
-  }
-  .lp-grid-floor::before {
-    content: ''; position: absolute; left: 0; right: 0; top: -46px; bottom: -46px;
-    background-image:
-      linear-gradient(rgba(249,115,22,0.13) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(249,115,22,0.13) 1px, transparent 1px);
-    background-size: 46px 46px;
-    animation: gridMove 1.7s linear infinite;
-    will-change: transform;
-  }
-  @keyframes gridMove { from { transform: translateY(0) } to { transform: translateY(46px) } }
-  /* بطاقات عائمة بعمق حول عنوان الـHero — تختفي على الشاشات الضيّقة */
-  .lp-float-chip { position: absolute; pointer-events: none; }
-  @media (max-width: 900px) { .lp-float-chip { display: none; } }
-  /* fallback ثابت لتقليل الحركة */
+  /* بطاقات KPI عائمة حول الديوراما — تختفي على الشاشات الضيّقة جداً */
+  .lp-float-chip { position: absolute; pointer-events: none; z-index: 4; }
+  @media (max-width: 520px) { .lp-float-chip { display: none; } }
+  /* شبكة قسم «جوّا التطبيق» + فولباك تقليل الحركة */
   .lp-cinema-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; max-width: 1000px; width: 100%; }
   @media (max-width: 860px) { .lp-cinema-grid { grid-template-columns: 1fr; gap: 24px; } }
-  /* أشعة ضوء دوّارة خلف التلفون (god rays بهوية amber/secondary/cyan) */
-  .lp-rays {
-    position: absolute; inset: 0; margin: auto; width: 780px; height: 780px; border-radius: 50%;
-    background: conic-gradient(from 10deg,
-      transparent 0deg 14deg,  rgba(249,115,22,0.08) 21deg 27deg, transparent 34deg 98deg,
-      rgba(124,58,237,0.07) 106deg 112deg, transparent 119deg 192deg,
-      rgba(249,115,22,0.06) 200deg 206deg, transparent 213deg 288deg,
-      rgba(6,182,212,0.06) 296deg 302deg, transparent 309deg 360deg);
-    animation: raysSpin 32s linear infinite; pointer-events: none;
+  /* شبكة هيرو المخطط: نص + المشهد الحي (عمود واحد على الموبايل) */
+  .lp-hero-grid { display: grid; grid-template-columns: 1.04fr 1fr; align-items: center; max-width: 1180px; margin: 0 auto; gap: 10px; padding: 26px 26px 64px; }
+  .lp-hero-canvas { height: clamp(420px, 64vh, 600px); }
+  @media (max-width: 900px) {
+    .lp-hero-grid { grid-template-columns: 1fr; padding: 40px 18px 76px; }
+    .lp-hero-canvas { height: min(48vh, 440px); }
   }
-  @keyframes raysSpin { to { transform: rotate(360deg) } }
-  /* غبار مضيء عائم */
-  .lp-dust { position: absolute; border-radius: 50%; pointer-events: none; animation: dustFloat ease-in-out infinite; }
-  @keyframes dustFloat { 0%,100% { transform: translateY(0); opacity: .15 } 50% { transform: translateY(-30px); opacity: .55 } }
-  /* لوحات HUD الزجاجية للمشاهد */
-  .lp-hud { position: absolute; inset-inline-start: clamp(16px, 5vw, 88px); top: 50%; margin-top: -120px; height: 240px; width: min(390px, 36vw); }
-  .lp-mega-phone { position: relative; }
-  @media (max-width: 860px) {
-    .lp-hud { inset-inline: 14px; top: 132px; margin-top: 0; height: 196px; width: auto; text-align: center; }
-    .lp-hud p { margin-inline: auto; }
-    .lp-mega-phone { transform: scale(0.62); margin-top: 128px; }
-  }
+  /* بطاقات الفوضى الإضافية — تنخفي على الشاشات الضيّقة (ازدحام) */
+  @media (max-width: 700px) { .lp-chaos-hide { display: none; } }
+  /* ورقة المخطط الهندسي: رسمة + callouts (عمود واحد على الموبايل) */
+  .lp-bp-grid { display: grid; grid-template-columns: 1fr 1.05fr; }
+  @media (max-width: 860px) { .lp-bp-grid { grid-template-columns: 1fr; } }
   /* حبيبات فيلم سينمائية فوق المسرح (بلا mix-blend — أرخص على الرندر البرمجي) */
   .lp-grain {
     position: absolute; inset: 0; z-index: 30; pointer-events: none; opacity: 0.035;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   @media (prefers-reduced-motion: reduce) {
-    .lp-grid-floor::before, .float, .glow-orb, .lp-rays, .lp-dust { animation: none !important; }
+    .float, .glow-orb { animation: none !important; }
   }
 `
 
@@ -333,8 +308,9 @@ function Navbar({ loggedIn }) {
 }
 
 // ─── Phone Mockup ─────────────────────────────────────────────────────────────
-// يحاكي شاشات التطبيق الحقيقية. لما يُمرَّر له `p` (تقدّم سكرول الـMegaHero)
-// تتبدّل شاشته مع كل مشهد لتطابق وصفه: أيام العمل ← الرواتب ← لوحة الأرباح.
+// يحاكي لوحة التحكم الحقيقية للتطبيق (نبض المصلحة + KPIs + مخطّط + مشاريع) —
+// «حيّ» عند ظهوره: العدّاد يلفّ والأرقام تعدّ والمخطّط ينمو. يُعرض بقسم
+// «جوّا التطبيق» وبفولباك تقليل الحركة.
 
 // الشريط السفلي مع تبويب نشط متغيّر حسب الشاشة
 function MiniNav({ active = 0 }) {
@@ -351,167 +327,7 @@ function MiniNav({ active = 0 }) {
   )
 }
 
-// شاشة المشهد 1 — أيام العمل بأسلوب «تذكرة الشِفت» الحقيقي (WorkDayTicket):
-// كعب تاريخ متدرّج + خط تثقيب + كعب أجر + ختم حالة — مُصغَّر لشاشة الموك.
-const MINI_TICKETS = [
-  { name: 'محمد ع.', day: 8, month: 'يونيو', type: 'كامل',   color: C.primary,            grad: `linear-gradient(160deg, ${C.primary}, ${C.gold})`,            TypeIcon: Sun,      amt: '₪450', state: 'approved' },
-  { name: 'أحمد س.', day: 8, month: 'يونيو', type: 'نص يوم', color: C.warning,            grad: `linear-gradient(160deg, ${C.warning}, ${C.gold})`,            TypeIcon: CloudSun, amt: '₪225', state: 'pending'  },
-  { name: 'خالد ر.', day: 7, month: 'يونيو', type: 'كامل',   color: C.primary,            grad: `linear-gradient(160deg, ${C.primary}, ${C.gold})`,            TypeIcon: Sun,      amt: '₪500', state: 'approved' },
-  { name: 'يوسف م.', day: 7, month: 'يونيو', type: 'ساعات',  color: C.blue || '#3B82F6',  grad: `linear-gradient(160deg, ${C.blue || '#3B82F6'}, ${C.cyan})`,  TypeIcon: Clock,    amt: '₪380', state: 'approved' },
-]
-function WorkDaysScreen({ p }) {
-  // القصة الحية: مع تقدّم السكرول داخل المشهد تتمّ الموافقة على اليوم المعلّق
-  // قدام عين الزائر — الأزرار تختفي وختم «معتمد» يُطبع ببوب.
-  const flipAt = sceneWin(0)[0] + SCENE_LEN * 0.5
-  const btnOp = useTransform(p, [flipAt - 0.012, flipAt], [1, 0])
-  const stampOp = useTransform(p, [flipAt, flipAt + 0.015], [0, 1])
-  const stampScale = useTransform(p, [flipAt, flipAt + 0.022], [1.7, 1])
-  return (
-    <>
-      <div style={{ padding: '12px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 11, fontWeight: 900, color: C.text }}>أيام العمل</span>
-        <span style={{ position: 'relative', display: 'inline-flex' }}>
-          <motion.span style={{ opacity: btnOp, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 7, fontWeight: 800, color: C.warning, background: `${C.warning}1a`, border: `1px solid ${C.warning}40`, borderRadius: 20, padding: '2px 7px' }}>
-            <Hourglass size={7} strokeWidth={2.8} /> 1 بانتظار
-          </motion.span>
-          <motion.span style={{ opacity: stampOp, position: 'absolute', inset: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3, fontSize: 7, fontWeight: 800, color: C.success, background: `${C.success}1a`, border: `1px solid ${C.success}40`, borderRadius: 20, padding: '2px 7px', whiteSpace: 'nowrap' }}>
-            <Check size={7} strokeWidth={2.8} /> الكل معتمد
-          </motion.span>
-        </span>
-      </div>
-      <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {MINI_TICKETS.map((t, i) => {
-          const { TypeIcon } = t
-          const stColor = t.state === 'approved' ? C.success : C.warning
-          return (
-            <div key={i} style={{
-              position: 'relative', display: 'flex', alignItems: 'stretch', minHeight: 46, borderRadius: 12, overflow: 'hidden',
-              background: `linear-gradient(135deg, ${t.color}14, ${C.card} 55%)`,
-              border: `1px solid ${t.color}33`, boxShadow: `0 5px 14px ${t.color}1c`,
-            }}>
-              {/* كعب التاريخ المتدرّج */}
-              <div style={{ width: 32, flexShrink: 0, background: t.grad, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                <TypeIcon size={8} color="#fff" strokeWidth={2.2} style={{ opacity: 0.95, marginBottom: 1 }} />
-                <div style={{ fontSize: 12.5, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.04em', textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>{t.day}</div>
-                <div style={{ fontSize: 5.5, fontWeight: 800, opacity: 0.95 }}>{t.month}</div>
-              </div>
-              {/* الوسط: الاسم + شريحة نوع اليوم */}
-              <div style={{ flex: 1, minWidth: 0, padding: '5px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
-                <div style={{ fontSize: 8.5, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{t.name}</div>
-                <span style={{ alignSelf: 'flex-start', fontSize: 6, fontWeight: 800, color: t.color, background: `${t.color}1c`, border: `1px solid ${t.color}38`, borderRadius: 5, padding: '1px 5px' }}>{t.type}</span>
-              </div>
-              {/* خط التثقيب + الحفرتان */}
-              <div style={{ width: 0, borderInlineStart: `1.5px dashed ${t.color}40`, margin: '6px 0', flexShrink: 0 }} />
-              <div aria-hidden style={{ position: 'absolute', insetInlineEnd: 44, top: -4, width: 8, height: 8, borderRadius: '50%', background: C.bg }} />
-              <div aria-hidden style={{ position: 'absolute', insetInlineEnd: 44, bottom: -4, width: 8, height: 8, borderRadius: '50%', background: C.bg }} />
-              {/* كعب الأجر + ختم الحالة / أزرار الموافقة */}
-              <div style={{ width: 48, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '0 3px' }}>
-                <div style={{ fontSize: 8.5, fontWeight: 900, color: t.color, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>{t.amt}</div>
-                {t.state === 'approved' ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 5.5, fontWeight: 800, color: stColor, background: `${stColor}1a`, border: `1px solid ${stColor}40`, borderRadius: 10, padding: '1px 5px' }}>
-                    <Check size={6} strokeWidth={2.8} /> معتمد
-                  </span>
-                ) : (
-                  <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-                    <motion.div style={{ opacity: btnOp, display: 'flex', gap: 3 }}>
-                      <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-                        style={{ width: 15, height: 15, borderRadius: 5, background: `${C.success}15`, border: `1px solid ${C.success}33`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Check size={8} color={C.success} strokeWidth={2.8} />
-                      </motion.div>
-                      <div style={{ width: 15, height: 15, borderRadius: 5, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <X size={8} color={C.accent} strokeWidth={2.8} />
-                      </div>
-                    </motion.div>
-                    {/* ختم «معتمد» يُطبع ببوب لحظة الموافقة */}
-                    <motion.span style={{ opacity: stampOp, scale: stampScale, position: 'absolute', inset: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 2, fontSize: 5.5, fontWeight: 800, color: C.success, background: `${C.success}1a`, border: `1px solid ${C.success}40`, borderRadius: 10, padding: '1px 5px', whiteSpace: 'nowrap' }}>
-                      <Check size={6} strokeWidth={2.8} /> معتمد
-                    </motion.span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      <div style={{ padding: '7px 10px 10px' }}>
-        <div style={{ background: `linear-gradient(135deg, ${C.primary}14, ${C.card} 70%)`, border: `1px solid ${C.primary}33`, borderRadius: 11, padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 7, color: C.textDim }}>مسجّل هالأسبوع</span>
-          <span style={{ fontSize: 8.5, fontWeight: 900, color: C.primary, fontVariantNumeric: 'tabular-nums' }}>12 يوم عمل</span>
-        </div>
-      </div>
-      <div style={{ marginTop: 'auto' }}><MiniNav active={2} /></div>
-    </>
-  )
-}
-
-// شاشة المشهد 2 — الرواتب بأسلوب شاشة الدفعات الحقيقي: أفاتار دائري متدرّج
-// بحرف العامل + حبّة مبلغ ملوّنة + ترقيم مرجعي PAY- + شريط تقدّم متدرّج.
-const MINI_PAYROLL = [
-  { init: 'م', name: 'محمد ع.', sub: 'راتب نيسان · PAY-1042', amt: '₪4,250', color: C.success, status: 'مدفوع',    grad: GRAD.success },
-  { init: 'أ', name: 'أحمد س.', sub: 'راتب نيسان · PAY-1043', amt: '₪3,800', color: C.warning, status: 'قيد الدفع', grad: GRAD.brand   },
-  { init: 'خ', name: 'خالد ر.', sub: 'راتب نيسان · PAY-1044', amt: '₪5,100', color: C.success, status: 'مدفوع',    grad: GRAD.premium },
-  { init: 'ي', name: 'يوسف م.', sub: 'سلفة · ADV-218',        amt: '₪600',   color: C.gold,    status: 'سلفة',     grad: GRAD.gold    },
-]
-function PayrollScreen({ p }) {
-  // القصة الحية: شريط نسبة المدفوع يتعبّى من 4% لـ72% مع تقدّم السكرول والرقم يعدّ.
-  const a2 = sceneWin(1)[0]
-  const pctNum = useTransform(p, [a2 + FADE, a2 + SCENE_LEN * 0.6], [4, 72], { clamp: true })
-  const pctText = useTransform(pctNum, (v) => `${Math.round(v)}%`)
-  const pctWidth = useTransform(pctNum, (v) => `${v}%`)
-  return (
-    <>
-      <div style={{ padding: '12px 10px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 11, fontWeight: 900, color: C.text }}>الرواتب والسلف</span>
-        <span style={{ fontSize: 8.5, fontWeight: 900, color: C.cyan, fontVariantNumeric: 'tabular-nums' }}>₪13,750</span>
-      </div>
-      <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
-        {MINI_PAYROLL.map((r, i) => (
-          <div key={i} style={{ background: C.card, borderRadius: 11, padding: '7px 9px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 7 }}>
-            {/* أفاتار دائري متدرّج بحرف العامل (توقيع شاشة الدفعات) */}
-            <div style={{ width: 22, height: 22, borderRadius: '50%', background: r.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', flexShrink: 0 }}>
-              {r.init}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 8.5, fontWeight: 800, color: C.text }}>{r.name}</div>
-              <div style={{ fontSize: 6.5, color: C.textDim, marginTop: 1 }}>{r.sub}</div>
-            </div>
-            {/* حبّة المبلغ الملوّنة (نمط owed pill) */}
-            <div style={{ textAlign: 'center', padding: '3px 7px', borderRadius: 8, background: `${r.color}20`, border: `1px solid ${r.color}44` }}>
-              <div style={{ fontSize: 8, fontWeight: 900, color: r.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1.1 }}>{r.amt}</div>
-              <div style={{ fontSize: 5.5, fontWeight: 800, color: r.color, opacity: 0.85 }}>{r.status}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={{ padding: '7px 10px 10px' }}>
-        <div style={{ background: C.card, borderRadius: 11, padding: '7px 10px', border: `1px solid ${C.border}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 7, color: C.textDim }}>نسبة المدفوع</span>
-            <motion.span style={{ fontSize: 7, fontWeight: 800, color: C.success, fontVariantNumeric: 'tabular-nums' }}>{pctText}</motion.span>
-          </div>
-          <div style={{ height: 4, background: `${C.border}66`, borderRadius: 3, overflow: 'hidden' }}>
-            <motion.div style={{ height: '100%', width: pctWidth, borderRadius: 3, background: GRAD.success }} />
-          </div>
-        </div>
-      </div>
-      <div style={{ marginTop: 'auto' }}><MiniNav active={3} /></div>
-    </>
-  )
-}
-
-// طبقة شاشة مشهد — تتراكب فوق لوحة التحكم وتظهر ضمن نافذة مشهدها فقط.
-function SceneScreen({ p, win, children }) {
-  const [a, b] = win
-  const opacity = useTransform(p, [a, a + FADE, b - FADE, b], [0, 1, 1, 0])
-  const yy = useTransform(p, [a, a + FADE, b - FADE, b], [10, 0, 0, -8])
-  return (
-    <motion.div style={{ position: 'absolute', inset: 0, opacity, y: yy, background: C.bg, display: 'flex', flexDirection: 'column', direction: 'rtl' }}>
-      {children}
-    </motion.div>
-  )
-}
-
-function PhoneMockup({ p }) {
+function PhoneMockup({ float = true }) {
   const score = 87
   const R = 26
   const CIRC = 2 * Math.PI * R
@@ -536,7 +352,7 @@ function PhoneMockup({ p }) {
     { name: 'شقة الناصرة', amount: '₪18,000', pct: 100, active: false },
   ]
   return (
-    <div className="float" style={{ width: 268, background: C.surface, borderRadius: 42, border: `2px solid rgba(249,115,22,0.15)`, overflow: 'hidden', boxShadow: '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(249,115,22,0.06)' }}>
+    <div className={float ? 'float' : undefined} style={{ width: 268, background: C.surface, borderRadius: 42, border: `2px solid rgba(249,115,22,0.15)`, overflow: 'hidden', boxShadow: '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(249,115,22,0.06)' }}>
       {/* Notch */}
       <div style={{ height: 30, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 72, height: 9, background: C.card, borderRadius: 5 }} />
@@ -559,7 +375,7 @@ function PhoneMockup({ p }) {
           </div>
         </div>
       </div>
-      {/* منطقة الشاشة — لوحة التحكم + شاشات المشاهد المتراكبة */}
+      {/* منطقة الشاشة — لوحة التحكم */}
       <div style={{ position: 'relative' }}>
       {/* Business Pulse — العدّاد الدائري (توقيع التطبيق) */}
       <div style={{ padding: '12px 10px 0', background: C.bg }}>
@@ -640,362 +456,652 @@ function PhoneMockup({ p }) {
       </div>
       {/* Bottom nav */}
       <MiniNav active={0} />
-      {/* شاشات المشاهد — تتبدّل مع وصف كل مشهد */}
-      {p && <SceneScreen p={p} win={sceneWin(0)}><WorkDaysScreen p={p} /></SceneScreen>}
-      {p && <SceneScreen p={p} win={sceneWin(1)}><PayrollScreen p={p} /></SceneScreen>}
       </div>
     </div>
   )
 }
 
-// ─── Mega Hero — التلفون هو البطل ─────────────────────────────────────────────
-// قسم 460vh مثبّت: التلفون بالمنتصف من أول ثانية (دخول درامي بزخم + أشعة ضوء
-// دوّارة + غبار مضيء)، العنوان يطير للخلف مع أول سكرول، وبعدها 3 مشاهد تلفّ
-// حول التلفون بلوحات HUD زجاجية وشرائح طايرة ونقاط تقدّم.
+// ─── Hero — «المخطط الهندسي الحي» ────────────────────────────────────────────
+// الصفحة كلها «دفتر مخططات»: الهيرو ورقة الغلاف (CP-00) — ورقة blueprint
+// بشبكة سماوية، رسمة موقع (مبنى + رافعة) بخط المخططات ترسم حالها قدام
+// الزائر (SVG pathLength)، خطوط أبعاد ذهبية، عنوان «مُقاس» بشرطات أبعاد،
+// وختم أحمر «جاهز للتنفيذ» يُطبع لما تكتمل الرسمة. بلا تثبيت سكرول.
 const STORY = [
   {
     Icon: CalendarDays, color: C.primary,
     title: 'سجّل أيام الشغل بلمسة',
     desc:  'كل يوم عمل لكل عامل — موافقة أو رفض فوري. بلا دفاتر، بلا واتساب ضايع، بلا نسيان.',
-    chip:  { Icon: CheckCircle2, color: C.success, text: 'يوم عمل — تمت الموافقة' },
   },
   {
     Icon: Wallet, color: C.secondary,
     title: 'الرواتب والسلف محسوبة لحالها',
     desc:  'ساعات إضافية، سلف، خصومات — الحساب جاهز قبل ما تسأل، وكشف حساب لكل عامل.',
-    chip:  { Icon: Wallet, color: C.cyan, text: '₪4,250 راتب — مدفوع' },
   },
   {
     Icon: TrendingUp, color: C.success,
     title: 'أرباحك قدامك لحظة بلحظة',
-    desc:  'صافي الربح، نقد الجيب، وضريبة القيمة المضافة — كل شي محتاجه في شاشة واحدة.',
-    chip:  { Icon: BarChart3, color: C.gold, text: '+18% صافي الربح هالشهر' },
+    desc:  'صافي الربح، نقد الجيب، وضريبة القيمة المضافة — كل شي محتاجه بلوحة واحدة.',
   },
 ]
-const N = STORY.length
-const SCENE_START = 0.24                  // المشهد 0 (العنوان) يحتلّ p ∈ [0, 0.24)
-const SCENE_LEN = (1 - SCENE_START) / N
-const sceneWin = (i) => {
-  const a = SCENE_START + i * SCENE_LEN
-  return [a, a + SCENE_LEN]
-}
-const FADE = 0.05
-
-// غبار مضيء بمواضع شبه عشوائية ثابتة
-const DUST = Array.from({ length: 12 }, (_, i) => ({
-  left: `${(i * 83 + 7) % 100}%`,
-  top: `${(i * 47 + 11) % 88 + 4}%`,
-  size: 3 + (i % 3),
-  dur: 5 + (i % 5),
-  delay: (i % 7) * 0.8,
-  color: [C.primary, C.secondary, C.cyan][i % 3],
-}))
-
-// لوحة HUD زجاجية للمشهد i — تدخل بدوران وتخرج للجهة الثانية ضمن نافذتها.
-function HudPanel({ i, p, story }) {
-  const [a, b] = sceneWin(i)
-  const opacity = useTransform(p, [a, a + FADE, b - FADE, b], [0, 1, 1, i === N - 1 ? 1 : 0])
-  const x = useTransform(p, [a, a + FADE, b - FADE, b], [-54, 0, 0, i === N - 1 ? 0 : 54])
-  const rotateY = useTransform(p, [a, a + FADE, b - FADE, b], [30, 0, 0, i === N - 1 ? 0 : -22])
-  return (
-    <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', opacity, x, rotateY, transformPerspective: 900 }}>
-      <div style={{
-        background: 'rgba(13,15,28,0.6)', backdropFilter: 'blur(14px)',
-        border: `1px solid ${story.color}33`, borderRadius: 20, padding: '20px 22px',
-        boxShadow: `0 24px 60px rgba(0,0,0,0.45), 0 0 40px ${story.color}14`,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <IconChip icon={story.Icon} color={story.color} size={38} radius={11} iconSize={18} strokeWidth={2.2} />
-          <span style={{ fontSize: 11, fontWeight: 800, color: story.color, letterSpacing: '0.1em' }}>{`0${i + 1} / 0${N}`}</span>
-        </div>
-        <h3 style={{ fontSize: 'clamp(19px,2.6vw,26px)', fontWeight: 900, color: C.text, lineHeight: 1.35, marginBottom: 9 }}>
-          {story.title}
-        </h3>
-        <p style={{ fontSize: 13.5, color: C.textDim, lineHeight: 1.75, maxWidth: 400 }}>{story.desc}</p>
-      </div>
-    </motion.div>
-  )
-}
-
-// شريحة طايرة حول التلفون ضمن نافذة المشهد i.
-function StoryChip({ i, p, chip, pos }) {
-  const [a, b] = sceneWin(i)
-  const opacity = useTransform(p, [a, a + FADE, b - FADE, b], [0, 1, 1, 0])
-  const yy = useTransform(p, [a, a + FADE, b - FADE, b], [50, 0, 0, -36])
-  const scale = useTransform(p, [a, a + FADE, b - FADE, b], [0.8, 1, 1, 0.9])
-  const { Icon, color, text } = chip
-  return (
-    <motion.div style={{ position: 'absolute', zIndex: 3, opacity, y: yy, scale, ...pos }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, padding: '9px 13px',
-        background: `linear-gradient(135deg, ${color}1f, ${C.card} 70%)`,
-        border: `1px solid ${color}3a`, borderRadius: 14,
-        boxShadow: `0 14px 40px rgba(0,0,0,0.55), 0 0 24px ${color}22`,
-      }}>
-        <div style={{ width: 26, height: 26, borderRadius: 8, background: `${color}1c`, border: `1px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon size={13} color={color} strokeWidth={2.4} />
-        </div>
-        <span style={{ fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap' }}>{text}</span>
-      </div>
-    </motion.div>
-  )
-}
-
-// نقطة تقدّم المشهد i.
-function StoryDot({ i, p, color }) {
-  const [a, b] = sceneWin(i)
-  const scale = useTransform(p, [a - 0.03, a + 0.06, b - 0.06, b + 0.03], [1, 1.5, 1.5, 1])
-  const opacity = useTransform(p, [a - 0.03, a + 0.06, b - 0.06, b + 0.03], [0.3, 1, 1, 0.3])
-  return <motion.div style={{ width: 9, height: 9, borderRadius: '50%', background: color, scale, opacity, boxShadow: `0 0 10px ${color}` }} />
-}
 
 const HEADLINE_WORDS = ['كل', 'يوم', 'شغل،', 'كل', 'دفعة،', '\n', 'كل', 'مصروف', '—']
 
-function MegaHero() {
-  const ref = useRef(null)
+// خلفية شبكة المخطط (تُستعمل بورقة الهيرو وأوراق الأقسام)
+const BP_GRID_BG = `
+  linear-gradient(${C.cyan}10 1px, transparent 1px),
+  linear-gradient(90deg, ${C.cyan}10 1px, transparent 1px),
+  linear-gradient(${C.cyan}07 1px, transparent 1px),
+  linear-gradient(90deg, ${C.cyan}07 1px, transparent 1px),
+  linear-gradient(165deg, #0A1226, #0A0F22 70%)`
+const BP_GRID_SIZE = '88px 88px, 88px 88px, 22px 22px, 22px 22px, 100% 100%'
+
+// علامات زوايا ورقة المخطط
+function SheetCorners() {
+  return [{ top: 10, insetInlineStart: 10 }, { top: 10, insetInlineEnd: 10 }, { bottom: 10, insetInlineStart: 10 }, { bottom: 10, insetInlineEnd: 10 }].map((pos, i) => (
+    <div key={i} aria-hidden style={{ position: 'absolute', width: 18, height: 18, zIndex: 2, ...pos, borderTop: i < 2 ? `2px solid ${C.cyan}66` : 'none', borderBottom: i >= 2 ? `2px solid ${C.cyan}66` : 'none', borderInlineStart: i % 2 === 0 ? `2px solid ${C.cyan}66` : 'none', borderInlineEnd: i % 2 === 1 ? `2px solid ${C.cyan}66` : 'none' }} />
+  ))
+}
+
+// ورقة مخطط — إطار موحّد للأقسام: رقم ورقة + شبكة + زوايا + جدول عنوان مصغّر
+function Sheet({ no, title, children, style = {} }) {
+  return (
+    <div style={{
+      position: 'relative', borderRadius: 18, overflow: 'hidden',
+      border: `1.5px solid ${C.cyan}3a`,
+      background: BP_GRID_BG, backgroundSize: BP_GRID_SIZE,
+      boxShadow: `0 30px 80px rgba(0,0,0,0.45), inset 0 0 80px ${C.cyan}08`,
+      ...style,
+    }}>
+      <SheetCorners />
+      {/* شريط رقم الورقة */}
+      <div style={{ position: 'absolute', top: 12, insetInlineStart: 38, zIndex: 2, display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 10, fontWeight: 800, color: `${C.cyan}BB`, letterSpacing: '0.14em' }}>
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: C.cyan, boxShadow: `0 0 8px ${C.cyan}` }} />
+        ورقة {no} — {title}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+// ─── الهيرو = التطبيق نفسه حيّاً ──────────────────────────────────────────────
+// بدل أي تجريد (مدن/مخططات): نعرض لوحة التحكم الحقيقية بالحجم الكبير — نبض
+// المصلحة بعدّاده الدائري النابض + بطاقات KPI + كرت مشروع + مخطّط شهري — كلها
+// مبنية بنفس kit التطبيق (PremiumCard/IconChip/useCountUp/HolographicSheen)
+// وبنفس الـDNA حرفياً، تتنفّس قدام الزائر داخل إطار التطبيق. أصدق وعد:
+// «هاد بالضبط اللي رح تفتحه». headline + CTA بجانبها (ديسكتوب) أو فوقها (موبايل).
+
+// العدّاد الدائري — نسخة مطابقة لـBusinessPulse.Gauge (بمقاس الهيرو)
+function HeroGauge({ score, animate }) {
+  const t = TONES.excellent
+  const R = 52, SW = 11, SIZE = 132, CX = SIZE / 2
+  const display = useCountUp(score, 1300, animate)
+  return (
+    <div style={{ position: 'relative', width: SIZE, height: SIZE, flexShrink: 0 }}>
+      <motion.div aria-hidden
+        animate={animate ? { scale: [1, 1.12, 1], opacity: [0.5, 0.15, 0.5] } : {}}
+        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ position: 'absolute', inset: 12, borderRadius: '50%', background: `radial-gradient(circle, ${t.glow} 0%, transparent 65%)`, pointerEvents: 'none' }} />
+      <svg width={SIZE} height={SIZE} style={{ transform: 'rotate(-90deg)' }}>
+        <defs>
+          <linearGradient id="heroGaugeGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={t.main} stopOpacity={0.65} />
+            <stop offset="100%" stopColor={t.main} />
+          </linearGradient>
+        </defs>
+        <circle cx={CX} cy={CX} r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={SW} />
+        <motion.circle cx={CX} cy={CX} r={R} fill="none"
+          stroke="url(#heroGaugeGrad)" strokeWidth={SW} strokeLinecap="round"
+          pathLength={100} strokeDasharray="100"
+          initial={{ strokeDashoffset: 100 }}
+          animate={{ strokeDashoffset: animate ? 100 - score : 100 }}
+          transition={{ duration: 1.3, ease: [0.22, 1, 0.36, 1] }}
+          style={{ filter: `drop-shadow(0 0 6px ${t.glow})` }} />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, direction: 'ltr' }}>
+          <span style={{ fontSize: 38, fontWeight: 900, color: C.text, letterSpacing: '-0.03em', lineHeight: 1 }}>{display}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: C.textDim }}>/100</span>
+        </div>
+        <span style={{ padding: '2px 12px', borderRadius: 20, background: t.soft, border: `1px solid ${t.main}55`, fontSize: 11, fontWeight: 800, color: t.main }}>ممتاز</span>
+      </div>
+    </div>
+  )
+}
+
+const HERO_FACTORS = [
+  { label: 'السيولة', score: 92 }, { label: 'الربحية', score: 84 },
+  { label: 'التحصيل', score: 78 }, { label: 'الالتزامات', score: 88 },
+]
+function HeroFactorBar({ label, score, delay, animate }) {
+  const color = score >= 70 ? C.success : score >= 50 ? C.warning : C.accent
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: C.textDim }}>{label}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 800, color }}>{score}</span>
+      </div>
+      <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+        <motion.div initial={{ width: 0 }} animate={{ width: animate ? `${score}%` : 0 }}
+          transition={{ duration: 0.9, delay, ease: 'easeOut' }}
+          style={{ height: '100%', borderRadius: 99, background: color, boxShadow: `0 0 8px ${color}66` }} />
+      </div>
+    </div>
+  )
+}
+
+// بطاقة KPI حيّة — نفس PremiumStat: IconChip + عدّاد كبير + label
+function HeroKpi({ icon, color, value, money, suffix, label, animate }) {
+  const v = useCountUp(value, 1100, animate)
+  return (
+    <PremiumCard color={color} radius={16} padding="12px 11px" animate={false} style={{ flex: 1, minWidth: 0 }}>
+      <IconChip icon={icon} color={color} size={30} radius={9} iconSize={15} style={{ marginBottom: 9 }} />
+      <div style={{ fontSize: 18, fontWeight: 900, color: C.text, letterSpacing: '-0.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+        {money ? '₪' : ''}{v}{suffix || ''}
+      </div>
+      <div style={{ fontSize: 10, color: C.textDim, fontWeight: 600, marginTop: 4 }}>{label}</div>
+    </PremiumCard>
+  )
+}
+
+const HERO_MONTHS = [42, 58, 50, 71, 64, 88]
+function AppHero() {
   const reduce = useReducedMotion()
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 860
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
-  const p = useSpring(scrollYProgress, { stiffness: 110, damping: 26, mass: 0.35 })
-
-  // طبقة العنوان (المشهد 0) — تطير للخلف وتختفي مع أول سكرول
-  const headOpacity = useTransform(p, [0, 0.13, 0.2], [1, 1, 0])
-  const headY = useTransform(p, [0, 0.2], [0, -150])
-  const headRotX = useTransform(p, [0, 0.2], [0, 30])
-  const headVis = useTransform(p, (v) => (v < 0.22 ? 'visible' : 'hidden'))
-
-  // التلفون — يبدأ منخفضاً وكبيراً، يصعد للمنتصف ثم يدور بين المشاهد
-  const phoneY = useTransform(p, [0, 0.22], [isMobile ? '26vh' : '36vh', '0vh'])
-  const phoneRotY = useTransform(p, [0, 0.22, 0.48, 0.74, 1], [-9, 0, -26, 24, -8])
-  const phoneRotX = useTransform(p, [0, 0.22, 1], [13, 3, -4])
-  const phoneScale = useTransform(p, [0, 0.22, 1], [1.05, 1, 0.95])
-
-  // عناصر المشاهد (HUD/نقاط/عنوان مصغّر) تظهر بعد انتهاء المشهد 0
-  const scenesOpacity = useTransform(p, [0.2, 0.27], [0, 1])
-
-  // ميلان كامل المسرح يتبع الماوس + ضوء يتبع المؤشّر
-  const mx = useMotionValue(0)
-  const my = useMotionValue(0)
-  const lx = useMotionValue(-600)
-  const ly = useMotionValue(-600)
-  const tiltX = useSpring(useTransform(my, [-0.5, 0.5], [4.5, -4.5]), { stiffness: 140, damping: 18 })
-  const tiltY = useSpring(useTransform(mx, [-0.5, 0.5], [-6, 6]), { stiffness: 140, damping: 18 })
-  const slx = useSpring(lx, { stiffness: 110, damping: 22 })
-  const sly = useSpring(ly, { stiffness: 110, damping: 22 })
-  const onMove = (e) => {
-    const r = e.currentTarget.getBoundingClientRect()
-    mx.set((e.clientX - r.left) / r.width - 0.5)
-    my.set((e.clientY - r.top) / r.height - 0.5)
-    lx.set(e.clientX - r.left)
-    ly.set(e.clientY - r.top)
-  }
-  const onLeave = () => { mx.set(0); my.set(0) }
-
-  // ميلان فيزيائي بسرعة السكرول — التلفون يتمايل مع زخم السكرول
-  const vel = useVelocity(p)
-  const rotZ = useSpring(useTransform(vel, [-1.6, 1.6], [5, -5]), { stiffness: 120, damping: 20 })
+  const [live, setLive] = useState(reduce)
+  useEffect(() => {
+    if (reduce) return
+    const t = setTimeout(() => setLive(true), 650)
+    return () => clearTimeout(t)
+  }, [reduce])
 
   // انكشاف العنوان كلمة-كلمة
   let wi = 0
   const word = (w, k) => {
     if (w === '\n') return <br key={k} />
-    const d = 0.1 + (wi++) * 0.07
+    const d = 0.12 + (wi++) * 0.07
     if (reduce) return <span key={k} style={{ display: 'inline-block', marginInlineEnd: '0.26em' }}>{w}</span>
     return (
-      <motion.span key={k}
-        initial={{ opacity: 0, rotateX: -88, y: 22 }}
-        animate={{ opacity: 1, rotateX: 0, y: 0 }}
-        transition={{ duration: 0.7, delay: d, ease: [0.22, 1, 0.36, 1] }}
-        style={{ display: 'inline-block', transformOrigin: 'bottom center', marginInlineEnd: '0.26em' }}>
-        {w}
-      </motion.span>
+      <motion.span key={k} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, delay: d, ease: [0.22, 1, 0.36, 1] }}
+        style={{ display: 'inline-block', marginInlineEnd: '0.26em' }}>{w}</motion.span>
     )
   }
-  const gradDelay = 0.1 + HEADLINE_WORDS.filter(w => w !== '\n').length * 0.07 + 0.12
+  const gradDelay = 0.12 + HEADLINE_WORDS.filter(w => w !== '\n').length * 0.07 + 0.1
+  const fadeIn = (delay) => reduce ? {} : {
+    initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] },
+  }
 
-  // fallback ثابت كامل لمن طلب تقليل الحركة (بلا تثبيت ولا مشاهد)
-  if (reduce) {
-    return (
-      <section id="features" style={{ padding: '80px 24px 64px', direction: 'rtl', textAlign: 'center' }}>
-        <div style={{ maxWidth: 740, margin: '0 auto 56px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${C.primary}1a`, border: `1px solid ${C.primary}40`, borderRadius: 100, padding: '6px 16px', marginBottom: 28, fontSize: 12, color: C.primary, fontWeight: 700 }}>
+  return (
+    <section style={{ position: 'relative', overflow: 'hidden', direction: 'rtl' }}>
+      <div aria-hidden className="glow-orb" style={{ position: 'absolute', top: '-16%', insetInlineStart: '-8%', width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.13) 0%, transparent 65%)', pointerEvents: 'none' }} />
+      <div aria-hidden className="glow-orb" style={{ position: 'absolute', bottom: '-22%', insetInlineEnd: '-10%', width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 65%)', pointerEvents: 'none', animationDelay: '1.4s' }} />
+
+      <div className="lp-hero-grid" style={{ position: 'relative' }}>
+        {/* عمود النص */}
+        <div style={{ textAlign: 'start', maxWidth: 580 }}>
+          <motion.div {...fadeIn(0)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${C.primary}1a`, border: `1px solid ${C.primary}40`, borderRadius: 100, padding: '6px 16px', marginBottom: 'clamp(14px, 2.6vh, 26px)', fontSize: 12, color: C.primary, fontWeight: 700 }}>
             <CircleDot size={10} strokeWidth={3} />
             التطبيق الأول للمقاول العربي في إسرائيل
-          </div>
-          <h1 style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, color: C.text, lineHeight: 1.15, marginBottom: 22, letterSpacing: '-0.02em' }}>
-            كل يوم شغل، كل دفعة،<br />كل مصروف —<br />
-            <span className="grad-text">محفوظ. مش في دماغك.</span>
+          </motion.div>
+
+          <h1 style={{ fontSize: 'clamp(28px,4.6vw,50px)', fontWeight: 900, color: C.text, lineHeight: 1.18, marginBottom: 16, letterSpacing: '-0.02em' }}>
+            {HEADLINE_WORDS.map(word)}
+            <br />
+            <motion.span className="grad-text"
+              initial={reduce ? false : { opacity: 0, y: 20, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.7, delay: gradDelay, ease: [0.22, 1, 0.36, 1] }}
+              style={{ display: 'inline-block' }}>
+              محفوظ. مش في دماغك.
+            </motion.span>
           </h1>
-          <p style={{ fontSize: 'clamp(15px,2.5vw,19px)', color: C.textDim, lineHeight: 1.7, maxWidth: 580, margin: '0 auto 36px' }}>
+
+          <motion.p {...fadeIn(gradDelay + 0.12)}
+            style={{ fontSize: 'clamp(14px,1.6vw,17px)', color: C.textDim, lineHeight: 1.75, marginBottom: 'clamp(18px, 3vh, 30px)', maxWidth: 520 }}>
             Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
-          </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/register')} className="lp-btn"
-              style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 38px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              جرّب مجاناً 14 يوم
-              <ArrowLeft size={18} strokeWidth={2.5} />
+          </motion.p>
+
+          <motion.div {...fadeIn(gradDelay + 0.2)} style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Magnetic>
+              <button onClick={() => navigate('/register')} className="lp-btn"
+                style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', padding: '15px 36px', borderRadius: 14, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                جرّب مجاناً 14 يوم
+                <ArrowLeft size={18} strokeWidth={2.5} />
+              </button>
+            </Magnetic>
+            <button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }) }} className="lp-btn"
+              style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '15px 26px', borderRadius: 14 }}>
+              شاهد كيف يعمل
             </button>
-          </div>
-        </div>
-        <h2 style={{ fontSize: 'clamp(20px,3.4vw,32px)', fontWeight: 900, color: C.text, marginBottom: 36 }}>
-          كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
-        </h2>
-        <div className="lp-cinema-grid" style={{ margin: '0 auto', textAlign: 'start' }}>
-          <div>
-            {STORY.map((s, i) => (
-              <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 22 }}>
-                <IconChip icon={s.Icon} color={s.color} size={40} radius={12} iconSize={19} strokeWidth={2.2} />
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 5 }}>{s.title}</div>
-                  <p style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7 }}>{s.desc}</p>
-                </div>
+          </motion.div>
+
+          <motion.div {...fadeIn(gradDelay + 0.32)}
+            style={{ marginTop: 'clamp(14px, 2.6vh, 24px)', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            {[
+              { icon: Shield, label: 'آمن ومشفّر' },
+              { icon: Smartphone, label: 'يعمل بدون إنترنت' },
+              { icon: CheckCircle2, label: 'بدون بطاقة ائتمان' },
+            ].map(({ icon: Icon, label }, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <Icon size={15} color={C.primary} strokeWidth={2.2} />
+                <span style={{ fontSize: 13, color: C.textDim }}>{label}</span>
               </div>
             ))}
+          </motion.div>
+        </div>
+
+        {/* عمود التطبيق الحيّ — إطار نافذة التطبيق + لوحة التحكم الحقيقية */}
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: 30, rotateX: 8 }}
+          animate={{ opacity: 1, y: 0, rotateX: 0 }}
+          transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          style={{ position: 'relative', transformPerspective: 1400, justifySelf: 'center', width: '100%', maxWidth: 440 }}>
+          <FloatChip icon={CheckCircle2} color={C.success} text="يوم عمل — تمت الموافقة" style={{ top: '6%', insetInlineStart: '-12%' }} dur={3.4} />
+          <FloatChip icon={Wallet} color={C.cyan} text="₪4,250 راتب مدفوع" style={{ bottom: '20%', insetInlineEnd: '-12%' }} dur={4.1} delay={0.7} />
+
+          <div className="float" style={{
+            position: 'relative', borderRadius: 26, overflow: 'hidden',
+            background: C.surface, border: `1px solid ${C.borderMid}`,
+            boxShadow: `0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px ${C.primary}12, 0 0 60px ${C.primary}14`,
+          }}>
+            <HolographicSheen duration={6} repeatDelay={2.5} opacity={0.14} />
+            <div style={{ background: C.bg, padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <div style={{ width: 30, height: 30, borderRadius: 10, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(249,115,22,0.4)' }}>
+                  <HardHat size={15} color="#fff" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>Contractor Pro</div>
+                  <div style={{ fontSize: 8.5, color: C.textDim }}>لوحة التحكم</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 7 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 8, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Search size={12} color={C.textDim} /></div>
+                <div style={{ width: 26, height: 26, borderRadius: 8, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                  <Bell size={12} color={C.textDim} />
+                  <div style={{ position: 'absolute', top: 4, insetInlineEnd: 4, width: 5, height: 5, borderRadius: '50%', background: C.primary, border: `1px solid ${C.bg}` }} />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: 13, display: 'flex', flexDirection: 'column', gap: 11, background: C.bg }}>
+              <PremiumCard tone="excellent" radius={20} padding="15px 14px" animate={false}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <IconChip icon={Activity} color={C.success} size={28} radius={9} iconSize={15} strokeWidth={2.5} pulse={live} />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: C.text }}>نبض المصلحة</div>
+                    <div style={{ fontSize: 9, color: C.textDim }}>تحليل ذكي لصحّة مصلحتك المالية</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                  <HeroGauge score={87} animate={live} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {HERO_FACTORS.map((f, i) => <HeroFactorBar key={f.label} {...f} delay={0.3 + i * 0.1} animate={live} />)}
+                  </div>
+                </div>
+                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 9, padding: '9px 11px', background: C.card, border: `1px solid ${C.success}26`, borderRadius: 12 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 8, background: `${C.success}1c`, border: `1px solid ${C.success}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Sparkles size={13} color={C.success} strokeWidth={2.2} />
+                  </div>
+                  <span style={{ flex: 1, fontSize: 11, color: C.text, lineHeight: 1.5 }}>أداء ممتاز هالشهر — التحصيل أسرع من المعتاد بـ٤ أيام.</span>
+                  <ChevronLeft size={15} color={C.textDim} />
+                </div>
+              </PremiumCard>
+
+              <div style={{ display: 'flex', gap: 9 }}>
+                <HeroKpi icon={TrendingUp} color={C.success} value={94} money suffix="K" label="صافي الربح" animate={live} />
+                <HeroKpi icon={Wallet} color={C.cyan} value={31} money suffix="K" label="نقد بالجيب" animate={live} />
+                <HeroKpi icon={Clock} color={C.gold} value={12} money suffix="K" label="مستحق" animate={live} />
+              </div>
+
+              <PremiumCard color={C.primary} radius={16} padding="12px 13px" animate={false}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 9 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: C.text }}>الدخل الشهري</span>
+                  <span style={{ fontSize: 11, fontWeight: 900, color: C.primary, fontVariantNumeric: 'tabular-nums' }}>₪88K</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 6, height: 46 }}>
+                  {HERO_MONTHS.map((m, i) => (
+                    <motion.div key={i} initial={{ height: '8%' }} animate={live ? { height: `${m}%` } : {}}
+                      transition={{ duration: 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                      style={{ flex: 1, borderRadius: '4px 4px 0 0', background: i === HERO_MONTHS.length - 1 ? GRAD.brand : `${C.primary}40` }} />
+                  ))}
+                </div>
+              </PremiumCard>
+
+              <LandingProjectCard name="فيلا رهط" client="أبو يوسف" profit="42,500" margin={28} width="100%"
+                stats={[{ label: 'إيرادات', value: '₪150K' }, { label: 'التكاليف', value: '₪108K' }, { label: 'أيام', value: '64' }]} />
+            </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}><PhoneMockup /></div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+
+
+// ─── نسخ طبق الأصل من مكوّنات التطبيق (عرض بصري للهبوط) ──────────────────────
+// نفس DNA المكوّنات الحقيقية حرفياً: تذكرة الشِفت (WorkDayTicket) — كعب تاريخ
+// متدرّج حسب نوع اليوم + خط تثقيب وحفرتان + كعب أجر + ختم حالة + لمعة. وكرت
+// المشروع (ProjectCard) — Wallet-style بتدرّج الحالة + شريحة زجاجية + إحصائيات.
+
+function LandingTicket({ day, month, weekday, name, project, type, color, grad, TypeIcon, chips = [], amount, status, notch = C.bg, width = 330 }) {
+  const st = status === 'pending'
+    ? { color: C.warning, label: 'بانتظار', Icon: Hourglass }
+    : { color: C.success, label: 'معتمد', Icon: Check }
+  return (
+    <div dir="rtl" style={{
+      position: 'relative', display: 'flex', alignItems: 'stretch', minHeight: 86, width, maxWidth: '88vw',
+      borderRadius: 18, overflow: 'hidden',
+      background: `linear-gradient(135deg, ${color}14, ${C.card} 55%)`,
+      border: `1px solid ${color}33`, boxShadow: `0 10px 28px ${color}1c`,
+    }}>
+      <HolographicSheen opacity={0.2} />
+      {/* كعب التاريخ المتدرّج */}
+      <div style={{ width: 64, flexShrink: 0, background: grad, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', gap: 1 }}>
+        <TypeIcon size={13} color="#fff" strokeWidth={2.2} style={{ opacity: 0.95, marginBottom: 2 }} />
+        <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.04em', textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>{day}</div>
+        <div style={{ fontSize: 9, fontWeight: 800, opacity: 0.95 }}>{month}</div>
+        <div style={{ fontSize: 8, fontWeight: 600, opacity: 0.8 }}>{weekday}</div>
+      </div>
+      {/* الوسط: الاسم + المشروع + الشرائح */}
+      <div style={{ flex: 1, minWidth: 0, padding: '9px 11px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 900, color: C.text, letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+        {project && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, color: C.textDim, whiteSpace: 'nowrap' }}>
+            <MapPin size={10} color={color} strokeWidth={2.2} /> {project}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color, background: `${color}1c`, border: `1px solid ${color}38`, borderRadius: 7, padding: '2px 8px' }}>{type}</span>
+          {chips.map((c, i) => (
+            <span key={i} style={{ fontSize: 9, fontWeight: 700, color: C.textDim, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, borderRadius: 7, padding: '2px 8px' }}>{c}</span>
+          ))}
+        </div>
+      </div>
+      {/* خط التثقيب + الحفرتان */}
+      <div style={{ width: 0, borderInlineStart: `2px dashed ${color}40`, margin: '11px 0', flexShrink: 0 }} />
+      <div aria-hidden style={{ position: 'absolute', insetInlineEnd: 80, top: -8, width: 16, height: 16, borderRadius: '50%', background: notch }} />
+      <div aria-hidden style={{ position: 'absolute', insetInlineEnd: 80, bottom: -8, width: 16, height: 16, borderRadius: '50%', background: notch }} />
+      {/* كعب الأجر + ختم الحالة */}
+      <div style={{ width: 80, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 5px' }}>
+        <div style={{ fontSize: 8, fontWeight: 700, color: C.textDim }}>الأجر</div>
+        <div style={{ fontSize: 15, fontWeight: 900, color, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>₪{amount}</div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontWeight: 800, color: st.color, background: `${st.color}1a`, border: `1px solid ${st.color}40`, borderRadius: 20, padding: '2px 7px' }}>
+          <st.Icon size={8} strokeWidth={2.8} /> {st.label}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function LandingProjectCard({ name, client, status = 'نشط', profit, margin, stats = [], width = 310 }) {
+  // تدرّج «نشط» الحقيقي من ProjectCard: أخضر → أزرق → سماوي
+  const gradient = `linear-gradient(135deg, ${C.success} 0%, #0EA5E9 58%, ${C.cyan} 115%)`
+  return (
+    <div dir="rtl" style={{
+      position: 'relative', width, maxWidth: '88vw', aspectRatio: '1.6 / 1', borderRadius: 20, overflow: 'hidden',
+      background: gradient,
+      boxShadow: '0 12px 36px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.22)',
+      padding: 13, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+    }}>
+      <HolographicSheen />
+      <div aria-hidden style={{ position: 'absolute', top: -52, insetInlineEnd: -38, width: 150, height: 150, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.16)', pointerEvents: 'none' }} />
+      <div aria-hidden style={{ position: 'absolute', top: -28, insetInlineEnd: -12, width: 110, height: 110, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.10)', pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(255,255,255,0.20)', border: '1px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <Building2 size={17} color="#fff" strokeWidth={1.9} />
+        </div>
+        <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', padding: '3px 9px', borderRadius: 999, background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.28)' }}>{status}</span>
+      </div>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.7)', marginBottom: 2 }}>PROJECT</div>
+          <div style={{ fontSize: 15.5, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.25)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+          {client && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.85)', marginTop: 1 }}><MapPin size={9} color="#fff" strokeWidth={2.2} /> {client}</div>}
+        </div>
+        <div style={{ textAlign: 'end', flexShrink: 0 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.78)' }}>
+            <TrendingUp size={10} color="#fff" strokeWidth={2.4} /> الربح
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.28)', fontVariantNumeric: 'tabular-nums' }}>₪{profit}</div>
+          {margin && <div style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{margin}%</div>}
+        </div>
+      </div>
+      <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
+        {stats.map((s) => (
+          <div key={s.label} style={{ background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 8, padding: '4px 5px', textAlign: 'center', backdropFilter: 'blur(2px)' }}>
+            <div style={{ fontSize: 9.5, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+            <div style={{ fontSize: 7.5, fontWeight: 600, color: 'rgba(255,255,255,0.78)', marginTop: 1 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// صف راتب — توقيع شاشة الدفعات: أفاتار دائري متدرّج + ترقيم PAY- + حبّة مبلغ
+function LandingPayRow({ init, name, sub, amt, color, status, grad, width = 300 }) {
+  return (
+    <div dir="rtl" style={{ width, maxWidth: '84vw', background: C.card, borderRadius: 14, padding: '10px 12px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 9, boxShadow: '0 10px 28px rgba(0,0,0,0.4)' }}>
+      <div style={{ width: 30, height: 30, borderRadius: '50%', background: grad, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#fff', flexShrink: 0 }}>{init}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap' }}>{name}</div>
+        <div style={{ fontSize: 9.5, color: C.textDim, marginTop: 1, whiteSpace: 'nowrap' }}>{sub}</div>
+      </div>
+      <div style={{ textAlign: 'center', padding: '4px 9px', borderRadius: 9, background: `${color}20`, border: `1px solid ${color}44`, flexShrink: 0 }}>
+        <div style={{ fontSize: 11, fontWeight: 900, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1.1 }}>{amt}</div>
+        <div style={{ fontSize: 7.5, fontWeight: 800, color, opacity: 0.85 }}>{status}</div>
+      </div>
+    </div>
+  )
+}
+
+// ورقة ملاحظة عامة (إيصال/מע"מ) — نمط شرائح الرؤى
+function NoteCard({ Icon, color, title, sub, amt, width = 280 }) {
+  return (
+    <div dir="rtl" style={{
+      display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', width, maxWidth: '80vw',
+      background: `linear-gradient(135deg, ${color}16, ${C.card} 70%)`, borderRadius: 14,
+      border: `1px solid ${color}55`, boxShadow: `0 12px 34px rgba(0,0,0,0.5), 0 0 18px ${color}1a`,
+    }}>
+      <div style={{ width: 30, height: 30, borderRadius: 10, background: `${color}1c`, border: `1px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon size={14} color={color} strokeWidth={2.3} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap' }}>{title}</div>
+        <div style={{ fontSize: 9.5, color: C.textDim, marginTop: 1, whiteSpace: 'nowrap' }}>{sub}</div>
+      </div>
+      <div style={{ fontSize: 12.5, fontWeight: 900, color, fontVariantNumeric: 'tabular-nums' }}>{amt}</div>
+    </div>
+  )
+}
+
+// ─── من الفوضى للنظام — بمكوّنات التطبيق الحقيقية ────────────────────────────
+// قسم مثبّت: تذاكر شِفت وكروت مشاريع وصفوف رواتب حقيقية الشكل طايرة بفوضى —
+// ومع السكرول التلفون الحي يطلع وكلها تنشفط جوّاه + ختم «محفوظ. مرتّب. محسوب.».
+const TICKET_GRAD_FULL = `linear-gradient(160deg, ${C.primary}, ${C.gold})`
+const TICKET_GRAD_HALF = `linear-gradient(160deg, ${C.warning}, ${C.gold})`
+const CHAOS_CARDS = [
+  { sx: '-33vw', sy: '-26vh', rot: -14, dur: 5.2, render: () => (
+    <LandingTicket day={8} month="يونيو" weekday="الثلاثاء" name="محمد ع." project="فيلا رهط" type="كامل"
+      color={C.primary} grad={TICKET_GRAD_FULL} TypeIcon={Sun} chips={['8 ساعات']} amount="450" status="approved" />
+  ) },
+  { sx: '32vw', sy: '-27vh', rot: 12, dur: 6.0, render: () => (
+    <LandingTicket day={9} month="يونيو" weekday="الأربعاء" name="أحمد س." project="شقة الناصرة" type="نص يوم"
+      color={C.warning} grad={TICKET_GRAD_HALF} TypeIcon={CloudSun} chips={['4 ساعات']} amount="225" status="pending" />
+  ) },
+  { sx: '-36vw', sy: '7vh', rot: 10, dur: 4.8, render: () => (
+    <LandingProjectCard name="فيلا رهط" client="أبو يوسف" profit="42,500" margin={28}
+      stats={[{ label: 'إيرادات', value: '₪150K' }, { label: 'التكاليف', value: '₪108K' }, { label: 'أيام', value: '64' }]} />
+  ) },
+  { sx: '35vw', sy: '9vh', rot: -12, dur: 5.6, render: () => (
+    <LandingPayRow init="أ" name="راتب أحمد" sub="نيسان · PAY-1043" amt="₪3,800" color={C.secondary} status="مدفوع" grad={GRAD.premium} />
+  ) },
+  { sx: '-25vw', sy: '31vh', rot: 17, dur: 5.0, hideM: true, render: () => (
+    <NoteCard Icon={Receipt} color={C.cyan} title={'מע"מ للاسترداد'} sub="فاتورة INV-1042" amt="₪357" />
+  ) },
+  { sx: '26vw', sy: '30vh', rot: -16, dur: 5.8, hideM: true, render: () => (
+    <NoteCard Icon={Receipt} color={C.accent} title="فاتورة مواد" sub="حديد + إسمنت" amt="₪2,340" />
+  ) },
+]
+
+function ChaosCard({ c, i, p }) {
+  const a = 0.26 + i * 0.055
+  const b = a + 0.2
+  const x = useTransform(p, [a, b], [c.sx, '0vw'])
+  const y = useTransform(p, [a, b], [c.sy, '3vh'])
+  const rotate = useTransform(p, [a, b], [c.rot, 0])
+  const scale = useTransform(p, [a, b - 0.03, b], [1, 0.55, 0.12])
+  const opacity = useTransform(p, [b - 0.02, b], [1, 0])
+  return (
+    <motion.div className={c.hideM ? 'lp-chaos-hide' : undefined}
+      style={{ position: 'absolute', x, y, rotate, scale, opacity, zIndex: 6, pointerEvents: 'none' }}>
+      <div className="float" style={{ animationDuration: `${c.dur}s`, animationDelay: `${(i % 5) * 0.6}s` }}>
+        {c.render()}
+      </div>
+    </motion.div>
+  )
+}
+
+function ChaosToOrder() {
+  const ref = useRef(null)
+  const reduce = useReducedMotion()
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
+  const p = useSpring(scrollYProgress, { stiffness: 120, damping: 26, mass: 0.35 })
+  const chaosLabelOp = useTransform(p, [0, 0.08, 0.5, 0.58], [1, 1, 1, 0])
+  const headOp = useTransform(p, [0.02, 0.1], [0, 1])
+  const phoneY = useTransform(p, [0.03, 0.24], ['76vh', '0vh'])
+  const phoneRotX = useTransform(p, [0.03, 0.24], [16, 0])
+  const doneOp = useTransform(p, [0.84, 0.91], [0, 1])
+  const doneScale = useTransform(p, [0.84, 0.94], [1.7, 1])
+
+  if (reduce) {
+    return (
+      <section id="features" style={{ padding: '72px 24px', direction: 'rtl' }}>
+        <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 10 }}>
+            كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
+          </h2>
+          <p style={{ fontSize: 15, color: C.textDim, marginBottom: 28 }}>تذاكر الشِفتات، كروت المشاريع، الرواتب — كلها محفوظة لحالها.</p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            {CHAOS_CARDS.filter(c => !c.hideM).map((c, i) => <div key={i}>{c.render()}</div>)}
+          </div>
         </div>
       </section>
     )
   }
 
   return (
-    <section ref={ref} style={{ position: 'relative', height: '460vh', direction: 'rtl' }}>
-      {/* مرساة "شاهد كيف يعمل" — تهبط على المشهد الأول */}
-      <div id="features" aria-hidden style={{ position: 'absolute', top: '30%' }} />
-
-      <div onPointerMove={onMove} onPointerLeave={onLeave}
-        style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden' }}>
-
-        {/* خلفية: توهّجات + أرضية الشبكة + غبار */}
-        <div className="glow-orb" style={{ position: 'absolute', top: '-12%', right: '-6%', width: 620, height: 620, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.12) 0%, transparent 65%)', pointerEvents: 'none' }} />
-        <div className="glow-orb" style={{ position: 'absolute', bottom: '-16%', left: '-8%', width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 65%)', pointerEvents: 'none', animationDelay: '1.5s' }} />
-        <div aria-hidden style={{ position: 'absolute', inset: 0, perspective: 620, overflow: 'hidden', pointerEvents: 'none' }}>
-          <div className="lp-grid-floor" />
-        </div>
-        {DUST.map((d, i) => (
-          <span key={i} className="lp-dust" style={{ left: d.left, top: d.top, width: d.size, height: d.size, background: d.color, boxShadow: `0 0 8px ${d.color}`, animationDuration: `${d.dur}s`, animationDelay: `${d.delay}s` }} />
-        ))}
-        {/* ضوء يتبع المؤشّر (ديسكتوب) */}
-        <motion.div aria-hidden style={{ position: 'absolute', top: -280, left: -280, x: slx, y: sly, width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 60%)', pointerEvents: 'none', zIndex: 1 }} />
-        {/* حبيبات فيلم */}
+    <section ref={ref} style={{ position: 'relative', height: '300vh', direction: 'rtl' }}>
+      {/* مرساة «شاهد كيف يعمل» */}
+      <div id="features" aria-hidden style={{ position: 'absolute', top: '28%' }} />
+      <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'clip', background: C.bg }}>
         <div className="lp-grain" aria-hidden />
-
-        {/* مسرح التلفون — البطل */}
-        <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', y: phoneY, zIndex: 2, pointerEvents: 'none', perspective: 1300 }}>
-          <div className="lp-rays" />
-          {/* توهّج خلف التلفون (بلا blur — التدرّج الشعاعي ناعم أصلاً) */}
-          <div aria-hidden style={{ position: 'absolute', inset: 0, margin: 'auto', width: 460, height: 460, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.16) 0%, transparent 62%)' }} />
-          {/* دخول درامي بزخم → دوران المشاهد → ميلان الماوس */}
-          <motion.div initial={{ y: 280, opacity: 0, rotateX: 24, scale: 0.9 }} animate={{ y: 0, opacity: 1, rotateX: 0, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 55, damping: 15, delay: 0.2 }}>
-            <motion.div style={{ rotateY: phoneRotY, rotateX: phoneRotX, rotateZ: rotZ, scale: phoneScale, transformStyle: 'preserve-3d' }}>
-              <motion.div style={{ rotateX: tiltX, rotateY: tiltY, transformStyle: 'preserve-3d' }}>
-                <div className="lp-mega-phone">
-                  <div style={{ position: 'relative', borderRadius: 42, overflow: 'hidden' }}>
-                    <PhoneMockup p={p} />
-                    <HolographicSheen duration={5} repeatDelay={2.2} opacity={0.22} />
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
+        {/* العنوان */}
+        <div style={{ position: 'absolute', top: 'clamp(74px, 9.6vh, 100px)', left: 0, right: 0, textAlign: 'center', padding: '0 18px', zIndex: 7, pointerEvents: 'none' }}>
+          <motion.div style={{ opacity: chaosLabelOp, fontSize: 11, color: C.accent, fontWeight: 800, letterSpacing: '0.12em', marginBottom: 7 }}>
+            هاي مش رسومات — هاي شاشاتك الحقيقية، بس مبعثرة
           </motion.div>
-          {/* شرائح المشاهد الطايرة */}
-          <StoryChip i={0} p={p} chip={STORY[0].chip} pos={{ top: '26%', insetInlineEnd: 'max(8px, calc(50% - 252px))' }} />
-          <StoryChip i={1} p={p} chip={STORY[1].chip} pos={{ top: '40%', insetInlineEnd: 'max(8px, calc(50% - 258px))' }} />
-          <StoryChip i={2} p={p} chip={STORY[2].chip} pos={{ bottom: '22%', insetInlineEnd: 'max(8px, calc(50% - 262px))' }} />
-        </motion.div>
-
-        {/* طبقة العنوان — المشهد 0 */}
-        <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 'clamp(84px, 11vh, 124px)', textAlign: 'center', opacity: headOpacity, y: headY, rotateX: headRotX, transformPerspective: 1000, zIndex: 4, pointerEvents: 'none', visibility: headVis, padding: '0 20px' }}>
-          <div style={{ maxWidth: 760, position: 'relative' }}>
-            {/* بطاقات عائمة بعمق (ديسكتوب) */}
-            <FloatChip icon={CheckCircle2} color={C.success} text="يوم عمل — تمت الموافقة"
-              style={{ top: 96, insetInlineStart: -130 }} dur={3.4} />
-            <FloatChip icon={Wallet} color={C.cyan} text="₪4,250 راتب مدفوع"
-              style={{ top: 190, insetInlineEnd: -140 }} dur={4.1} delay={0.7} />
-            <FloatChip icon={TrendingUp} color={C.gold} text="+18% صافي الربح"
-              style={{ bottom: -10, insetInlineStart: -104 }} dur={3.8} delay={1.3} />
-
-            {/* Badge */}
-            <motion.div initial={{ opacity: 0, y: 18, rotateX: 30, transformPerspective: 800 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${C.primary}1a`, border: `1px solid ${C.primary}40`, borderRadius: 100, padding: '6px 16px', marginBottom: 'clamp(16px, 3vh, 30px)', fontSize: 12, color: C.primary, fontWeight: 700 }}>
-              <CircleDot size={10} strokeWidth={3} />
-              التطبيق الأول للمقاول العربي في إسرائيل
-            </motion.div>
-
-            {/* Headline — كلمة-كلمة من العمق */}
-            <h1 style={{ fontSize: 'clamp(26px,5.2vw,50px)', fontWeight: 900, color: C.text, lineHeight: 1.16, marginBottom: 18, letterSpacing: '-0.02em', perspective: 900 }}>
-              {HEADLINE_WORDS.map(word)}
-              <br />
-              <motion.span className="grad-text"
-                initial={{ opacity: 0, rotateX: -88, y: 26, scale: 0.92 }}
-                animate={{ opacity: 1, rotateX: 0, y: 0, scale: 1 }}
-                transition={{ duration: 0.85, delay: gradDelay, ease: [0.22, 1, 0.36, 1] }}
-                style={{ display: 'inline-block', transformOrigin: 'bottom center' }}>
-                محفوظ. مش في دماغك.
-              </motion.span>
-            </h1>
-
-            {/* Sub */}
-            <motion.p initial={{ opacity: 0, y: 24, rotateX: 18, transformPerspective: 900 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, delay: gradDelay + 0.15, ease: [0.22, 1, 0.36, 1] }}
-              style={{ fontSize: 'clamp(14px,2.2vw,17px)', color: C.textDim, lineHeight: 1.65, marginBottom: 'clamp(18px, 3.4vh, 34px)', maxWidth: 560, marginInline: 'auto' }}>
-              Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
-            </motion.p>
-
-            {/* CTAs */}
-            <motion.div initial={{ opacity: 0, y: 24, rotateX: 18, transformPerspective: 900 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, delay: gradDelay + 0.24, ease: [0.22, 1, 0.36, 1] }}
-              style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', pointerEvents: 'auto' }}>
-              <Magnetic>
-                <button onClick={() => navigate('/register')} className="lp-btn"
-                  style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', padding: '14px 34px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  جرّب مجاناً 14 يوم
-                  <ArrowLeft size={18} strokeWidth={2.5} />
-                </button>
-              </Magnetic>
-              <button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }) }} className="lp-btn"
-                style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '14px 26px', borderRadius: 16 }}>
-                شاهد كيف يعمل
-              </button>
-            </motion.div>
-
-            {/* Trust signals */}
-            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: gradDelay + 0.38 }}
-              style={{ marginTop: 'clamp(14px, 2.6vh, 26px)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
-              {[
-                { icon: Shield,      label: 'آمن ومشفّر' },
-                { icon: Smartphone,  label: 'يعمل بدون إنترنت' },
-                { icon: CheckCircle2, label: 'بدون بطاقة ائتمان' },
-              ].map(({ icon: Icon, label }, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <Icon size={15} color={C.primary} strokeWidth={2.2} />
-                  <span style={{ fontSize: 13, color: C.textDim }}>{label}</span>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* العنوان المصغّر للمشاهد */}
-        <motion.div style={{ position: 'absolute', top: 'clamp(74px, 9.6vh, 94px)', left: 0, right: 0, textAlign: 'center', opacity: scenesOpacity, zIndex: 4, pointerEvents: 'none', padding: '0 18px' }}>
-          <div style={{ fontSize: 11, color: C.primary, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 7, textTransform: 'uppercase' }}>قوة في جيبك</div>
-          <h2 style={{ fontSize: 'clamp(19px,3vw,30px)', fontWeight: 900, color: C.text, lineHeight: 1.25 }}>
+          <motion.h2 style={{ opacity: headOp, fontSize: 'clamp(19px,3vw,30px)', fontWeight: 900, color: C.text, lineHeight: 1.25, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>
             كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
-          </h2>
-        </motion.div>
+          </motion.h2>
+        </div>
 
-        {/* لوحات HUD الزجاجية */}
-        <motion.div className="lp-hud" style={{ opacity: scenesOpacity, zIndex: 5, pointerEvents: 'none' }}>
-          {STORY.map((s, i) => <HudPanel key={i} i={i} p={p} story={s} />)}
-        </motion.div>
+        {/* المكوّنات الحقيقية الطايرة */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 6, pointerEvents: 'none' }}>
+          {CHAOS_CARDS.map((c, i) => <ChaosCard key={i} c={c} i={i} p={p} />)}
+        </div>
 
-        {/* نقاط التقدّم */}
-        <motion.div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 10, opacity: scenesOpacity, zIndex: 5, pointerEvents: 'none' }}>
-          {STORY.map((s, i) => <StoryDot key={i} i={i} p={p} color={s.color} />)}
+        {/* التلفون الحي — اللاقط */}
+        <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', y: phoneY, rotateX: phoneRotX, transformPerspective: 1100, zIndex: 4, pointerEvents: 'none' }}>
+          <div aria-hidden style={{ position: 'absolute', width: 440, height: 440, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.14) 0%, transparent 62%)' }} />
+          <div style={{ position: 'relative', borderRadius: 42, overflow: 'hidden', marginTop: 30 }}>
+            <PhoneMockup float={false} />
+            <HolographicSheen duration={5} repeatDelay={2.2} opacity={0.2} />
+          </div>
+          {/* ختم النهاية */}
+          <motion.div style={{
+            opacity: doneOp, scale: doneScale, position: 'absolute', top: 'calc(50% - 326px)', zIndex: 8,
+            display: 'inline-flex', alignItems: 'center', gap: 6, background: `${C.success}1c`, border: `1px solid ${C.success}55`,
+            borderRadius: 100, padding: '7px 16px', fontSize: 13, fontWeight: 900, color: C.success,
+            boxShadow: `0 10px 30px rgba(0,0,0,0.45), 0 0 24px ${C.success}33`, backdropFilter: 'blur(6px)', whiteSpace: 'nowrap',
+          }}>
+            <CheckCircle2 size={15} strokeWidth={2.6} />
+            محفوظ. مرتّب. محسوب.
+          </motion.div>
         </motion.div>
       </div>
     </section>
   )
 }
+
+
+// ─── ورقة CP-01 — نماذج حية من شاشاتك ────────────────────────────────────────
+// التذاكر والكروت بالحجم الكامل كما تبدو فعلاً بالتطبيق + التلفون الحي.
+function AppShowcase() {
+  const SHEET_BG = '#0A1226'   // أرضية ورقة المخطط — لحفر التثقيب بالتذاكر
+  return (
+    <section style={{ padding: '36px 24px 72px', direction: 'rtl' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        <Sheet no="CP-01" title="نماذج حية من شاشاتك">
+          <div style={{ padding: '54px 22px 36px' }}>
+            <Depth tilt={16} lift={60}>
+              <div style={{ textAlign: 'center', marginBottom: 42 }}>
+                <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
+                  هيك رح تشوف <span className="grad-text">شغلك بالضبط</span>
+                </h2>
+                <p style={{ fontSize: 16, color: C.textDim }}>مش موك-أب — نفس تذاكر الشِفت وكروت المشاريع اللي جوّا التطبيق.</p>
+              </div>
+            </Depth>
+            <div className="lp-cinema-grid" style={{ margin: '0 auto', alignItems: 'start' }}>
+              {/* عمود التذاكر + الراتب */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
+                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.primary, letterSpacing: '0.1em' }}>أيام العمل — تذاكر الشِفت</div>
+                <Flip3D delay={0} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <LandingTicket day={8} month="يونيو" weekday="الثلاثاء" name="محمد ع." project="فيلا رهط" type="كامل"
+                    color={C.primary} grad={TICKET_GRAD_FULL} TypeIcon={Sun} chips={['8 ساعات']} amount="450" status="approved" notch={SHEET_BG} width={440} />
+                </Flip3D>
+                <Flip3D delay={0.12} dir={-1} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <LandingTicket day={9} month="يونيو" weekday="الأربعاء" name="أحمد س." project="شقة الناصرة" type="نص يوم"
+                    color={C.warning} grad={TICKET_GRAD_HALF} TypeIcon={CloudSun} chips={['4 ساعات']} amount="225" status="pending" notch={SHEET_BG} width={440} />
+                </Flip3D>
+                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.secondary, letterSpacing: '0.1em', marginTop: 8 }}>الرواتب</div>
+                <Flip3D delay={0.2} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <LandingPayRow init="أ" name="راتب أحمد" sub="نيسان · PAY-1043" amt="₪3,800" color={C.secondary} status="مدفوع" grad={GRAD.premium} width={440} />
+                </Flip3D>
+              </div>
+              {/* عمود كرت المشروع + قصّة الميزات */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
+                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.success, letterSpacing: '0.1em' }}>المشاريع — كروت Wallet</div>
+                <Flip3D delay={0.1} dir={-1} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <LandingProjectCard name="فيلا رهط" client="أبو يوسف" profit="42,500" margin={28} width={400}
+                    stats={[{ label: 'إيرادات', value: '₪150K' }, { label: 'التكاليف', value: '₪108K' }, { label: 'أيام', value: '64' }]} />
+                </Flip3D>
+                <div style={{ width: '100%', maxWidth: 440, marginTop: 6 }}>
+                  {STORY.map((s, i) => (
+                    <Flip3D key={i} delay={0.2 + i * 0.1} dir={i % 2 ? -1 : 1} style={{ height: 'auto' }}>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
+                        <IconChip icon={s.Icon} color={s.color} size={36} radius={11} iconSize={17} strokeWidth={2.2} />
+                        <div>
+                          <div style={{ fontSize: 14.5, fontWeight: 900, color: C.text, marginBottom: 4 }}>{s.title}</div>
+                          <p style={{ fontSize: 12.5, color: C.textDim, lineHeight: 1.65 }}>{s.desc}</p>
+                        </div>
+                      </div>
+                    </Flip3D>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Sheet>
+      </div>
+    </section>
+  )
+}
+
+
 
 // ─── Stats strip ─────────────────────────────────────────────────────────────
 const STATS = [
@@ -1079,30 +1185,134 @@ function PainPoints() {
   )
 }
 
-// ─── Features grid — باقي الميزات ─────────────────────────────────────────────
+// ─── المخطط الهندسي الحي — الميزات كورقة Blueprint ───────────────────────────
+// ورقة مخطط معماري بشبكة سماوية: واجهة مبنى ترسم حالها خط-خط (SVG pathLength)
+// مع خطوط أبعاد، وكل ميزة callout موصول بالرسمة — وجدول عنوان مثل المخططات
+// الحقيقية. useReducedMotion → كل الخطوط مرسومة من البداية.
 const FEATURES = [
-  { Icon: CalendarDays, text: 'تسجيل أيام العمل بالموافقة والرفض'     },
-  { Icon: Users,        text: 'متابعة الرواتب والسلف لكل عامل'         },
-  { Icon: Receipt,      text: 'تتبع المصاريف واسترداد ضريبة القيمة المضافة' },
-  { Icon: BarChart3,    text: 'تقارير PDF وExcel بلمسة'                 },
-  { Icon: Shield,       text: 'فريق عمل مع صلاحيات مخصصة'              },
-  { Icon: Bell,         text: 'إشعارات فورية لكل طلب وتغيير'            },
+  { Icon: CalendarDays, text: 'تسجيل أيام العمل بالموافقة والرفض',          color: C.primary   },
+  { Icon: Users,        text: 'متابعة الرواتب والسلف لكل عامل',              color: C.secondary },
+  { Icon: Receipt,      text: 'تتبع المصاريف واسترداد ضريبة القيمة المضافة', color: C.cyan      },
+  { Icon: BarChart3,    text: 'تقارير PDF وExcel بلمسة',                      color: C.gold      },
+  { Icon: Shield,       text: 'فريق عمل مع صلاحيات مخصصة',                   color: C.success   },
+  { Icon: Bell,         text: 'إشعارات فورية لكل طلب وتغيير',                 color: C.accent    },
 ]
-function FeaturesGrid() {
+// واجهة المبنى: 4 طوابق + باب + رافعة جانبية — مسارات منفصلة حتى تترسم تباعاً
+const BP_PATHS = [
+  'M40 330 L40 110 L150 70 L260 110 L260 330 Z',                              // الهيكل
+  'M40 165 L260 165 M40 220 L260 220 M40 275 L260 275',                       // بلاطات الطوابق
+  'M70 132 h34 v20 h-34 Z M130 122 h40 v26 h-40 Z M196 132 h34 v20 h-34 Z',   // شبابيك ع
+  'M70 185 h34 v22 h-34 Z M130 185 h40 v22 h-40 Z M196 185 h34 v22 h-34 Z',   // شبابيك 2
+  'M70 240 h34 v22 h-34 Z M196 240 h34 v22 h-34 Z',                           // شبابيك 1
+  'M128 330 v-44 h44 v44',                                                    // الباب
+  'M288 330 L288 86 L288 86 L228 64 M288 96 L316 88',                         // الرافعة
+]
+function BlueprintFeatures() {
+  const reduce = useReducedMotion()
+  const draw = (i) => reduce ? {} : {
+    initial: { pathLength: 0, opacity: 0 },
+    whileInView: { pathLength: 1, opacity: 1 },
+    viewport: { once: true, amount: 0.4 },
+    transition: { duration: 1.1, delay: 0.15 + i * 0.28, ease: 'easeInOut' },
+  }
   return (
-    <section style={{ padding: '24px 24px 80px', direction: 'rtl' }}>
+    <section style={{ padding: '72px 24px', direction: 'rtl' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 14 }}>
-          {FEATURES.map(({ Icon, text }, i) => (
-            <Flip3D key={i} delay={i * 0.06} dir={i % 2 ? -1 : 1}>
-              <PremiumCard color={C.primary} animate={false} padding="16px" style={{ height: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <IconChip icon={Icon} color={C.primary} size={34} radius={10} iconSize={16} strokeWidth={2} />
-                  <span style={{ fontSize: 13.5, fontWeight: 700, color: C.text }}>{text}</span>
-                </div>
-              </PremiumCard>
-            </Flip3D>
+        <Depth tilt={14} lift={50}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <div style={{ fontSize: 11, color: C.cyan, fontWeight: 800, letterSpacing: '0.14em', marginBottom: 8 }}>BLUEPRINT — ورقة CP-02</div>
+            <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 10 }}>
+              مخطط <span style={{ color: C.cyan }}>مصلحتك الجديدة</span>
+            </h2>
+            <p style={{ fontSize: 15, color: C.textDim }}>كل ميزة مرسومة بمكانها — مثل ما بترسم مشاريعك.</p>
+          </div>
+        </Depth>
+
+        {/* ورقة المخطط */}
+        <div className="lp-blueprint" style={{
+          position: 'relative', borderRadius: 18, overflow: 'hidden',
+          border: `1.5px solid ${C.cyan}3a`,
+          background: `
+            linear-gradient(${C.cyan}10 1px, transparent 1px),
+            linear-gradient(90deg, ${C.cyan}10 1px, transparent 1px),
+            linear-gradient(${C.cyan}07 1px, transparent 1px),
+            linear-gradient(90deg, ${C.cyan}07 1px, transparent 1px),
+            linear-gradient(165deg, #0A1226, #0A0F22 70%)`,
+          backgroundSize: '88px 88px, 88px 88px, 22px 22px, 22px 22px, 100% 100%',
+          boxShadow: `0 30px 80px rgba(0,0,0,0.45), inset 0 0 80px ${C.cyan}08`,
+        }}>
+          {/* علامات الزوايا */}
+          {[{ top: 10, insetInlineStart: 10 }, { top: 10, insetInlineEnd: 10 }, { bottom: 10, insetInlineStart: 10 }, { bottom: 10, insetInlineEnd: 10 }].map((pos, i) => (
+            <div key={i} aria-hidden style={{ position: 'absolute', width: 18, height: 18, ...pos, borderTop: i < 2 ? `2px solid ${C.cyan}66` : 'none', borderBottom: i >= 2 ? `2px solid ${C.cyan}66` : 'none', borderInlineStart: i % 2 === 0 ? `2px solid ${C.cyan}66` : 'none', borderInlineEnd: i % 2 === 1 ? `2px solid ${C.cyan}66` : 'none' }} />
           ))}
+
+          <div className="lp-bp-grid">
+            {/* الرسمة */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 16px' }}>
+              <svg viewBox="0 0 340 360" style={{ width: 'min(360px, 88vw)', overflow: 'visible' }} aria-hidden>
+                {/* خط الأرض */}
+                <motion.path d="M10 330 L330 330" stroke={`${C.cyan}AA`} strokeWidth="2" fill="none" {...draw(0)} />
+                {BP_PATHS.map((d, i) => (
+                  <motion.path key={i} d={d} stroke={C.cyan} strokeWidth="1.6" fill="none"
+                    strokeLinecap="round" strokeLinejoin="round" {...draw(i + 1)} />
+                ))}
+                {/* خط الأبعاد العلوي */}
+                <motion.g {...(reduce ? {} : { initial: { opacity: 0 }, whileInView: { opacity: 1 }, viewport: { once: true }, transition: { delay: 2.4, duration: 0.6 } })}>
+                  <path d="M40 46 L260 46 M40 40 L40 52 M260 40 L260 52" stroke={`${C.gold}99`} strokeWidth="1.2" fill="none" />
+                  <text x="150" y="38" textAnchor="middle" fill={C.gold} fontSize="11" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>22.00 م</text>
+                  <path d="M306 110 L306 330 M300 110 L312 110 M300 330 L312 330" stroke={`${C.gold}99`} strokeWidth="1.2" fill="none" />
+                </motion.g>
+              </svg>
+            </div>
+
+            {/* الـcallouts — كل ميزة بخط واصل يكبر */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12, padding: '28px 22px' }}>
+              {FEATURES.map(({ Icon, text, color }, i) => (
+                <motion.div key={i}
+                  {...(reduce ? {} : {
+                    initial: { opacity: 0, x: -28 },
+                    whileInView: { opacity: 1, x: 0 },
+                    viewport: { once: true, amount: 0.5 },
+                    transition: { duration: 0.55, delay: 0.3 + i * 0.14, ease: [0.22, 1, 0.36, 1] },
+                  })}
+                  style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                  {/* الخط الواصل */}
+                  <motion.div aria-hidden
+                    {...(reduce ? {} : {
+                      initial: { scaleX: 0 },
+                      whileInView: { scaleX: 1 },
+                      viewport: { once: true, amount: 0.5 },
+                      transition: { duration: 0.45, delay: 0.42 + i * 0.14, ease: 'easeOut' },
+                    })}
+                    style={{ width: 26, height: 1.5, background: `${color}88`, transformOrigin: 'right center', flexShrink: 0 }} />
+                  <div aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}`, flexShrink: 0, marginInlineEnd: 10 }} />
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 11, flex: 1, padding: '11px 14px',
+                    background: `linear-gradient(135deg, ${color}12, ${C.card} 75%)`,
+                    border: `1px solid ${color}30`, borderRadius: 13,
+                  }}>
+                    <IconChip icon={Icon} color={color} size={32} radius={10} iconSize={15} strokeWidth={2.2} />
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: C.text }}>{text}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* جدول العنوان (Title Block) */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', borderTop: `1px solid ${C.cyan}33` }}>
+            {[
+              ['المشروع', 'مصلحتك — بنظام'],
+              ['المقياس', '1 : 1'],
+              ['رسم', 'Contractor Pro'],
+              ['الحالة', 'جاهز للتنفيذ ✓'],
+            ].map(([k, v], i) => (
+              <div key={i} style={{ flex: '1 1 140px', padding: '10px 16px', borderInlineStart: i ? `1px solid ${C.cyan}22` : 'none' }}>
+                <div style={{ fontSize: 9, color: `${C.cyan}AA`, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 3 }}>{k}</div>
+                <div style={{ fontSize: 12, color: C.text, fontWeight: 800 }}>{v}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -1169,8 +1379,10 @@ function PricingTeaser() {
   const [cycle, setCycle] = useState('month')   // 'month' | 'year'
   const isYear = cycle === 'year'
   return (
-    <section style={{ padding: '72px 24px', direction: 'rtl' }}>
+    <section style={{ padding: '36px 24px 72px', direction: 'rtl' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        <Sheet no="CP-03" title="جدول الأسعار">
+        <div style={{ padding: '52px 22px 36px' }}>
         <Depth tilt={16} lift={60}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
@@ -1235,6 +1447,8 @@ function PricingTeaser() {
             )
           })}
         </div>
+        </div>
+        </Sheet>
       </div>
     </section>
   )
@@ -1335,10 +1549,12 @@ export default function LandingPage() {
       <div style={{ background: C.bg, minHeight: '100vh', color: C.text }}>
         <ScrollProgress />
         <Navbar loggedIn={loggedIn} />
-        <MegaHero />
+        <AppHero />
         <StatsStrip />
+        <ChaosToOrder />
+        <AppShowcase />
+        <BlueprintFeatures />
         <PainPoints />
-        <FeaturesGrid />
         <Testimonials />
         <PricingTeaser />
         <FinalCTA />
