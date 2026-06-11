@@ -38,5 +38,3 @@ supabase/.temp/
 desktop-*.png
 mobile-*.png
 
-# Local personal Claude settings (permissions allowlist)
-.claude/settings.local.json
