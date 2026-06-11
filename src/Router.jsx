@@ -8,6 +8,7 @@ import BlogPage    from './pages/BlogPage.jsx'
 import CookieConsent from './components/CookieConsent.jsx'
 
 const LoginScreen = lazy(() => import('./screens/auth/LoginScreen.jsx'))
+const AdStudio    = lazy(() => import('./pages/AdStudio.jsx'))
 
 // ─── Client-side navigation (no full page reload) ─────────────────────────────
 export function navigate(path) {
@@ -27,6 +28,9 @@ export default function Router() {
   // ?portal and ?worker query params always go straight to the app
   const params = new URLSearchParams(window.location.search)
   if (params.has('portal') || params.has('worker')) return <App />
+
+  // /adstudio — محرّك البوسترات التسويقية (بلا لافتة كوكيز)
+  if (path === '/adstudio') return <Suspense fallback={null}><AdStudio /></Suspense>
 
   let page
   if (path === '/')              page = <LandingPage />
