@@ -389,6 +389,7 @@ scripts/bump-version.mjs     ← يرفع patch version قبل كل build
   > `vite.config.js` يستثني `tests/e2e/**` من Vitest، فما عاد يلتقط ملفات Playwright. (المجموع حالياً ~143 اختباراً ناجحاً.)
 - **Playwright (E2E)**: `tests/e2e/` — تغطية **client-side فقط** (تنقّل + تحقّق فورمات، بلا باكند): `landing.spec.js`، `navigation.spec.js`، `auth-forms.spec.js`. على viewport موبايل (Pixel 7) + ديسكتوب، locale عربي. تفاصيل في `docs/TESTING.md`.
 - **Playwright MCP**: للتحقّق البصري التفاعلي (المتصفح يُثبّت بـ `npx playwright install chrome` عند الحاجة).
+- **سكيل `landing-shots`** (`.claude/skills/landing-shots/`): وصفة التصوير المعتمدة — سكرينشوتات عالية الجودة (ديسكتوب 1380×820 + موبايل 412×915، توقيتات الأنميشن، مشاهد السكرول المثبّتة) وإرسالها للمحادثة. هوك بداية الجلسة ينشئ `.env.local` بقيم وهمية تلقائياً حتى تعمل المعاينة بالساندبوكس.
 
 ---
 
