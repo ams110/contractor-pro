@@ -1,9 +1,9 @@
 ---
 name: landing-shots
-description: التقاط سكرينشوتات عالية الجودة لصفحة الهبوط (أو أي صفحة) بمتصفح حقيقي عبر Playwright MCP — ديسكتوب + موبايل + مشاهد السكرول المثبّتة — وإرسالها للمحادثة. استعمله عند طلب "صوّرلي الصفحة/الموقع"، "خذ سكرينشوتات"، "شوفني كيف صارت"، أو للتحقق البصري قبل الدفع.
+description: التقاط سكرينشوتات وفيديوهات عالية الجودة لصفحة الهبوط (أو أي صفحة) بمتصفح حقيقي عبر Playwright MCP — ديسكتوب + موبايل + مشاهد السكرول المثبّتة + تسجيل فيديو سكرول سينمائي — وإرسالها للمحادثة. استعمله عند طلب "صوّرلي الصفحة/الموقع"، "خذ سكرينشوتات"، "سجّللي فيديو"، "شوفني كيف صارت"، أو للتحقق البصري قبل الدفع.
 ---
 
-# Landing Shots — وصفة التصوير المعتمدة
+# Landing Shots — وصفة التصوير المعتمدة (صور + فيديو)
 
 سكرينشوتات حقيقية من متصفح يشغّل الموقع فعلياً (مش رندرات). نفس الوصفة
 المستعملة بكل لقطات تطوير صفحة الهبوط.
@@ -89,7 +89,52 @@ async (page) => {
 }
 ```
 
-## 6) ملاحظات
+## 6) تسجيل فيديو (سكرول سينمائي مسجَّل)
+
+اللقطات الثابتة ما بتنقل الانميشن — لعرض حركات السكرول سجّل فيديو حقيقي.
+Playwright يسجّل عبر context جديد بـ`recordVideo` (الملف يُكتب عند إغلاق
+الـcontext):
+
+```js
+async (page) => {
+  const browser = page.context().browser()
+  const ctx = await browser.newContext({
+    viewport: { width: 1280, height: 800 },
+    recordVideo: { dir: '/tmp/vid', size: { width: 1280, height: 800 } },
+  })
+  const p = await ctx.newPage()
+  await p.goto('http://localhost:3000/', { waitUntil: 'domcontentloaded' })
+  await p.waitForTimeout(4500)                       // الإقلاع + العدّادات
+  const btn = p.getByRole('button', { name: 'موافق' })
+  if (await btn.isVisible().catch(() => false)) await btn.click()
+  // سكرول ناعم عبر كامل الصفحة (~12 ثانية، easeInOut)
+  await p.evaluate(() => new Promise(res => {
+    const total = document.body.scrollHeight - innerHeight
+    const t0 = performance.now(), dur = 12000
+    ;(function tick(t){
+      const k = Math.min(1, (t - t0) / dur)
+      const e = k < 0.5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2) / 2
+      scrollTo(0, total * e)
+      k < 1 ? requestAnimationFrame(tick) : res()
+    })(performance.now())
+  }))
+  await p.waitForTimeout(800)
+  await ctx.close()                                  // يكتب ملف الـwebm
+  return 'recorded'
+}
+```
+
+- **للموبايل**: نفس القالب بـ`viewport/size` = 412×915.
+- **التحويل لـmp4** (أنسب للواتساب والمعاينة — يحتاج ffmpeg، انظر سكيل media):
+  ```bash
+  f=$(ls -t /tmp/vid/*.webm | head -1)
+  ffmpeg -y -v error -i "$f" -c:v libx264 -pix_fmt yuv420p -movflags +faststart /tmp/vid/landing.mp4
+  ```
+- أرسل الملف بأداة إرسال الملفات مع caption، ثم نظّف `/tmp/vid`.
+- ⚠️ الساندبوكس يرندر برمجياً (SwiftShader بلا GPU) — سلاسة الفيديو
+  المسجَّل أقل من الواقع؛ اذكر هالملاحظة عند الإرسال.
+
+## 7) ملاحظات
 
 - أخطاء الكونسول التالية **بيئية ومتوقّعة** بالساندبوكس — تجاهلها:
   `fonts.googleapis.com … ERR_CERT_AUTHORITY_INVALID` وأي تحذير Supabase.
@@ -97,6 +142,8 @@ async (page) => {
   `/?portal` (بوّابة العامل).
 - للتحقق البصري قبل أي push: صوّر ديسكتوب + موبايل على الأقل للهيرو
   وللقسم المتغيّر.
+- **وسائط مرفوعة من المستخدم** (ريلز/تصاميم مرجعية)؟ هذا اختصاص سكيل
+  `media` (قراءة الصور + استخراج كادرات الفيديو بـffmpeg).
 - سجلّ نسخ صفحة الهبوط المحفوظة بتاريخ الفرع `claude/landing-page-3d-animation-kfar8n`:
   المدينة الحيّة `b8a0ab7` · الفوضى→النظام `7986143` · المخطط الهندسي
   `6f9006e` · الهجينة `09ab2df` · التطبيق نفسه حيّاً `e2908d3`.
