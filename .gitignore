@@ -33,3 +33,8 @@ supabase/.temp/
 
 # Playwright MCP browser artifacts
 .playwright-mcp/
+
+# Session screenshot artifacts (delivered to chat, not source)
+desktop-*.png
+mobile-*.png
+
