@@ -41,23 +41,31 @@
   .ripple{position:absolute;width:30px;height:30px;border-radius:50%;border:2px solid var(--primary);left:50%;top:50%;margin:-15px}
 
   /* عدّاد نبض المصلحة */
-  .gauge-wrap{position:relative;width:138px;height:138px;margin-bottom:16px}
-  .gauge-fg{stroke-dasharray:163;stroke-dashoffset:163}
-  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
-  .kpi{background:var(--card);border-radius:13px;padding:12px 6px;text-align:center}
-  .kpi .v{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
-  .kpi .l{font-size:9px;color:var(--dim);margin-top:5px}
+  .gauge-wrap{position:relative}
+  .gauge-fg{stroke-dasharray:100;stroke-dashoffset:100}
+  /* أشرطة العوامل (FactorBar) */
+  .fbar{margin-bottom:10px}
+  .fb-row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px;font-weight:700;color:var(--dim)}
+  .fb-track{height:6px;border-radius:99px;background:rgba(255,255,255,.05);overflow:hidden}
+  .fb-fill{height:100%;border-radius:99px}
 
-  /* تذكرة + ختم */
-  .ticket{display:flex;align-items:stretch;width:100%;min-height:56px;border-radius:13px;overflow:hidden;
-    background:linear-gradient(135deg,rgba(249,115,22,.12),var(--card) 55%);border:1px solid rgba(249,115,22,.33);margin-bottom:9px}
-  .stub{width:44px;background:linear-gradient(160deg,var(--primary),var(--gold));display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff}
-  .stub .d{font-size:19px;font-weight:900;line-height:1}
-  .mid{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 11px;align-items:flex-start;gap:4px}
-  .nm{font-size:12px;font-weight:900;color:var(--text)}
-  .badge{font-size:9px;font-weight:800;border-radius:6px;padding:2px 7px}
-  .amt{width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
-  .stamp{display:inline-flex;align-items:center;gap:3px;font-size:8px;font-weight:800;color:var(--success);background:rgba(34,197,94,.16);border:1px solid rgba(34,197,94,.4);border-radius:10px;padding:2px 6px}
+  /* تذكرة الشِفت (مطابق WorkDayTicket.jsx) */
+  .ticket{position:relative;display:flex;align-items:stretch;width:100%;min-height:88px;border-radius:18px;overflow:hidden;
+    background:linear-gradient(135deg,rgba(249,115,22,.08),var(--card) 55%);border:1px solid rgba(249,115,22,.33);box-shadow:0 10px 28px rgba(249,115,22,.11);margin-bottom:10px}
+  .stub{position:relative;width:64px;flex-shrink:0;background:linear-gradient(160deg,var(--primary),var(--gold));display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;gap:1px}
+  .stub .d{font-size:24px;font-weight:900;line-height:1;letter-spacing:-.04em;text-shadow:0 1px 6px rgba(0,0,0,.3)}
+  .stub .mo{font-size:9.5px;font-weight:800;opacity:.95}
+  .stub .wd{font-size:8.5px;font-weight:600;opacity:.8}
+  .mid{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:0 12px;gap:5px}
+  .nm{font-size:14px;font-weight:900;color:var(--text);letter-spacing:-.02em}
+  .chiprow{display:flex;gap:5px;flex-wrap:wrap}
+  .badge{font-size:9.5px;font-weight:800;border-radius:7px;padding:2px 8px}
+  .perf{position:relative;width:0;border-inline-start:2px dashed rgba(249,115,22,.35);margin:13px 0;flex-shrink:0}
+  .notch{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--bg)}
+  .wage{width:80px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0 5px}
+  .wage .wl{font-size:8.5px;font-weight:700;color:var(--dim)}
+  .wage .wv{font-size:17px;font-weight:900;letter-spacing:-.03em}
+  .stamp{display:inline-flex;align-items:center;gap:3px;font-size:8.5px;font-weight:800;border-radius:20px;padding:2px 7px}
 
   /* شريط الرواتب */
   .bar-card{background:var(--card);border-radius:14px;padding:14px;width:100%;margin-top:6px}
@@ -101,7 +109,7 @@
 
   /* العدّاد يتعبّى 0→87 (مزامن مع كشف الداشبورد) */
   .gauge-fg{animation:gauge var(--T) linear infinite}
-  @keyframes gauge{0%,41%{stroke-dashoffset:163}52%{stroke-dashoffset:21}57%{stroke-dashoffset:21}58.6%,100%{stroke-dashoffset:163}}
+  @keyframes gauge{0%,41%{stroke-dashoffset:100}52%{stroke-dashoffset:13}57%{stroke-dashoffset:13}58.6%,100%{stroke-dashoffset:100}}
 
   /* الختم يُطبع ببوب (مزامن مع SFX ding عند ~10ث) */
   .stamp-pop{opacity:0;animation:stamp var(--T) linear infinite}
@@ -155,47 +163,93 @@
       <h1 style="font-size:28px">خلص.<br><span style="background:var(--brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent">في طريقة أسهل.</span></h1>
     </div>
 
-    <!-- b4: الداشبورد -->
-    <div class="layer b4">
-      <div class="orb" style="width:200px;height:200px;background:radial-gradient(circle,rgba(34,197,94,.28),transparent 70%);top:80px"></div>
-      <div class="gauge-wrap">
-        <svg width="138" height="138" viewBox="0 0 138 138">
-          <circle cx="69" cy="69" r="52" fill="none" stroke="#12152A" stroke-width="12"/>
-          <circle class="gauge-fg" cx="69" cy="69" r="52" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" transform="rotate(-90 69 69)"/>
-          <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C55E"/><stop offset="1" stop-color="#06B6D4"/></linearGradient></defs>
-        </svg>
-        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
-          <span style="font-size:38px;font-weight:900;color:var(--text)">87</span>
-          <span style="font-size:10px;color:var(--dim)">نبض المصلحة</span>
+    <!-- b4: نبض المصلحة (مطابق BusinessPulse.jsx) -->
+    <div class="layer b4" style="justify-content:center;padding:24px">
+      <div style="position:relative;overflow:hidden;width:100%;background:linear-gradient(135deg,rgba(34,197,94,.12),var(--surface) 70%);border:1px solid rgba(34,197,94,.32);border-radius:22px;padding:18px 16px">
+        <div class="orb" style="width:170px;height:170px;background:radial-gradient(circle,rgba(34,197,94,.4),transparent 70%);top:-40px;inset-inline-end:-40px;opacity:.38"></div>
+        <!-- العنوان -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;position:relative">
+          <div style="width:30px;height:30px;border-radius:10px;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.45);display:flex;align-items:center;justify-content:center;color:var(--success);font-weight:900">⚡</div>
+          <div>
+            <div style="font-size:14px;font-weight:900;color:var(--text)">نبض المصلحة</div>
+            <div style="font-size:10px;color:var(--dim)">تحليل ذكي لصحّة مصلحتك المالية</div>
+          </div>
         </div>
-      </div>
-      <div class="kpis">
-        <div class="kpi"><div class="v" style="color:var(--success)">₪94K</div><div class="l">صافي الربح</div></div>
-        <div class="kpi"><div class="v" style="color:var(--cyan)">₪31K</div><div class="l">نقد بالجيب</div></div>
-        <div class="kpi"><div class="v" style="color:var(--gold)">₪12K</div><div class="l">مستحق</div></div>
+        <!-- العدّاد -->
+        <div style="display:flex;justify-content:center;margin:6px 0 14px">
+          <div class="gauge-wrap" style="width:150px;height:150px">
+            <svg width="150" height="150" viewBox="0 0 150 150" style="transform:rotate(-90deg)">
+              <circle cx="75" cy="75" r="62" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="13"/>
+              <circle class="gauge-fg" cx="75" cy="75" r="62" fill="none" stroke="url(#g)" stroke-width="13" stroke-linecap="round" pathLength="100" stroke-dasharray="100" style="filter:drop-shadow(0 0 6px rgba(34,197,94,.45))"/>
+              <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C55E" stop-opacity=".65"/><stop offset="1" stop-color="#22C55E"/></linearGradient></defs>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+              <div style="display:flex;align-items:baseline;gap:3px;direction:ltr">
+                <span style="font-size:44px;font-weight:900;color:var(--text);letter-spacing:-.03em;line-height:1">87</span>
+                <span style="font-size:12px;font-weight:700;color:var(--dim)">/100</span>
+              </div>
+              <span style="padding:3px 14px;border-radius:20px;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.55);font-size:12px;font-weight:800;color:var(--success)">ممتازة</span>
+            </div>
+          </div>
+        </div>
+        <!-- العوامل الخمسة -->
+        <div style="position:relative">
+          <div class="fbar"><div class="fb-row"><span>السيولة</span><span style="color:var(--success)">90</span></div><div class="fb-track"><div class="fb-fill" style="width:90%;background:var(--success);box-shadow:0 0 8px rgba(34,197,94,.4)"></div></div></div>
+          <div class="fbar"><div class="fb-row"><span>الربحية</span><span style="color:var(--success)">84</span></div><div class="fb-track"><div class="fb-fill" style="width:84%;background:var(--success);box-shadow:0 0 8px rgba(34,197,94,.4)"></div></div></div>
+          <div class="fbar"><div class="fb-row"><span>التحصيل</span><span style="color:var(--success)">88</span></div><div class="fb-track"><div class="fb-fill" style="width:88%;background:var(--success);box-shadow:0 0 8px rgba(34,197,94,.4)"></div></div></div>
+          <div class="fbar"><div class="fb-row"><span>تسوية العمّال</span><span style="color:var(--warning)">79</span></div><div class="fb-track"><div class="fb-fill" style="width:79%;background:var(--warning);box-shadow:0 0 8px rgba(234,179,8,.4)"></div></div></div>
+          <div class="fbar" style="margin-bottom:0"><div class="fb-row"><span>الاتجاه</span><span style="color:var(--success)">86</span></div><div class="fb-track"><div class="fb-fill" style="width:86%;background:var(--success);box-shadow:0 0 8px rgba(34,197,94,.4)"></div></div></div>
+        </div>
       </div>
     </div>
 
-    <!-- b5: أيام العمل + ختم -->
+    <!-- b5: أيام العمل + ختم (مطابق WorkDayTicket.jsx) -->
     <div class="layer b5">
       <div style="width:100%">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
           <span style="font-size:15px;font-weight:900;color:var(--text)">أيام العمل</span>
-          <span class="badge pending-fade" style="color:var(--warning);background:rgba(234,179,8,.16);border:1px solid rgba(234,179,8,.4)">1 بانتظار</span>
+          <span class="badge pending-fade" style="color:var(--warning);background:rgba(234,179,8,.16);border:1px solid rgba(234,179,8,.4)">⏳ 1 بانتظار</span>
         </div>
-        <div class="ticket">
-          <div class="stub"><div class="d">8</div><div style="font-size:7px">يونيو</div></div>
-          <div class="mid"><span class="nm">أحمد س.</span><span class="badge" style="color:var(--warning);background:rgba(234,179,8,.11)">نص يوم</span></div>
-          <div class="amt"><div style="font-size:13px;font-weight:900;color:var(--warning)">₪225</div>
-            <div style="position:relative;height:18px;width:56px">
-              <span class="badge pending-fade" style="position:absolute;inset:0;color:var(--warning);background:rgba(234,179,8,.16);border:1px solid rgba(234,179,8,.4)">⏳ بانتظار</span>
-              <span class="stamp stamp-pop" style="position:absolute;inset:0;justify-content:center">✓ معتمد</span>
-            </div></div>
+
+        <!-- تذكرة معلّقة → معتمدة (نص يوم) -->
+        <div class="ticket" style="background:linear-gradient(135deg,rgba(234,179,8,.08),var(--card) 55%);border-color:rgba(234,179,8,.33);box-shadow:0 10px 28px rgba(234,179,8,.11)">
+          <div class="stub" style="background:linear-gradient(160deg,var(--warning),var(--gold))">⛅<div class="d">8</div><div class="mo">يونيو</div><div class="wd">الأحد</div></div>
+          <div class="mid">
+            <span class="nm">أحمد سعيد</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--dim)">📍 فيلا رهط</span>
+            <div class="chiprow">
+              <span class="badge" style="color:var(--warning);background:rgba(234,179,8,.11);border:1px solid rgba(234,179,8,.22)">نص يوم</span>
+              <span class="badge" style="color:var(--dim);background:rgba(255,255,255,.05);border:1px solid rgba(249,115,22,.08)">4 ساعات</span>
+            </div>
+          </div>
+          <div class="perf" style="border-inline-start-color:rgba(234,179,8,.35)"><span class="notch" style="inset-inline-end:-9px;top:-22px"></span><span class="notch" style="inset-inline-end:-9px;bottom:-22px"></span></div>
+          <div class="wage">
+            <div class="wl">الأجر</div>
+            <div class="wv" style="color:var(--warning)">₪225</div>
+            <div style="position:relative;height:20px;min-width:62px;display:flex;justify-content:center">
+              <span class="stamp pending-fade" style="position:absolute;inset:0;justify-content:center;color:var(--warning);background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.4)">⏳ بانتظار</span>
+              <span class="stamp stamp-pop" style="position:absolute;inset:0;justify-content:center;color:var(--success);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.4)">✓ معتمد</span>
+            </div>
+          </div>
         </div>
+
+        <!-- تذكرة معتمدة (كامل) -->
         <div class="ticket">
-          <div class="stub"><div class="d">8</div><div style="font-size:7px">يونيو</div></div>
-          <div class="mid"><span class="nm">محمد ع.</span><span class="badge" style="color:var(--primary);background:rgba(249,115,22,.11)">كامل</span></div>
-          <div class="amt"><div style="font-size:13px;font-weight:900;color:var(--primary)">₪450</div><span class="stamp">✓ معتمد</span></div>
+          <div class="stub">☀️<div class="d">8</div><div class="mo">يونيو</div><div class="wd">الأحد</div></div>
+          <div class="mid">
+            <span class="nm">محمد علي</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--dim)">📍 فيلا رهط</span>
+            <div class="chiprow">
+              <span class="badge" style="color:var(--primary);background:rgba(249,115,22,.11);border:1px solid rgba(249,115,22,.22)">كامل</span>
+              <span class="badge" style="color:var(--dim);background:rgba(255,255,255,.05);border:1px solid rgba(249,115,22,.08)">8 ساعات</span>
+            </div>
+          </div>
+          <div class="perf"><span class="notch" style="inset-inline-end:-9px;top:-22px"></span><span class="notch" style="inset-inline-end:-9px;bottom:-22px"></span></div>
+          <div class="wage">
+            <div class="wl">الأجر</div>
+            <div class="wv" style="color:var(--primary)">₪450</div>
+            <span class="stamp" style="color:var(--success);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.4)">✓ معتمد</span>
+          </div>
         </div>
       </div>
     </div>
