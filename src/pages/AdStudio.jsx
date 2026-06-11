@@ -500,6 +500,30 @@ const IDEAS = [
 
   { tag: 'كل شي بمكان واحد', tone: 'brand', kw: 'مقاولتك كلها', head: 'بجيبك', sub: 'مشاريع، عمّال، مالية، ضرائب، فريق، وبوّابة عامل — تطبيق واحد يدير كل شي.',
     blocks: [{ type: 'header', title: 'Contractor Pro' }, { type: 'grid' }] },
+
+  { tag: 'بطّل دفتر الورق', tone: 'brand', kw: 'انسى الدفتر', head: 'كل شي صار رقمي', sub: 'لا أوراق ضايعة ولا حسابات بالراس — كل عامل ومشروع ومصروف محفوظ ومرتّب.',
+    blocks: [{ type: 'header', title: 'كل مصلحتك' }, { type: 'insights', rows: [{ icon: CheckCircle2, color: C.success, text: 'ودّع دفتر الورق والحسابات اليدوية' }, { icon: Sparkles, color: C.cyan, text: 'كل أرقامك محفوظة ومتزامنة لحظياً' }] }, { type: 'statRow', stats: [{ icon: Building2, label: 'مشاريع', value: DEMO.projects, tone: 'brand' }, { icon: Users, label: 'عمّال', value: DEMO.workers, tone: 'cyan' }] }] },
+
+  { tag: 'وفّر على المحاسب', tone: 'premium', kw: 'محاسبك', head: 'صار بجيبك', sub: 'מע"מ، ضريبة دخل، وביטוח לאומي محسوبين تلقائياً — وفّر آلاف الشواكل سنوياً.',
+    blocks: [{ type: 'header', title: 'ملخّص الضرائب' }, { type: 'heroMoney', icon: Calculator, label: 'كل ضرائبك — محسوبة تلقائياً', value: DEMO.vat + DEMO.incomeTax + DEMO.bituach, tone: 'premium', sub: 'بلا محاسب' }, { type: 'insights', rows: [{ icon: CheckCircle2, color: C.success, text: 'بشريحتين دقيقة — مش نسبة مسطّحة' }, { icon: PiggyBank, color: C.cyan, text: 'وفّر آلاف الشواكل أتعاب محاسبة' }] }] },
+
+  { tag: 'نام وانت مرتاح', tone: 'success', kw: 'أرقامك مظبوطة', head: 'وانت نايم', sub: 'مؤشّر صحّة مالية يراقب مصلحتك على مدار الساعة ويحذّرك قبل أي مشكلة.',
+    blocks: [{ type: 'header', title: 'نبض المصلحة' }, { type: 'gauge' }, { type: 'insights', rows: [{ icon: CheckCircle2, color: C.success, text: 'وضعك المالي تحت السيطرة الكاملة' }, { icon: ShieldCheck, color: C.cyan, text: 'تنبيهات ذكية قبل أي خطر' }] }] },
+
+  { tag: 'ولا فاتورة تضيع', tone: 'cyan', kw: 'كل إيصال', head: 'محفوظ ومصنّف', sub: 'صوّر الفاتورة والذكاء الاصطناعي يقرأها ويصنّفها ويأرشفها — جاهزة وقت التقرير.',
+    blocks: [{ type: 'header', title: 'مصروف جديد' }, { type: 'receipt' }] },
+
+  { tag: 'ربحك الحقيقي', tone: 'success', kw: 'مش المدخول', head: 'ربحك الصافي', sub: 'الفرق بين المدخول والربح كبير — النظام يحسب صافي ربحك بعد كل تكلفة.',
+    blocks: [{ type: 'header', title: 'ربحية المشاريع' }, { type: 'heroMoney', icon: TrendingUp, label: 'صافي الربح الحقيقي', value: DEMO.profit, tone: 'success', sub: 'بعد العمالة والمصاريف' }, { type: 'statRow', stats: [{ icon: Wallet, label: 'إيرادات', value: 508000, money: true, tone: 'cyan' }, { icon: TrendingDown, label: 'تكاليف', value: 89150, money: true, tone: 'danger' }] }] },
+
+  { tag: 'موسم التقارير', tone: 'gold', kw: 'جاهز', head: 'لموسم الضرائب', sub: 'كل أرقامك مجهّزة ومصنّفة على مدار السنة — وقت التقرير تضغط زر وخلص.',
+    blocks: [{ type: 'header', title: 'مدرج الضريبة' }, { type: 'sectionTitle', text: 'التزاماتك القادمة', icon: Calculator, color: C.gold }, { type: 'tax' }] },
+
+  { tag: 'بلا خلافات', tone: 'cyan', kw: 'ولا خلاف', head: 'مع عمّالك', sub: 'كل عامل يشوف أيامه وسلفه ومستحقّه بنفسه — شفافية كاملة تنهي النقاش.',
+    blocks: [{ type: 'header', title: 'بوّابة العامل' }, { type: 'list', items: [{ icon: CalendarDays, name: 'أيام العمل', meta: 'هذا الشهر', amount: '24 يوم', money: false, tone: 'cyan' }, { icon: HandCoins, name: 'المستحق', meta: 'محسوب تلقائياً', amount: 6400, tone: 'success' }, { icon: Coins, name: 'السلف', meta: 'مخصومة', amount: 1500, tone: 'gold' }] }] },
+
+  { tag: 'جرّب مجاناً', tone: 'brand', kw: '14 يوم', head: 'مجاناً — بلا بطاقة', sub: 'كل الميزات مفتوحة 14 يوم — بلا التزام وبلا بطاقة ائتمان. ابدأ بدقيقة.',
+    blocks: [{ type: 'header', title: 'Contractor Pro' }, { type: 'grid' }] },
 ]
 
 // ─── خريطة كل فكرة → شاشة حقيقية من التطبيق (تُعرض داخل الموبايل عبر iframe) ──
@@ -535,6 +559,14 @@ const SCREEN_MAP = [
   { s: 'dashboard' },                       // 27 متعدّد المصالح
   { s: 'dashboard', f: 'جاهزية' },         // 28 جاهزية الحساب
   { s: 'dashboard' },                       // 29 كل شي بمكان واحد
+  { s: 'dashboard' },                       // 30 بطّل دفتر الورق
+  { s: 'dashboard', f: 'مدرج' },           // 31 وفّر على المحاسب
+  { s: 'dashboard' },                       // 32 نام وانت مرتاح
+  { s: 'expenses' },                        // 33 ولا فاتورة تضيع
+  { s: 'projects' },                        // 34 ربحك الحقيقي
+  { s: 'dashboard', f: 'مدرج' },           // 35 موسم التقارير
+  { s: 'workers' },                         // 36 بلا خلافات مع عمّالك
+  { s: 'dashboard' },                       // 37 جرّب مجاناً
 ]
 function Poster({ idea, ideaIndex, size }) {
   const { w, h } = SIZES[size] || SIZES.portrait
