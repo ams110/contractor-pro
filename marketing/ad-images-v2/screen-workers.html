@@ -1,0 +1,65 @@
+<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><style>
+@font-face{font-family:'Cairo';font-weight:700;src:url('file:///home/user/contractor-pro/marketing/video-ad/assets/cairo-arabic-700-normal.woff2');}
+@font-face{font-family:'Cairo';font-weight:900;src:url('file:///home/user/contractor-pro/marketing/video-ad/assets/cairo-arabic-900-normal.woff2');}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;font-family:'Cairo',sans-serif;}
+:root{--bg:#07080F;--card:#0D0F1C;--text:#F8FAFC;--dim:#64748B;--ok:#22C55E;--amber:#EAB308;--cy:#06B6D4;--or:#F97316;--accent:#EF4444;}
+body{width:680px;height:1440px;background:var(--bg);color:var(--text);padding:30px;overflow:hidden;}
+.hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.hd .r{font-weight:900;font-size:30px;}
+.hd .r small{display:block;font-weight:700;font-size:16px;color:var(--dim);margin-top:2px;}
+.hd .ic{width:60px;height:60px;border-radius:17px;background:linear-gradient(135deg,#F97316,#EF4444);display:flex;align-items:center;justify-content:center;}
+.hd .ic svg{width:34px;height:34px;color:#fff;}
+.sec{font-weight:900;font-size:24px;margin:6px 4px 14px;display:flex;justify-content:space-between;align-items:center;}
+.sec .b{font-weight:900;font-size:16px;color:var(--amber);background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.4);padding:6px 14px;border-radius:10px;}
+/* work-day ticket */
+.tkt{display:flex;border-radius:20px;overflow:hidden;margin-bottom:16px;border:1px solid rgba(249,115,22,.2);}
+.tkt .day{width:120px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;color:#0b0d18;padding:18px 0;}
+.tkt .mid{flex:1;background:#11142400;background:#0e1120;padding:18px 22px;}
+.tkt .nm{font-weight:900;font-size:26px;}
+.tkt .loc{font-weight:700;font-size:16px;color:var(--dim);margin:3px 0 10px;}
+.tkt .chips{display:flex;gap:8px;}
+.tkt .cp{font-weight:700;font-size:16px;padding:6px 12px;border-radius:9px;background:#171b2c;color:#cbd5e1;}
+.tkt .pay{width:150px;flex:none;background:#0e1120;display:flex;flex-direction:column;align-items:center;justify-content:center;border-inline-start:2px dashed rgba(249,115,22,.3);}
+.tkt .pay .v{font-weight:900;font-size:30px;}
+.tkt .pay .s{font-weight:700;font-size:15px;padding:5px 12px;border-radius:8px;margin-top:7px;}
+/* salary row */
+.sal{position:relative;border-radius:20px;padding:22px;margin-bottom:16px;}
+.sal .row1{display:flex;align-items:center;justify-content:space-between;}
+.sal .who{display:flex;align-items:center;gap:14px;}
+.sal .av{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:26px;color:#fff;}
+.sal .nm{font-weight:900;font-size:26px;}
+.sal .nm small{display:block;font-weight:700;font-size:15px;color:var(--dim);}
+.sal .badge{font-weight:900;font-size:18px;padding:8px 18px;border-radius:11px;}
+.sal .grid{display:flex;justify-content:space-between;margin:16px 4px 12px;text-align:center;}
+.sal .grid .l{font-weight:700;font-size:15px;color:var(--dim);}
+.sal .grid .n{font-weight:900;font-size:26px;margin-top:3px;}
+.sal .track{height:12px;border-radius:7px;background:#1a1f2e;overflow:hidden;}
+.sal .fill{height:100%;border-radius:7px;}
+</style></head><body>
+
+<div class="hd">
+  <div class="r">العمّال<small>روستر وأيام العمل والرواتب</small></div>
+  <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+</div>
+
+<div class="sec"><span>أيام العمل</span><span class="b">1 بانتظار</span></div>
+<div class="tkt"><div class="day" style="background:linear-gradient(135deg,#EAB308,#CA8A04)"><div style="font-size:38px">8</div><div style="font-size:15px">يونيو · الأحد</div></div>
+  <div class="mid"><div class="nm">أحمد سعيد</div><div class="loc">فيلا رهط</div><div class="chips"><span class="cp" style="color:#EAB308">نص يوم</span><span class="cp">4 ساعات</span></div></div>
+  <div class="pay"><div class="v" style="color:#EAB308">₪225</div><div class="s" style="background:rgba(234,179,8,.14);color:#EAB308">بانتظار</div></div></div>
+<div class="tkt" style="border-color:rgba(249,115,22,.35)"><div class="day" style="background:linear-gradient(135deg,#F97316,#EA580C)"><div style="font-size:38px">8</div><div style="font-size:15px">يونيو · الأحد</div></div>
+  <div class="mid"><div class="nm">محمد علي</div><div class="loc">فيلا رهط</div><div class="chips"><span class="cp" style="color:#F97316">كامل</span><span class="cp">8 ساعات</span></div></div>
+  <div class="pay"><div class="v" style="color:#F97316">₪450</div><div class="s" style="background:rgba(34,197,94,.14);color:#22C55E">معتمد</div></div></div>
+
+<div class="sec" style="margin-top:26px"><span>الرواتب والسلف</span><span class="b" style="color:var(--ok);background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.4)">مدفوع 13,750₪</span></div>
+<div class="sal" style="background:linear-gradient(135deg,rgba(34,197,94,.1),var(--card) 72%);border:1px solid rgba(34,197,94,.3)">
+  <div class="row1"><div class="who"><div class="av" style="background:linear-gradient(135deg,#16A34A,#06B6D4)">م</div><div class="nm">محمد علي<small>بنّاء</small></div></div><div class="badge" style="background:rgba(34,197,94,.16);color:var(--ok)">✓ مسدّد</div></div>
+  <div class="grid"><div><div class="l">مستحقّ</div><div class="n">₪4,250</div></div><div><div class="l">مدفوع</div><div class="n" style="color:var(--ok)">₪4,250</div></div><div><div class="l">اليومي</div><div class="n">₪450</div></div></div>
+  <div class="track"><div class="fill" style="width:100%;background:linear-gradient(90deg,#22C55E,#06B6D4)"></div></div>
+</div>
+<div class="sal" style="background:linear-gradient(135deg,rgba(239,68,68,.08),var(--card) 72%);border:1px solid rgba(239,68,68,.3)">
+  <div class="row1"><div class="who"><div class="av" style="background:linear-gradient(135deg,#EF4444,#B91C1C)">أ</div><div class="nm">أحمد سعيد<small>دهّان</small></div></div><div class="badge" style="background:rgba(239,68,68,.14);color:#EF4444">متبقّي ₪1,200</div></div>
+  <div class="grid"><div><div class="l">مستحقّ</div><div class="n">₪4,500</div></div><div><div class="l">مدفوع</div><div class="n" style="color:var(--ok)">₪3,300</div></div><div><div class="l">اليومي</div><div class="n">₪300</div></div></div>
+  <div class="track"><div class="fill" style="width:72%;background:linear-gradient(90deg,#EF4444,#F97316)"></div></div>
+</div>
+
+</body></html>

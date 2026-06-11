@@ -37,7 +37,7 @@ body{font-family:'Cairo',sans-serif;color:${C.text};}
   border:1.5px solid rgba(249,115,22,.5);background:rgba(249,115,22,.10);color:${C.primary};border-radius:999px;padding:16px 34px;font-weight:900;font-size:34px;white-space:nowrap;}
 .badge svg{width:34px;height:34px;}
 .h1{position:absolute;left:80px;right:80px;top:430px;text-align:center;font-weight:900;font-size:96px;line-height:1.16;letter-spacing:-0.02em;}
-.h1 .o{color:${C.primary};}
+.h1 .o{color:${C.text};}
 .sub{position:absolute;left:120px;right:120px;top:690px;text-align:center;font-weight:700;font-size:40px;line-height:1.5;color:#94a3b8;}
 .cta{position:absolute;left:70px;bottom:120px;display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,${C.primary},${C.accent});
   color:#fff;font-weight:900;font-size:42px;padding:26px 46px;border-radius:22px;box-shadow:0 16px 50px rgba(249,115,22,.45);}
@@ -48,8 +48,8 @@ body{font-family:'Cairo',sans-serif;color:${C.text};}
 .foot .tx .t{font-weight:700;font-size:26px;color:${C.dim};}
 .foot .ic{width:66px;height:66px;border-radius:18px;background:linear-gradient(135deg,${C.primary},${C.accent});display:flex;align-items:center;justify-content:center;box-shadow:0 0 30px rgba(249,115,22,.4);}
 .foot .ic svg{width:38px;height:38px;color:#fff;}
-.phone{position:absolute;left:50%;top:800px;transform:translateX(-50%);width:600px;height:880px;border-radius:52px;border:11px solid #1b1f33;background:#0b0d18;overflow:hidden;box-shadow:0 40px 90px rgba(0,0,0,.6);}
-.phone img{width:100%;display:block;}
+.phone{position:absolute;left:50%;top:792px;transform:translateX(-50%);width:648px;height:928px;border-radius:54px;border:9px solid #15182b;background:#07080F;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.65), inset 0 0 0 1.5px rgba(249,115,22,.12);}
+.phone img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;}
 .bignum{position:absolute;left:0;right:0;top:820px;text-align:center;}
 .bignum .n{font-weight:900;font-size:300px;line-height:.9;letter-spacing:-0.04em;background:linear-gradient(135deg,${C.primary},${C.accent});-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums;}
 .bignum .l{font-weight:900;font-size:58px;margin-top:24px;}
@@ -81,16 +81,16 @@ const hook=({bdg,bt,big,sub,c,glow})=>page(`${badge(bdg,bt)}
 // ---------------- 30 CONFIGS ----------------
 const ads=[
  // phone-hero (rotate 3 screenshots, different ideas)
- ['01',hero,{bdg:'activity',bt:'لوحة التحكّم الذكية',h1:'كل أرقام مصلحتك<br><span class="o">أمامك بثانية</span>',sub:'نبض المصلحة، توقّع السيولة، وصافي الربح — محسوبة تلقائياً.',slot:phone('pulse.png')}],
- ['02',hero,{bdg:'activity',bt:'نبض المصلحة',h1:'اعرف صحّة شغلك<br><span class="o">من رقم واحد</span>',sub:'مؤشّر ذكي 0–100 بيقيس السيولة والربحية والتحصيل.',slot:phone('pulse.png')}],
- ['03',hero,{bdg:'trend',bt:'التوقّع الذكي',h1:'شوف سيولتك<br><span class="o">3 أشهر قدّام</span>',sub:'التطبيق بيتوقّع مصاريك الجايّة قبل ما تتورّط.',slot:phone('pulse.png')}],
- ['04',hero,{bdg:'users',bt:'إدارة العمّال',h1:'سجّل يوم العامل<br><span class="o">بلمسة وحدة</span>',sub:'نص يوم، يوم كامل، أوفرتايم — كله بضغطة.',slot:phone('workdays.png')}],
- ['05',hero,{bdg:'wallet',bt:'حساب تلقائي',h1:'الراتب بينحسب<br><span class="o">لحاله</span>',sub:'حتى الخصومات حسب نوع العامل — بلا غلطات.',slot:phone('workdays.png')}],
- ['06',hero,{bdg:'wallet',bt:'الرواتب والسلف',h1:'مين مدفوع<br><span class="o">ومين باقيله؟</span>',sub:'كل عامل، راتبه، سلفه، ورصيده — بنظرة وحدة.',slot:phone('payroll.png')}],
- ['07',hero,{bdg:'shield',bt:'توقيع آمن',h1:'وقّع الراتب ببصمة<br><span class="o">قبل ما يطلع</span>',sub:'تأكيد بصمة للعمليات الحسّاسة — أمان كامل.',slot:phone('payroll.png')}],
- ['08',hero,{bdg:'smart',bt:'كله بموبايلك',h1:'عمّالك وحساباتهم<br><span class="o">بجيبتك</span>',sub:'من أي مكان، من الموبايل — بلا أوراق ولا دفاتر.',slot:phone('workdays.png')}],
- ['09',hero,{bdg:'activity',bt:'مساعدك الذكي',h1:'التطبيق بيحكيلك<br><span class="o">شو تعمل اليوم</span>',sub:'تنبيهات: تحصيل متأخّر، راتب مستحقّ، فرصة ربح.',slot:phone('pulse.png')}],
- ['10',hero,{bdg:'wallet',bt:'رصيد العامل',h1:'بلا «وين حسابي؟»<br><span class="o">بعد اليوم</span>',sub:'كل عامل بيشوف رصيده وسلفه — شفافية كاملة.',slot:phone('payroll.png')}],
+ ['01',hero,{bdg:'activity',bt:'لوحة التحكّم الذكية',h1:'كل أرقام مصلحتك<br><span class="o">أمامك بثانية</span>',sub:'نبض المصلحة، توقّع السيولة، وصافي الربح — محسوبة تلقائياً.',slot:phone('screen_dash.png')}],
+ ['02',hero,{bdg:'activity',bt:'نبض المصلحة',h1:'اعرف صحّة شغلك<br><span class="o">من رقم واحد</span>',sub:'مؤشّر ذكي 0–100 بيقيس السيولة والربحية والتحصيل.',slot:phone('screen_dash.png')}],
+ ['03',hero,{bdg:'trend',bt:'التوقّع الذكي',h1:'شوف سيولتك<br><span class="o">3 أشهر قدّام</span>',sub:'التطبيق بيتوقّع مصاريك الجايّة قبل ما تتورّط.',slot:phone('screen_dash.png')}],
+ ['04',hero,{bdg:'users',bt:'إدارة العمّال',h1:'سجّل يوم العامل<br><span class="o">بلمسة وحدة</span>',sub:'نص يوم، يوم كامل، أوفرتايم — كله بضغطة.',slot:phone('screen_workers.png')}],
+ ['05',hero,{bdg:'wallet',bt:'حساب تلقائي',h1:'الراتب بينحسب<br><span class="o">لحاله</span>',sub:'حتى الخصومات حسب نوع العامل — بلا غلطات.',slot:phone('screen_workers.png')}],
+ ['06',hero,{bdg:'wallet',bt:'الرواتب والسلف',h1:'مين مدفوع<br><span class="o">ومين باقيله؟</span>',sub:'كل عامل، راتبه، سلفه، ورصيده — بنظرة وحدة.',slot:phone('screen_workers.png')}],
+ ['07',hero,{bdg:'shield',bt:'توقيع آمن',h1:'وقّع الراتب ببصمة<br><span class="o">قبل ما يطلع</span>',sub:'تأكيد بصمة للعمليات الحسّاسة — أمان كامل.',slot:phone('screen_workers.png')}],
+ ['08',hero,{bdg:'smart',bt:'كله بموبايلك',h1:'عمّالك وحساباتهم<br><span class="o">بجيبتك</span>',sub:'من أي مكان، من الموبايل — بلا أوراق ولا دفاتر.',slot:phone('screen_workers.png')}],
+ ['09',hero,{bdg:'activity',bt:'مساعدك الذكي',h1:'التطبيق بيحكيلك<br><span class="o">شو تعمل اليوم</span>',sub:'تنبيهات: تحصيل متأخّر، راتب مستحقّ، فرصة ربح.',slot:phone('screen_dash.png')}],
+ ['10',hero,{bdg:'wallet',bt:'رصيد العامل',h1:'بلا «وين حسابي؟»<br><span class="o">بعد اليوم</span>',sub:'كل عامل بيشوف رصيده وسلفه — شفافية كاملة.',slot:phone('screen_workers.png')}],
  // stat-hero
  ['11',hero,{bdg:'wallet',bt:'أرخص من محاسب',h1:'سنة كاملة بـ',slot:bignum('₪990','أرخص من نص سنة محاسب')}],
  ['12',hero,{bdg:'percent',bt:'محرّك الضرائب',h1:'מע"מ صار',slot:bignum('18%','محسوب لحاله — بلا غلطات')}],
