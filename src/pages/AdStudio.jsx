@@ -377,29 +377,30 @@ function Block({ b, start }) {
 // ═══════════════════════════════════════════════════════════════════════════
 //  الموبايل (إطار + شاشة)
 // ═══════════════════════════════════════════════════════════════════════════
-function Phone({ blocks, start, scale = 1 }) {
+function Phone({ screen = 'dashboard', focus, scale = 1 }) {
+  const SCREEN_H = 668, BAR_H = 30
+  const src = `/demoshot?screen=${screen}${focus ? `&focus=${encodeURIComponent(focus)}` : ''}`
   return (
     <div style={{ width: 372, transform: `scale(${scale})`, transformOrigin: 'top center', filter: 'drop-shadow(0 40px 80px rgba(0,0,0,0.6))' }}>
       <div style={{ position: 'relative', borderRadius: 46, padding: 11, background: 'linear-gradient(160deg,#23262f,#0a0b12)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ position: 'relative', borderRadius: 36, overflow: 'hidden', background: C.bg, height: 668 }}>
+        <div style={{ position: 'relative', borderRadius: 36, overflow: 'hidden', background: C.bg, height: SCREEN_H }}>
           {/* notch */}
           <div style={{ position: 'absolute', top: 0, insetInline: 0, display: 'flex', justifyContent: 'center', zIndex: 5 }}>
             <div style={{ width: 120, height: 26, background: '#000', borderRadius: '0 0 16px 16px' }} />
           </div>
           {/* status bar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 22px 0', fontSize: 12, color: C.text, fontWeight: 700 }}>
+          <div style={{ position: 'relative', zIndex: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: BAR_H, padding: '11px 22px 0', fontSize: 12, color: C.text, fontWeight: 700, background: C.bg }}>
             <span style={{ direction: 'ltr' }}>9:41</span>
             <span style={{ display: 'flex', gap: 5, alignItems: 'center', opacity: 0.85 }}>
               <span style={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>{[5, 8, 11, 14].map((h, i) => <span key={i} style={{ width: 3, height: h, borderRadius: 1, background: C.text }} />)}</span>
               <span style={{ width: 16, height: 9, border: `1.4px solid ${C.text}`, borderRadius: 3, position: 'relative', display: 'inline-block' }}><span style={{ position: 'absolute', inset: 1.4, width: '70%', background: C.success, borderRadius: 1 }} /></span>
             </span>
           </div>
-          {/* screen body */}
-          <div style={{ padding: '16px 14px', height: 'calc(100% - 30px)', overflow: 'hidden' }}>
-            {blocks.map((b, i) => <Block key={i} b={b} start={start} />)}
-          </div>
+          {/* الشاشة الحقيقية عبر iframe */}
+          <iframe title={screen} src={src} scrolling="no"
+            style={{ display: 'block', width: 350, height: SCREEN_H - BAR_H, border: 0, background: C.bg }} />
           {/* تلاشي سفلي — يوحي بقابلية السكرول مثل التطبيق */}
-          <div aria-hidden style={{ position: 'absolute', insetInline: 0, bottom: 0, height: 90, background: `linear-gradient(to top, ${C.bg}, transparent)`, pointerEvents: 'none' }} />
+          <div aria-hidden style={{ position: 'absolute', insetInline: 0, bottom: 0, height: 80, background: `linear-gradient(to top, ${C.bg}, transparent)`, pointerEvents: 'none' }} />
         </div>
       </div>
     </div>
@@ -501,14 +502,46 @@ const IDEAS = [
     blocks: [{ type: 'header', title: 'Contractor Pro' }, { type: 'grid' }] },
 ]
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  البوستر الكامل
-// ═══════════════════════════════════════════════════════════════════════════
-function Poster({ idea, size }) {
+// ─── خريطة كل فكرة → شاشة حقيقية من التطبيق (تُعرض داخل الموبايل عبر iframe) ──
+// الشاشات الشغّالة بلا باكند: dashboard · workdays · workers · projects · expenses · payments
+const SCREEN_MAP = [
+  { s: 'dashboard' },                      // 0  لوحة التحكم
+  { s: 'dashboard', f: 'التوقّع' },        // 1  التوقّع الذكي
+  { s: 'projects' },                        // 2  كاش بجيبك (إيرادات/ربح)
+  { s: 'workers' },                         // 3  مستحقّات العمّال
+  { s: 'dashboard', f: 'تقادم' },          // 4  رادار التحصيل
+  { s: 'projects' },                        // 5  ربحية المشاريع
+  { s: 'expenses' },                        // 6  מע"מ تلقائي
+  { s: 'dashboard', f: 'مدرج' },           // 7  كل الضرائب
+  { s: 'dashboard', f: 'مدرج' },           // 8  ضريبة الدخل
+  { s: 'dashboard', f: 'مدرج' },           // 9  مدرج الضريبة
+  { s: 'expenses' },                        // 10 مسح الإيصال OCR
+  { s: 'workers' },                         // 11 بوّابة العامل
+  { s: 'workdays' },                        // 12 أيام العمل
+  { s: 'payments' },                        // 13 الرواتب
+  { s: 'payments' },                        // 14 السلف
+  { s: 'workers', f: 'لوحة شرف' },         // 15 بصمة العامل
+  { s: 'dashboard', f: 'الذمّة' },         // 16 الذمّة الصافية
+  { s: 'dashboard' },                       // 17 مركز القيادة
+  { s: 'projects' },                        // 18 صحّة المشروع
+  { s: 'expenses' },                        // 19 كشف الشذوذ
+  { s: 'workers' },                         // 20 الفريق
+  { s: 'expenses' },                        // 21 البضاعة (مواد)
+  { s: 'projects' },                        // 22 تتبّع الوحدات
+  { s: 'projects' },                        // 23 التقارير
+  { s: 'workers' },                         // 24 واتساب
+  { s: 'dashboard' },                       // 25 الأمان
+  { s: 'workdays' },                        // 26 بلا نت
+  { s: 'dashboard' },                       // 27 متعدّد المصالح
+  { s: 'dashboard', f: 'جاهزية' },         // 28 جاهزية الحساب
+  { s: 'dashboard' },                       // 29 كل شي بمكان واحد
+]
+function Poster({ idea, ideaIndex, size }) {
   const { w, h } = SIZES[size] || SIZES.portrait
   const [start, setStart] = useState(false)
   useEffect(() => { const t = setTimeout(() => setStart(true), 120); return () => clearTimeout(t) }, [])
   const t = TONE[idea.tone] || TONE.brand
+  const map = SCREEN_MAP[ideaIndex] || { s: 'dashboard' }
 
   // مقياس الموبايل حسب المساحة المتاحة
   const phoneScale = size === 'story' ? 1.16 : size === 'square' ? 0.82 : 1.0
@@ -550,7 +583,7 @@ function Poster({ idea, size }) {
       {/* الموبايل — flex:1 + overflow hidden: ينقص بأناقة ويبقى الفوتر ظاهراً */}
       <motion.div initial={{ opacity: 0, y: 36, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
         style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', alignItems: size === 'story' ? 'center' : 'flex-start', justifyContent: 'center', marginTop: size === 'square' ? 24 : 40, width: '100%' }}>
-        <Phone blocks={idea.blocks} start={start} scale={phoneScale} />
+        <Phone screen={map.s} focus={map.f} scale={phoneScale} />
       </motion.div>
 
       {/* الشريط السفلي */}
@@ -597,8 +630,9 @@ export default function AdStudio() {
   const ideaParam = params.get('idea')
   const size = params.get('size') || 'portrait'
   if (ideaParam === null) return <Index />
-  const idea = IDEAS[Number(ideaParam)] || IDEAS[0]
-  return <Poster idea={idea} size={size} />
+  const i = Number(ideaParam)
+  const idea = IDEAS[i] || IDEAS[0]
+  return <Poster idea={idea} ideaIndex={i} size={size} />
 }
 
 export { IDEAS, SIZES }
