@@ -33,3 +33,10 @@ supabase/.temp/
 
 # Playwright MCP browser artifacts
 .playwright-mcp/
+
+# Session screenshot artifacts (delivered to chat, not source)
+desktop-*.png
+mobile-*.png
+
+# Local personal Claude settings (permissions allowlist)
+.claude/settings.local.json
