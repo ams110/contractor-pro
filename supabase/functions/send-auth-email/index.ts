@@ -6,7 +6,7 @@
 //   RESEND_API_KEY            — مفتاح Resend
 //   SEND_EMAIL_HOOK_SECRET    — سرّ الـ hook من Supabase (صيغة Standard Webhooks: v1,whsec_...)
 //   EMAIL_FROM                — مثال: "Contractor Pro <noreply@linko.services>"
-//   APP_URL                   — رابط التطبيق (افتراضي https://app.linko.services)
+//   APP_URL                   — رابط التطبيق (افتراضي https://contractor.pro.linko.services)
 //   SUPABASE_URL              — متوفّر تلقائياً
 //
 // التفعيل: Supabase Dashboard ← Authentication ← Hooks ← Send Email → هذا الرابط.
@@ -16,7 +16,7 @@ import { Webhook } from 'https://esm.sh/standardwebhooks@1.0.0'
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? ''
 const HOOK_SECRET    = Deno.env.get('SEND_EMAIL_HOOK_SECRET') ?? ''
 const EMAIL_FROM     = Deno.env.get('EMAIL_FROM') ?? 'Contractor Pro <noreply@linko.services>'
-const APP_URL        = Deno.env.get('APP_URL') ?? 'https://app.linko.services'
+const APP_URL        = Deno.env.get('APP_URL') ?? 'https://contractor.pro.linko.services'
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL') ?? ''
 
 const C = { bg: '#07080F', card: '#12152A', primary: '#F97316', text: '#F8FAFC', dim: '#94A3B8' }

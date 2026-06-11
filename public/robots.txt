@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://app.linko.services/sitemap.xml
+Sitemap: https://contractor.pro.linko.services/sitemap.xml
