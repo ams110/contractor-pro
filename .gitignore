@@ -38,3 +38,15 @@ supabase/.temp/
 desktop-*.png
 mobile-*.png
 
+demo-*.png
+phone-*.jpg
+demo-hi-*.png
+demo-alt-*.png
+max-*.png
+*.zip
+
+# Demo screenshot output
+/shots/
+.smoke-shots/
+/ads/
+ad-sample-*.png
