@@ -67,11 +67,19 @@
   .wage .wv{font-size:17px;font-weight:900;letter-spacing:-.03em}
   .stamp{display:inline-flex;align-items:center;gap:3px;font-size:8.5px;font-weight:800;border-radius:20px;padding:2px 7px}
 
-  /* شريط الرواتب */
-  .bar-card{background:var(--card);border-radius:14px;padding:14px;width:100%;margin-top:6px}
-  .bar-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:8px}
-  .bar-track{height:8px;background:rgba(100,116,139,.25);border-radius:5px;overflow:hidden}
-  .bar-fill{height:100%;width:4%;background:var(--gradSuccess);border-radius:5px}
+  /* بطاقة الدفعة (PaymentsScreen) */
+  .bar-track{height:6px;background:rgba(249,115,22,.1);border-radius:3px;overflow:hidden}
+  .bar-fill{height:100%;width:4%;background:var(--gradSuccess);border-radius:3px}
+  .paycard{position:relative;overflow:hidden;width:100%;border:1px solid;border-radius:16px;padding:14px 16px;margin-bottom:11px}
+  .pc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .pc-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:#fff;flex-shrink:0}
+  .pc-nm{font-size:15px;font-weight:800;color:var(--text)}
+  .pc-spec{font-size:11px;color:var(--dim)}
+  .owed{text-align:center;padding:6px 12px;border-radius:12px;min-width:64px}
+  .pc-stats{display:flex;justify-content:space-around;margin-bottom:10px}
+  .s-l{font-size:9px;color:var(--dim);font-weight:600}
+  .s-v{font-size:13px;font-weight:800;font-family:monospace;margin-top:2px}
+  .pc-pct{font-size:9px;color:var(--dim);margin-top:5px;text-align:center}
 
   /* CTA */
   .logo{width:88px;height:88px;border-radius:27px;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:42px;box-shadow:0 16px 55px rgba(249,115,22,.55);margin-bottom:16px}
@@ -254,21 +262,53 @@
       </div>
     </div>
 
-    <!-- b6: الرواتب -->
+    <!-- b6: الرواتب (مطابق PaymentsScreen.jsx — بطاقة العامل) -->
     <div class="layer b6">
       <div style="width:100%">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
           <span style="font-size:15px;font-weight:900;color:var(--text)">الرواتب والسلف</span>
-          <span style="font-size:13px;font-weight:900;color:var(--cyan)">₪13,750</span>
+          <span style="font-size:11px;color:var(--dim)">مدفوع للعمّال <b style="color:var(--success);font-size:13px;font-family:monospace">₪13,750</b></span>
         </div>
-        <div class="ticket" style="background:var(--card);border:1px solid rgba(249,115,22,.08);align-items:center;padding:9px 11px">
-          <div style="width:32px;height:32px;border-radius:50%;background:var(--gradSuccess);display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff">م</div>
-          <div class="mid"><span class="nm">محمد ع.</span><span style="font-size:9px;color:var(--dim)">راتب نيسان · PAY-1042</span></div>
-          <div class="badge" style="color:var(--success);background:rgba(34,197,94,.18);border:1px solid rgba(34,197,94,.4);font-size:11px">₪4,250</div>
+
+        <!-- بطاقة عامل مسدّد (tone excellent) -->
+        <div class="paycard" style="background:linear-gradient(135deg,rgba(34,197,94,.1),var(--surface) 70%);border-color:rgba(34,197,94,.3)">
+          <div class="pc-top">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="pc-av" style="background:var(--gradSuccess)">م</div>
+              <div><div class="pc-nm">محمد علي</div><div class="pc-spec">بنّاء</div></div>
+            </div>
+            <div class="owed" style="background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.4)">
+              <div style="font-size:14px;font-weight:900;color:var(--success);display:flex;align-items:center;gap:4px;justify-content:center">✓ مسدد</div>
+            </div>
+          </div>
+          <div class="pc-stats">
+            <div><div class="s-l">مستحق</div><div class="s-v" style="color:var(--text)">₪4,250</div></div>
+            <div><div class="s-l">مدفوع</div><div class="s-v" style="color:var(--success)">₪4,250</div></div>
+            <div><div class="s-l">الراتب اليومي</div><div class="s-v" style="color:var(--dim)">450₪</div></div>
+          </div>
+          <div class="bar-track"><div style="height:100%;width:100%;background:var(--gradSuccess);border-radius:3px"></div></div>
+          <div class="pc-pct">100% مدفوع</div>
         </div>
-        <div class="bar-card">
-          <div class="bar-row"><span style="color:var(--dim)">نسبة المدفوع</span><span style="color:var(--success);font-weight:800">72%</span></div>
-          <div class="bar-track"><div class="bar-fill"></div></div>
+
+        <!-- بطاقة عامل عليه متبقّي (tone critical) — الشريط يتعبّى -->
+        <div class="paycard" style="background:linear-gradient(135deg,rgba(239,68,68,.1),var(--surface) 70%);border-color:rgba(239,68,68,.3)">
+          <div class="pc-top">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="pc-av" style="background:linear-gradient(135deg,#EF4444,#B91C1C)">أ</div>
+              <div><div class="pc-nm">أحمد سعيد</div><div class="pc-spec">دهّان</div></div>
+            </div>
+            <div class="owed" style="background:rgba(239,68,68,.13);border:1px solid rgba(239,68,68,.4)">
+              <div style="font-size:14px;font-weight:900;color:var(--accent);font-family:monospace">₪1,200</div>
+              <div style="font-size:9px;color:var(--dim)">متبقي</div>
+            </div>
+          </div>
+          <div class="pc-stats">
+            <div><div class="s-l">مستحق</div><div class="s-v" style="color:var(--text)">₪4,500</div></div>
+            <div><div class="s-l">مدفوع</div><div class="s-v" style="color:var(--success)">₪3,300</div></div>
+            <div><div class="s-l">الراتب اليومي</div><div class="s-v" style="color:var(--dim)">300₪</div></div>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="background:linear-gradient(90deg,#EF4444,#B91C1C)"></div></div>
+          <div class="pc-pct">72% مدفوع</div>
         </div>
       </div>
     </div>
@@ -290,7 +330,7 @@
       <div class="cap c3">خلص. في طريقة أسهل.</div>
       <div class="cap c4">كل شغلك بشاشة وحدة — بالعربي.</div>
       <div class="cap c5">يوم عمل بلمسة. راتب محسوب لحاله.</div>
-      <div class="cap c6">ضريبة مظبوطة. بوّابة للعامل.</div>
+      <div class="cap c6">رواتب وسلف — محسوبة لحالها.</div>
       <div class="cap c7">نام مرتاح — جرّبه مجاناً 👈</div>
     </div>
   </div>
