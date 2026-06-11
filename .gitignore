@@ -50,3 +50,5 @@ max-*.png
 .smoke-shots/
 /ads/
 ad-sample-*.png
+/ads-new/
+new-*.png
