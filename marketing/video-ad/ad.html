@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face{font-family:'Cairo';font-weight:700;src:url('assets/cairo-arabic-700-normal.woff2') format('woff2'),url('assets/cairo-latin-700-normal.woff2') format('woff2');}
+  @font-face{font-family:'Cairo';font-weight:900;src:url('assets/cairo-arabic-900-normal.woff2') format('woff2'),url('assets/cairo-latin-900-normal.woff2') format('woff2');}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  html,body{width:1080px;height:1920px;overflow:hidden;background:#07080F;}
+  #stage{position:relative;width:1080px;height:1920px;background:radial-gradient(circle at 50% 38%, #14101a 0%, #07080F 70%);font-family:'Cairo',sans-serif;color:#F8FAFC;overflow:hidden;}
+  .scene{position:absolute;inset:0;opacity:0;will-change:opacity;}
+  .center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+
+  /* HOOK */
+  #glow{position:absolute;left:50%;top:42%;width:900px;height:900px;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(239,68,68,0.28),transparent 60%);}
+  .bubble{position:absolute;background:#12152A;border:1px solid rgba(249,115,22,0.14);border-radius:16px;padding:18px 30px;font-weight:700;font-size:42px;color:#94a3b8;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.4);}
+  #clockpill{position:absolute;left:50%;top:640px;transform:translateX(-50%);display:flex;align-items:center;gap:16px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.45);color:#EF4444;border-radius:999px;padding:18px 44px;font-weight:900;font-size:48px;}
+  #clockpill svg{width:52px;height:52px;flex:none;}
+  #clockpill span{white-space:nowrap;}
+  #hookline{position:absolute;left:0;right:0;top:920px;font-weight:900;font-size:120px;line-height:1.15;letter-spacing:-0.02em;}
+  #hookline b{color:#F97316;}
+
+  /* PRICE */
+  #price{ }
+  #priceTop{font-weight:700;font-size:52px;color:#64748B;margin-bottom:10px;}
+  #priceNum{font-weight:900;font-size:240px;line-height:1;letter-spacing:-0.04em;
+    background:linear-gradient(135deg,#F97316,#EF4444);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  #priceSub{font-weight:900;font-size:64px;margin-top:20px;color:#F8FAFC;}
+
+  /* TRANSITION */
+  #ring{position:absolute;left:50%;top:50%;width:900px;height:900px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,0.18),transparent 62%);z-index:0;}
+  #transTxt{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);padding:0 80px;font-weight:900;font-size:84px;line-height:1.3;z-index:2;text-align:center;}
+  #transTxt span{background:linear-gradient(135deg,#F97316,#EF4444);-webkit-background-clip:text;background-clip:text;color:transparent;}
+
+  /* APP IMAGE SCENES */
+  .appwrap{position:absolute;left:0;top:60px;width:1080px;height:1500px;overflow:hidden;}
+  .appwrap img{width:1080px;display:block;will-change:transform;}
+  .caption{position:absolute;left:60px;right:60px;top:1610px;text-align:center;font-weight:900;font-size:62px;line-height:1.3;color:#F8FAFC;}
+  .caption em{font-style:normal;color:#F97316;}
+
+  /* CTA */
+  #icon{width:240px;height:240px;border-radius:54px;background:linear-gradient(135deg,#F97316,#EF4444);
+    display:flex;align-items:center;justify-content:center;box-shadow:0 0 80px rgba(249,115,22,.5);margin-bottom:40px;}
+  #icon svg{width:140px;height:140px;color:#fff;}
+  #ctaTitle{font-weight:900;font-size:104px;letter-spacing:-0.02em;}
+  #ctaSub{font-weight:700;font-size:48px;color:#94a3b8;margin-top:6px;}
+  #ctaBtn{margin-top:54px;background:linear-gradient(135deg,#F97316,#EF4444);color:#fff;font-weight:900;font-size:62px;
+    padding:34px 80px;border-radius:26px;box-shadow:0 0 70px rgba(249,115,22,.55);}
+  #ctaPrice{margin-top:30px;font-weight:700;font-size:44px;color:#64748B;}
+  #ctaProfile{position:absolute;left:0;right:0;bottom:150px;display:flex;align-items:center;justify-content:center;gap:16px;font-weight:900;font-size:54px;color:#F8FAFC;}
+  #ctaProfile svg{width:54px;height:54px;color:#F97316;}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- SCENE 1: HOOK -->
+  <div class="scene" id="hook">
+    <div id="glow"></div>
+    <div class="bubble" style="left:120px;top:300px">راتب محمد؟</div>
+    <div class="bubble" style="right:120px;top:250px">إيصال 320₪</div>
+    <div class="bubble" style="left:150px;top:480px">سلفة 600₪</div>
+    <div class="bubble" style="right:150px;top:470px">מע"מ؟</div>
+    <div id="clockpill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>11:47 مساءً</span>
+    </div>
+    <div id="hookline">لسّا قاعد <b>تحسب بإيدك؟</b></div>
+  </div>
+
+  <!-- SCENE 2: PRICE -->
+  <div class="scene center" id="price">
+    <div id="priceTop">المحاسب بياخد منك بالسنة</div>
+    <div id="priceNum">0₪</div>
+    <div id="priceSub">وما بيدير ولا عامل واحد</div>
+  </div>
+
+  <!-- SCENE 3: TRANSITION -->
+  <div class="scene" id="trans">
+    <div id="ring"></div>
+    <div id="transTxt">خلص.<br><span>في طريقة أسهل.</span></div>
+  </div>
+
+  <!-- SCENE 4: PULSE -->
+  <div class="scene" id="pulse">
+    <div class="appwrap"><img src="assets/pulse.png"></div>
+    <div class="caption">كل شغلك بشاشة وحدة — <em>بالعربي</em></div>
+  </div>
+
+  <!-- SCENE 5: WORKDAYS -->
+  <div class="scene" id="work">
+    <div class="appwrap"><img src="assets/workdays.png"></div>
+    <div class="caption">سجّل يوم العامل — <em>والراتب بينحسب لحاله</em></div>
+  </div>
+
+  <!-- SCENE 6: PAYROLL -->
+  <div class="scene" id="pay">
+    <div class="appwrap"><img src="assets/payroll.png"></div>
+    <div class="caption">رواتب وسلف… <em>محسوبة لحالها</em></div>
+  </div>
+
+  <!-- SCENE 7: CTA -->
+  <div class="scene center" id="cta">
+    <div id="icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1Z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a6 6 0 0 1 6-6"/><path d="M14 6a6 6 0 0 1 6 6v3"/></svg>
+    </div>
+    <div id="ctaTitle">Contractor Pro</div>
+    <div id="ctaSub">أول تطبيق مقاولات بالعربي</div>
+    <div id="ctaBtn">جرّب مجاناً 14 يوم</div>
+    <div id="ctaPrice">سنة بـ 990₪ · بدون بطاقة</div>
+    <div id="ctaProfile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+      <span>اللينك بالبروفايل</span>
+    </div>
+  </div>
+
+</div>
+<script>
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const easeOut=x=>1-Math.pow(1-x,3);
+const easeInOut=x=>x<0.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+// progress of a value over a window
+const prog=(t,s,d)=>clamp((t-s)/d);
+// scene alpha with fade in/out
+function alpha(t,inT,outT,fi=0.4,fo=0.4){
+  if(t<inT||t>outT) return 0;
+  return clamp(Math.min((t-inT)/fi,(outT-t)/fo));
+}
+const el=id=>document.getElementById(id);
+
+function seek(t){
+  // ---- SCENE 1 HOOK [0 - 3.15]
+  let a=alpha(t,0,3.15,0.3,0.4); el('hook').style.opacity=a;
+  if(a>0){
+    const gp=0.5+0.5*Math.sin(t*3);                 // glow pulse
+    el('glow').style.opacity=0.6+0.4*gp;
+    document.querySelectorAll('#hook .bubble').forEach((b,i)=>{
+      const p=prog(t,0.2+i*0.18,0.6);
+      b.style.opacity=easeOut(p);
+      b.style.transform=`translateY(${lerp(28,-34,easeOut(prog(t,0.2,3)))}px)`;
+    });
+    el('clockpill').style.opacity=easeOut(prog(t,0.3,0.5));
+    const hp=easeOut(prog(t,0.6,0.6));
+    el('hookline').style.opacity=hp;
+    el('hookline').style.transform=`translateY(${lerp(40,0,hp)}px)`;
+  }
+
+  // ---- SCENE 2 PRICE [3.0 - 5.35]
+  a=alpha(t,3.0,5.35,0.35,0.4); el('price').style.opacity=a;
+  if(a>0){
+    const cp=easeOut(prog(t,3.2,1.3));
+    const val=Math.round(cp*1800);
+    el('priceNum').textContent=val.toLocaleString('en-US')+'₪';
+    el('priceNum').style.transform=`scale(${lerp(0.7,1,easeOut(prog(t,3.1,0.5)))})`;
+    el('priceTop').style.opacity=easeOut(prog(t,3.1,0.4));
+    const sp=easeOut(prog(t,4.5,0.5));
+    el('priceSub').style.opacity=sp;
+    el('priceSub').style.transform=`translateY(${lerp(24,0,sp)}px)`;
+  }
+
+  // ---- SCENE 3 TRANSITION [5.2 - 6.6]
+  a=alpha(t,5.2,6.6,0.3,0.35); el('trans').style.opacity=a;
+  if(a>0){
+    const rp=easeInOut(prog(t,5.2,1.2));
+    el('ring').style.transform=`translate(-50%,-50%) scale(${lerp(0.3,1.25,rp)})`;
+    el('ring').style.opacity=lerp(1,0,prog(t,6.0,0.6));
+    el('transTxt').style.opacity=easeOut(prog(t,5.4,0.5));
+  }
+
+  // ---- APP SCENES helper
+  function appScene(id,inT,outT){
+    const al=alpha(t,inT,outT,0.4,0.4); el(id).style.opacity=al;
+    if(al>0){
+      const k=prog(t,inT,outT-inT);                 // ken-burns
+      el(id).querySelector('img').style.transform=`scale(${lerp(1.0,1.08,k)})`;
+      const cap=el(id).querySelector('.caption');
+      const cpp=easeOut(prog(t,inT+0.25,0.5));
+      cap.style.opacity=cpp;
+      cap.style.transform=`translateY(${lerp(28,0,cpp)}px)`;
+    }
+  }
+  appScene('pulse',6.5,9.1);
+  appScene('work',9.0,11.4);
+  appScene('pay',11.3,13.1);
+
+  // ---- SCENE 7 CTA [13.0 - 15.0]
+  a=alpha(t,13.0,15.0,0.4,0.001); el('cta').style.opacity=a;
+  if(a>0){
+    const ip=easeOut(prog(t,13.1,0.5));
+    el('icon').style.transform=`scale(${lerp(0.6,1,ip)})`;
+    el('icon').style.opacity=ip;
+    el('ctaTitle').style.opacity=easeOut(prog(t,13.3,0.4));
+    el('ctaSub').style.opacity=easeOut(prog(t,13.5,0.4));
+    const bp=easeOut(prog(t,13.7,0.4));
+    const pulse=1+0.04*Math.sin((t-13.7)*7);
+    el('ctaBtn').style.opacity=bp;
+    el('ctaBtn').style.transform=`scale(${(bp<1?bp:1)*pulse})`;
+    el('ctaPrice').style.opacity=easeOut(prog(t,14.0,0.4));
+    el('ctaProfile').style.opacity=easeOut(prog(t,14.2,0.5));
+  }
+}
+window.seek=seek;
+seek(0);
+</script>
+</body>
+</html>
