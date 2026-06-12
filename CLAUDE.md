@@ -67,6 +67,16 @@ npm run ads:shots     # بوسترات إعلانية من /adstudio (square/por
 
 > ⚠️ تنبيه ازدواجية قائمة: المكوّنات الفخمة الكبيرة (`BusinessPulse`/`CashForecast`/`NetWorth`/`CommandCenter`) و`DashboardScreen.jsx` ما زالت تُعرّف نسخاً **محليّة** من `TONE`/`useCountUp`/القشرة (سبقت `ui/Premium.jsx`). الاتّجاه المعتمد: توحيدها تدريجياً على `ui/Premium.jsx`. لا تنسخ نمطاً محليّاً جديداً — استعمل الـkit.
 
+### 2.2 أيقونات التطبيق (App Icons) — مولّدة، مصدر واحد
+
+شعار التطبيق = **خوذة بناء `HardHat` (Lucide) بيضاء على تدرّج `GRAD.brand` (`linear-gradient(135deg, #F97316, #DC2626)`) بزوايا مدوّرة** — نفس لوغو صفحة الهبوط (`LandingPage.jsx`) بالضبط.
+
+- **المولِّد**: `generate_icon.py` (بايثون + `cairosvg` + `Pillow`). شغّله بعد أي تغيير شكلي: `python3 generate_icon.py`. يرسم كل حجم **متّجهياً من الصفر** (لا تكبير صورة) → كل المقاسات حادّة 100%.
+- 🔴 **قاعدة حاسمة — لا تنسخ مسارات الأيقونة يدوياً أبداً.** المولِّد **يقرأ شكل الخوذة وقت التوليد من نفس مصدر التطبيق**: `node_modules/lucide-react/dist/esm/icons/hard-hat.mjs` (دالة `load_hardhat_inner` تفكّك `__iconNode`). هيك الأيقونة دايماً = خوذة `<HardHat/>` المرسومة بالـUI، وتتعقّب أي تحديث Lucide تلقائياً عند إعادة التوليد. **سبب الوجود**: سابقاً كانت المسارات منسوخة بالإيد فتعتّقت واختلفت عن lucide-react → طلعت خوذة مشوّهة (قبّة طايرة فوق حافّة منفصلة). لا تُرجِع هذا الغلط.
+- **المخرجات** (في `public/`): عادية `purpose:any` → `icon-1024` (المتاجر) · `pwa-512/384/192` · `apple-touch-icon` 180 · `icon-167/152/120` (iPad/iPhone). + **maskable** لأندرويد → `maskable-512/192` (`make_maskable_svg`: **تدرّج ملء الإطار بلا زوايا مدوّرة** + الخوذة داخل **منطقة الأمان ~80%** فلا تُقصّ تحت قناع المشغّل الدائري). + `badge-96` (سيلويت مصمت مخصّص للإشعارات، `make_badge_svg`) + `favicon.ico` (16/32/48).
+- ⚠️ **maskable لازم تظل full-bleed** (بلا `rx`/زوايا) والخوذة صغيرة بالنص — **ممنوع توجيه `purpose:maskable` لأيقونة مدوّرة مثل `pwa-512`** (تنقصّ تحت القناع).
+- **التوصيل**: `vite.config.js` → `manifest.icons` (3 عادية + 2 maskable) · `index.html` → روابط `favicon` + `apple-touch-icon` بمقاسات iOS. عند إضافة/إزالة حجم: حدّث المولِّد **و** هذين الموضعين.
+
 ---
 
 ## 3. المكتبات
@@ -142,6 +152,7 @@ supabase/                    ← schema.sql, master.sql, migrations/, functions/
 tests/e2e/                   ← Playwright specs (landing, navigation, auth-forms)
 .github/workflows/           ← pages.yml (GitHub Pages) + deploy.yml (Supabase edge functions)
 scripts/bump-version.mjs     ← يرفع patch version قبل كل build
+generate_icon.py             ← مولّد أيقونات التطبيق (يقرأ HardHat من lucide-react) — انظر §2.2
 ```
 
 ---
