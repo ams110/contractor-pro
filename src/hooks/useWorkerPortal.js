@@ -63,13 +63,14 @@ export function useWorkerPortal() {
     setLoading(true)
     try {
       const session = loadSession()
+      const token = session?.token || ''
       const [dRes, pyRes, prRes, exRes, holRes, advRes] = await Promise.all([
-        supabase.rpc('get_worker_days',     { emp_id: empId }),
-        supabase.rpc('get_worker_payments', { emp_id: empId }),
-        supabase.rpc('get_worker_projects', { emp_id: empId }),
-        supabase.rpc('get_worker_expenses', { emp_id: empId }),
-        supabase.rpc('get_worker_holidays', { p_emp_id: empId, p_token: session?.token || '' }),
-        supabase.from('advances').select('*').eq('employee_id', empId),
+        supabase.rpc('get_worker_days',     { emp_id: empId, p_token: token }),
+        supabase.rpc('get_worker_payments', { emp_id: empId, p_token: token }),
+        supabase.rpc('get_worker_projects', { emp_id: empId, p_token: token }),
+        supabase.rpc('get_worker_expenses', { emp_id: empId, p_token: token }),
+        supabase.rpc('get_worker_holidays', { p_emp_id: empId, p_token: token }),
+        supabase.rpc('get_worker_advances', { emp_id: empId, p_token: token }),
       ])
       setWorkDays(dRes.data  || [])
       setPayments(pyRes.data || [])
