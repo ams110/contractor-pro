@@ -70,7 +70,7 @@ export async function uploadReceipt(userId, file) {
   return data.signedUrl
 }
 
-export async function uploadWorkerReceipt(empId, file) {
+export async function uploadWorkerReceipt(empId, token, file) {
   const compressed = await compressImage(file)
   const ext  = compressed.type === 'image/jpeg' ? 'jpg' : (file.name.split('.').pop() || 'jpg')
   const path = `${empId}/${Date.now()}.${ext}`
@@ -81,9 +81,11 @@ export async function uploadWorkerReceipt(empId, file) {
 
   if (upErr) throw new Error(upErr.message)
 
-  const { data, error: signErr } = await supabase.storage
-    .from('worker-receipts')
-    .createSignedUrl(path, SIGNED_URL_TTL)
+  // البوّابة مجهولة على طبقة التخزين (الدلو خاصّ) — التوقيع يتمّ عبر edge function
+  // يتحقّق من جلسة العامل (worker_session_token) ويوقّع مسار العامل فقط.
+  const { data, error: signErr } = await supabase.functions.invoke('worker-sign-receipt', {
+    body: { emp_id: empId, token, path },
+  })
   if (signErr || !data?.signedUrl) throw new Error('فشل توليد رابط الإيصال')
   return data.signedUrl
 }
