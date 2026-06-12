@@ -35,6 +35,9 @@ async function main() {
     ignoreHTTPSErrors: true,          // تخطّي مشكلة شهادة البروكسي
     locale: 'ar',
   })
+  // أخفِ بانر «فعّل الإشعارات» قبل أي تحميل (يوسّخ اللقطات الدعائية)
+  await ctx.addInitScript(() => { try { localStorage.setItem('cpro_notif_dismissed', '1') } catch {} })
+
   const page = await ctx.newPage()
   const shot = async (name) => {
     const path = resolve(OUT, `${name}.png`)
