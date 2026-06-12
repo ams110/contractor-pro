@@ -14,6 +14,15 @@
 --   غير ذلك تُرجَّع قائمة فارغة.
 -- ════════════════════════════════════════════════════════════════════════════
 
+-- مهم: الدوال القديمة بمعامل واحد (emp_id) — يجب حذفها أولاً، وإلا فإنّ
+-- CREATE OR REPLACE بمعاملين يُنشئ overload ثانياً ويُبقي النسخة المكشوفة شغّالة.
+-- نحذف أيضاً نسخة get_worker_advances ذات المعامل الواحد (بقيت من تصحيح سابق).
+DROP FUNCTION IF EXISTS public.get_worker_projects(uuid);
+DROP FUNCTION IF EXISTS public.get_worker_days(uuid);
+DROP FUNCTION IF EXISTS public.get_worker_payments(uuid);
+DROP FUNCTION IF EXISTS public.get_worker_expenses(uuid);
+DROP FUNCTION IF EXISTS public.get_worker_advances(uuid);
+
 -- ── 1. get_worker_projects ──────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION get_worker_projects(emp_id UUID, p_token TEXT DEFAULT NULL)
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
