@@ -51,6 +51,38 @@ def make_svg(size):
 </svg>"""
     return svg
 
+def make_maskable_svg(size):
+    # Maskable icon for Android adaptive icons: the gradient background must
+    # bleed to ALL edges (NO rounded corners / no transparency) so any system
+    # mask (circle, squircle, square) only ever cuts into the orange — never
+    # into a transparent/black corner. The HardHat sits inside the central
+    # safe zone (~60%) so it is never clipped by aggressive circular masks.
+    r = size
+    pad = r * 0.22          # 22% padding each side → logo within central 56%
+    inner = r - 2 * pad
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg"
+     width="{r}" height="{r}" viewBox="0 0 {r} {r}">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#DC2626"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed square background (fills every edge & corner) -->
+  <rect width="{r}" height="{r}" fill="url(#bg)"/>
+  <!-- HardHat icon (Lucide), centered inside the safe zone -->
+  <g transform="translate({pad:.1f},{pad:.1f}) scale({inner/24:.4f})"
+     fill="none" stroke="white" stroke-width="2.5"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2H2z"/>
+    <path d="M20 15a1 1 0 0 0 1-1v-4a8 8 0 1 0-16 0v4a1 1 0 0 0 1 1z"/>
+    <path d="M9 15v1"/>
+    <path d="M15 15v1"/>
+    <path d="M12 15v2"/>
+  </g>
+</svg>"""
+    return svg
+
 def make_badge_svg(size):
     # Notification badge — Android tints by alpha and shrinks to ~24dp, so the
     # standard Lucide HardHat outline reads as an unrecognizable blob there.
@@ -85,6 +117,7 @@ if __name__ == "__main__":
     out = "/home/user/contractor-pro/public"
     save(512, os.path.join(out, "pwa-512.png"))
     save(192, os.path.join(out, "pwa-192.png"))
+    save(512, os.path.join(out, "pwa-maskable-512.png"), make_maskable_svg)
     save(180, os.path.join(out, "apple-touch-icon.png"))
     save(96,  os.path.join(out, "badge-96.png"), make_badge_svg)
     save_favicon(os.path.join(out, "favicon.ico"))
