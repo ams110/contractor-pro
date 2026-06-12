@@ -104,7 +104,10 @@ jobs:
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: bubblewrap build --skipPwaValidation
+        # `yes` auto-answers Bubblewrap's non-interactive prompts (regenerate the
+        # Android project from twa-manifest.json, accept SDK build-tools license)
+        # which otherwise abort the build on a headless runner (exit 130).
+        run: yes | bubblewrap build --skipPwaValidation
 
       - name: Upload AAB + APK artifacts
         uses: actions/upload-artifact@v4
