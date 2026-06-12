@@ -1,58 +1,49 @@
 #!/usr/bin/env python3
-"""Generate PWA / app icons — white HardHat on an orange-red squircle that
-floats (with margin) on a dark backdrop, matching the brand logo used across
-the app."""
+"""Generate PWA icons — HardHat on orange-red gradient (matches landing page logo)"""
 
 import cairosvg, os
 
 def make_svg(size):
-    # Brand app icon:
-    #   • dark backdrop (subtle radial + soft amber bloom)
-    #   • centered orange→red rounded-square (squircle) with a margin around it
-    #   • white Lucide HardHat centered inside the squircle
-    r = size
-    sq = r * 0.70                 # squircle side (leaves ~15% margin each side)
-    off = (r - sq) / 2            # centered offset
-    corner = sq * 0.30            # iOS-like soft corners
+    # Logo exact spec from LandingPage.jsx:
+    #   background: linear-gradient(135deg, #F97316, #DC2626)
+    #   borderRadius: 13px (scaled to icon size)
+    #   HardHat lucide icon, white, strokeWidth 2.5, centered
 
-    hh = sq * 0.56                # hard hat ≈ 56% of the squircle
-    hscale = hh / 24              # Lucide is authored in a 24-unit box
-    hx = (r - hh) / 2
-    hy = (r - hh) / 2
+    r = size  # viewBox size
+    corner = round(r * 0.20)  # border-radius proportional to 13/64 ≈ 20%
+
+    # Scale the HardHat path from 24-unit space to icon space
+    scale = r / 24
+    sw = max(1.5, 2.5 * scale)   # stroke-width scaled
+
+    grad_id = "bg"
 
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
      width="{r}" height="{r}" viewBox="0 0 {r} {r}">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="42%" r="78%">
-      <stop offset="0%"   stop-color="#191320"/>
-      <stop offset="55%"  stop-color="#0B0C13"/>
-      <stop offset="100%" stop-color="#07080D"/>
-    </radialGradient>
-    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%"   stop-color="#F97316" stop-opacity="0.30"/>
-      <stop offset="100%" stop-color="#F97316" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="sq" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="{grad_id}" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%"   stop-color="#F97316"/>
       <stop offset="100%" stop-color="#DC2626"/>
     </linearGradient>
+    <clipPath id="clip">
+      <rect width="{r}" height="{r}" rx="{corner}" ry="{corner}"/>
+    </clipPath>
   </defs>
 
-  <!-- Dark backdrop -->
-  <rect width="{r}" height="{r}" fill="url(#bg)"/>
-  <!-- Soft amber bloom behind the squircle -->
-  <rect width="{r}" height="{r}" fill="url(#glow)"/>
+  <!-- Gradient background -->
+  <rect width="{r}" height="{r}" rx="{corner}" ry="{corner}" fill="url(#{grad_id})"/>
 
-  <!-- Orange squircle (the floating brand tile) -->
-  <rect x="{off:.1f}" y="{off:.1f}" width="{sq:.1f}" height="{sq:.1f}"
-        rx="{corner:.1f}" ry="{corner:.1f}" fill="url(#sq)"/>
-
-  <!-- HardHat icon (Lucide), white, centered inside the squircle -->
-  <g transform="translate({hx:.1f},{hy:.1f}) scale({hscale:.4f})"
+  <!-- HardHat icon (Lucide), centered, scaled from 24-unit space -->
+  <!-- Padding: 18% each side → icon area starts at 0.18*r, size 0.64*r -->
+  <g transform="translate({r*0.18:.1f},{r*0.18:.1f}) scale({r*0.64/24:.4f})"
      fill="none" stroke="white" stroke-width="2.5"
      stroke-linecap="round" stroke-linejoin="round">
+    <!-- Bottom brim -->
     <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2H2z"/>
+    <!-- Dome -->
     <path d="M20 15a1 1 0 0 0 1-1v-4a8 8 0 1 0-16 0v4a1 1 0 0 0 1 1z"/>
+    <!-- Vent lines -->
     <path d="M9 15v1"/>
     <path d="M15 15v1"/>
     <path d="M12 15v2"/>
@@ -66,6 +57,7 @@ def make_badge_svg(size):
     # Instead we draw ONE continuous SOLID hard-hat silhouette: the dome flares
     # smoothly into a curved brim with no gap, which stays legible at tiny size.
     r = size
+    # Single filled path in 24-unit space, scaled to fill the icon with margin.
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg"
      width="{r}" height="{r}" viewBox="0 0 {r} {r}">
   <g transform="translate({r*0.085:.2f},{r*0.085:.2f}) scale({r*0.83/24:.4f})"
@@ -81,7 +73,7 @@ def save(size, path, svg_fn=make_svg):
     print(f"Saved {path} ({size}x{size})")
 
 def save_favicon(path):
-    # Multi-resolution .ico (16/32/48) from the brand logo.
+    # Multi-resolution .ico (16/32/48) from the brand gradient logo.
     from io import BytesIO
     from PIL import Image
     base = Image.open(BytesIO(cairosvg.svg2png(
