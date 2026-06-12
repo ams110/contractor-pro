@@ -35,6 +35,28 @@
 المخرجات (Artifacts): `app-release-bundle.aab` (للرفع على Play) + `app-release-signed.apk`
 (للتجربة المباشرة على جهاز). يبنيهما Bubblewrap موقّعين بمفتاح الرفع.
 
+### النشر التلقائي على Google Play (اختياري)
+
+مدخلات الـworkflow كمان فيها:
+- `publish` (checkbox): لو فعّلته، يرفع الـAAB مباشرة على Play بعد البناء (عبر
+  Google Play Developer API). مطفأ افتراضياً → بناء فقط بلا نشر.
+- `track`: المسار — `internal` (مختبرون داخليون، فوري بلا مراجعة) / `alpha` / `beta`
+  / `production` (كل المستخدمين، يمرّ بمراجعة جوجل). الافتراضي `internal`.
+- `status`: `draft` (يرفعه كمسوّدة بتأكّدها إنت بضغطة في Play Console — **محطة أمان**) أو
+  `completed` (يطلق على المسار مباشرة). الافتراضي `draft`.
+
+**سرّ إضافي مطلوب للنشر التلقائي**: `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` — مفتاح حساب خدمة من
+Play Console بصلاحية **Release manager**:
+1. Play Console → Setup → **API access** → اربط مشروع Google Cloud.
+2. أنشئ **Service Account** ونزّل مفتاح **JSON**.
+3. امنحه دور **Release manager** على التطبيق.
+4. الصق محتوى ملف الـJSON كاملاً في السرّ `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`.
+
+> ⚠️ هذا المفتاح يقدر ينشر نيابة عنك — تعامل معه كأخطر سرّ. للأمان: استعمل `track: internal`
+> أو `status: draft` حتى تطمئن قبل ما تخلّي `production` + `completed`.
+> **شرط جوجل**: أوّل نسخة لازم ترفعها يدوياً مرة على Play Console (لإنشاء التطبيق وقبول
+> الشروط)؛ بعدها الـAPI يقدر يرفع التحديثات.
+
 ### الأسرار المطلوبة (مرة واحدة — Settings → Secrets → Actions)
 
 | السرّ | المحتوى |

@@ -25,6 +25,23 @@ on:
         description: 'Play version code (integer, must increase each upload). Empty = auto from run number.'
         required: false
         default: ''
+      publish:
+        description: 'Upload the AAB to Google Play automatically?'
+        type: boolean
+        required: false
+        default: false
+      track:
+        description: 'Play track to publish to (only used when publish = true).'
+        type: choice
+        required: false
+        default: internal
+        options: [internal, alpha, beta, production]
+      status:
+        description: 'Release status. draft = staged in Play (you press publish); completed = goes live on the track.'
+        type: choice
+        required: false
+        default: draft
+        options: [draft, completed]
 
 permissions:
   contents: read
@@ -98,3 +115,25 @@ jobs:
             android/app-release-signed.apk
           if-no-files-found: error
           retention-days: 30
+
+      # Optional: push the AAB straight to Google Play. Runs only when the
+      # `publish` input is checked. Needs the GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+      # secret (a Play Console service-account key with "Release manager" access).
+      - name: Guard — publish requested but secret missing
+        if: ${{ inputs.publish }}
+        env:
+          SA_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$SA_JSON" ]; then
+            echo "::error::publish=true but secret GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is not set"; exit 1
+          fi
+
+      - name: Publish to Google Play
+        if: ${{ inputs.publish }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: services.linko.app
+          releaseFiles: android/app-release-bundle.aab
+          track: ${{ inputs.track }}
+          status: ${{ inputs.status }}
