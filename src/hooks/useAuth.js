@@ -1,28 +1,9 @@
 import { useState, useEffect } from 'react'
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 import { supabase, SUPABASE_URL } from '../lib/supabase.js'
+import { savePinPayload, readPinPayload, hasPin, clearPin } from '../lib/pinCrypto.js'
 
 const PASSKEY_KEY  = 'cpro_passkey_cred'  // JSON { credentialId, rpId }
-const PIN_HASH_KEY  = 'cpro_pin_hash'
-const PIN_CREDS_KEY = 'cpro_pin_creds'
-
-// ── Crypto helpers (PIN only) ─────────────────────────────────────────────────
-
-async function sha256(text) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
-}
-
-async function deriveKey(pin, salt) {
-  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey'])
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
-    base,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  )
-}
 
 // ── Edge function helpers ─────────────────────────────────────────────────────
 
@@ -189,55 +170,60 @@ export function useAuth() {
     if (!user) throw new Error('يجب تسجيل الدخول أولاً')
     if (!/^\d{4,6}$/.test(pin)) throw new Error('PIN يجب أن يكون 4–6 أرقام')
 
-    const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: user.email, password })
+    // تحقّق من كلمة المرور (يُنشئ/يُجدّد جلسة صالحة لالتقاط توكناتها)
+    const { data: signInData, error: verifyErr } =
+      await supabase.auth.signInWithPassword({ email: user.email, password })
     if (verifyErr) throw new Error('كلمة المرور غير صحيحة')
 
-    const hash = await sha256(pin + user.email)
-    localStorage.setItem(PIN_HASH_KEY, hash)
-    localStorage.setItem('cpro_pin_email', user.email)
+    const session = signInData?.session
+    if (!session?.refresh_token) throw new Error('تعذّر تجهيز الجلسة — أعد المحاولة')
 
-    const salt = crypto.getRandomValues(new Uint8Array(16))
-    const iv   = crypto.getRandomValues(new Uint8Array(12))
-    const key  = await deriveKey(pin, salt)
-    const data = new TextEncoder().encode(JSON.stringify({ email: user.email, password }))
-    const enc  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data)
-    localStorage.setItem(PIN_CREDS_KEY, JSON.stringify({
-      salt: Array.from(salt),
-      iv:   Array.from(iv),
-      enc:  Array.from(new Uint8Array(enc)),
-    }))
+    // نخزّن توكنات الجلسة (لا كلمة المرور) مشفّرة تحت الـ PIN.
+    // التوكنات قابلة للإبطال وتُدوَّر — أأمن بكثير من تخزين كلمة سر قابلة للاسترجاع.
+    await savePinPayload(pin, {
+      refresh_token: session.refresh_token,
+      access_token:  session.access_token,
+    })
   }
 
   async function signInWithPin(pin) {
-    const stored = localStorage.getItem(PIN_HASH_KEY)
-    if (!stored) throw new Error('لم يتم تعيين PIN على هذا الجهاز')
-    const savedEmail = localStorage.getItem('cpro_pin_email')
-    if (!savedEmail) throw new Error('أعد تعيين الـ PIN من الإعدادات')
+    if (!hasPin()) throw new Error('لم يتم تعيين PIN على هذا الجهاز')
 
-    const hash = await sha256(pin + savedEmail)
-    if (hash !== stored) throw new Error('PIN غير صحيح')
+    // يرفع WRONG_PIN عند خطأ الرقم، وPIN_LOCKED بعد 5 محاولات (مع مسح البيانات)
+    const payload = await readPinPayload(pin)
 
-    const credStr = localStorage.getItem(PIN_CREDS_KEY)
-    if (credStr) {
-      const { salt, iv, enc } = JSON.parse(credStr)
-      const key = await deriveKey(pin, new Uint8Array(salt))
-      const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(iv) }, key, new Uint8Array(enc))
-      const { email, password } = JSON.parse(new TextDecoder().decode(dec))
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw new Error('فشل تسجيل الدخول — أعد تعيين الـ PIN من الإعدادات')
+    // مسار قديم (نُسخ سبقت التحديث): الحمولة فيها بريد+كلمة سر → دخول عادي ثم ترقية.
+    if (payload?.password && payload?.email) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: payload.email, password: payload.password,
+      })
+      if (error) { const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e }
+      // رقّي التخزين لتوكنات بدل كلمة السر
+      try {
+        if (data?.session?.refresh_token) {
+          await savePinPayload(pin, {
+            refresh_token: data.session.refresh_token,
+            access_token:  data.session.access_token,
+          })
+        }
+      } catch { /* ignore upgrade errors */ }
       return
     }
 
-    const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e
+    // المسار الجديد: استعد الجلسة من التوكنات المخزّنة (تُجدَّد تلقائياً عند الحاجة).
+    const { error } = await supabase.auth.setSession({
+      access_token:  payload.access_token,
+      refresh_token: payload.refresh_token,
+    })
+    if (error) {
+      // التوكن مُبطَل/منتهٍ (دُوِّر بالاستخدام العادي) → اطلب دخولاً بالباسورد مرّة.
+      const e = new Error('SESSION_EXPIRED'); e.name = 'SessionExpiredError'; throw e
+    }
   }
 
-  function hasPinSet() { return !!localStorage.getItem(PIN_HASH_KEY) }
+  function hasPinSet() { return hasPin() }
 
-  function removePin() {
-    localStorage.removeItem(PIN_HASH_KEY)
-    localStorage.removeItem('cpro_pin_email')
-    localStorage.removeItem(PIN_CREDS_KEY)
-  }
+  function removePin() { clearPin() }
 
   // ─── Delete account (self) ──────────────────────────────────────────────────
 
@@ -251,9 +237,7 @@ export function useAuth() {
     if (result.error) throw new Error(result.error)
 
     // امسح بيانات الاعتماد المحلية (PIN/passkey) — الصفوف بالـ DB حُذفت بالتتالي
-    localStorage.removeItem(PIN_HASH_KEY)
-    localStorage.removeItem('cpro_pin_email')
-    localStorage.removeItem(PIN_CREDS_KEY)
+    clearPin()
     localStorage.removeItem(PASSKEY_KEY)
     localStorage.removeItem('cpro_passkey_enc')
     localStorage.removeItem('cpro_passkey_creds')

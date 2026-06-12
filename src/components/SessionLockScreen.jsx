@@ -4,17 +4,17 @@ import { Lock, Fingerprint, ShieldCheck, AlertCircle, Delete } from 'lucide-reac
 import { supabase } from '../lib/supabase.js'
 import { useAppStore } from '../store/useAppStore.js'
 import { runBiometricAuth, verifyPinLocal } from '../hooks/useBiometricConfirm.js'
+import { hasPin } from '../lib/pinCrypto.js'
 import { C } from '../constants/index.js'
 
-const PASSKEY_KEY  = 'cpro_passkey_cred'
-const PIN_HASH_KEY = 'cpro_pin_hash'
+const PASSKEY_KEY = 'cpro_passkey_cred'
 const GRAD = 'linear-gradient(135deg, #F97316, #DC2626)'
 
 export default function SessionLockScreen() {
   const { isLocked, unlockSession } = useAppStore()
 
   const hasPasskey = !!localStorage.getItem(PASSKEY_KEY)
-  const hasPin     = !!localStorage.getItem(PIN_HASH_KEY)
+  const pinSet     = hasPin()
   const initMode   = hasPasskey ? 'fingerprint' : 'pin'
 
   const [mode,   setMode]   = useState(initMode)
@@ -32,7 +32,7 @@ export default function SessionLockScreen() {
       setPhase('success')
       setTimeout(() => { unlockSession(); setPhase('idle') }, 600)
     } catch (e) {
-      if (e.name === 'NotAllowedError' && hasPin) { setMode('pin'); setPhase('idle') }
+      if (e.name === 'NotAllowedError' && pinSet) { setMode('pin'); setPhase('idle') }
       else { setPhase('idle'); setFpErr('فشل التحقق — حاول مجدداً') }
     }
   }
@@ -49,8 +49,16 @@ export default function SessionLockScreen() {
       await verifyPinLocal(candidate)
       setPhase('success')
       setTimeout(() => { unlockSession(); setPhase('idle'); setPin('') }, 600)
-    } catch {
-      setPinErr('PIN غير صحيح'); setPin('')
+    } catch (e) {
+      if (e.message?.includes('PIN_LOCKED')) {
+        // محاولات كثيرة → أُلغي الـ PIN: أنهِ الجلسة لإجبار دخول كامل بالباسورد
+        setPinErr('محاولات كثيرة — سجّل الدخول من جديد')
+        setPin('')
+        await supabase.auth.signOut().catch(() => {})
+        unlockSession()
+      } else {
+        setPinErr('PIN غير صحيح'); setPin('')
+      }
     }
   }
 
@@ -83,7 +91,7 @@ export default function SessionLockScreen() {
       </div>
 
       {/* Mode tabs */}
-      {hasPasskey && hasPin && (
+      {hasPasskey && pinSet && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 24, width: '100%', maxWidth: 320 }}>
           {[{ id: 'fingerprint', label: 'بصمة' }, { id: 'pin', label: 'PIN' }].map(t => (
             <button key={t.id} onClick={() => { setMode(t.id); setPin(''); setPinErr(''); setFpErr('') }}

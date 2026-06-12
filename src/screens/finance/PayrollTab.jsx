@@ -29,13 +29,18 @@ function firstOfMonth() {
 }
 
 // ─── Print slip ───────────────────────────────────────────────────────────────
+// هروب HTML لأي نص من إدخال المستخدم/العامل قبل حقنه في نافذة الطباعة (منع XSS)
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+))
+
 function printSlip(slip, bizName) {
   const win = window.open('', '_blank')
   win.document.write(`
     <html dir="rtl">
     <head>
       <meta charset="utf-8"/>
-      <title>قسيمة راتب — ${slip.worker_name}</title>
+      <title>قسيمة راتب — ${esc(slip.worker_name)}</title>
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; padding: 32px; background: #fff; color: #111; }
@@ -53,18 +58,18 @@ function printSlip(slip, bizName) {
     </head>
     <body>
       <h1>قسيمة راتب</h1>
-      <div class="sub">${bizName} &nbsp;·&nbsp; ${fmtDate(slip.period_start)} — ${fmtDate(slip.period_end)}</div>
+      <div class="sub">${esc(bizName)} &nbsp;·&nbsp; ${fmtDate(slip.period_start)} — ${fmtDate(slip.period_end)}</div>
       <div class="card">
-        <div class="row"><span class="label">اسم العامل</span><span class="val">${slip.worker_name}</span></div>
-        ${slip.worker_spec ? `<div class="row"><span class="label">التخصص</span><span class="val">${slip.worker_spec}</span></div>` : ''}
+        <div class="row"><span class="label">اسم العامل</span><span class="val">${esc(slip.worker_name)}</span></div>
+        ${slip.worker_spec ? `<div class="row"><span class="label">التخصص</span><span class="val">${esc(slip.worker_spec)}</span></div>` : ''}
         ${slip.worker_daily_rate > 0 ? `<div class="row"><span class="label">أجر اليوم</span><span class="val">₪${fmt(slip.worker_daily_rate)}</span></div>` : ''}
         <div class="row"><span class="label">أيام العمل</span><span class="val">${slip.work_days_count}</span></div>
         <div class="row"><span class="label">الراتب الأساسي</span><span class="val">₪${fmt(slip.base_salary)}</span></div>
         ${slip.advances_paid > 0 ? `<div class="row"><span class="label">سلف مخصومة</span><span class="val" style="color:#ef4444">−₪${fmt(slip.advances_paid)}</span></div>` : ''}
-        ${slip.deductions > 0 ? `<div class="row"><span class="label">خصومات${slip.deduction_note ? ' (' + slip.deduction_note + ')' : ''}</span><span class="val" style="color:#ef4444">−₪${fmt(slip.deductions)}</span></div>` : ''}
+        ${slip.deductions > 0 ? `<div class="row"><span class="label">خصومات${slip.deduction_note ? ' (' + esc(slip.deduction_note) + ')' : ''}</span><span class="val" style="color:#ef4444">−₪${fmt(slip.deductions)}</span></div>` : ''}
       </div>
       <div class="net"><span>صافي الراتب</span><span>₪${fmt(slip.net_pay)}</span></div>
-      ${slip.notes ? `<div style="margin-top:12px;font-size:12px;color:#555;">ملاحظة: ${slip.notes}</div>` : ''}
+      ${slip.notes ? `<div style="margin-top:12px;font-size:12px;color:#555;">ملاحظة: ${esc(slip.notes)}</div>` : ''}
       ${slip.paid_at ? `<div style="margin-top:8px;font-size:12px;color:#22c55e;font-weight:700;">✓ تم الصرف بتاريخ ${fmtDate(slip.paid_at)}</div>` : ''}
       <div class="footer">تم الإنشاء بواسطة Contractor Pro &nbsp;·&nbsp; ${new Date().toLocaleDateString('ar')}</div>
     </body>

@@ -11,9 +11,8 @@ import { C, GRAD } from '../../constants/index.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { teamMemberSignIn as _teamSignIn } from '../../hooks/useTeam.js'
 import { useAuth } from '../../hooks/useAuth.js'
+import { hasPin as hasPinStored } from '../../lib/pinCrypto.js'
 import { navigate } from '../../Router.jsx'
-
-const PIN_HASH_KEY = 'cpro_pin_hash'
 
 const LANGS = [
   { code: 'ar', label: 'العربية', dir: 'rtl' },
@@ -65,7 +64,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
   const [pinPhase, setPinPhase] = useState('idle')
 
   const hasPasskey = hasPasskeyRegistered()
-  const hasPin     = !!localStorage.getItem(PIN_HASH_KEY)
+  const hasPin     = hasPinStored()
   const hasQuick   = hasPasskey || hasPin
 
   // Redirect if already authenticated
@@ -121,6 +120,9 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     } catch (e) {
       if (e.message?.includes('SESSION_EXPIRED')) {
         setError(language === 'en' ? 'Session expired — sign in with password once.' : 'انتهت الجلسة — سجّل الدخول بالباسورد مرة واحدة.')
+        setOwnerEntry('password')
+      } else if (e.message?.includes('PIN_LOCKED')) {
+        setError(language === 'en' ? 'Too many attempts — PIN cleared. Sign in with password.' : 'محاولات كثيرة — أُلغي الـ PIN. سجّل الدخول بالباسورد.')
         setOwnerEntry('password')
       } else {
         setPinPhase('error')

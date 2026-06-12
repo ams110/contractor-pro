@@ -49,6 +49,7 @@ serve(async (req) => {
       .select('challenge')
       .eq('employee_id', storedCred.employee_id)
       .eq('type', 'authentication')
+      .gt('expires_at', new Date().toISOString())
       .single()
 
     if (!ch) return json({ error: 'انتهت صلاحية التحقق، أعد المحاولة' }, 400)
