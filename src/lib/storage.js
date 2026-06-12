@@ -51,6 +51,19 @@ export async function refreshSignedUrl(storedUrl, ttl = SIGNED_URL_TTL) {
   return data?.signedUrl || storedUrl
 }
 
+/**
+ * افتح إيصالاً مخزّناً في تبويب جديد بعد توقيعه طازجاً.
+ * يعالج الروابط العامّة القديمة (الدلاء صارت خاصّة) والروابط الموقّعة المنتهية.
+ */
+export async function openSignedUrl(storedUrl) {
+  if (!storedUrl) return
+  // افتح التبويب فوراً (قبل await) حتى لا يحجبه مانع النوافذ المنبثقة
+  const win = window.open('', '_blank', 'noopener')
+  const url = await refreshSignedUrl(storedUrl)
+  if (win) win.location = url
+  else window.open(url, '_blank', 'noopener')
+}
+
 export async function uploadReceipt(userId, file) {
   const compressed = await compressImage(file)
   const ext  = compressed.type === 'image/jpeg' ? 'jpg' : (file.name.split('.').pop() || 'jpg')

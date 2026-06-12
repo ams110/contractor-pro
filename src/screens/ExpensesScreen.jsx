@@ -5,7 +5,8 @@ import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../constants/i
 import { fmt, fmtDate, todayStr, validateExpense } from '../lib/helpers.js'
 import { GlassCard, Modal, Input, Btn, FilterChip, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
-import { uploadReceipt } from '../lib/storage.js'
+import { uploadReceipt, openSignedUrl } from '../lib/storage.js'
+import { SignedImg } from '../hooks/useSignedUrl.jsx'
 import { supabase } from '../lib/supabase.js'
 import { useBusinessStore } from '../store/useBusinessStore.js'
 
@@ -202,12 +203,12 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                   </div>
                   {ex.receipt_url && (
                     <div style={{ marginBottom:10 }}>
-                      {ex.receipt_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                        <a href={ex.receipt_url} target="_blank" rel="noreferrer">
-                          <img src={ex.receipt_url} alt="فاتورة" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:10, border:`1px solid ${C.border}` }} />
+                      {ex.receipt_url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i) ? (
+                        <a href={ex.receipt_url} target="_blank" rel="noreferrer" onClick={e => { e.preventDefault(); openSignedUrl(ex.receipt_url) }} style={{ cursor:'zoom-in' }}>
+                          <SignedImg src={ex.receipt_url} alt="فاتورة" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:10, border:`1px solid ${C.border}` }} />
                         </a>
                       ) : (
-                        <a href={ex.receipt_url} target="_blank" rel="noreferrer"
+                        <a href={ex.receipt_url} target="_blank" rel="noreferrer" onClick={e => { e.preventDefault(); openSignedUrl(ex.receipt_url) }}
                           style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:`${C.border}33`, borderRadius:10, textDecoration:'none' }}>
                           <Paperclip size={16} strokeWidth={1.8} style={{ color: C.primary }} />
                           <span style={{ fontSize:12, color:C.primary, fontWeight:600 }}>عرض الفاتورة (PDF)</span>
@@ -311,7 +312,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                     <div style={{ fontSize:16, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(ex.amount)}₪</div>
                     <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                       {ex.receipt_url && (
-                        <a href={ex.receipt_url} target="_blank" rel="noreferrer" style={{ textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:8, background:`${C.secondary}18`, border:`1px solid ${C.secondary}33`, color:C.secondary }} title="عرض الفاتورة"><Paperclip size={12} strokeWidth={2} /></a>
+                        <a href={ex.receipt_url} target="_blank" rel="noreferrer" onClick={e => { e.preventDefault(); openSignedUrl(ex.receipt_url) }} style={{ textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:8, background:`${C.secondary}18`, border:`1px solid ${C.secondary}33`, color:C.secondary }} title="عرض الفاتورة"><Paperclip size={12} strokeWidth={2} /></a>
                       )}
                       <button onClick={() => setConfirmDel(ex.id)}
                         style={{ background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:8, padding:'4px 8px', cursor:'pointer', display:'flex', alignItems:'center', color:C.accent, fontFamily:'inherit' }}><Trash2 size={12} strokeWidth={2} /></button>

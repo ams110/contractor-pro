@@ -21,7 +21,7 @@ import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { C, GRAD, EXP_CATS, EXP_CAT_VAT, PAY_METHODS, VAT } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr, validateExpense, validatePayment } from '../../lib/helpers.js'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../../lib/calculations.js'
-import { uploadReceipt } from '../../lib/storage.js'
+import { uploadReceipt, openSignedUrl } from '../../lib/storage.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 
@@ -453,7 +453,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 <span style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>-₪{fmt(exp.amount || 0)}</span>
                 {exp.receipt_url && (
-                  <a href={exp.receipt_url} target="_blank" rel="noreferrer"
+                  <a href={exp.receipt_url} target="_blank" rel="noreferrer" onClick={e => { e.preventDefault(); openSignedUrl(exp.receipt_url) }}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 8, background: `${C.primary}18`, border: `1px solid ${C.primary}33`, color: C.primary, flexShrink: 0, textDecoration: 'none' }}>
                     <Paperclip size={12} strokeWidth={2} />
                   </a>
@@ -866,7 +866,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
                       </div>
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.secondary, flexShrink: 0 }}>₪{fmt(pay.amount || 0)}</span>
                       {pay.receipt_url && (
-                        <a href={pay.receipt_url} target="_blank" rel="noreferrer"
+                        <a href={pay.receipt_url} target="_blank" rel="noreferrer" onClick={e => { e.preventDefault(); openSignedUrl(pay.receipt_url) }}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: `${C.secondary}18`, border: `1px solid ${C.secondary}33`, color: C.secondary, flexShrink: 0, textDecoration: 'none' }}>
                           <Paperclip size={10} strokeWidth={2} />
                         </a>

@@ -6,7 +6,7 @@ import { fmt, fmtDate, todayStr, validatePayment } from '../lib/helpers.js'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../lib/calculations.js'
 import { GlassCard, Modal, Input, Btn, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
-import { uploadReceipt } from '../lib/storage.js'
+import { uploadReceipt, openSignedUrl } from '../lib/storage.js'
 import { openWhatsApp, waMessages } from '../lib/whatsapp.js'
 
 function fmtMonth(ym) {
@@ -285,7 +285,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                         <div style={{ fontSize:16, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmtA(p.amount)}</div>
                         {p.receipt_url && (
-                          <a href={p.receipt_url} target="_blank" rel="noreferrer" style={{ textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:8, background:`${C.secondary}18`, border:`1px solid ${C.secondary}33`, color:C.secondary }}>
+                          <a href={p.receipt_url} target="_blank" rel="noreferrer" onClick={e => { e.preventDefault(); openSignedUrl(p.receipt_url) }} style={{ textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:8, background:`${C.secondary}18`, border:`1px solid ${C.secondary}33`, color:C.secondary }}>
                             <Paperclip size={12} strokeWidth={2} />
                           </a>
                         )}

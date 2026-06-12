@@ -11,6 +11,7 @@ import { fmt, fmtDate } from '../../lib/helpers.js'
 import { supabase } from '../../lib/supabase.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { openSignedUrl } from '../../lib/storage.js'
 import { AddExpenseSheet } from '../../components/sheets/index.js'
 import ReceiptCard from '../../components/ReceiptCard.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
@@ -111,7 +112,7 @@ function EntryRow({ entry, showVat, projectName, onDelete }) {
       subtitle={note}
       amount={entry.amount}
       chips={chips}
-      onView={entry.receipt_url ? () => window.open(entry.receipt_url, '_blank', 'noopener') : undefined}
+      onView={entry.receipt_url ? () => openSignedUrl(entry.receipt_url) : undefined}
       actions={actions}
     >
       {showVat && (
