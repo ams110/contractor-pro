@@ -1,0 +1,139 @@
+name: Build Android (TWA)
+
+# Manual-only: the app is a PWA wrapped as a Trusted Web Activity (TWA) via
+# Bubblewrap. Content/feature updates reach users live through the website and do
+# NOT need a new build. Run this workflow only when the native shell changes
+# (icon, name, package id, splash, theme, notifications, minSdk) or for a fresh
+# Play Store release. It produces a signed AAB + APK as downloadable artifacts;
+# it does NOT publish to Google Play (you upload the AAB to Play Console yourself).
+#
+# Required repo secrets:
+#   ANDROID_KEYSTORE_BASE64    base64 of the upload keystore (alias "upload")
+#   ANDROID_KEYSTORE_PASSWORD  keystore password
+#   ANDROID_KEY_PASSWORD       key password
+# Create the base64 with:  base64 -w0 android-upload.keystore  (Linux)
+#                          base64 -i android-upload.keystore   (macOS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: 'Version name shown on Play (e.g. 1.0.2)'
+        required: true
+        default: '1.0.2'
+      versionCode:
+        description: 'Play version code (integer, must increase each upload). Empty = auto from run number.'
+        required: false
+        default: ''
+      publish:
+        description: 'Upload the AAB to Google Play automatically?'
+        type: boolean
+        required: false
+        default: false
+      track:
+        description: 'Play track to publish to (only used when publish = true).'
+        type: choice
+        required: false
+        default: internal
+        options: [internal, alpha, beta, production]
+      status:
+        description: 'Release status. draft = staged in Play (you press publish); completed = goes live on the track.'
+        type: choice
+        required: false
+        default: draft
+        options: [draft, completed]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses >/dev/null 2>&1 || true
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Point Bubblewrap at the installed JDK + Android SDK
+        run: |
+          mkdir -p "$HOME/.bubblewrap"
+          printf '{ "jdkPath": "%s", "androidSdkPath": "%s" }\n' \
+            "$JAVA_HOME" "$ANDROID_SDK_ROOT" > "$HOME/.bubblewrap/config.json"
+
+      - name: Decode signing keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::Missing secret ANDROID_KEYSTORE_BASE64 (upload keystore)"; exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/android-upload.keystore
+
+      - name: Apply version name + code to twa-manifest.json
+        working-directory: android
+        run: |
+          VNAME="${{ inputs.versionName }}"
+          VCODE="${{ inputs.versionCode }}"
+          if [ -z "$VCODE" ]; then VCODE=$((100 + ${{ github.run_number }})); fi
+          tmp=$(mktemp)
+          jq --arg n "$VNAME" --argjson c "$VCODE" \
+            '.appVersionName=$n | .appVersion=$n | .appVersionCode=$c' \
+            twa-manifest.json > "$tmp" && mv "$tmp" twa-manifest.json
+          echo "Building versionName=$VNAME versionCode=$VCODE"
+
+      - name: Build signed AAB + APK
+        working-directory: android
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: bubblewrap build --skipPwaValidation
+
+      - name: Upload AAB + APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: contractor-pro-android
+          path: |
+            android/app-release-bundle.aab
+            android/app-release-signed.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      # Optional: push the AAB straight to Google Play. Runs only when the
+      # `publish` input is checked. Needs the GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+      # secret (a Play Console service-account key with "Release manager" access).
+      - name: Guard — publish requested but secret missing
+        if: ${{ inputs.publish }}
+        env:
+          SA_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$SA_JSON" ]; then
+            echo "::error::publish=true but secret GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is not set"; exit 1
+          fi
+
+      - name: Publish to Google Play
+        if: ${{ inputs.publish }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: services.linko.app
+          releaseFiles: android/app-release-bundle.aab
+          track: ${{ inputs.track }}
+          status: ${{ inputs.status }}
