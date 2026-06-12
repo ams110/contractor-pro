@@ -14,7 +14,7 @@
   "enableNotifications": true,
   "startUrl": "/app",
   "iconUrl": "https://app.linko.services/pwa-512.png",
-  "maskableIconUrl": "https://app.linko.services/pwa-maskable-512.png",
+  "maskableIconUrl": "https://app.linko.services/pwa-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./android-upload.keystore",
