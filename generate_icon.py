@@ -75,6 +75,35 @@ def make_svg(size):
 </svg>"""
     return svg
 
+def make_maskable_svg(size):
+    # Android "maskable" icon: the launcher crops it to its own shape (circle,
+    # squircle, teardrop...), so the gradient must be FULL-BLEED (edge to edge,
+    # no rounded corners) and all content must sit inside the central "safe zone"
+    # — a circle of 80% diameter. We center the HardHat at ~52% of the icon so it
+    # never clips under any mask. Same Lucide geometry as make_svg (single source).
+    r = size
+    hat = r * 0.52            # smaller than make_svg → stays inside the safe circle
+    pad = (r - hat) / 2
+    scale = hat / 24
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg"
+     width="{r}" height="{r}" viewBox="0 0 {r} {r}">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#DC2626"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed gradient, NO rounded corners (launcher applies the mask) -->
+  <rect width="{r}" height="{r}" fill="url(#bg)"/>
+  <g transform="translate({pad:.2f},{pad:.2f}) scale({scale:.4f})"
+     fill="none" stroke="white" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round">
+    {HARDHAT_INNER}
+  </g>
+</svg>"""
+    return svg
+
+
 def make_badge_svg(size):
     # Notification badge — Android tints by alpha and shrinks to ~24dp, so the
     # standard Lucide HardHat outline reads as an unrecognizable blob there.
@@ -107,9 +136,25 @@ def save_favicon(path):
 
 if __name__ == "__main__":
     out = "/home/user/contractor-pro/public"
-    save(512, os.path.join(out, "pwa-512.png"))
-    save(192, os.path.join(out, "pwa-192.png"))
-    save(180, os.path.join(out, "apple-touch-icon.png"))
-    save(96,  os.path.join(out, "badge-96.png"), make_badge_svg)
+
+    # --- Regular icons (rounded squircle, purpose "any") — rendered natively from
+    #     vector at every size, so all are pixel-crisp (no upscaling). ---
+    save(1024, os.path.join(out, "icon-1024.png"))   # App Store / Play Store listing
+    save(512,  os.path.join(out, "pwa-512.png"))     # PWA + Play Store
+    save(384,  os.path.join(out, "pwa-384.png"))     # PWA
+    save(192,  os.path.join(out, "pwa-192.png"))     # PWA
+    save(180,  os.path.join(out, "apple-touch-icon.png"))  # iOS home screen
+    save(167,  os.path.join(out, "icon-167.png"))    # iPad Pro
+    save(152,  os.path.join(out, "icon-152.png"))    # iPad
+    save(120,  os.path.join(out, "icon-120.png"))    # iPhone
+
+    # --- Maskable icons (full-bleed, safe-zone hat) for Android adaptive icons ---
+    save(512, os.path.join(out, "maskable-512.png"), make_maskable_svg)
+    save(192, os.path.join(out, "maskable-192.png"), make_maskable_svg)
+
+    # --- Notification badge (custom solid silhouette, legible at ~24dp) ---
+    save(96, os.path.join(out, "badge-96.png"), make_badge_svg)
+
+    # --- Browser favicon (multi-res .ico) ---
     save_favicon(os.path.join(out, "favicon.ico"))
     print("Done!")
