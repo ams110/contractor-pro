@@ -44,6 +44,7 @@ serve(async (req) => {
       .select('challenge')
       .eq('user_id', user.id)
       .eq('type', 'registration')
+      .gt('expires_at', new Date().toISOString())
       .single()
 
     if (!ch) return json({ error: 'انتهت صلاحية التحقق، أعد المحاولة' }, 400)

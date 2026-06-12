@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Fingerprint, X, ShieldCheck, AlertCircle, User, Lock, Delete } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore.js'
 import { runBiometricAuth, verifyPinLocal } from '../hooks/useBiometricConfirm.js'
+import { hasPin } from '../lib/pinCrypto.js'
 import { C } from '../constants/index.js'
 
-const PASSKEY_KEY  = 'cpro_passkey_cred'
-const PIN_HASH_KEY = 'cpro_pin_hash'
+const PASSKEY_KEY = 'cpro_passkey_cred'
 
 const ACTION_LABELS = {
   projects:  'تأكيد عملية مشروع',
@@ -22,7 +22,7 @@ const GRAD = 'linear-gradient(135deg, #F97316, #DC2626)'
 
 function getInitialMode() {
   if (localStorage.getItem(PASSKEY_KEY)) return 'fingerprint'
-  if (localStorage.getItem(PIN_HASH_KEY)) return 'pin'
+  if (hasPin()) return 'pin'
   return 'none'
 }
 
@@ -49,7 +49,7 @@ export default function BiometricConfirmModal() {
   if (!bioPending) return null
 
   const hasPasskey = !!localStorage.getItem(PASSKEY_KEY)
-  const hasPin     = !!localStorage.getItem(PIN_HASH_KEY)
+  const pinSet     = hasPin()
 
   const actionLabel = ACTION_LABELS[bioPending.tbl] || 'تأكيد عملية'
 
@@ -67,7 +67,7 @@ export default function BiometricConfirmModal() {
     } catch (e) {
       if (e.name === 'NotAllowedError') {
         // user cancelled the system dialog — switch to PIN if available
-        if (hasPin) {
+        if (pinSet) {
           setMode('pin')
           setPhase('idle')
         } else {
@@ -105,7 +105,10 @@ export default function BiometricConfirmModal() {
         setPin('')
       }, 700)
     } catch (e) {
-      if (e.message === 'WRONG_PIN') {
+      if (e.message === 'PIN_LOCKED') {
+        setPinErr('محاولات كثيرة — أُلغي الـ PIN، استعمل البصمة أو سجّل الدخول من جديد')
+        setPin('')
+      } else if (e.message === 'WRONG_PIN') {
         setPinErr('رقم PIN غير صحيح')
         setPin('')
       }
@@ -208,7 +211,7 @@ export default function BiometricConfirmModal() {
             </div>
 
             {/* Mode tabs — only if both methods available */}
-            {hasPasskey && hasPin && mode !== 'none' && (
+            {hasPasskey && pinSet && mode !== 'none' && (
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 {[
                   { id: 'fingerprint', label: 'بصمة', icon: <Fingerprint size={13} /> },
@@ -274,7 +277,7 @@ export default function BiometricConfirmModal() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: C.accent, fontSize: 12, marginBottom: 8 }}>
                         <AlertCircle size={13} />{errMsg}
                       </div>
-                      {hasPin && (
+                      {pinSet && (
                         <button
                           onClick={() => { setMode('pin'); setPhase('idle'); setErrMsg('') }}
                           style={{ width: '100%', padding: '10px', borderRadius: 12, background: `${C.primary}12`, border: `1px solid ${C.primary}30`, color: C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}

@@ -519,7 +519,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
     let receiptUrl = ''
     setUploading(true)
     try {
-      receiptUrl = await uploadWorkerReceipt(worker.id, receiptFile)
+      receiptUrl = await uploadWorkerReceipt(worker.id, worker.token, receiptFile)
     } catch (e) {
       setSubmitErr('فشل رفع الفاتورة: ' + e.message)
       setUploading(false)

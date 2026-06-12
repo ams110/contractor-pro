@@ -8,7 +8,7 @@ const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_KEY      = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const SEND_PUSH_SECRET  = Deno.env.get('SEND_PUSH_SECRET') ?? ''
 
-webpush.setVapidDetails('mailto:admin@contractorpro.app', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+webpush.setVapidDetails('mailto:support@linko.services', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } })
 

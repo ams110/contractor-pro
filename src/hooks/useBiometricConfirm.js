@@ -1,15 +1,14 @@
 import { supabase } from '../lib/supabase.js'
 import { useAppStore } from '../store/useAppStore.js'
+import { hasPin, verifyPin } from '../lib/pinCrypto.js'
 
-const PASSKEY_KEY   = 'cpro_passkey_cred'
-const PIN_HASH_KEY  = 'cpro_pin_hash'
-const PIN_EMAIL_KEY = 'cpro_pin_email'
+const PASSKEY_KEY = 'cpro_passkey_cred'
 
 export function useBiometricConfirm() {
   const { requestBioConfirm } = useAppStore()
 
   function isPasskeyRegistered() { return !!localStorage.getItem(PASSKEY_KEY) }
-  function isPinSet()            { return !!localStorage.getItem(PIN_HASH_KEY) }
+  function isPinSet()            { return hasPin() }
   function hasAnyMethod()        { return isPasskeyRegistered() || isPinSet() }
 
   async function confirm(description, tbl = 'unknown') {
@@ -72,13 +71,8 @@ export async function runBiometricAuth() {
   }
 }
 
-// التحقق من PIN محلياً (بدون sign-in كامل)
+// التحقق من PIN محلياً (بدون sign-in كامل) — عبر فكّ تشفير الحمولة (auth tag).
+// يرفع WRONG_PIN عند الخطأ، وPIN_LOCKED بعد تجاوز حدّ المحاولات (مع مسح البيانات).
 export async function verifyPinLocal(pin) {
-  const stored = localStorage.getItem(PIN_HASH_KEY)
-  const email  = localStorage.getItem(PIN_EMAIL_KEY)
-  if (!stored || !email) throw new Error('NO_PIN')
-
-  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin + email))
-  const hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
-  if (hash !== stored) throw new Error('WRONG_PIN')
+  await verifyPin(pin)
 }
