@@ -13,7 +13,7 @@ import { resolve } from 'node:path'
 const env = (k, d) => process.env[k] ?? d
 const BASE  = env('BASE', 'http://localhost:3000')
 const EMAIL = env('EMAIL', 'demo.reel@contractorpro.app')
-const PASS  = env('PASS', 'DemoReel2026!')
+const PASS  = env('PASS')   // مرّرها عبر البيئة: PASS=... node scripts/live-shots.mjs (لا تُكتب بالكود)
 const DPR   = Number(env('DPR', 3))
 const OUT   = resolve(process.cwd(), env('OUT', 'live'))
 const WORKER = env('WORKER', 'يوسف العبد')
@@ -21,6 +21,7 @@ const WORKER = env('WORKER', 'يوسف العبد')
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
 async function main() {
+  if (!PASS) { console.error('❌ مرّر كلمة السر عبر البيئة: PASS=... node scripts/live-shots.mjs'); process.exit(1) }
   await mkdir(OUT, { recursive: true })
 
   const channel = env('CHANNEL', 'chrome')

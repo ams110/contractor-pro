@@ -499,7 +499,6 @@ export default function WorkersScreen({
   teamMembers = [], addMember, updateMember, removeMember, blockMember,
   resetMemberPassword, getActivity, teamLoadError, reloadTeam,
   payMethods = [], profile, appCfg,
-  initialWorkerId,                                    // اختياري: يفتح تفصيل عامل مباشرةً (للديمو/اللقطات)
 }) {
   const { t } = useTranslation()
   const { language } = useAppStore()
@@ -511,9 +510,7 @@ export default function WorkersScreen({
   const [specFilter, setSpecFilter] = useState('all')
   const [showAdd, setShowAdd] = useState(false)
   const [showLimit, setShowLimit] = useState(false)   // نافذة تجاوز حدّ خطة Starter
-  const [selected, setSelected] = useState(
-    initialWorkerId ? employees.find(e => e.id === initialWorkerId) ?? null : null
-  )
+  const [selected, setSelected] = useState(null)
 
   const portalEnabled = useHasFeature('pro')          // بوّابة العامل ميزة خطة Pro
 
