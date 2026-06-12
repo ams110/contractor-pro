@@ -25,10 +25,17 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null)
+        setLoading(false)
+      })
+      // لو فشل جلب الجلسة (شبكة/تعذّر Supabase) لا نترك التطبيق عالقاً على
+      // شاشة البداية للأبد — نوقف التحميل ونعرض شاشة الدخول.
+      .catch(() => {
+        setUser(null)
+        setLoading(false)
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
