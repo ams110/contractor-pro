@@ -377,7 +377,7 @@ function Block({ b, start }) {
 // ═══════════════════════════════════════════════════════════════════════════
 //  الموبايل (إطار + شاشة)
 // ═══════════════════════════════════════════════════════════════════════════
-function Phone({ screen = 'dashboard', focus, scale = 1, children }) {
+function Phone({ screen = 'dashboard', focus, scale = 1 }) {
   const SCREEN_H = 668, BAR_H = 30
   const src = `/demoshot?screen=${screen}${focus ? `&focus=${encodeURIComponent(focus)}` : ''}`
   return (
@@ -396,11 +396,9 @@ function Phone({ screen = 'dashboard', focus, scale = 1, children }) {
               <span style={{ width: 16, height: 9, border: `1.4px solid ${C.text}`, borderRadius: 3, position: 'relative', display: 'inline-block' }}><span style={{ position: 'absolute', inset: 1.4, width: '70%', background: C.success, borderRadius: 1 }} /></span>
             </span>
           </div>
-          {/* محتوى الشاشة — بلوكات الفكرة المخصّصة (مطابِقة للهيرو) أو iframe الشاشة الحقيقية */}
-          {children
-            ? <div style={{ width: 350, height: SCREEN_H - BAR_H, overflow: 'hidden', background: C.bg, padding: '6px 13px 0' }}>{children}</div>
-            : <iframe title={screen} src={src} scrolling="no"
-                style={{ display: 'block', width: 350, height: SCREEN_H - BAR_H, border: 0, background: C.bg }} />}
+          {/* الشاشة الحقيقية عبر iframe */}
+          <iframe title={screen} src={src} scrolling="no"
+            style={{ display: 'block', width: 350, height: SCREEN_H - BAR_H, border: 0, background: C.bg }} />
           {/* تلاشي سفلي — يوحي بقابلية السكرول مثل التطبيق */}
           <div aria-hidden style={{ position: 'absolute', insetInline: 0, bottom: 0, height: 80, background: `linear-gradient(to top, ${C.bg}, transparent)`, pointerEvents: 'none' }} />
         </div>
@@ -528,11 +526,54 @@ const IDEAS = [
     blocks: [{ type: 'header', title: 'Contractor Pro' }, { type: 'grid' }] },
 ]
 
-function Poster({ idea, size }) {
+// ─── خريطة كل فكرة → شاشة حقيقية من التطبيق (تُعرض داخل الموبايل عبر iframe) ──
+// الشاشات الشغّالة بلا باكند: dashboard · workdays · workers · projects · expenses · payments
+const SCREEN_MAP = [
+  { s: 'dashboard' },                      // 0  لوحة التحكم
+  { s: 'dashboard', f: 'التوقّع' },        // 1  التوقّع الذكي
+  { s: 'projects' },                        // 2  كاش بجيبك (إيرادات/ربح)
+  { s: 'workers' },                         // 3  مستحقّات العمّال
+  { s: 'dashboard', f: 'تقادم' },          // 4  رادار التحصيل
+  { s: 'projects' },                        // 5  ربحية المشاريع
+  { s: 'expenses' },                        // 6  מע"מ تلقائي
+  { s: 'dashboard', f: 'مدرج' },           // 7  كل الضرائب
+  { s: 'dashboard', f: 'مدرج' },           // 8  ضريبة الدخل
+  { s: 'dashboard', f: 'مدرج' },           // 9  مدرج الضريبة
+  { s: 'expenses' },                        // 10 مسح الإيصال OCR
+  { s: 'workers' },                         // 11 بوّابة العامل
+  { s: 'workdays' },                        // 12 أيام العمل
+  { s: 'payments' },                        // 13 الرواتب
+  { s: 'payments' },                        // 14 السلف
+  { s: 'workers', f: 'لوحة شرف' },         // 15 بصمة العامل
+  { s: 'dashboard', f: 'الذمّة' },         // 16 الذمّة الصافية
+  { s: 'dashboard' },                       // 17 مركز القيادة
+  { s: 'projects' },                        // 18 صحّة المشروع
+  { s: 'expenses' },                        // 19 كشف الشذوذ
+  { s: 'workers' },                         // 20 الفريق
+  { s: 'expenses' },                        // 21 البضاعة (مواد)
+  { s: 'projects' },                        // 22 تتبّع الوحدات
+  { s: 'projects' },                        // 23 التقارير
+  { s: 'workers' },                         // 24 واتساب
+  { s: 'dashboard' },                       // 25 الأمان
+  { s: 'workdays' },                        // 26 بلا نت
+  { s: 'dashboard' },                       // 27 متعدّد المصالح
+  { s: 'dashboard', f: 'جاهزية' },         // 28 جاهزية الحساب
+  { s: 'dashboard' },                       // 29 كل شي بمكان واحد
+  { s: 'dashboard' },                       // 30 بطّل دفتر الورق
+  { s: 'dashboard', f: 'مدرج' },           // 31 وفّر على المحاسب
+  { s: 'dashboard' },                       // 32 نام وانت مرتاح
+  { s: 'expenses' },                        // 33 ولا فاتورة تضيع
+  { s: 'projects' },                        // 34 ربحك الحقيقي
+  { s: 'dashboard', f: 'مدرج' },           // 35 موسم التقارير
+  { s: 'workers' },                         // 36 بلا خلافات مع عمّالك
+  { s: 'dashboard' },                       // 37 جرّب مجاناً
+]
+function Poster({ idea, ideaIndex, size }) {
   const { w, h } = SIZES[size] || SIZES.portrait
   const [start, setStart] = useState(false)
   useEffect(() => { const t = setTimeout(() => setStart(true), 120); return () => clearTimeout(t) }, [])
   const t = TONE[idea.tone] || TONE.brand
+  const map = SCREEN_MAP[ideaIndex] || { s: 'dashboard' }
 
   // مقياس الموبايل حسب المساحة المتاحة
   const phoneScale = size === 'story' ? 1.16 : size === 'square' ? 0.82 : 1.0
@@ -574,9 +615,7 @@ function Poster({ idea, size }) {
       {/* الموبايل — flex:1 + overflow hidden: ينقص بأناقة ويبقى الفوتر ظاهراً */}
       <motion.div initial={{ opacity: 0, y: 36, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
         style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', alignItems: size === 'story' ? 'center' : 'flex-start', justifyContent: 'center', marginTop: size === 'square' ? 24 : 40, width: '100%' }}>
-        <Phone scale={phoneScale}>
-          {idea.blocks.map((b, i) => <Block key={i} b={b} start={start} />)}
-        </Phone>
+        <Phone screen={map.s} focus={map.f} scale={phoneScale} />
       </motion.div>
 
       {/* الشريط السفلي */}
@@ -625,7 +664,7 @@ export default function AdStudio() {
   if (ideaParam === null) return <Index />
   const i = Number(ideaParam)
   const idea = IDEAS[i] || IDEAS[0]
-  return <Poster idea={idea} size={size} />
+  return <Poster idea={idea} ideaIndex={i} size={size} />
 }
 
 export { IDEAS, SIZES }
