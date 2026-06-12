@@ -1,52 +1,76 @@
 #!/usr/bin/env python3
-"""Generate PWA icons — HardHat on orange-red gradient (matches landing page logo)"""
+"""Generate PWA icons — HardHat on orange-red gradient (matches landing page logo).
 
-import cairosvg, os
+ROOT FIX: the HardHat shape is read at build time from the SAME source the app
+renders (lucide-react in node_modules), instead of being hand-copied here. That
+makes the icon always identical to the landing-page logo, and it auto-tracks any
+future Lucide redesign on regeneration — no silent drift, no stale custom paths.
+"""
+
+import cairosvg, os, re
+
+# Source of truth: the icon node array shipped by lucide-react (same package the
+# app imports `HardHat` from). We parse `__iconNode` so the SVG geometry can never
+# diverge from what <HardHat/> draws in LandingPage.jsx.
+LUCIDE_HARDHAT = os.path.join(
+    os.path.dirname(__file__),
+    "node_modules/lucide-react/dist/esm/icons/hard-hat.mjs",
+)
+
+
+def load_hardhat_inner():
+    """Return the inner SVG markup of the Lucide HardHat (paths + rect), as a
+    string in 24-unit space, by parsing lucide-react's __iconNode array."""
+    with open(LUCIDE_HARDHAT, encoding="utf-8") as fh:
+        src = fh.read()
+    parts = []
+    # Each element looks like:  ["tag", { attr: "value", ... }]
+    for tag, body in re.findall(r'\[\s*"(\w+)"\s*,\s*\{([^}]*)\}\s*\]', src):
+        attrs = dict(re.findall(r'(\w+)\s*:\s*"([^"]*)"', body))
+        attrs.pop("key", None)  # presentational only in React
+        attr_str = " ".join(f'{k}="{v}"' for k, v in attrs.items())
+        parts.append(f"<{tag} {attr_str}/>")
+    if not parts:
+        raise RuntimeError(f"Could not parse HardHat icon node from {LUCIDE_HARDHAT}")
+    return "\n    ".join(parts)
+
+
+# Cached once; identical for every size.
+HARDHAT_INNER = load_hardhat_inner()
+
 
 def make_svg(size):
-    # Logo exact spec from LandingPage.jsx:
-    #   background: linear-gradient(135deg, #F97316, #DC2626)
-    #   borderRadius: 13px (scaled to icon size)
-    #   HardHat lucide icon, white, strokeWidth 2.5, centered
-
+    # Logo spec mirrored from LandingPage.jsx hero logo:
+    #   background : linear-gradient(135deg, #F97316, #DC2626)  (GRAD.brand)
+    #   box 76 / borderRadius 24      → corner ≈ 0.316 * size
+    #   HardHat 36 centered, white, strokeWidth 2.2, stroke scales with the icon
     r = size  # viewBox size
-    corner = round(r * 0.20)  # border-radius proportional to 13/64 ≈ 20%
+    corner = round(r * 0.316)            # 24/76 — matches landing logo roundness
 
-    # Scale the HardHat path from 24-unit space to icon space
-    scale = r / 24
-    sw = max(1.5, 2.5 * scale)   # stroke-width scaled
+    # Hat fills 36 of the 76 box (lucide size 36, viewBox 24) → centered
+    hat = r * 36 / 76
+    pad = (r - hat) / 2
+    scale = hat / 24
 
     grad_id = "bg"
 
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg"
-     xmlns:xlink="http://www.w3.org/1999/xlink"
      width="{r}" height="{r}" viewBox="0 0 {r} {r}">
   <defs>
     <linearGradient id="{grad_id}" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%"   stop-color="#F97316"/>
       <stop offset="100%" stop-color="#DC2626"/>
     </linearGradient>
-    <clipPath id="clip">
-      <rect width="{r}" height="{r}" rx="{corner}" ry="{corner}"/>
-    </clipPath>
   </defs>
 
-  <!-- Gradient background -->
+  <!-- Gradient background (GRAD.brand) -->
   <rect width="{r}" height="{r}" rx="{corner}" ry="{corner}" fill="url(#{grad_id})"/>
 
-  <!-- HardHat icon (Lucide), centered, scaled from 24-unit space -->
-  <!-- Padding: 18% each side → icon area starts at 0.18*r, size 0.64*r -->
-  <g transform="translate({r*0.18:.1f},{r*0.18:.1f}) scale({r*0.64/24:.4f})"
-     fill="none" stroke="white" stroke-width="2.5"
+  <!-- HardHat icon — geometry sourced live from lucide-react (see load_hardhat_inner) -->
+  <g transform="translate({pad:.2f},{pad:.2f}) scale({scale:.4f})"
+     fill="none" stroke="white" stroke-width="2.2"
      stroke-linecap="round" stroke-linejoin="round">
-    <!-- Bottom brim -->
-    <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2H2z"/>
-    <!-- Dome -->
-    <path d="M20 15a1 1 0 0 0 1-1v-4a8 8 0 1 0-16 0v4a1 1 0 0 0 1 1z"/>
-    <!-- Vent lines -->
-    <path d="M9 15v1"/>
-    <path d="M15 15v1"/>
-    <path d="M12 15v2"/>
+    {HARDHAT_INNER}
   </g>
 </svg>"""
     return svg
