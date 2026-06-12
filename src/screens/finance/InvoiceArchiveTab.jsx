@@ -9,7 +9,8 @@ import { C, GRAD, EXP_CATS } from '../../constants/index.js'
 import { HolographicSheen } from '../../ui/Premium.jsx'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { supabase } from '../../lib/supabase.js'
-import { uploadReceipt } from '../../lib/storage.js'
+import { uploadReceipt, openSignedUrl } from '../../lib/storage.js'
+import { SignedImg } from '../../hooks/useSignedUrl.jsx'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
@@ -123,7 +124,7 @@ function DocCard({ it, projectName, onToggleSent, onDelete, onPreview }) {
           }}
         >
           {hasFile && !isPdf(it.fileUrl) ? (
-            <img src={it.fileUrl} alt="doc"
+            <SignedImg src={it.fileUrl} alt="doc"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
           ) : null}
@@ -258,7 +259,7 @@ function PreviewModal({ it, onClose }) {
             </div>
           ) : (
             <>
-              <img src={it.fileUrl} alt="preview"
+              <SignedImg src={it.fileUrl} alt="preview"
                 style={{ width: '100%', borderRadius: 16, maxHeight: '75dvh', objectFit: 'contain' }}
                 onError={e => e.target.src = ''} />
               <div style={{ background: 'rgba(0,0,0,0.6)', borderRadius: '0 0 16px 16px', padding: '10px 14px', marginTop: -4 }}>
@@ -269,7 +270,7 @@ function PreviewModal({ it, onClose }) {
               </div>
             </>
           )}
-          <a href={it.fileUrl} target="_blank" rel="noreferrer"
+          <a href={it.fileUrl} target="_blank" rel="noreferrer" onClick={e => { e.preventDefault(); openSignedUrl(it.fileUrl) }}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, padding: '10px', background: `${C.primary}20`, border: `1px solid ${C.primary}40`, borderRadius: 12, color: C.primary, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
             <Download size={14} /> {isPdf(it.fileUrl) ? 'فتح ملف PDF' : 'تحميل الصورة'}
           </a>

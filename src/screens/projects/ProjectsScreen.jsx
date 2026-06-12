@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { PremiumCard, IconChip, PremiumStat } from '../../ui/Premium.jsx'
-import { uploadReceipt } from '../../lib/storage.js'
+import { uploadReceipt, openSignedUrl } from '../../lib/storage.js'
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr, isPaymentOverdue } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
@@ -891,7 +891,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                       </button>
                     )}
                     {r.receipt_url && (
-                      <a href={r.receipt_url} target="_blank" rel="noreferrer"
+                      <a href={r.receipt_url} target="_blank" rel="noreferrer" onClick={e => { e.preventDefault(); openSignedUrl(r.receipt_url) }}
                         style={{ width: 30, height: 30, borderRadius: 9, background: `${C.primary}18`, border: `1px solid ${C.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary, textDecoration: 'none', flexShrink: 0 }}>
                         <Paperclip size={13} strokeWidth={2} />
                       </a>
