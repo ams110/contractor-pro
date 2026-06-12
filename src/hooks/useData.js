@@ -92,13 +92,18 @@ export function useProjects(userId) {
 
   // حذف المشروع مع كل بياناته المالية المرتبطة نهائياً
   async function deleteProjectWithAll(id) {
-    await Promise.all([
+    // نحذف بيانات الأبناء أولاً ونتحقّق من نتيجة كل عملية — عميل Supabase لا يرمي
+    // على خطأ DB بل يرجّع {error}، فلو لم نفحصه نكمل ونحذف المشروع رغم فشل الحذف
+    // (يترك صفوفاً يتيمة بصمت). نوقف ونبلّغ بدل المتابعة.
+    const results = await Promise.all([
       supabase.from('work_days').delete().eq('project_id', id).eq('user_id', userId),
       supabase.from('expenses').delete().eq('project_id', id).eq('user_id', userId),
       supabase.from('payments').delete().eq('project_id', id).eq('user_id', userId),
       supabase.from('advances').delete().eq('project_id', id).eq('user_id', userId),
       supabase.from('client_receipts').delete().eq('project_id', id).eq('user_id', userId),
     ])
+    const failed = results.find((r) => r.error)
+    if (failed) throw failed.error
     const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
@@ -116,6 +121,7 @@ export function useEmployees(userId) {
     if (error) throw error
     if (!inserted?.id) throw new Error('فشل إنشاء العامل — حاول مجدداً')
     await refetch()
+    return inserted  // يُرجع العامل المُنشأ (مع الـ ID) لمن يحتاجه — مطابقة لـ addProject
   }
 
   async function updateEmployee(id, form) {
