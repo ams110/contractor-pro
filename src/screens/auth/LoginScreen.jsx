@@ -190,7 +190,9 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
 
   // ── Shared input style ─────────────────────────────────────────────────────
   const inputStyle = {
-    width: '100%', padding: '11px 13px 11px 38px',
+    width: '100%',
+    // مساحة الأيقونة (insetInlineStart) لازم تتبع الاتجاه: يسار في LTR، يمين في RTL
+    padding: dir === 'rtl' ? '11px 38px 11px 13px' : '11px 13px 11px 38px',
     background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
     color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none',
     direction: 'ltr', textAlign: dir === 'rtl' ? 'right' : 'left',
@@ -321,7 +323,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
                       <input
                         type={regShowPass ? 'text' : 'password'} value={regPass} onChange={e => setRegPass(e.target.value)}
                         placeholder="••••••••"
-                        style={{ ...inputStyle, padding: '11px 40px 11px 38px' }}
+                        style={{ ...inputStyle, padding: dir === 'rtl' ? '11px 38px 11px 40px' : '11px 40px 11px 38px' }}
                         required
                       />
                       <button type="button" onClick={() => setRegShowPass(v => !v)}
@@ -470,7 +472,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
                           <Lock size={15} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                           <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
                             placeholder="••••••••"
-                            style={{ ...inputStyle, padding: '11px 40px 11px 38px' }} required />
+                            style={{ ...inputStyle, padding: dir === 'rtl' ? '11px 38px 11px 40px' : '11px 40px 11px 38px' }} required />
                           <button type="button" onClick={() => setShowPass(v => !v)}
                             style={{ position: 'absolute', insetInlineEnd: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex', alignItems: 'center' }}>
                             {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -534,7 +536,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
                     <div style={{ position: 'relative' }}>
                       <input type={showPass ? 'text' : 'password'} value={teamPass} onChange={e => setTeamPass(e.target.value)}
                         placeholder="••••••••"
-                        style={{ width: '100%', padding: '11px 40px 11px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', direction: 'ltr' }}
+                        style={{ width: '100%', padding: dir === 'rtl' ? '11px 13px 11px 40px' : '11px 40px 11px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', direction: 'ltr' }}
                         required />
                       <button type="button" onClick={() => setShowPass(v => !v)}
                         style={{ position: 'absolute', insetInlineEnd: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim }}>
