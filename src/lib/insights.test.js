@@ -22,6 +22,11 @@ describe('clamp', () => {
     expect(clamp(-20)).toBe(0)
     expect(clamp(63)).toBe(63)
   })
+  it('يعيد الحدّ الأدنى عند NaN/قيمة غير منتهية بدل تمرير NaN', () => {
+    expect(clamp(NaN)).toBe(0)
+    expect(clamp(Infinity)).toBe(100)
+    expect(clamp(NaN, 5, 90)).toBe(5)
+  })
 })
 
 describe('gradeFor', () => {

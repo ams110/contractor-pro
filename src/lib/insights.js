@@ -5,7 +5,9 @@
 import { fmt, isPaymentOverdue } from './helpers.js'
 import { calcProjectStats, calcOwnerCash, calcEarned, calcMustahaq } from './calculations.js'
 
-export const clamp = (n, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n))
+// NaN لا يُقصَر بـ Math.max/min (يبقى NaN ويكسر الواجهة) — نعيده للحدّ الأدنى.
+// أمّا ±Infinity فيُقصَر صحيحاً عبر Math، فلا نحتاج معالجته.
+export const clamp = (n, lo = 0, hi = 100) => (Number.isNaN(n) ? lo : Math.max(lo, Math.min(hi, n)))
 
 // ─── دوال العوامل (كل واحدة تُرجع 0–100) ─────────────────────────────────────────
 
