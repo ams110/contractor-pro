@@ -22,36 +22,52 @@ export const useBusinessStore = create(
       activeBusiness:   null,   // ← state حقيقي (مش getter) يُحدَّث صراحةً
       loading:          false,
       initialized:      false,
+      error:            null,   // ← آخر خطأ تحميل (لتمييز «فشل» عن «فارغ فعلاً»)
 
       // ─── Load all businesses for current user ─────────────────────────
-      async load() {
+      // مهم: نفرّق بين «حُمِّل بنجاح وعدد المصالح صفر» (مستخدم جديد → onboarding)
+      // و«فشل التحميل» (شبكة/جلسة). في حالة الفشل لا نعتبر النتيجة فارغة، بل
+      // نعيد المحاولة ونرفع `error` كي لا تُعرض شاشة «أنشئ أول مصلحة» خطأً لمالك
+      // عنده مصالح أصلاً.
+      async load({ retries = 3 } = {}) {
         set({ loading: true })
-        try {
-          const { data, error } = await supabase
-            .from('businesses')
-            .select('*')
-            .order('sort_order', { ascending: true })
-            .order('created_at', { ascending: true })
+        let lastErr = null
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            const { data, error } = await supabase
+              .from('businesses')
+              .select('*')
+              .order('sort_order', { ascending: true })
+              .order('created_at', { ascending: true })
 
-          if (error) throw error
+            if (error) throw error
 
-          const { activeBusinessId } = get()
-          const validId = data?.find(b => b.id === activeBusinessId)
-            ? activeBusinessId
-            : (data?.[0]?.id ?? null)
+            const { activeBusinessId } = get()
+            const validId = data?.find(b => b.id === activeBusinessId)
+              ? activeBusinessId
+              : (data?.[0]?.id ?? null)
 
-          set({
-            businesses:       data ?? [],
-            activeBusinessId: validId,
-            activeBusiness:   computeActive(data ?? [], validId),
-            initialized:      true,
-          })
-        } catch (e) {
-          console.error('useBusinessStore.load:', e)
-          set({ initialized: true })
-        } finally {
-          set({ loading: false })
+            set({
+              businesses:       data ?? [],
+              activeBusinessId: validId,
+              activeBusiness:   computeActive(data ?? [], validId),
+              initialized:      true,
+              error:            null,
+              loading:          false,
+            })
+            return
+          } catch (e) {
+            lastErr = e
+            if (attempt < retries) {
+              // backoff تصاعدي خفيف قبل إعادة المحاولة
+              await new Promise(r => setTimeout(r, 400 * (attempt + 1)))
+            }
+          }
         }
+        // فشل نهائي بعد كل المحاولات: لا نلمس `businesses` (نبقيها كما هي)
+        // ونرفع الخطأ كي يعرض التطبيق شاشة إعادة محاولة بدل onboarding.
+        console.error('useBusinessStore.load:', lastErr)
+        set({ initialized: true, error: lastErr, loading: false })
       },
 
       // ─── Switch active business ────────────────────────────────────────
