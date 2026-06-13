@@ -28,6 +28,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
   // مصدر واحد لنوع المصلحة — business store (لكل مصلحة على حدة)
   const businessType = useBusinessStore(s => s.activeBusiness?.business_type) || 'osek_patur'
   const showVAT = businessType !== 'osek_patur' && showVatExpenses
+  const showAmounts = permissions?.viewAmounts !== false   // إخفاء المبالغ عن عضو فريق مقيّد
   const [showForm,    setShowForm]    = useState(false)
   const [filter,      setFilter]      = useState('الكل')
   const [search,      setSearch]      = useState('')
@@ -156,23 +157,23 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
               <>
                 <div style={{ textAlign:'center' }}>
                   <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>شامل الضريبة</div>
-                  <div style={{ fontSize:22, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(total)}₪</div>
+                  <div style={{ fontSize:22, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{showAmounts ? `${fmt(total)}₪` : '•••'}</div>
                 </div>
                 <div style={{ width:1, background:C.border }} />
                 <div style={{ textAlign:'center' }}>
                   <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>{'صافي بدون مع"מ'}</div>
-                  <div style={{ fontSize:22, fontWeight:900, color:C.text, fontFamily:'monospace' }}>{fmt(noVAT)}₪</div>
+                  <div style={{ fontSize:22, fontWeight:900, color:C.text, fontFamily:'monospace' }}>{showAmounts ? `${fmt(noVAT)}₪` : '•••'}</div>
                 </div>
                 <div style={{ width:1, background:C.border }} />
                 <div style={{ textAlign:'center' }}>
                   <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>{'מס תשומות'}</div>
-                  <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace' }}>{fmt(totalVATIn)}₪</div>
+                  <div style={{ fontSize:22, fontWeight:900, color:C.warning, fontFamily:'monospace' }}>{showAmounts ? `${fmt(totalVATIn)}₪` : '•••'}</div>
                 </div>
               </>
             ) : (
               <div style={{ textAlign:'center', width:'100%' }}>
                 <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>إجمالي المصاريف</div>
-                <div style={{ fontSize:26, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(total)}₪</div>
+                <div style={{ fontSize:26, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{showAmounts ? `${fmt(total)}₪` : '•••'}</div>
               </div>
             )}
           </div>
@@ -199,7 +200,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
                       {worker && <div style={{ fontSize:11, color:C.primary, fontWeight:600, marginTop:2, display:'flex', alignItems:'center', gap:4 }}><HardHat size={11} strokeWidth={2} /> {worker.name}</div>}
                       <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{ex.vendor || ''}{proj ? ` • ${proj.name}` : ''} • {fmtDate(ex.date)}</div>
                     </div>
-                    <div style={{ fontSize:18, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(ex.amount)}₪</div>
+                    <div style={{ fontSize:18, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{showAmounts ? `${fmt(ex.amount)}₪` : '•••'}</div>
                   </div>
                   {ex.receipt_url && (
                     <div style={{ marginBottom:10 }}>
@@ -309,7 +310,7 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
 
                   {/* المبلغ + أدوات */}
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
-                    <div style={{ fontSize:16, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{fmt(ex.amount)}₪</div>
+                    <div style={{ fontSize:16, fontWeight:900, color:C.accent, fontFamily:'monospace' }}>{showAmounts ? `${fmt(ex.amount)}₪` : '•••'}</div>
                     <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                       {ex.receipt_url && (
                         <a href={ex.receipt_url} target="_blank" rel="noreferrer" onClick={e => { e.preventDefault(); openSignedUrl(ex.receipt_url) }} style={{ textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:8, background:`${C.secondary}18`, border:`1px solid ${C.secondary}33`, color:C.secondary }} title="عرض الفاتورة"><Paperclip size={12} strokeWidth={2} /></a>
