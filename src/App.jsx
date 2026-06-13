@@ -7,7 +7,7 @@ import {
   Bell, ClipboardCheck, HardHat, Gift,
   Clock, ShieldOff, Lock, CalendarDays, CreditCard, Banknote,
   ClipboardList, Package, Calculator, Activity, Grid3x3,
-  Search,
+  Search, AlertTriangle, RefreshCw,
 } from 'lucide-react'
 
 import { supabase }            from './lib/supabase.js'
@@ -321,7 +321,7 @@ function OwnerApp() {
   const uid = user?.id
 
   // ─── Business onboarding ──────────────────────────────────────────────────
-  const { businesses, initialized: bizInit, load: loadBiz } = useBusinessStore()
+  const { businesses, initialized: bizInit, loading: bizLoading, error: bizError, load: loadBiz } = useBusinessStore()
   useEffect(() => { if (uid) loadBiz() }, [uid]) // eslint-disable-line
 
   const { teamMembers, permissions, effectiveOwnerId, allowedProjectIds, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
@@ -543,8 +543,33 @@ function OwnerApp() {
     : NAV.find(n => n.id === screen) ? screen
     : 'dashboard'
 
+  // ─── فشل تحميل المصالح: لا نعرض «أنشئ أول مصلحة» (قد يكون للمالك مصالح أصلاً)
+  // بل شاشة إعادة محاولة. هذا يمنع ظهور onboarding خطأً عند عطل شبكة/جلسة.
+  if (uid && bizInit && bizError && businesses.length === 0 && permissions?.isOwner !== false) {
+    return (
+      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", padding: 32, textAlign: 'center' }}>
+        <style>{globalCSS}</style>
+        <div style={{ width: 72, height: 72, borderRadius: 24, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <AlertTriangle size={36} color={C.warning} strokeWidth={1.5} />
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 8 }}>تعذّر تحميل المصالح</div>
+        <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7, maxWidth: 300, marginBottom: 28 }}>
+          حدث خطأ أثناء جلب بياناتك. بياناتك محفوظة — تحقّق من الاتصال وأعد المحاولة.
+        </div>
+        <button onClick={() => loadBiz()} disabled={bizLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 32px', borderRadius: 16, background: GRAD.primary, border: 'none', color: '#000', fontSize: 15, fontWeight: 800, cursor: bizLoading ? 'wait' : 'pointer', opacity: bizLoading ? 0.7 : 1, boxShadow: '0 8px 28px rgba(245,158,11,0.4)', fontFamily: 'inherit' }}>
+          <RefreshCw size={18} strokeWidth={2.2} style={bizLoading ? { animation: 'spin 1s linear infinite' } : undefined} />
+          {bizLoading ? 'جارٍ المحاولة…' : 'إعادة المحاولة'}
+        </button>
+        <button onClick={() => supabase.auth.signOut()} style={{ marginTop: 14, padding: '10px 24px', borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+          تسجيل الخروج
+        </button>
+      </div>
+    )
+  }
+
   // ─── First-time setup: إذا المستخدم مسجّل دخول بس ما عنده مصالح → اعرض الإعداد الإجباري
-  if (uid && bizInit && businesses.length === 0 && permissions?.isOwner !== false) {
+  // شرط: التحميل اكتمل بنجاح (bizInit) بلا خطأ وبلا تحميل جارٍ — أي «فارغ فعلاً» مش «فشل».
+  if (uid && bizInit && !bizLoading && !bizError && businesses.length === 0 && permissions?.isOwner !== false) {
     return (
       <>
         <style>{globalCSS}</style>
