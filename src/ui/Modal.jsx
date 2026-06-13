@@ -2,11 +2,15 @@ import React, { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export function Modal({ open, onClose, title, children, action, size = 'md', style = {} }) {
+  const titleId = React.useId()
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden'
     else      document.body.style.overflow = ''
-    return () => { document.body.style.overflow = '' }
-  }, [open])
+    // إغلاق بمفتاح Escape (وصول لوحة المفاتيح)
+    const onKey = (e) => { if (e.key === 'Escape' && open) onClose?.() }
+    if (open) window.addEventListener('keydown', onKey)
+    return () => { document.body.style.overflow = ''; window.removeEventListener('keydown', onKey) }
+  }, [open, onClose])
 
   const maxW = size === 'sm' ? 340 : size === 'lg' ? 480 : 400
 
@@ -34,6 +38,9 @@ export function Modal({ open, onClose, title, children, action, size = 'md', sty
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
             onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title ? titleId : undefined}
             style={{
               background: '#0D0F18',
               border: '1px solid rgba(245,158,11,0.12)',
@@ -54,7 +61,7 @@ export function Modal({ open, onClose, title, children, action, size = 'md', sty
 
             {title && (
               <div style={{ padding: '10px 20px 14px', borderBottom: '1px solid rgba(245,158,11,0.08)', flexShrink: 0 }}>
-                <h2 style={{ fontSize: 16, fontWeight: 800, color: '#F8FAFC', margin: 0 }}>{title}</h2>
+                <h2 id={titleId} style={{ fontSize: 16, fontWeight: 800, color: '#F8FAFC', margin: 0 }}>{title}</h2>
               </div>
             )}
 
