@@ -466,7 +466,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
 
               <button onClick={() => setConfirmDel(false)} disabled={deleting}
                 style={{ width: '100%', padding: '11px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {language === 'en' ? 'Cancel' : 'إلغاء'}
+                {language === 'en' ? 'Cancel' : language === 'he' ? 'ביטול' : 'إلغاء'}
               </button>
             </motion.div>
           </motion.div>
@@ -1040,8 +1040,8 @@ export default function ProjectsScreen({
               background: showArchived ? `${C.secondary}1e` : C.card, border: `1px solid ${showArchived ? C.secondary + '55' : C.border}`, color: showArchived ? C.secondary : C.textDim }}>
             <Archive size={13} strokeWidth={2.2} />
             {showArchived
-              ? (language === 'en' ? 'Show active' : 'إظهار النشطة')
-              : `${language === 'en' ? 'Archive' : 'الأرشيف'} (${archivedCount})`}
+              ? (language === 'en' ? 'Show active' : language === 'he' ? 'הצג פעילים' : 'إظهار النشطة')
+              : `${language === 'en' ? 'Archive' : language === 'he' ? 'ארכיון' : 'الأرشيف'} (${archivedCount})`}
           </button>
         </div>
       )}
