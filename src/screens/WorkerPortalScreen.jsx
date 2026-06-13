@@ -1260,20 +1260,24 @@ export default function WorkerPortalScreen() {
 
   const pendingExpenses = workerExpenses.filter(e => e.status === 'pending')
 
+  const canWorkday    = worker.can_submit_workday  !== false
   const canExpense    = worker.can_submit_expenses !== false
+  const canMaterials  = worker.can_log_materials   !== false
   const canSalary     = worker.can_request_payment !== false
   const canBlueprints = worker.can_view_blueprints === true
 
   const tabs = [
-    { id: 'submit',     label: 'يوم',    Icon: CalendarPlus },
+    ...(canWorkday     ? [{ id: 'submit',     label: 'يوم',    Icon: CalendarPlus }] : []),
     ...(canExpense     ? [{ id: 'expense',    label: 'مصروف', Icon: Receipt }] : []),
-    { id: 'materials',  label: 'بضاعة',  Icon: Package },
+    ...(canMaterials   ? [{ id: 'materials',  label: 'بضاعة',  Icon: Package }] : []),
     ...(canSalary      ? [{ id: 'salary',     label: 'راتب',  Icon: Wallet }] : []),
     ...(canSalary      ? [{ id: 'advance',    label: 'سلفة',  Icon: HandCoins }] : []),
     { id: 'monthly',    label: 'شهري',   Icon: CalendarDays },
     ...(canBlueprints  ? [{ id: 'blueprints', label: 'خرائط', Icon: MapIcon }] : []),
     { id: 'account',    label: 'حساب',   Icon: Settings },
   ]
+  // التبويب الفعّال: لو التبويب الحالي مُخفىً (صلاحية موقوفة) ارجع لأول تبويب متاح
+  const activeTab = tabs.some(t => t.id === tab) ? tab : (tabs[0]?.id || 'monthly')
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
@@ -1291,10 +1295,10 @@ export default function WorkerPortalScreen() {
         />
 
         {/* Tabs */}
-        <PortalTabs tabs={tabs} tab={tab} setTab={setTab} />
+        <PortalTabs tabs={tabs} tab={activeTab} setTab={setTab} />
 
         {/* تبويب إضافة يوم */}
-        {tab === 'submit' && (
+        {activeTab === 'submit' && (
           <SubmitDayForm
             projects={projects}
             dailyRate={worker.daily_rate || 0}
@@ -1307,7 +1311,7 @@ export default function WorkerPortalScreen() {
         )}
 
         {/* تبويب إضافة مصروف */}
-        {tab === 'expense' && (
+        {activeTab === 'expense' && (
           <>
             <SubmitExpenseForm
               worker={worker}
@@ -1341,7 +1345,7 @@ export default function WorkerPortalScreen() {
         )}
 
         {/* تبويب شهري */}
-        {tab === 'monthly' && (
+        {activeTab === 'monthly' && (
           <>
             {/* أيام معلقة */}
             {pendingDays.length > 0 && (
@@ -1385,7 +1389,7 @@ export default function WorkerPortalScreen() {
         )}
 
         {/* تبويب طلب راتب */}
-        {tab === 'salary' && (
+        {activeTab === 'salary' && (
           <RequestPaymentForm
             worker={worker}
             onRequest={requestPayment}
@@ -1395,22 +1399,22 @@ export default function WorkerPortalScreen() {
         )}
 
         {/* تبويب طلب سلفة */}
-        {tab === 'advance' && (
+        {activeTab === 'advance' && (
           <RequestAdvanceForm onRequest={requestAdvance} />
         )}
 
         {/* تبويب البضاعة */}
-        {tab === 'materials' && (
+        {activeTab === 'materials' && (
           <SubmitMaterialForm worker={worker} projects={projects} />
         )}
 
         {/* تبويب خرائط المشاريع */}
-        {tab === 'blueprints' && (
+        {activeTab === 'blueprints' && (
           <BlueprintsTab projects={projects} />
         )}
 
         {/* تبويب الحساب وتغيير كلمة المرور */}
-        {tab === 'account' && (
+        {activeTab === 'account' && (
           <>
             <PasskeyCard supported={passkeySupported} enabled={hasPasskey}
               onRegister={registerPasskey} onRemove={removePasskey} />
@@ -1419,7 +1423,7 @@ export default function WorkerPortalScreen() {
         )}
 
         {/* تبويب المدفوعات */}
-        {tab === 'payments' && (
+        {activeTab === 'payments' && (
           <>
             {payments.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim }}>
