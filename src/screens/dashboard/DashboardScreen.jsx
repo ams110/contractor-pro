@@ -7,7 +7,7 @@ import {
 import {
   TrendingUp, TrendingDown, Building2, Users, Wallet,
   AlertTriangle, Trophy, Clock, ChevronLeft,
-  DollarSign, CreditCard, BarChart3, Crown, Sparkles,
+  DollarSign, CreditCard, BarChart3, Crown, Sparkles, Lock,
 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { fmt, isPaymentOverdue } from '../../lib/helpers.js'
@@ -359,6 +359,7 @@ export default function DashboardScreen({
   }), [projects, employees, workDays, expenses, payments, advances, clientReceipts, monthKey, permissions?.isOwner])
 
   const hasData = projects.length > 0 || employees.length > 0
+  const showAmounts = permissions?.viewAmounts !== false   // عضو فريق بلا صلاحية «مشاهدة المبالغ» → تُخفى الأرقام المالية
   const cashPositive = stats.cashOnHand >= 0
   const cashAccent = cashPositive ? C.success : C.accent
 
@@ -378,6 +379,14 @@ export default function DashboardScreen({
         {permissions?.isOwner && <PlanBadge lang={language} />}
       </motion.div>
 
+      {!showAmounts && (
+        <div style={{ marginBottom: 12, padding: '12px 14px', borderRadius: 14, background: `${C.secondary}10`, border: `1px solid ${C.secondary}28`, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Lock size={16} color={C.secondary} />
+          <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>الأرقام المالية مخفيّة عن حسابك — تواصل مع صاحب العمل.</div>
+        </div>
+      )}
+
+      {showAmounts && (<>
       {/* ─── مركز القيادة الذكي ─── */}
       {hasData && <CommandCenter cc={commandCenter} onNav={onNav} />}
 
@@ -449,6 +458,7 @@ export default function DashboardScreen({
       <div style={{ marginBottom: 12 }}>
         <PerformanceCard data={stats.monthlyData} totals={stats.periodTotals} lang={language} delay={0.12} />
       </div>
+      </>)}
 
       {/* ─── الأرقام السريعة ─── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
@@ -481,7 +491,7 @@ export default function DashboardScreen({
       )}
 
       {/* ─── أفضل المشاريع ─── */}
-      {topProjects.length > 0 && (
+      {showAmounts && topProjects.length > 0 && (
         <div style={{ marginBottom: 12 }}>
           <PremiumShell accent={C.gold} radius={22} padding="16px 14px" delay={0.25}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
