@@ -45,6 +45,10 @@ async function verifySignature(rawBody: string, header: string): Promise<boolean
   const h1 = parts['h1']
   if (!ts || !h1) return false
 
+  // رفض الطلبات القديمة (حماية من إعادة الإرسال/replay) — مهلة ±5 دقائق
+  const tsNum = Number(ts)
+  if (!Number.isFinite(tsNum) || Math.abs(Date.now() / 1000 - tsNum) > 300) return false
+
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(WEBHOOK_SECRET),
@@ -63,7 +67,11 @@ async function verifySignature(rawBody: string, header: string): Promise<boolean
     .map(b => b.toString(16).padStart(2, '0'))
     .join('')
 
-  return computed === h1
+  // مقارنة بزمن ثابت (constant-time) لتجنّب هجمات التوقيت
+  if (computed.length !== h1.length) return false
+  let diff = 0
+  for (let i = 0; i < computed.length; i++) diff |= computed.charCodeAt(i) ^ h1.charCodeAt(i)
+  return diff === 0
 }
 
 // ─── Resolve plan name from event data ───────────────────────────────────────
