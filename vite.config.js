@@ -49,6 +49,9 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // لا نُحمّل مسبقاً مكتبات التصدير/الطباعة الثقيلة (تُستعمل عند الطلب فقط)
+        // ولا أيقونة المتجر 1024 (لا تُعرض داخل التطبيق) — يقلّل حجم الـprecache.
+        globIgnores: ['**/xlsx-*.js', '**/export-*.js', '**/html2canvas*.js', 'icon-1024.png'],
       },
     }),
   ],
