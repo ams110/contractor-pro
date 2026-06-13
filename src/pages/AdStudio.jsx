@@ -667,4 +667,4 @@ export default function AdStudio() {
   return <Poster idea={idea} ideaIndex={i} size={size} />
 }
 
-export { IDEAS, SIZES }
+export { IDEAS, SIZES, SCREEN_MAP, Phone }

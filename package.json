@@ -1,6 +1,6 @@
 {
   "name": "contractor-pro",
-  "version": "2.0.149",
+  "version": "2.0.150",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,8 @@
     "test:e2e:report": "playwright show-report",
     "preview": "vite preview",
     "demo:shots": "node scripts/demo-shots.mjs",
-    "ads:shots": "node scripts/ad-shots.mjs"
+    "ads:shots": "node scripts/ad-shots.mjs",
+    "reels:shots": "node scripts/reel-shots.mjs"
   },
   "dependencies": {
     "@paddle/paddle-js": "^1.6.4",
@@ -64,6 +65,7 @@
     "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "ffmpeg-static": "^5.3.0",
     "globals": "^17.6.0",
     "postcss": "^8.5.14",
     "tailwindcss": "^4.3.0",
