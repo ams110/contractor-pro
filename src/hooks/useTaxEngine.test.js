@@ -55,6 +55,12 @@ describe('calcWorkerDeductions', () => {
     expect(d.incomeTax).toBe(2_000)
     expect(d.bituachLeumi).toBe(0)
   })
+
+  it('israeli worker: National Insurance two-tier at 2025 rates (3.63% / 12.17%)', () => {
+    // 7,522×3.63% + (10,000−7,522)×12.17% = 273 + 302 = 575
+    const d = calcWorkerDeductions(10_000, 'israeli', 2.25)
+    expect(d.bituachLeumi).toBe(575)
+  })
 })
 
 describe('calcVATReport', () => {

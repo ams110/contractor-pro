@@ -1,7 +1,11 @@
 /**
  * useTaxEngine — محرك الضرائب الإسرائيلية 2025
  * יחס לרשות המסים: עצמאים, שכירים ישראלים, עובדים זרים, פלסטינים
+ * ملاحظة: ביטוח לאومي للعمل الحر (עצמאי) مصدره الموحّد = helpers.calcBituachLeumiAnnual.
+ * قيم 2026: سقف الدخل المؤمّن 51,910/شهر · עוסק פטור 122,833.
  */
+
+import { calcBituachLeumiAnnual } from '../lib/helpers.js'
 
 // ─── ثوابت 2025 ─────────────────────────────────────────────────────────────
 
@@ -22,10 +26,12 @@ const IT_BRACKETS_2025 = [
 ]
 
 // شرائح ביטוח לאומי شكيר (موظف) 2025
+// مخفّضة (حتى 60% من الأجر المتوسط): 0.40% + صحة 3.23% = 3.63%
+// كاملة (حتى السقف 50,695/شهر 2025): 7.00% + صحة 5.17% = 12.17% · فوق السقف: 0%
 const BL_EMP_BRACKETS = [
-  { to: 7_522,     rate: 0.035 },
-  { to: 47_465,    rate: 0.12  },
-  { to: Infinity,  rate: 0     },
+  { to: 7_522,     rate: 0.0363 },
+  { to: 50_695,    rate: 0.1217 },
+  { to: Infinity,  rate: 0      },
 ]
 
 // ─── حسابات المحور: מס הכנסה ────────────────────────────────────────────────
@@ -169,11 +175,8 @@ export function calcAnnualTaxSummary({
 
   const pensionAnnual = (pensionMonthly || 0) * 12
   const incomeTax     = calcIncomeTaxAnnual(netProfit, DEFAULT_POINTS_ISRAELI, pensionAnnual)
-  const bituachLeumi  = (() => {
-    const cap = 569_580, t1 = 90_264
-    const inc = Math.min(netProfit, cap)
-    return Math.round(Math.min(inc, t1) * 0.0982 + Math.max(0, inc - t1) * 0.1623)
-  })()
+  // مصدر موحّد لحساب ביטוח לاومي للعمل الحر (شريحتان، ثوابت 2025) — بدل نسخة inline
+  const bituachLeumi  = calcBituachLeumiAnnual(netProfit)
 
   const itPaid  = taxAdvances.filter(a => a.type === 'income_tax'    && (a.date||'').startsWith(year)).reduce((s,a) => s+a.amount, 0)
   const blPaid  = taxAdvances.filter(a => a.type === 'bituach_leumi' && (a.date||'').startsWith(year)).reduce((s,a) => s+a.amount, 0)
