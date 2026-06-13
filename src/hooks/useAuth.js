@@ -62,6 +62,8 @@ export function useAuth() {
   async function signOut() {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
+    // امسح كاش بيانات Supabase في الـSW حتى لا يرى مستخدم لاحق بيانات هذا المستخدم
+    try { navigator.serviceWorker?.controller?.postMessage({ type: 'CLEAR_SUPABASE_CACHE' }) } catch { /* noop */ }
   }
 
   // ─── Passkeys — server-side WebAuthn via edge functions ───────────────────
