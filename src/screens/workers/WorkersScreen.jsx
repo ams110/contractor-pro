@@ -6,7 +6,7 @@ import {
   TrendingUp, Phone, Star, BarChart3, CreditCard,
   Check, AlertTriangle, Trash2, ChevronRight, CalendarDays,
   Link2, Copy, CheckCheck, UserPlus, UserMinus, MessageCircle, GitCommitHorizontal,
-  Wallet, X, HardHat, Clock, Activity, Lock,
+  Wallet, X, HardHat, Clock, Activity, Lock, KeyRound, RefreshCw,
 } from 'lucide-react'
 import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
@@ -30,8 +30,19 @@ import WorkerCard from '../../components/WorkerCard.jsx'
 import PortalUpsell from '../../components/PortalUpsell.jsx'
 import WorkDayTicket from '../../components/WorkDayTicket.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
+import { setWorkerCredentials, resetWorkerPassword } from '../../hooks/useWorkerPortal.js'
 import { PremiumCard, IconChip, PremiumStat } from '../../ui/Premium.jsx'
 import QRCode from 'qrcode'
+
+// ─── توليد بيانات دخول العامل (اسم مستخدم لاتيني فريد + كلمة مرور سهلة القراءة) ───
+function genWorkerUsername(worker) {
+  const base = (worker?.name || '').toLowerCase().replace(/[^a-z]/g, '').slice(0, 8) || 'worker'
+  return `${base}${Math.floor(1000 + Math.random() * 9000)}`   // مثال: worker4821
+}
+function genWorkerPassword() {
+  const chars = 'abcdefghijkmnpqrstuvwxyz23456789'   // بلا أحرف ملتبسة (0/O/1/l)
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
 
 // ─── بصمة العامل: يبني مدخلات المحرّك من البيانات الخام ──────────────────────────
 function buildWorkerDNA(worker, { workDays, payments, advances, expenses, fleetAvgPerDay }) {
@@ -228,8 +239,43 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
     })
   }
 
-  function sharePortalWhatsApp() {
-    openWhatsApp(worker.phone, waMessages.portalInvite({ workerName: worker.name, url: PORTAL_URL }))
+  // ── بيانات دخول البوّابة (توليد تلقائي + مشاركة واتساب) ──
+  const [creds, setCreds]           = useState(null)   // {username,password} مولّدة حديثاً — تُعرض مرّة واحدة
+  const [credsBusy, setCredsBusy]   = useState(false)
+  const [credsErr, setCredsErr]     = useState('')
+  const [credsCopied, setCredsCopied] = useState(false)
+  const hasPortalAccount = !!worker.worker_username
+
+  async function activatePortal() {
+    setCredsBusy(true); setCredsErr('')
+    const password = genWorkerPassword()
+    let lastErr
+    for (let i = 0; i < 4; i++) {                       // إعادة محاولة عند تعارض اسم المستخدم
+      const username = genWorkerUsername(worker)
+      try { await setWorkerCredentials(worker.id, username, password); setCreds({ username, password }); setCredsBusy(false); return }
+      catch (e) { lastErr = e; if (!/مستخدم بالفعل/.test(e.message || '')) break }
+    }
+    setCredsErr(lastErr?.message || 'تعذّر إنشاء بيانات الدخول'); setCredsBusy(false)
+  }
+
+  async function resetPortalPassword() {
+    setCredsBusy(true); setCredsErr('')
+    const password = genWorkerPassword()
+    try { await resetWorkerPassword(worker.id, password); setCreds({ username: worker.worker_username, password }) }
+    catch (e) { setCredsErr(e.message || 'تعذّر إعادة تعيين كلمة المرور') }
+    setCredsBusy(false)
+  }
+
+  function shareCredsWhatsApp() {
+    if (!creds) return
+    openWhatsApp(worker.phone, waMessages.portalInvite({ workerName: worker.name, url: PORTAL_URL, username: creds.username, password: creds.password }))
+  }
+
+  function copyCreds() {
+    if (!creds) return
+    navigator.clipboard.writeText(`الرابط: ${PORTAL_URL}\nاسم المستخدم: ${creds.username}\nكلمة المرور: ${creds.password}`).then(() => {
+      setCredsCopied(true); setTimeout(() => setCredsCopied(false), 2000)
+    })
   }
 
   function shareStatementWhatsApp() {
@@ -350,15 +396,53 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
                 <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
                   <Link2 size={10} strokeWidth={2} /> بورتال العامل
                 </div>
+
+                {/* بيانات الدخول — توليد تلقائي ومشاركة */}
+                {creds ? (
+                  <div style={{ background: `${C.success}10`, border: `1px solid ${C.success}33`, borderRadius: 12, padding: '10px 12px', marginBottom: 10 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: C.success, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5, lineHeight: 1.5 }}>
+                      <Check size={12} strokeWidth={2.6} /> بيانات الدخول جاهزة — احفظها الآن (كلمة المرور لن تظهر مرّة ثانية)
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text, marginBottom: 4 }}>
+                      <span style={{ color: C.textDim }}>اسم المستخدم</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, direction: 'ltr' }}>{creds.username}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text, marginBottom: 10 }}>
+                      <span style={{ color: C.textDim }}>كلمة المرور</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, direction: 'ltr' }}>{creds.password}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={shareCredsWhatsApp} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '8px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        <MessageCircle size={13} strokeWidth={2} /> مشاركة عبر واتساب
+                      </button>
+                      <button onClick={copyCreds} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 10, background: credsCopied ? `${C.success}22` : `${C.primary}18`, border: `1.5px solid ${credsCopied ? C.success+'55' : C.primary+'44'}`, color: credsCopied ? C.success : C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        {credsCopied ? <CheckCheck size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />} {credsCopied ? 'تم' : 'نسخ'}
+                      </button>
+                    </div>
+                  </div>
+                ) : hasPortalAccount ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                    <div style={{ flex: 1, fontSize: 12, color: C.text, minWidth: 0 }}>
+                      <span style={{ color: C.textDim }}>اسم المستخدم: </span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, direction: 'ltr' }}>{worker.worker_username}</span>
+                    </div>
+                    <button onClick={resetPortalPassword} disabled={credsBusy} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 10, background: `${C.primary}18`, border: `1.5px solid ${C.primary}44`, color: C.primary, fontSize: 12, fontWeight: 700, cursor: credsBusy ? 'wait' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', opacity: credsBusy ? 0.6 : 1 }}>
+                      <RefreshCw size={13} strokeWidth={2} style={credsBusy ? { animation: 'spin 1s linear infinite' } : undefined} /> كلمة مرور جديدة
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={activatePortal} disabled={credsBusy} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '11px', borderRadius: 12, background: GRAD.brand, border: 'none', color: '#000', fontSize: 13, fontWeight: 800, cursor: credsBusy ? 'wait' : 'pointer', fontFamily: 'inherit', marginBottom: 10, opacity: credsBusy ? 0.7 : 1 }}>
+                    {credsBusy ? <RefreshCw size={15} strokeWidth={2.4} style={{ animation: 'spin 1s linear infinite' }} /> : <KeyRound size={15} strokeWidth={2.4} />}
+                    {credsBusy ? 'جارٍ الإنشاء…' : 'تفعيل البوّابة وإنشاء بيانات الدخول'}
+                  </button>
+                )}
+                {credsErr && <div style={{ fontSize: 11, color: C.accent, marginBottom: 8 }}>{credsErr}</div>}
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ flex: 1, fontSize: 11, color: C.textDim, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr' }}>{PORTAL_URL}</span>
-                  <button onClick={sharePortalWhatsApp} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .2s' }}>
-                    <MessageCircle size={13} strokeWidth={2} />
-                    واتساب
-                  </button>
                   <button onClick={copyPortalLink} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10, background: copied ? `${C.success}22` : `${C.primary}18`, border: `1.5px solid ${copied ? C.success+'55' : C.primary+'44'}`, color: copied ? C.success : C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all .2s' }}>
                     {copied ? <CheckCheck size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
-                    {copied ? 'تم النسخ' : 'نسخ'}
+                    {copied ? 'تم النسخ' : 'نسخ الرابط'}
                   </button>
                 </div>
               </>) : (
