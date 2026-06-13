@@ -109,7 +109,7 @@ export default function TaxRunway({ runway }) {
         </div>
       </div>
 
-      {/* العدّاد (لعוסק פטور) + الفاتورة */}
+      {/* العدّاد (لעוסק פטור) + الفاتورة */}
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
         {runway.isOsekPatur && (
           <CapGauge capPct={runway.capPct} projectedPct={runway.projectedPct} tone={runway.tone}
