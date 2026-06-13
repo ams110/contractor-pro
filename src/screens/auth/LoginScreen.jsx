@@ -97,7 +97,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
         setError(language === 'en' ? 'Session expired — sign in with password once.' : language === 'he' ? 'הפעלה פגה — היכנס עם סיסמה פעם אחת.' : 'انتهت الجلسة — سجّل الدخول بالباسورد مرة واحدة.')
         setOwnerEntry('password')
       } else if (e.name !== 'NotAllowedError') {
-        setError(e.message || 'فشل التحقق بالبصمة')
+        setError(e.message || (language === 'en' ? 'Fingerprint authentication failed' : language === 'he' ? 'אימות טביעת האצבע נכשל' : 'فشل التحقق بالبصمة'))
       }
     }
     setLoading(false)
@@ -119,10 +119,10 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
       setTimeout(() => navigate('/welcome'), 350)
     } catch (e) {
       if (e.message?.includes('SESSION_EXPIRED')) {
-        setError(language === 'en' ? 'Session expired — sign in with password once.' : 'انتهت الجلسة — سجّل الدخول بالباسورد مرة واحدة.')
+        setError(language === 'en' ? 'Session expired — sign in with password once.' : language === 'he' ? 'ההפעלה פגה — היכנס עם סיסמה פעם אחת.' : 'انتهت الجلسة — سجّل الدخول بالباسورد مرة واحدة.')
         setOwnerEntry('password')
       } else if (e.message?.includes('PIN_LOCKED')) {
-        setError(language === 'en' ? 'Too many attempts — PIN cleared. Sign in with password.' : 'محاولات كثيرة — أُلغي الـ PIN. سجّل الدخول بالباسورد.')
+        setError(language === 'en' ? 'Too many attempts — PIN cleared. Sign in with password.' : language === 'he' ? 'יותר מדי ניסיונות — ה-PIN בוטל. היכנס עם סיסמה.' : 'محاولات كثيرة — أُلغي الـ PIN. سجّل الدخول بالباسورد.')
         setOwnerEntry('password')
       } else {
         setPinPhase('error')
@@ -158,8 +158,8 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
   // ── Register ───────────────────────────────────────────────────────────────
   async function handleRegister(e) {
     e.preventDefault()
-    if (!regName.trim()) { setError(language === 'en' ? 'Full name is required' : 'الاسم مطلوب'); return }
-    if (regPass.length < 8) { setError(language === 'en' ? 'Password must be at least 8 characters' : 'كلمة المرور 8 أحرف على الأقل'); return }
+    if (!regName.trim()) { setError(language === 'en' ? 'Full name is required' : language === 'he' ? 'נדרש שם מלא' : 'الاسم مطلوب'); return }
+    if (regPass.length < 8) { setError(language === 'en' ? 'Password must be at least 8 characters' : language === 'he' ? 'הסיסמה חייבת לפחות 8 תווים' : 'كلمة المرور 8 أحرف على الأقل'); return }
     setLoading(true); setError(''); setRegInfo('')
     try {
       const { data } = await signUp(regEmail.trim(), regPass, regName.trim())
@@ -171,9 +171,9 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     } catch (err) {
       const msg = err.message || ''
       if (msg.includes('already registered') || msg.includes('User already registered')) {
-        setError(language === 'en' ? 'Email already registered — try signing in.' : 'هذا البريد مسجّل مسبقاً — جرّب تسجيل الدخول')
+        setError(language === 'en' ? 'Email already registered — try signing in.' : language === 'he' ? 'האימייל כבר רשום — נסה להיכנס' : 'هذا البريد مسجّل مسبقاً — جرّب تسجيل الدخول')
       } else {
-        setError(msg || 'فشل إنشاء الحساب')
+        setError(msg || (language === 'en' ? 'Failed to create account' : language === 'he' ? 'יצירת החשבון נכשלה' : 'فشل إنشاء الحساب'))
       }
     }
     setLoading(false)
