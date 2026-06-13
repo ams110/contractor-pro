@@ -93,8 +93,24 @@ serve(async (req) => {
 
     const newUserId = authData.user.id
 
+    // ── perms: allowlist صارم لمفاتيح الصلاحيات فقط ──────────────────────────
+    // لا ننشر perms مباشرةً: عميل خبيث قد يمرّر { owner_id: '<ضحية>' } فيتجاوز
+    // owner_id الثابت أدناه (spread لاحق يفوز) ويربط العضو بحساب ضحية = تصعيد صلاحيات.
+    const PERM_KEYS = [
+      'can_view_projects', 'can_edit_projects', 'can_view_workers', 'can_edit_workers',
+      'can_view_expenses', 'can_add_expenses', 'can_view_payments', 'can_add_payments',
+      'can_delete', 'can_manage_team', 'can_view_amounts', 'can_view_activity',
+    ] as const
+    const safePerms: Record<string, boolean> = {}
+    if (perms && typeof perms === 'object') {
+      for (const k of PERM_KEYS) {
+        if (k in (perms as Record<string, unknown>)) safePerms[k] = !!(perms as Record<string, unknown>)[k]
+      }
+    }
+
     // إضافة السجل في team_members
     const { error: dbErr } = await adminClient.from('team_members').insert({
+      ...safePerms,                          // أولاً: الحقول الموثوقة أدناه لا يمكن تجاوزها
       owner_id:     ownerId,
       member_id:    newUserId,
       display_name: displayName?.trim() || username,
@@ -104,7 +120,6 @@ serve(async (req) => {
       role:         role || 'عضو',
       status:       'active',
       expires_at:   expiresAt || null,
-      ...(perms && typeof perms === 'object' ? perms : {}),
       allowed_project_ids: (Array.isArray(allowedProjectIds) && allowedProjectIds.length > 0)
         ? allowedProjectIds : null,
     })
