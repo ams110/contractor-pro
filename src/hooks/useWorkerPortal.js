@@ -64,14 +64,19 @@ export function useWorkerPortal() {
     try {
       const session = loadSession()
       const token = session?.token || ''
-      const [dRes, pyRes, prRes, exRes, holRes, advRes] = await Promise.all([
+      const [dRes, pyRes, prRes, exRes, holRes, advRes, selfRes] = await Promise.all([
         supabase.rpc('get_worker_days',     { emp_id: empId, p_token: token }),
         supabase.rpc('get_worker_payments', { emp_id: empId, p_token: token }),
         supabase.rpc('get_worker_projects', { emp_id: empId, p_token: token }),
         supabase.rpc('get_worker_expenses', { emp_id: empId, p_token: token }),
         supabase.rpc('get_worker_holidays', { p_emp_id: empId, p_token: token }),
         supabase.rpc('get_worker_advances', { emp_id: empId, p_token: token }),
+        supabase.rpc('get_worker_self',     { emp_id: empId, p_token: token }),
       ])
+      // دمج أعلام الصلاحيات الحالية في كائن العامل (يعكس تغييرات المالك عند كل تحميل)
+      if (selfRes?.data && !selfRes.data.error) {
+        setWorker(prev => ({ ...(prev || {}), ...selfRes.data }))
+      }
       setWorkDays(dRes.data  || [])
       setPayments(pyRes.data || [])
       setProjects(prRes.data || [])

@@ -6,7 +6,7 @@ import {
   TrendingUp, Phone, Star, BarChart3, CreditCard,
   Check, AlertTriangle, Trash2, ChevronRight, CalendarDays,
   Link2, Copy, CheckCheck, UserPlus, UserMinus, MessageCircle, GitCommitHorizontal,
-  Wallet, X, HardHat, Clock, Activity, Lock, KeyRound, RefreshCw,
+  Wallet, X, HardHat, Clock, Activity, Lock, KeyRound, RefreshCw, Pencil, ShieldCheck,
 } from 'lucide-react'
 import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
@@ -198,7 +198,216 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
 // ─── Worker Detail ────────────────────────────────────────────────────────────
 const PORTAL_URL = `${window.location.origin}${window.location.pathname}?portal`
 
-function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language, appCfg, onDeleteWorker }) {
+// مفتاح تبديل صغير (RTL-safe عبر flex + layout)
+function Switch({ on, onChange, disabled = false }) {
+  return (
+    <button type="button" onClick={() => !disabled && onChange(!on)} disabled={disabled}
+      style={{ width: 44, height: 26, borderRadius: 13, border: 'none', cursor: disabled ? 'default' : 'pointer', flexShrink: 0, padding: 3, background: on ? C.success : 'rgba(255,255,255,0.14)', transition: 'background .2s', display: 'flex', justifyContent: on ? 'flex-end' : 'flex-start', opacity: disabled ? 0.5 : 1 }}>
+      <motion.div layout transition={{ type: 'spring', stiffness: 500, damping: 34 }}
+        style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff' }} />
+    </button>
+  )
+}
+
+// ─── شيت تعديل العامل الموحّد: بيانات + صلاحيات البوّابة + تفعيل/إيقاف + بيانات الدخول ───
+function EditWorkerSheet({ open, worker, onClose, onUpdate, specs = [], language }) {
+  const dir = language === 'en' ? 'ltr' : 'rtl'
+  const [form, setForm] = useState(null)
+  const [creds, setCreds] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [credsCopied, setCredsCopied] = useState(false)
+
+  useEffect(() => {
+    if (open && worker) {
+      setForm({
+        name: worker.name || '', phone: worker.phone || '', daily_rate: worker.daily_rate ?? '',
+        specialization: worker.specialization || (specs[0] || ''), id_number: worker.id_number || '', notes: worker.notes || '',
+        can_submit_workday:  worker.can_submit_workday  !== false,
+        can_submit_expenses: worker.can_submit_expenses !== false,
+        can_log_materials:   worker.can_log_materials   !== false,
+        can_request_payment: worker.can_request_payment !== false,
+        can_access_portal:   worker.can_access_portal   !== false,
+      })
+      setCreds(null); setErr('')
+    }
+  }, [open, worker?.id]) // eslint-disable-line
+
+  if (!open || !form) return null
+  const hasAccount = !!worker.worker_username
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
+
+  async function handleSave() {
+    setBusy(true); setErr('')
+    try {
+      const patch = {
+        name: form.name.trim(), phone: form.phone.trim(), daily_rate: Number(form.daily_rate) || 0,
+        specialization: form.specialization, id_number: form.id_number.trim(), notes: form.notes,
+        can_submit_workday: form.can_submit_workday, can_submit_expenses: form.can_submit_expenses,
+        can_log_materials: form.can_log_materials, can_request_payment: form.can_request_payment,
+        can_access_portal: form.can_access_portal,
+      }
+      if (!form.can_access_portal) patch.worker_session_token = null   // إيقاف الوصول يقطع جلسته الحالية
+      await onUpdate(worker.id, patch)
+      onClose()
+    } catch (e) { setErr(e.message || 'تعذّر الحفظ') }
+    setBusy(false)
+  }
+
+  async function genCreds() {
+    setBusy(true); setErr('')
+    const password = genWorkerPassword()
+    let lastErr
+    for (let i = 0; i < 4; i++) {
+      const username = genWorkerUsername(worker)
+      try { await setWorkerCredentials(worker.id, username, password); setCreds({ username, password }); setBusy(false); return }
+      catch (e) { lastErr = e; if (!/مستخدم بالفعل/.test(e.message || '')) break }
+    }
+    setErr(lastErr?.message || 'تعذّر إنشاء بيانات الدخول'); setBusy(false)
+  }
+
+  async function resetPass() {
+    setBusy(true); setErr('')
+    const password = genWorkerPassword()
+    try { await resetWorkerPassword(worker.id, password); setCreds({ username: worker.worker_username, password }) }
+    catch (e) { setErr(e.message || 'تعذّر إعادة التعيين') }
+    setBusy(false)
+  }
+
+  function shareCreds() {
+    if (!creds) return
+    openWhatsApp(form.phone || worker.phone, waMessages.portalInvite({ workerName: form.name || worker.name, url: PORTAL_URL, username: creds.username, password: creds.password }))
+  }
+  function copyCreds() {
+    if (!creds) return
+    navigator.clipboard.writeText(`الرابط: ${PORTAL_URL}\nاسم المستخدم: ${creds.username}\nكلمة المرور: ${creds.password}`).then(() => { setCredsCopied(true); setTimeout(() => setCredsCopied(false), 2000) })
+  }
+
+  const inputStyle = { width: '100%', padding: '10px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none' }
+  const labelStyle = { display: 'block', fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }
+  const sectionTitle = { fontSize: 11, fontWeight: 800, color: C.textDim, letterSpacing: '0.04em', margin: '18px 0 10px', display: 'flex', alignItems: 'center', gap: 6 }
+  const PERMS = [
+    { k: 'can_submit_workday',  label: 'تسجيل يوم عمل' },
+    { k: 'can_submit_expenses', label: 'تسجيل مصروف' },
+    { k: 'can_log_materials',   label: 'تسجيل بضاعة' },
+    { k: 'can_request_payment', label: 'طلب راتب / سلفة' },
+  ]
+
+  return (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
+        style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+          onClick={e => e.stopPropagation()} dir={dir}
+          style={{ width: '100%', maxWidth: 500, background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: '24px 24px 0 0', padding: '20px 18px 24px', marginBottom: 'max(72px, calc(66px + env(safe-area-inset-bottom, 0px)))', maxHeight: 'calc(92vh - 80px)', overflowY: 'auto' }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)', margin: '0 auto 18px' }} />
+          <div style={{ fontSize: 17, fontWeight: 900, color: C.text, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Pencil size={17} color={C.primary} strokeWidth={2.2} /> تعديل العامل
+          </div>
+
+          {/* بيانات أساسية */}
+          {[
+            { k: 'name', label: 'الاسم', type: 'text' },
+            { k: 'phone', label: 'الهاتف', type: 'tel' },
+            { k: 'daily_rate', label: 'الأجر اليومي', type: 'number' },
+            { k: 'id_number', label: 'رقم الهوية', type: 'text' },
+          ].map(({ k, label, type }) => (
+            <div key={k} style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>{label}</label>
+              <input value={form[k]} type={type} onChange={e => set(k, e.target.value)} style={inputStyle} />
+            </div>
+          ))}
+          {specs.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>التخصص</label>
+              <select value={form.specialization} onChange={e => set('specialization', e.target.value)} style={{ ...inputStyle, fontSize: 13 }}>
+                {specs.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
+          <div style={{ marginBottom: 4 }}>
+            <label style={labelStyle}>ملاحظات</label>
+            <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
+          </div>
+
+          {/* صلاحيات البوّابة */}
+          <div style={sectionTitle}><ShieldCheck size={13} strokeWidth={2.2} /> صلاحيات البوّابة</div>
+          {PERMS.map(({ k, label }) => (
+            <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{label}</span>
+              <Switch on={form[k]} onChange={v => set(k, v)} disabled={!form.can_access_portal} />
+            </div>
+          ))}
+
+          {/* تفعيل/إيقاف الوصول */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 12px', background: form.can_access_portal ? `${C.success}10` : `${C.accent}10`, border: `1px solid ${form.can_access_portal ? C.success + '33' : C.accent + '33'}`, borderRadius: 12, marginTop: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: form.can_access_portal ? C.success : C.accent }}>
+                {form.can_access_portal ? 'الوصول للبوّابة مُفعّل' : 'الوصول للبوّابة موقوف'}
+              </div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>إيقافه يمنع الدخول ويُنهي جلسته الحالية</div>
+            </div>
+            <Switch on={form.can_access_portal} onChange={v => set('can_access_portal', v)} />
+          </div>
+
+          {/* بيانات الدخول */}
+          <div style={sectionTitle}><KeyRound size={13} strokeWidth={2.2} /> بيانات الدخول</div>
+          {creds ? (
+            <div style={{ background: `${C.success}10`, border: `1px solid ${C.success}33`, borderRadius: 12, padding: '10px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: C.success, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5, lineHeight: 1.5 }}>
+                <Check size={12} strokeWidth={2.6} /> جاهزة — احفظها الآن (كلمة المرور لن تظهر مرّة ثانية)
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text, marginBottom: 4 }}>
+                <span style={{ color: C.textDim }}>اسم المستخدم</span><span style={{ fontFamily: 'monospace', fontWeight: 700, direction: 'ltr' }}>{creds.username}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text, marginBottom: 10 }}>
+                <span style={{ color: C.textDim }}>كلمة المرور</span><span style={{ fontFamily: 'monospace', fontWeight: 700, direction: 'ltr' }}>{creds.password}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={shareCreds} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '8px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <MessageCircle size={13} strokeWidth={2} /> مشاركة عبر واتساب
+                </button>
+                <button onClick={copyCreds} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 10, background: credsCopied ? `${C.success}22` : `${C.primary}18`, border: `1.5px solid ${credsCopied ? C.success + '55' : C.primary + '44'}`, color: credsCopied ? C.success : C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {credsCopied ? <CheckCheck size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />} {credsCopied ? 'تم' : 'نسخ'}
+                </button>
+              </div>
+            </div>
+          ) : hasAccount ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, fontSize: 12, color: C.text, minWidth: 0 }}>
+                <span style={{ color: C.textDim }}>اسم المستخدم: </span><span style={{ fontFamily: 'monospace', fontWeight: 700, direction: 'ltr' }}>{worker.worker_username}</span>
+              </div>
+              <button onClick={resetPass} disabled={busy} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 10, background: `${C.primary}18`, border: `1.5px solid ${C.primary}44`, color: C.primary, fontSize: 12, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', opacity: busy ? 0.6 : 1 }}>
+                <RefreshCw size={13} strokeWidth={2} style={busy ? { animation: 'spin 1s linear infinite' } : undefined} /> كلمة مرور جديدة
+              </button>
+            </div>
+          ) : (
+            <button onClick={genCreds} disabled={busy} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '11px', borderRadius: 12, background: GRAD.brand, border: 'none', color: '#000', fontSize: 13, fontWeight: 800, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: busy ? 0.7 : 1 }}>
+              {busy ? <RefreshCw size={15} strokeWidth={2.4} style={{ animation: 'spin 1s linear infinite' }} /> : <KeyRound size={15} strokeWidth={2.4} />}
+              {busy ? 'جارٍ الإنشاء…' : 'تفعيل البوّابة وإنشاء بيانات الدخول'}
+            </button>
+          )}
+
+          {err && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px', borderRadius: 12, background: `${C.accent}1F`, border: `1px solid ${C.accent}4D`, color: C.accent, fontSize: 12, marginTop: 12 }}>
+              <AlertTriangle size={14} strokeWidth={2.3} /> {err}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+            <button onClick={onClose} disabled={busy} style={{ flex: 1, padding: '12px', borderRadius: 14, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>إلغاء</button>
+            <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave} disabled={busy}
+              style={{ flex: 2, padding: '12px', borderRadius: 14, background: GRAD.premium, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 20px rgba(124,58,237,0.35)', opacity: busy ? 0.7 : 1 }}>
+              {busy ? 'جارٍ الحفظ…' : 'حفظ التغييرات'}
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
+function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, projects, expenses, onClose, addWorkDay, deleteWorkDay, approveWorkDay, rejectWorkDay, addPayment, deletePayment, addAdvance, deleteAdvance, payMethods, permissions, language, appCfg, onDeleteWorker, updateEmployee, specs }) {
   const [tab, setTab] = useState('overview')
   const [advRequests, setAdvRequests] = useState([])
   const [advProject, setAdvProject] = useState({})   // req.id → project_id (اختياري)
@@ -239,44 +448,8 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
     })
   }
 
-  // ── بيانات دخول البوّابة (توليد تلقائي + مشاركة واتساب) ──
-  const [creds, setCreds]           = useState(null)   // {username,password} مولّدة حديثاً — تُعرض مرّة واحدة
-  const [credsBusy, setCredsBusy]   = useState(false)
-  const [credsErr, setCredsErr]     = useState('')
-  const [credsCopied, setCredsCopied] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)   // شيت تعديل العامل الموحّد (بيانات + صلاحيات + بوّابة + دخول)
   const hasPortalAccount = !!worker.worker_username
-
-  async function activatePortal() {
-    setCredsBusy(true); setCredsErr('')
-    const password = genWorkerPassword()
-    let lastErr
-    for (let i = 0; i < 4; i++) {                       // إعادة محاولة عند تعارض اسم المستخدم
-      const username = genWorkerUsername(worker)
-      try { await setWorkerCredentials(worker.id, username, password); setCreds({ username, password }); setCredsBusy(false); return }
-      catch (e) { lastErr = e; if (!/مستخدم بالفعل/.test(e.message || '')) break }
-    }
-    setCredsErr(lastErr?.message || 'تعذّر إنشاء بيانات الدخول'); setCredsBusy(false)
-  }
-
-  async function resetPortalPassword() {
-    setCredsBusy(true); setCredsErr('')
-    const password = genWorkerPassword()
-    try { await resetWorkerPassword(worker.id, password); setCreds({ username: worker.worker_username, password }) }
-    catch (e) { setCredsErr(e.message || 'تعذّر إعادة تعيين كلمة المرور') }
-    setCredsBusy(false)
-  }
-
-  function shareCredsWhatsApp() {
-    if (!creds) return
-    openWhatsApp(worker.phone, waMessages.portalInvite({ workerName: worker.name, url: PORTAL_URL, username: creds.username, password: creds.password }))
-  }
-
-  function copyCreds() {
-    if (!creds) return
-    navigator.clipboard.writeText(`الرابط: ${PORTAL_URL}\nاسم المستخدم: ${creds.username}\nكلمة المرور: ${creds.password}`).then(() => {
-      setCredsCopied(true); setTimeout(() => setCredsCopied(false), 2000)
-    })
-  }
 
   function shareStatementWhatsApp() {
     openWhatsApp(worker.phone, waMessages.workerStatement({
@@ -336,6 +509,14 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
           </div>
           <div style={{ fontSize: 14, fontWeight: 900, color: balance >= 0 ? C.warning : C.success }}>₪{fmt(Math.abs(balance))}</div>
         </div>
+        {permissions?.isOwner && (
+          <button
+            onClick={() => setShowEdit(true)}
+            style={{ width: 36, height: 36, borderRadius: 11, background: `${C.primary}14`, border: `1px solid ${C.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+          >
+            <Pencil size={15} color={C.primary} />
+          </button>
+        )}
         {onDeleteWorker && permissions?.isOwner && (
           <button
             onClick={() => onDeleteWorker(worker)}
@@ -345,6 +526,10 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
           </button>
         )}
       </div>
+
+      {/* شيت التعديل الموحّد */}
+      <EditWorkerSheet open={showEdit} worker={worker} onClose={() => setShowEdit(false)} onUpdate={updateEmployee} specs={specs} language={language} />
+
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, padding: '10px 12px', background: C.surface, borderBottom: `1px solid ${C.border}` }}>
@@ -397,46 +582,21 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
                   <Link2 size={10} strokeWidth={2} /> بورتال العامل
                 </div>
 
-                {/* بيانات الدخول — توليد تلقائي ومشاركة */}
-                {creds ? (
-                  <div style={{ background: `${C.success}10`, border: `1px solid ${C.success}33`, borderRadius: 12, padding: '10px 12px', marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: C.success, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5, lineHeight: 1.5 }}>
-                      <Check size={12} strokeWidth={2.6} /> بيانات الدخول جاهزة — احفظها الآن (كلمة المرور لن تظهر مرّة ثانية)
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text, marginBottom: 4 }}>
-                      <span style={{ color: C.textDim }}>اسم المستخدم</span>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, direction: 'ltr' }}>{creds.username}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text, marginBottom: 10 }}>
-                      <span style={{ color: C.textDim }}>كلمة المرور</span>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, direction: 'ltr' }}>{creds.password}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={shareCredsWhatsApp} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '8px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <MessageCircle size={13} strokeWidth={2} /> مشاركة عبر واتساب
-                      </button>
-                      <button onClick={copyCreds} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 10, background: credsCopied ? `${C.success}22` : `${C.primary}18`, border: `1.5px solid ${credsCopied ? C.success+'55' : C.primary+'44'}`, color: credsCopied ? C.success : C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        {credsCopied ? <CheckCheck size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />} {credsCopied ? 'تم' : 'نسخ'}
-                      </button>
-                    </div>
+                {/* حالة البوّابة + إدارة (بيانات الدخول والصلاحيات في شيت التعديل) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ flex: 1, fontSize: 12, color: C.text, minWidth: 0 }}>
+                    {worker.can_access_portal === false ? (
+                      <span style={{ color: C.accent, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Lock size={12} strokeWidth={2.4} /> موقوفة</span>
+                    ) : hasPortalAccount ? (
+                      <><span style={{ color: C.textDim }}>اسم المستخدم: </span><span style={{ fontFamily: 'monospace', fontWeight: 700, direction: 'ltr' }}>{worker.worker_username}</span></>
+                    ) : (
+                      <span style={{ color: C.textDim }}>لم تُفعّل بعد</span>
+                    )}
                   </div>
-                ) : hasPortalAccount ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                    <div style={{ flex: 1, fontSize: 12, color: C.text, minWidth: 0 }}>
-                      <span style={{ color: C.textDim }}>اسم المستخدم: </span>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, direction: 'ltr' }}>{worker.worker_username}</span>
-                    </div>
-                    <button onClick={resetPortalPassword} disabled={credsBusy} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 10, background: `${C.primary}18`, border: `1.5px solid ${C.primary}44`, color: C.primary, fontSize: 12, fontWeight: 700, cursor: credsBusy ? 'wait' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', opacity: credsBusy ? 0.6 : 1 }}>
-                      <RefreshCw size={13} strokeWidth={2} style={credsBusy ? { animation: 'spin 1s linear infinite' } : undefined} /> كلمة مرور جديدة
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={activatePortal} disabled={credsBusy} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '11px', borderRadius: 12, background: GRAD.brand, border: 'none', color: '#000', fontSize: 13, fontWeight: 800, cursor: credsBusy ? 'wait' : 'pointer', fontFamily: 'inherit', marginBottom: 10, opacity: credsBusy ? 0.7 : 1 }}>
-                    {credsBusy ? <RefreshCw size={15} strokeWidth={2.4} style={{ animation: 'spin 1s linear infinite' }} /> : <KeyRound size={15} strokeWidth={2.4} />}
-                    {credsBusy ? 'جارٍ الإنشاء…' : 'تفعيل البوّابة وإنشاء بيانات الدخول'}
+                  <button onClick={() => setShowEdit(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 10, background: `${C.primary}18`, border: `1.5px solid ${C.primary}44`, color: C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                    <KeyRound size={13} strokeWidth={2} /> إدارة الدخول والصلاحيات
                   </button>
-                )}
-                {credsErr && <div style={{ fontSize: 11, color: C.accent, marginBottom: 8 }}>{credsErr}</div>}
+                </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ flex: 1, fontSize: 11, color: C.textDim, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr' }}>{PORTAL_URL}</span>
@@ -690,6 +850,7 @@ export default function WorkersScreen({
         payMethods={payMethods} permissions={permissions} language={language}
         appCfg={appCfg}
         onDeleteWorker={handleDeleteWorker}
+        updateEmployee={updateEmployee} specs={specs}
       />
     )
   }
