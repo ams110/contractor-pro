@@ -15,6 +15,7 @@ const DEFAULTS = {
   taxEnabled: true,
   taxModules: DEFAULT_TAX_MODULES,
   salaryAlerts: true,
+  dailyDigest: true,
 }
 
 export function useSettings(userId) {
@@ -71,6 +72,7 @@ export function useSettings(userId) {
   }
 
   function setSalaryAlerts(val) { save({ ...settings, salaryAlerts: !!val }) }
+  function setDailyDigest(val) { save({ ...settings, dailyDigest: !!val }) }
 
   function addPayMethod(method) {
     const m = method.trim()
@@ -87,6 +89,7 @@ export function useSettings(userId) {
     taxEnabled:     settings.taxEnabled !== false,
     taxModules:     settings.taxModules || DEFAULT_TAX_MODULES,
     salaryAlerts:   settings.salaryAlerts !== false,
+    dailyDigest:    settings.dailyDigest !== false,
     addSpec,        removeSpec,
     addExpCat,      removeExpCat,
     addPayMethod,   removePayMethod,
@@ -94,5 +97,6 @@ export function useSettings(userId) {
     setTaxEnabled,
     setTaxModule,
     setSalaryAlerts,
+    setDailyDigest,
   }
 }
