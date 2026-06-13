@@ -870,14 +870,14 @@ export default function SettingsScreen({
                     }
                     <span style={{ fontSize: 12, fontWeight: 700, color: pushSubStatus === 'ok' ? C.success : pushSubStatus === 'subscribing' ? C.primary : pushSubStatus === 'no_vapid' ? C.warning : C.accent }}>
                       {pushSubStatus === 'ok'
-                        ? (language === 'en' ? 'Subscribed — background push active' : 'مشترك — الإشعارات الخلفية فعّالة')
+                        ? (language === 'en' ? 'Subscribed — background push active' : language === 'he' ? 'מנוי — התראות רקע פעילות' : 'مشترك — الإشعارات الخلفية فعّالة')
                         : pushSubStatus === 'subscribing'
-                        ? (language === 'en' ? 'Subscribing...' : 'جاري التسجيل...')
+                        ? (language === 'en' ? 'Subscribing...' : language === 'he' ? 'נרשם...' : 'جاري التسجيل...')
                         : pushSubStatus === 'no_vapid'
-                        ? (language === 'en' ? 'Push key not configured (admin)' : 'مفتاح الإشعارات غير مُعدّ')
+                        ? (language === 'en' ? 'Push key not configured (admin)' : language === 'he' ? 'מפתח ההתראות לא מוגדר' : 'مفتاح الإشعارات غير مُعدّ')
                         : pushSubStatus === 'db_error'
-                        ? (language === 'en' ? 'Subscription save error — retry' : 'خطأ في حفظ الاشتراك — أعد التفعيل')
-                        : (language === 'en' ? 'Not subscribed — tap Re-activate' : 'غير مشترك — اضغط إعادة التفعيل')
+                        ? (language === 'en' ? 'Subscription save error — retry' : language === 'he' ? 'שגיאה בשמירת המנוי — הפעל מחדש' : 'خطأ في حفظ الاشتراك — أعد التفعيل')
+                        : (language === 'en' ? 'Not subscribed — tap Re-activate' : language === 'he' ? 'לא רשום — לחץ להפעלה מחדש' : 'غير مشترك — اضغط إعادة التفعيل')
                       }
                     </span>
                   </div>
@@ -897,7 +897,7 @@ export default function SettingsScreen({
                     }}
                   >
                     <RefreshCw size={13} strokeWidth={2.5} />
-                    {language === 'en' ? 'Re-activate Push' : 'إعادة تفعيل الإشعارات'}
+                    {language === 'en' ? 'Re-activate Push' : language === 'he' ? 'הפעל התראות מחדש' : 'إعادة تفعيل الإشعارات'}
                   </motion.button>
                 )}
 
@@ -918,8 +918,8 @@ export default function SettingsScreen({
                     }}
                   >
                     {testNotifLoading
-                      ? <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}><RefreshCw size={13} /></motion.div>{language === 'en' ? 'Sending...' : 'جاري الإرسال...'}</>
-                      : <><BellRing size={13} strokeWidth={2.5} />{language === 'en' ? 'Send Test Notification' : 'إرسال إشعار تجريبي'}</>
+                      ? <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}><RefreshCw size={13} /></motion.div>{language === 'en' ? 'Sending...' : language === 'he' ? 'שולח...' : 'جاري الإرسال...'}</>
+                      : <><BellRing size={13} strokeWidth={2.5} />{language === 'en' ? 'Send Test Notification' : language === 'he' ? 'שלח התראת בדיקה' : 'إرسال إشعار تجريبي'}</>
                     }
                   </motion.button>
                 )}
