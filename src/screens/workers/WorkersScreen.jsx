@@ -463,6 +463,7 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
   const [advRequests, setAdvRequests] = useState([])
   const [advProject, setAdvProject] = useState({})   // req.id → project_id (اختياري)
   const portalEnabled = useHasFeature('pro')          // بوّابة العامل ميزة خطة Pro
+  const showAmounts = permissions?.viewAmounts !== false   // إخفاء المبالغ عن عضو فريق مقيّد
 
   useEffect(() => {
     if (!worker?.id || !permissions?.isOwner) return
@@ -558,7 +559,7 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
           <div style={{ fontSize: 12, fontWeight: 800, color: balance >= 0 ? C.warning : C.success }}>
             {balance >= 0 ? language === 'he' ? 'חייב' : language === 'en' ? 'Owed' : 'مستحق' : language === 'he' ? 'دفعت زيادة' : language === 'en' ? 'Overpaid' : 'دفعت زيادة'}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 900, color: balance >= 0 ? C.warning : C.success }}>₪{fmt(Math.abs(balance))}</div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: balance >= 0 ? C.warning : C.success }}>{showAmounts ? `₪${fmt(Math.abs(balance))}` : '•••'}</div>
         </div>
         {permissions?.isOwner && (
           <button
@@ -604,9 +605,9 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               {[
-                { label: language === 'he' ? 'סה"כ הרוויח' : language === 'en' ? 'Total Earned' : 'إجمالي المستحق', value: `₪${fmt(totalEarned)}`, color: C.success, icon: TrendingUp },
-                { label: language === 'he' ? 'שולם' : language === 'en' ? 'Paid' : 'المدفوع', value: `₪${fmt(totalPaid)}`, color: C.secondary, icon: Banknote },
-                { label: language === 'he' ? 'מקדמות' : language === 'en' ? 'Advances' : 'السلف', value: `₪${fmt(totalAdvances)}`, color: C.accent, icon: CreditCard },
+                { label: language === 'he' ? 'סה"כ הרוויח' : language === 'en' ? 'Total Earned' : 'إجمالي المستحق', value: showAmounts ? `₪${fmt(totalEarned)}` : '•••', color: C.success, icon: TrendingUp },
+                { label: language === 'he' ? 'שולם' : language === 'en' ? 'Paid' : 'المدفوع', value: showAmounts ? `₪${fmt(totalPaid)}` : '•••', color: C.secondary, icon: Banknote },
+                { label: language === 'he' ? 'מקדמות' : language === 'en' ? 'Advances' : 'السلف', value: showAmounts ? `₪${fmt(totalAdvances)}` : '•••', color: C.accent, icon: CreditCard },
                 { label: language === 'he' ? 'ימי עבודה' : language === 'en' ? 'Work Days' : 'أيام العمل', value: wWorkers.length, color: C.primary, icon: Calendar },
               ].map(({ label, value, color, icon }, i) => (
                 <PremiumStat key={label} label={label} value={value} icon={icon} color={color} delay={i * 0.04} />
@@ -703,7 +704,7 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
                   <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(pay.date)}</div>
                   {pay.ref_number && <div style={{ fontSize: 9, fontWeight: 700, color: C.primary, marginTop: 2, letterSpacing: '0.04em' }}>{pay.ref_number}</div>}
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: C.success }}>₪{fmt(pay.amount || 0)}</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.success }}>{showAmounts ? `₪${fmt(pay.amount || 0)}` : '•••'}</div>
                 </div>
               </PremiumCard>
             ))}
@@ -723,7 +724,7 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
                   <div key={req.id} style={{ background: `${C.warning}0A`, border: `1px solid ${C.warning}30`, borderRadius: 14, marginBottom: 8, padding: '10px 12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>₪{fmt(req.amount || 0)}</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{showAmounts ? `₪${fmt(req.amount || 0)}` : '•••'}</div>
                         {req.notes && <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{req.notes}</div>}
                         <div style={{ fontSize: 9, color: C.textDim }}>{req.requested_date || new Date(req.created_at).toLocaleDateString('ar-SA')}</div>
                       </div>
@@ -761,7 +762,7 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
                   <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(adv.date)}</div>
                   {adv.ref_number && <div style={{ fontSize: 9, fontWeight: 700, color: C.primary, marginTop: 2, letterSpacing: '0.04em' }}>{adv.ref_number}</div>}
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>-₪{fmt(adv.amount || 0)}</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>{showAmounts ? `-₪${fmt(adv.amount || 0)}` : '•••'}</div>
                 </div>
               </PremiumCard>
             ))}
@@ -808,6 +809,7 @@ export default function WorkersScreen({
   const [selected, setSelected] = useState(null)
 
   const portalEnabled = useHasFeature('pro')          // بوّابة العامل ميزة خطة Pro
+  const showAmounts = permissions?.viewAmounts !== false   // إخفاء المبالغ عن عضو فريق مقيّد
 
   // حدّ عدد العمّال حسب الخطة: تجربة → 1 · Starter → 10 · Pro/Business → غير محدود
   const workerLimit = useWorkerLimit()
@@ -992,7 +994,7 @@ export default function WorkersScreen({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           {[
             { label: language === 'he' ? 'עובדים' : language === 'en' ? 'Workers' : 'عمال', value: employees.length, color: C.secondary, icon: Users },
-            { label: language === 'he' ? 'חייבים' : language === 'en' ? 'Owed' : 'مستحق', value: `₪${fmt(totalOwed)}`, color: C.warning, icon: Wallet },
+            { label: language === 'he' ? 'חייבים' : language === 'en' ? 'Owed' : 'مستحق', value: showAmounts ? `₪${fmt(totalOwed)}` : '•••', color: C.warning, icon: Wallet },
             { label: language === 'he' ? 'ימים' : language === 'en' ? 'Days' : 'أيام', value: workDays.length, color: C.primary, icon: Calendar },
           ].map(({ label, value, color, icon }, i) => (
             <PremiumStat key={label} label={label} value={value} icon={icon} color={color} delay={i * 0.04} />
@@ -1043,6 +1045,7 @@ export default function WorkersScreen({
               qr={portalQr}
               portalUrl={PORTAL_URL}
               portalEnabled={portalEnabled}
+              showAmounts={showAmounts}
               onOpen={setSelected}
               delay={Math.min(i * 0.04, 0.3)}
             />
