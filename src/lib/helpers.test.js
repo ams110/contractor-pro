@@ -10,13 +10,13 @@ describe('calcBituachLeumi (شهري — شريحتان)', () => {
   })
 
   it('يطبّق النسبة المخفّضة داخل الشريحة الأولى', () => {
-    // 5000 × 9.82%
-    expect(calcBituachLeumi(5000)).toBe(491)
+    // 5000 × 7.70% (نسب 2025)
+    expect(calcBituachLeumi(5000)).toBe(385)
   })
 
   it('يطبّق النسبة الكاملة على الجزء فوق الشريحة الأولى', () => {
-    // 7522×9.82% + (10000−7522)×16.23%
-    expect(calcBituachLeumi(10000)).toBe(1141)
+    // 7522×7.70% + (10000−7522)×18.00% (نسب 2025)
+    expect(calcBituachLeumi(10000)).toBe(1025)
   })
 
   it('المعدّل الحدّي فوق الشريحة الأولى أعلى منه داخلها', () => {
@@ -26,7 +26,7 @@ describe('calcBituachLeumi (شهري — شريحتان)', () => {
   })
 
   it('يحترم السقف الشهري (لا زيادة فوق السقف)', () => {
-    expect(calcBituachLeumi(100000)).toBe(calcBituachLeumi(47465))
+    expect(calcBituachLeumi(100000)).toBe(calcBituachLeumi(50695))
   })
 })
 
@@ -37,12 +37,12 @@ describe('calcBituachLeumiAnnual (سنوي — شريحتان)', () => {
   })
 
   it('ليس نسبة مسطّحة 10.5% — الشريحتان تعطيان نتيجة مختلفة', () => {
-    // الإصلاح: استبدال 200000×10.5%=21000 بحساب الشريحتين
-    expect(calcBituachLeumiAnnual(200000)).toBe(26674)
+    // الإصلاح: استبدال 200000×10.5%=21000 بحساب الشريحتين (نسب 2025)
+    expect(calcBituachLeumiAnnual(200000)).toBe(26703)
     expect(calcBituachLeumiAnnual(200000)).not.toBe(Math.round(200000 * 0.105))
   })
 
   it('يحترم السقف السنوي', () => {
-    expect(calcBituachLeumiAnnual(1_000_000)).toBe(calcBituachLeumiAnnual(569580))
+    expect(calcBituachLeumiAnnual(1_000_000)).toBe(calcBituachLeumiAnnual(608340))
   })
 })
