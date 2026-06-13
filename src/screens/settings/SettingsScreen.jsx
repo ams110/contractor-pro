@@ -423,7 +423,7 @@ export default function SettingsScreen({
   const [editingName, setEditingName] = useState(false)
   const [updateStatus, setUpdateStatus] = useState('idle') // idle | checking | upToDate | updating
 
-  // ── إعدادات الضرائب: پنسيה شهرية + رقم العوسيك ──
+  // ── إعدادات الضرائب: פנסיה شهرية + رقم العوسيك ──
   const [pensionInput, setPensionInput] = useState(String(pensionMonthly || ''))
   const [taxNumInput,  setTaxNumInput]  = useState('')
   const [taxNumSaved,  setTaxNumSaved]  = useState(false)
@@ -758,7 +758,7 @@ export default function SettingsScreen({
               <Banknote size={16} color={C.blue} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>قسط الپنسيה الشهري</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>قسط الפנסיה الشهري</div>
               <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>يُخصم من الوعاء الضريبي ويظهر الوفر في ملخص الضرائب</div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

@@ -317,7 +317,7 @@ describe('computeTaxRunway', () => {
     expect(computeTaxRunway({ yearIncome: 0, annualTax: 0 })).toBeNull()
   })
 
-  it('עוסק פטور سيتجاوز السقف: يحسب الشهر المتوقّع ويحذّر', () => {
+  it('עוסק פטור سيتجاوز السقف: يحسب الشهر المتوقّع ويحذّر', () => {
     // 6 أشهر × ₪12,000 = ₪72k، التوقّع السنوي ₪144k > 120k
     const r = computeTaxRunway({ isOsekPatur: true, cap: 120000, yearIncome: 72000, monthsElapsed: 6 })
     expect(r.willExceed).toBe(true)

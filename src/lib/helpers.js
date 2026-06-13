@@ -148,7 +148,7 @@ const _BL_CAP_Y    = 608340   // سقف سنوي (2025)
 const _BL_R1       = 0.077    // نسبة شريحة 1
 const _BL_R2       = 0.18     // نسبة شريحة 2
 
-// شرائح מس הכנسة 2025 (أحجام الشرائح السنوية — مجمّدة 2025–2027).
+// شرائح מס הכנסה 2025 (أحجام الشرائح السنوية — مجمّدة 2025–2027).
 // السقوف: 84,120 / 120,720 / 193,800 / 269,280 / 560,280 / 721,560 / فوق.
 const _IT_BRACKETS = [
   [84120,    0.10],
@@ -162,7 +162,7 @@ const _IT_BRACKETS = [
 const _IT_CREDIT = 6534  // نقاط زيكوي شخصية: 2.25 × ₪2,904 (قيمة النقطة مجمّدة)
 
 /**
- * تقدير ביטוח לאומي + ביטוח בריאות الشهري للعمل الحر — شرائح 2025
+ * تقدير ביטוח לאומי + ביטוח בריאות الشهري للعمل الحر — شرائح 2025
  */
 export function calcBituachLeumi(monthlyNetProfit) {
   if (monthlyNetProfit <= 0) return 0
@@ -186,8 +186,8 @@ export function calcBituachLeumiAnnual(annualNetProfit) {
 /**
  * تقدير מס הכנסה السنوي للعمل الحر — شرائح 2025
  * @param annualNetProfit  - صافي الربح السنوي (إيرادات - مصاريف - رواتب عمال)
- * @param pensionDeduction - مساهمات الپنסيה السنوية المدفوعة (تُخصم من الوعاء الضريبي)
- *   الحد الأقصى للخصم: 16% من الدخل (תקרת ניכוי לעצمائي)
+ * @param pensionDeduction - مساهمات الפנסיה السنوية المدفوعة (تُخصم من الوعاء الضريبي)
+ *   الحد الأقصى للخصم: 16% من الدخل (תקרת ניכוי לעצמאי)
  * نقاط زيكوي شخصية: 2.25 × ₪2,904 = ₪6,534 خصم من الضريبة المحسوبة
  */
 export function estimateIncomeTax(annualNetProfit, pensionDeduction = 0) {
@@ -206,7 +206,7 @@ export function estimateIncomeTax(annualNetProfit, pensionDeduction = 0) {
 }
 
 /**
- * حساب الوفر الضريبي من مساهمات الپנסיה
+ * حساب الوفر الضريبي من مساهمات الפנסיה
  */
 export function pensionTaxSaving(annualNetProfit, pensionDeduction) {
   return estimateIncomeTax(annualNetProfit, 0) - estimateIncomeTax(annualNetProfit, pensionDeduction)
