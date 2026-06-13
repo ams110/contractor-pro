@@ -7,7 +7,7 @@ import {
   ChevronRight, ChevronDown, Check, LogOut, HardHat, Palette, CalendarDays,
   CreditCard, Banknote, ClipboardList, Package, Calculator,
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
-  Fingerprint, ShieldCheck, Clock, Lock, Eye, EyeOff, Smartphone,
+  Fingerprint, ShieldCheck, Clock, Lock, Eye, EyeOff, Smartphone, KeyRound,
   ToggleLeft, ToggleRight, Timer, CalendarOff, UserCheck, UserX, Wallet, SlidersHorizontal,
   RotateCw, QrCode, Copy, ArrowRight, MessageCircle, AlertTriangle,
 } from 'lucide-react'
@@ -323,7 +323,7 @@ export default function SettingsScreen({
   addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod,
   pensionMonthly, setPensionMonthly, taxEnabled,
   setTaxEnabled, taxModules, setTaxModule,
-  salaryAlerts = true, setSalaryAlerts,
+  salaryAlerts = true, setSalaryAlerts, dailyDigest = true, setDailyDigest,
   holidays = [], addHoliday, deleteHoliday,
   permissions, teamMembers = [],
   addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, reloadTeam,
@@ -387,6 +387,7 @@ export default function SettingsScreen({
   const [loginLogOpen, setLoginLogOpen] = useState(false)
   const [limitInput, setLimitInput] = useState('')
   const [timeoutInput, setTimeoutInput] = useState('')
+  const [bioThrInput, setBioThrInput] = useState('')
   const [memberExpiryEditing, setMemberExpiryEditing] = useState(null)
   const [memberExpiryValue, setMemberExpiryValue] = useState('')
 
@@ -397,6 +398,10 @@ export default function SettingsScreen({
   useEffect(() => {
     if (!timeoutInput && appCfg?.config) setTimeoutInput(String(appCfg.config.session_timeout || '30'))
   }, [appCfg?.config?.session_timeout])
+
+  useEffect(() => {
+    if (!bioThrInput && appCfg?.config?.payment_bio_threshold) setBioThrInput(String(appCfg.config.payment_bio_threshold))
+  }, [appCfg?.config?.payment_bio_threshold])
 
   async function loadLoginLog() {
     if (!appCfg) return
@@ -744,6 +749,19 @@ export default function SettingsScreen({
             <button onClick={() => setSalaryAlerts?.(!salaryAlerts)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: salaryAlerts ? C.success : C.textDim }}>
               {salaryAlerts ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+            </button>
+          </div>
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderTop: `1px solid ${C.border}` }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.cyan}15`, border: `1px solid ${C.cyan}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <BellRing size={16} color={C.cyan} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>الملخّص اليومي</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>إشعار يومي: الطلبات المعلّقة وصرف اليوم</div>
+            </div>
+            <button onClick={() => setDailyDigest?.(!dailyDigest)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: dailyDigest ? C.success : C.textDim }}>
+              {dailyDigest ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
             </button>
           </div>
         </Section>
@@ -1145,6 +1163,26 @@ export default function SettingsScreen({
                 type="number" min="0" value={limitInput}
                 onChange={e => setLimitInput(e.target.value)}
                 onBlur={() => appCfg.update({ daily_spend_limit: Number(limitInput) || 0 })}
+                style={{ width: 70, padding: '6px 8px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
+              />
+              <span style={{ fontSize: 11, color: C.textDim }}>₪</span>
+            </div>
+          </div>
+
+          {/* حدّ تأكيد البصمة للدفعات */}
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.secondary}15`, border: `1px solid ${C.secondary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <KeyRound size={16} color={C.secondary} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>بصمة للدفعات الكبيرة</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>تأكيد بصمة عند تسجيل دفعة بهذا المبلغ أو أكثر (0 = معطّل)</div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                type="number" min="0" value={bioThrInput}
+                onChange={e => setBioThrInput(e.target.value)}
+                onBlur={() => appCfg.update({ payment_bio_threshold: Number(bioThrInput) || 0 })}
                 style={{ width: 70, padding: '6px 8px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
               />
               <span style={{ fontSize: 11, color: C.textDim }}>₪</span>
