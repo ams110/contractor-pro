@@ -16,7 +16,7 @@ const IT_BRACKETS_2025 = [
   { to: 120_720,   rate: 0.14 },
   { to: 193_800,   rate: 0.20 },
   { to: 269_280,   rate: 0.31 },
-  { to: 559_680,   rate: 0.35 },
+  { to: 560_280,   rate: 0.35 },
   { to: 721_560,   rate: 0.47 },
   { to: Infinity,  rate: 0.50 },
 ]

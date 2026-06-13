@@ -205,7 +205,7 @@ export default function LegalPage({ type = 'terms' }) {
           </div>
           <h1 style={{ fontSize: 'clamp(24px,5vw,34px)', fontWeight: 900 }}>{doc.title}</h1>
         </div>
-        <p style={{ fontSize: 12, color: C.textDim, marginBottom: 36 }}>آخر تحديث: {E.updated}</p>
+        {type !== 'contact' && <p style={{ fontSize: 12, color: C.textDim, marginBottom: 36 }}>آخر تحديث: {E.updated}</p>}
 
         {/* الأقسام */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
