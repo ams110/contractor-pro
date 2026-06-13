@@ -7,6 +7,7 @@ import {
   Check, AlertTriangle, Trash2, ChevronRight, CalendarDays,
   Link2, Copy, CheckCheck, UserPlus, UserMinus, MessageCircle, GitCommitHorizontal,
   Wallet, X, HardHat, Clock, Activity, Lock, KeyRound, RefreshCw, Pencil, ShieldCheck,
+  Building2, CalendarClock, HandCoins,
 } from 'lucide-react'
 import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
@@ -210,7 +211,7 @@ function Switch({ on, onChange, disabled = false }) {
 }
 
 // ─── شيت تعديل العامل الموحّد: بيانات + صلاحيات البوّابة + تفعيل/إيقاف + بيانات الدخول ───
-function EditWorkerSheet({ open, worker, onClose, onUpdate, specs = [], language }) {
+function EditWorkerSheet({ open, worker, onClose, onUpdate, specs = [], projects = [], language }) {
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const [form, setForm] = useState(null)
   const [creds, setCreds] = useState(null)
@@ -228,6 +229,10 @@ function EditWorkerSheet({ open, worker, onClose, onUpdate, specs = [], language
         can_log_materials:   worker.can_log_materials   !== false,
         can_request_payment: worker.can_request_payment !== false,
         can_access_portal:   worker.can_access_portal   !== false,
+        allowed_project_ids: Array.isArray(worker.allowed_project_ids) ? worker.allowed_project_ids : [],
+        max_advance_amount:  worker.max_advance_amount ?? '',
+        require_expense_receipt: worker.require_expense_receipt === true,
+        portal_access_until: worker.portal_access_until || '',
       })
       setCreds(null); setErr('')
     }
@@ -246,8 +251,14 @@ function EditWorkerSheet({ open, worker, onClose, onUpdate, specs = [], language
         can_submit_workday: form.can_submit_workday, can_submit_expenses: form.can_submit_expenses,
         can_log_materials: form.can_log_materials, can_request_payment: form.can_request_payment,
         can_access_portal: form.can_access_portal,
+        allowed_project_ids: form.allowed_project_ids.length ? form.allowed_project_ids : null,  // فارغ = كل المشاريع
+        max_advance_amount: form.max_advance_amount === '' ? null : Number(form.max_advance_amount) || null,
+        require_expense_receipt: form.require_expense_receipt,
+        portal_access_until: form.portal_access_until || null,
       }
-      if (!form.can_access_portal) patch.worker_session_token = null   // إيقاف الوصول يقطع جلسته الحالية
+      // إيقاف الوصول (يدوي أو بانتهاء المدّة) يقطع الجلسة الحالية
+      const suspended = !form.can_access_portal || (form.portal_access_until && form.portal_access_until < new Date().toISOString().slice(0, 10))
+      if (suspended) patch.worker_session_token = null
       await onUpdate(worker.id, patch)
       onClose()
     } catch (e) { setErr(e.message || 'تعذّر الحفظ') }
@@ -339,6 +350,37 @@ function EditWorkerSheet({ open, worker, onClose, onUpdate, specs = [], language
             </div>
           ))}
 
+          {/* حصر بالمشاريع */}
+          <div style={sectionTitle}><Building2 size={13} strokeWidth={2.2} /> المشاريع المتاحة للعامل</div>
+          <div style={{ fontSize: 10, color: C.textDim, marginBottom: 8, lineHeight: 1.5 }}>بلا اختيار = كل المشاريع. باختيار مشاريع = يرى ويسجّل على المختارة فقط.</div>
+          {projects.length === 0 ? (
+            <div style={{ fontSize: 12, color: C.textDim, padding: '4px 0 8px' }}>لا توجد مشاريع</div>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+              {projects.map(pr => {
+                const on = form.allowed_project_ids.includes(pr.id)
+                return (
+                  <button key={pr.id} type="button"
+                    onClick={() => set('allowed_project_ids', on ? form.allowed_project_ids.filter(x => x !== pr.id) : [...form.allowed_project_ids, pr.id])}
+                    style={{ padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: `1.5px solid ${on ? C.primary : C.border}`, background: on ? `${C.primary}22` : C.card, color: on ? C.primary : C.textDim }}>
+                    {pr.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* حدود الطلبات */}
+          <div style={sectionTitle}><HandCoins size={13} strokeWidth={2.2} /> حدود الطلبات</div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={labelStyle}>الحد الأقصى للسلفة (₪) — فارغ = بلا حد</label>
+            <input type="number" min="0" value={form.max_advance_amount} onChange={e => set('max_advance_amount', e.target.value)} placeholder="مثال: 1000" style={inputStyle} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>إلزام صورة فاتورة مع المصروف</span>
+            <Switch on={form.require_expense_receipt} onChange={v => set('require_expense_receipt', v)} disabled={!form.can_access_portal} />
+          </div>
+
           {/* تفعيل/إيقاف الوصول */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 12px', background: form.can_access_portal ? `${C.success}10` : `${C.accent}10`, border: `1px solid ${form.can_access_portal ? C.success + '33' : C.accent + '33'}`, borderRadius: 12, marginTop: 12 }}>
             <div style={{ minWidth: 0 }}>
@@ -348,6 +390,15 @@ function EditWorkerSheet({ open, worker, onClose, onUpdate, specs = [], language
               <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>إيقافه يمنع الدخول ويُنهي جلسته الحالية</div>
             </div>
             <Switch on={form.can_access_portal} onChange={v => set('can_access_portal', v)} />
+          </div>
+
+          {/* انتهاء صلاحية الوصول بتاريخ (إيقاف تلقائي — لعامل موسمي/مؤقّت) */}
+          <div style={{ marginTop: 10 }}>
+            <label style={labelStyle}><CalendarClock size={12} strokeWidth={2.2} style={{ verticalAlign: '-2px', marginInlineEnd: 4 }} /> انتهاء صلاحية الوصول بتاريخ (اختياري)</label>
+            <input type="date" value={form.portal_access_until || ''} onChange={e => set('portal_access_until', e.target.value)} style={inputStyle} />
+            <div style={{ fontSize: 10, color: form.portal_access_until ? C.warning : C.textDim, marginTop: 4 }}>
+              {form.portal_access_until ? `بعد ${form.portal_access_until} يتوقّف وصول العامل تلقائياً.` : 'بلا تاريخ = وصول دائم (طالما مُفعّل).'}
+            </div>
           </div>
 
           {/* بيانات الدخول */}
@@ -528,7 +579,7 @@ function WorkerDetail({ worker, dna, fleetDna, workDays, payments, advances, pro
       </div>
 
       {/* شيت التعديل الموحّد */}
-      <EditWorkerSheet open={showEdit} worker={worker} onClose={() => setShowEdit(false)} onUpdate={updateEmployee} specs={specs} language={language} />
+      <EditWorkerSheet open={showEdit} worker={worker} onClose={() => setShowEdit(false)} onUpdate={updateEmployee} specs={specs} projects={projects} language={language} />
 
 
       {/* Tabs */}
