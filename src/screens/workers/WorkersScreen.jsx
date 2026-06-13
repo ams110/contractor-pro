@@ -887,9 +887,11 @@ export default function WorkersScreen({
   const leaderboard = useMemo(() => buildFleetLeaderboard(employees, dnaMap, workerStats), [employees, dnaMap, workerStats])
 
   if (selected) {
+    // العامل الحيّ من أحدث قائمة (يعكس تعديلات الصلاحيات/البيانات بعد الحفظ بدل نسخة قديمة)
+    const liveWorker = employees.find(e => e.id === selected.id) || selected
     return (
       <WorkerDetail
-        worker={selected}
+        worker={liveWorker}
         dna={dnaMap[selected.id]}
         fleetDna={fleetDna}
         workDays={workDays} payments={payments} advances={advances} projects={projects} expenses={expenses}
