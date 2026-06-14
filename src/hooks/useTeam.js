@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase.js'
 
 export const OWNER_PERMS = {
@@ -139,9 +139,12 @@ export function useTeam(userId, userEmail) {
     return data || []
   }
 
-  const permissions        = membership ? rowToPerms(membership) : OWNER_PERMS
+  // مهم: مرجع ثابت عبر التصييرات — rowToPerms يُنتج كائناً جديداً كل مرّة، وبدون
+  // التذكير يصير `permissions` تبعية غير مستقرّة فتدخل تأثيرات تعتمد عليها حلقة
+  // لا نهائية لعضو الفريق (المالك يستعمل ثابت OWNER_PERMS فلا يتأثّر).
+  const permissions        = useMemo(() => membership ? rowToPerms(membership) : OWNER_PERMS, [membership])
   const effectiveOwnerId   = membership ? membership.owner_id : userId
-  const allowedProjectIds  = membership?.allowed_project_ids || null
+  const allowedProjectIds  = useMemo(() => membership?.allowed_project_ids || null, [membership])
 
   return {
     membership, teamMembers, permissions, effectiveOwnerId, allowedProjectIds,

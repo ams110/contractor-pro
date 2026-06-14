@@ -217,7 +217,7 @@ function TaxBreak({ start }) {
   const rows = [
     { icon: Percent, label: 'מע"מ مستحق (18%)', v: DEMO.vat, c: C.primary },
     { icon: Landmark, label: 'ضريبة دخل متوقّعة', v: DEMO.incomeTax, c: C.secondary },
-    { icon: ShieldCheck, label: 'ביטוח לאומي (شريحتين)', v: DEMO.bituach, c: C.cyan },
+    { icon: ShieldCheck, label: 'ביטוח לאומי (شريحتين)', v: DEMO.bituach, c: C.cyan },
   ]
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -432,7 +432,7 @@ const IDEAS = [
   { tag: 'מע"מ تلقائي', tone: 'premium', kw: 'الضريبة', head: 'محسوبة لحالها', sub: 'מע"מ 18% على المدخولات وخصم ذكي على المصاريف حسب الفئة — بلا محاسب.',
     blocks: [{ type: 'header', title: 'ملخّص الضرائب' }, { type: 'heroMoney', icon: Percent, label: 'מע"מ مستحق للدفع', value: DEMO.vat, tone: 'premium' }, { type: 'insights', rows: [{ icon: CheckCircle2, color: C.success, text: 'خصم מע"מ على المواد بنسبة 100%' }, { icon: Sparkles, color: C.cyan, text: 'وقود وصيانة: خصم 66.7% تلقائي' }] }] },
 
-  { tag: 'كل الضرائب', tone: 'premium', kw: 'מע"מ + دخل', head: '+ ביטוח לאומي', sub: 'كل التزاماتك الضريبية الإسرائيلية محسوبة بدقّة — بشريحتين، مش نسبة مسطّحة.',
+  { tag: 'كل الضرائب', tone: 'premium', kw: 'מע"מ + دخل', head: '+ ביטוח לאומי', sub: 'كل التزاماتك الضريبية الإسرائيلية محسوبة بدقّة — بشريحتين، مش نسبة مسطّحة.',
     blocks: [{ type: 'header', title: 'مدرج الضريبة' }, { type: 'sectionTitle', text: 'التزاماتك القادمة', icon: Calculator, color: C.secondary }, { type: 'tax' }] },
 
   { tag: 'ضريبة الدخل', tone: 'cyan', kw: 'اعرف ضريبتك', head: 'قبل التقرير', sub: 'شرائح ضريبة الدخل الإسرائيلية التصاعدية محسوبة على أرباحك الحقيقية.',
@@ -504,7 +504,7 @@ const IDEAS = [
   { tag: 'بطّل دفتر الورق', tone: 'brand', kw: 'انسى الدفتر', head: 'كل شي صار رقمي', sub: 'لا أوراق ضايعة ولا حسابات بالراس — كل عامل ومشروع ومصروف محفوظ ومرتّب.',
     blocks: [{ type: 'header', title: 'كل مصلحتك' }, { type: 'insights', rows: [{ icon: CheckCircle2, color: C.success, text: 'ودّع دفتر الورق والحسابات اليدوية' }, { icon: Sparkles, color: C.cyan, text: 'كل أرقامك محفوظة ومتزامنة لحظياً' }] }, { type: 'statRow', stats: [{ icon: Building2, label: 'مشاريع', value: DEMO.projects, tone: 'brand' }, { icon: Users, label: 'عمّال', value: DEMO.workers, tone: 'cyan' }] }] },
 
-  { tag: 'وفّر على المحاسب', tone: 'premium', kw: 'محاسبك', head: 'صار بجيبك', sub: 'מע"מ، ضريبة دخل، وביטוח לאומي محسوبين تلقائياً — وفّر آلاف الشواكل سنوياً.',
+  { tag: 'وفّر على المحاسب', tone: 'premium', kw: 'محاسبك', head: 'صار بجيبك', sub: 'מע"מ، ضريبة دخل، وביטוח לאומי محسوبين تلقائياً — وفّر آلاف الشواكل سنوياً.',
     blocks: [{ type: 'header', title: 'ملخّص الضرائب' }, { type: 'heroMoney', icon: Calculator, label: 'كل ضرائبك — محسوبة تلقائياً', value: DEMO.vat + DEMO.incomeTax + DEMO.bituach, tone: 'premium', sub: 'بلا محاسب' }, { type: 'insights', rows: [{ icon: CheckCircle2, color: C.success, text: 'بشريحتين دقيقة — مش نسبة مسطّحة' }, { icon: PiggyBank, color: C.cyan, text: 'وفّر آلاف الشواكل أتعاب محاسبة' }] }] },
 
   { tag: 'نام وانت مرتاح', tone: 'success', kw: 'أرقامك مظبوطة', head: 'وانت نايم', sub: 'مؤشّر صحّة مالية يراقب مصلحتك على مدار الساعة ويحذّرك قبل أي مشكلة.',

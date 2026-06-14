@@ -22,6 +22,11 @@ describe('clamp', () => {
     expect(clamp(-20)).toBe(0)
     expect(clamp(63)).toBe(63)
   })
+  it('يعيد الحدّ الأدنى عند NaN/قيمة غير منتهية بدل تمرير NaN', () => {
+    expect(clamp(NaN)).toBe(0)
+    expect(clamp(Infinity)).toBe(100)
+    expect(clamp(NaN, 5, 90)).toBe(5)
+  })
 })
 
 describe('gradeFor', () => {
@@ -312,7 +317,7 @@ describe('computeTaxRunway', () => {
     expect(computeTaxRunway({ yearIncome: 0, annualTax: 0 })).toBeNull()
   })
 
-  it('עוסק פטور سيتجاوز السقف: يحسب الشهر المتوقّع ويحذّر', () => {
+  it('עוסק פטור سيتجاوز السقف: يحسب الشهر المتوقّع ويحذّر', () => {
     // 6 أشهر × ₪12,000 = ₪72k، التوقّع السنوي ₪144k > 120k
     const r = computeTaxRunway({ isOsekPatur: true, cap: 120000, yearIncome: 72000, monthsElapsed: 6 })
     expect(r.willExceed).toBe(true)

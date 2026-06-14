@@ -5,7 +5,9 @@
 import { fmt, isPaymentOverdue } from './helpers.js'
 import { calcProjectStats, calcOwnerCash, calcEarned, calcMustahaq } from './calculations.js'
 
-export const clamp = (n, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n))
+// NaN لا يُقصَر بـ Math.max/min (يبقى NaN ويكسر الواجهة) — نعيده للحدّ الأدنى.
+// أمّا ±Infinity فيُقصَر صحيحاً عبر Math، فلا نحتاج معالجته.
+export const clamp = (n, lo = 0, hi = 100) => (Number.isNaN(n) ? lo : Math.max(lo, Math.min(hi, n)))
 
 // ─── دوال العوامل (كل واحدة تُرجع 0–100) ─────────────────────────────────────────
 
@@ -541,7 +543,7 @@ const MONTH_NAMES = ['يناير','فبراير','مارس','أبريل','ماي
 /**
  * @param {object} a
  * @param {boolean} a.isOsekPatur
- * @param {number} [a.cap=120000]      - سقف עוסק פטور السنوي
+ * @param {number} [a.cap=120000]      - سقف עוסק פטור السنوي
  * @param {number} a.yearIncome        - المدخول المحصّل هذه السنة حتى الآن
  * @param {number} a.monthsElapsed     - عدد الأشهر المنقضية من السنة (1–12)
  * @param {number} [a.annualTax=0]     - الضريبة السنوية المقدّرة (دخل + ביטוח לאומי)
@@ -607,7 +609,7 @@ function buildTaxRunwayInsights(a) {
   else if (isOsekPatur && projectedPct >= 70)
     out.push({ tone: 'tip', icon: 'Activity', text: `توقّعك السنوي ${projectedPct}% من السقف — راقب دخلك في الأشهر القادمة.` })
   else if (isOsekPatur)
-    out.push({ tone: 'good', icon: 'CheckCircle2', text: `ضمن حدّ עוסק פטور بأريحية — التوقّع السنوي ${projectedPct}% فقط من السقف.` })
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: `ضمن حدّ עוסק פטור بأريحية — التوقّع السنوي ${projectedPct}% فقط من السقف.` })
 
   if (annualTax > 0 && monthlyProvision > 0)
     out.push({ tone: 'tip', icon: 'PiggyBank', text: `فاتورتك الضريبية المتوقّعة ₪${fmt(annualTax)} — جنّب ₪${fmt(monthlyProvision)} شهرياً لتكون جاهزاً نهاية السنة.` })

@@ -232,6 +232,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
   businesses = [] }) {
   // البيانات المشتركة من المخزن مباشرة — لا تمرير يدوي من الشاشة الأم
   const { workDays, expenses, clientReceipts, employees, payments, advances } = useDataStore()
+  const showAmounts = permissions?.viewAmounts !== false   // إخفاء المبالغ عن عضو فريق مقيّد
   const setPendingAction = useAppStore(s => s.setPendingAction)
   const setScreen        = useAppStore(s => s.setScreen)
 
@@ -378,7 +379,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
           </div>
         </div>
         <div style={{ fontSize: 13, fontWeight: 900, color: stats.profit >= 0 ? C.success : C.accent, marginInlineEnd: 4 }}>
-          {stats.profit >= 0 ? '+' : ''}₪{fmt(stats.profit)}
+          {showAmounts ? `${stats.profit >= 0 ? '+' : ''}₪${fmt(stats.profit)}` : '•••'}
         </div>
         {permissions?.editProjects !== false && (
           <button onClick={() => setShowEdit(true)}
@@ -466,7 +467,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
 
               <button onClick={() => setConfirmDel(false)} disabled={deleting}
                 style={{ width: '100%', padding: '11px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {language === 'en' ? 'Cancel' : 'إلغاء'}
+                {language === 'en' ? 'Cancel' : language === 'he' ? 'ביטול' : 'إلغاء'}
               </button>
             </motion.div>
           </motion.div>
@@ -517,7 +518,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                       <IconChip icon={Banknote} tone="brand" size={28} radius={9} />
                       <span style={{ fontSize: 12, fontWeight: 700, color: C.primary }}>قيمة الصفقة</span>
                     </div>
-                    <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>₪{fmt(project.price)}</span>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{showAmounts ? `₪${fmt(project.price)}` : '•••'}</span>
                   </div>
                   {remaining > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 14, background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)' }}>
@@ -526,7 +527,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                         <span style={{ fontSize: 12, fontWeight: 700, color: C.warning }}>متبقي للتحصيل</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 16, fontWeight: 900, color: C.warning, fontFamily: 'monospace' }}>₪{fmt(remaining)}</span>
+                        <span style={{ fontSize: 16, fontWeight: 900, color: C.warning, fontFamily: 'monospace' }}>{showAmounts ? `₪${fmt(remaining)}` : '•••'}</span>
                         <button
                           onClick={() => openWhatsApp(project.client_phone, waMessages.paymentReminder({ clientName: project.client_name, projectName: project.name, amount: remaining }))}
                           title="تذكير العميل عبر واتساب"
@@ -548,9 +549,9 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
             })()}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               {[
-                { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'الإيرادات', value: `₪${fmt(stats.revenue)}`, color: C.success, icon: TrendingUp },
-                { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'المصاريف', value: `₪${fmt(stats.expTotal)}`, color: C.accent, icon: TrendingDown },
-                { label: language === 'he' ? 'שכר' : language === 'en' ? 'Labor' : 'أجور العمال', value: `₪${fmt(stats.wdCost)}`, color: C.secondary, icon: Users },
+                { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'الإيرادات', value: showAmounts ? `₪${fmt(stats.revenue)}` : '•••', color: C.success, icon: TrendingUp },
+                { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'المصاريف', value: showAmounts ? `₪${fmt(stats.expTotal)}` : '•••', color: C.accent, icon: TrendingDown },
+                { label: language === 'he' ? 'שכר' : language === 'en' ? 'Labor' : 'أجور العمال', value: showAmounts ? `₪${fmt(stats.wdCost)}` : '•••', color: C.secondary, icon: Users },
                 { label: language === 'he' ? 'ימי עבודה' : language === 'en' ? 'Work Days' : 'أيام العمل', value: stats.wdCount, color: C.primary, icon: Calendar },
               ].map(({ label, value, color, icon }, i) => (
                 <PremiumStat key={label} label={label} value={value} color={color} icon={icon} delay={i * 0.04} />
@@ -586,11 +587,11 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 12, color: C.textDim }}>مستحق للعمال (أجور + مصاريفهم)</span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: C.secondary, fontFamily: 'monospace' }}>₪{fmt(owedTotal)}</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: C.secondary, fontFamily: 'monospace' }}>{showAmounts ? `₪${fmt(owedTotal)}` : '•••'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 12, color: C.textDim }}>واصل لهم (مدفوعات + سلف)</span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>-₪{fmt(receivedTotal)}</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>{showAmounts ? `-₪${fmt(receivedTotal)}` : '•••'}</span>
                     </div>
                     <div style={{ height: 1, background: C.border }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -598,7 +599,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                         {owedToWorkers > 0 ? 'باقي على العمال' : 'عمال مكتفون'}
                       </span>
                       <span style={{ fontSize: 14, fontWeight: 900, color: owedToWorkers > 0 ? C.warning : C.success, fontFamily: 'monospace' }}>
-                        ₪{fmt(Math.abs(owedToWorkers))}
+                        {showAmounts ? `₪${fmt(Math.abs(owedToWorkers))}` : '•••'}
                       </span>
                     </div>
                   </div>
@@ -621,7 +622,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                     </div>
                   </div>
                   <span style={{ fontSize: 20, fontWeight: 900, color: ownerCash >= 0 ? C.success : C.accent, fontFamily: 'monospace' }}>
-                    {ownerCash >= 0 ? '' : '-'}₪{fmt(Math.abs(ownerCash))}
+                    {showAmounts ? `${ownerCash >= 0 ? '' : '-'}₪${fmt(Math.abs(ownerCash))}` : '•••'}
                   </span>
                 </PremiumCard>
               )
@@ -707,7 +708,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                           {balance > 0 ? 'مستحق' : 'مكتفي'}
                         </div>
                         <div style={{ fontSize: 14, fontWeight: 900, color: balance > 0 ? C.warning : C.success, fontFamily: 'monospace' }}>
-                          ₪{fmt(Math.abs(balance))}
+                          {showAmounts ? `₪${fmt(Math.abs(balance))}` : '•••'}
                         </div>
                       </div>
                     </div>
@@ -716,8 +717,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, borderTop: `1px solid ${C.border}` }}>
                       {[
                         { label: 'أيام العمل', value: wds.length, color: C.primary },
-                        { label: 'الأجور', value: `₪${fmt(earned)}`, color: C.secondary },
-                        { label: 'المدفوع', value: `₪${fmt(paid)}`, color: C.success },
+                        { label: 'الأجور', value: showAmounts ? `₪${fmt(earned)}` : '•••', color: C.secondary },
+                        { label: 'المدفوع', value: showAmounts ? `₪${fmt(paid)}` : '•••', color: C.success },
                       ].map(s => (
                         <div key={s.label} style={{ padding: '8px', textAlign: 'center', background: 'rgba(255,255,255,0.02)' }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -732,7 +733,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                         <span style={{ fontSize: 9, color: C.textDim, fontWeight: 700 }}>رواتب:</span>
                         {payRefs.map(p => (
                           <span key={p.id} style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}25`, borderRadius: 5, padding: '2px 7px' }}>
-                            {p.ref_number || '—'} · ₪{fmt(p.amount)}
+                            {p.ref_number || '—'}{showAmounts ? ` · ₪${fmt(p.amount)}` : ''}
                           </span>
                         ))}
                       </div>
@@ -764,7 +765,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                     )}
                   </div>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>₪{fmt(exp.amount || 0)}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>{showAmounts ? `₪${fmt(exp.amount || 0)}` : '•••'}</div>
               </PremiumCard>
             ))}
           </div>
@@ -775,7 +776,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
             {/* Header row — تسجيل قبضة جديدة من زر "تسجيل قبضة" بأعلى الشاشة (يوديك للمحاسبة) */}
             <div style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>إجمالي المقبوضات</div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>₪{fmt(stats.revenue)}</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>{showAmounts ? `₪${fmt(stats.revenue)}` : '•••'}</div>
             </div>
 
             {/* Receipt form modal */}
@@ -874,7 +875,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                     <IconChip icon={ReceiptText} tone="excellent" size={34} radius={11} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>+₪{fmt(r.amount || 0)}</div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>{showAmounts ? `+₪${fmt(r.amount || 0)}` : '•••'}</div>
                         {r.ref_number && <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 6, padding: '1px 7px', letterSpacing: '0.04em' }}>{r.ref_number}</span>}
                       </div>
                       <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>
@@ -914,8 +915,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                   {linkedPays.length > 0 && (
                     <div style={{ padding: '0 14px 10px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: C.textDim, marginBottom: 4, fontWeight: 600 }}>
-                        <span>مُصرَّف على رواتب: <span style={{ color: C.secondary }}>₪{fmt(usedAmt)}</span></span>
-                        <span>متبقي: <span style={{ color: remaining >= 0 ? C.success : C.accent }}>₪{fmt(Math.abs(remaining))}{remaining < 0 ? ' ↑زيادة' : ''}</span></span>
+                        <span>مُصرَّف على رواتب: <span style={{ color: C.secondary }}>{showAmounts ? `₪${fmt(usedAmt)}` : '•••'}</span></span>
+                        <span>متبقي: <span style={{ color: remaining >= 0 ? C.success : C.accent }}>{showAmounts ? `₪${fmt(Math.abs(remaining))}${remaining < 0 ? ' ↑زيادة' : ''}` : '•••'}</span></span>
                       </div>
                       <div style={{ height: 5, borderRadius: 3, background: `${C.border}` }}>
                         <div style={{ height: '100%', borderRadius: 3, width: `${pct}%`, background: pct >= 100 ? C.accent : `linear-gradient(90deg,${C.secondary},${C.primary})`, transition: 'width .3s' }} />
@@ -938,7 +939,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                               <div style={{ fontSize: 9, color: C.textDim }}>{fmtDate(p.date)}{p.method ? ` · ${p.method}` : ''}</div>
                             </div>
                             <div style={{ textAlign: 'end' }}>
-                              <div style={{ fontSize: 12, fontWeight: 800, color: C.secondary }}>₪{fmt(p.amount || 0)}</div>
+                              <div style={{ fontSize: 12, fontWeight: 800, color: C.secondary }}>{showAmounts ? `₪${fmt(p.amount || 0)}` : '•••'}</div>
                               {p.ref_number && <div style={{ fontSize: 9, color: C.primary, fontWeight: 700 }}>{p.ref_number}</div>}
                             </div>
                           </div>
@@ -967,6 +968,7 @@ export default function ProjectsScreen({
 }) {
   // البيانات المشتركة تُقرأ من المخزن مباشرة (بدل prop drilling)
   const { projects, workDays, expenses, clientReceipts, employees, payments, advances } = useDataStore()
+  const showAmounts = permissions?.viewAmounts !== false   // إخفاء المبالغ عن عضو فريق مقيّد
   const { t } = useTranslation()
   const { language } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
@@ -1040,8 +1042,8 @@ export default function ProjectsScreen({
               background: showArchived ? `${C.secondary}1e` : C.card, border: `1px solid ${showArchived ? C.secondary + '55' : C.border}`, color: showArchived ? C.secondary : C.textDim }}>
             <Archive size={13} strokeWidth={2.2} />
             {showArchived
-              ? (language === 'en' ? 'Show active' : 'إظهار النشطة')
-              : `${language === 'en' ? 'Archive' : 'الأرشيف'} (${archivedCount})`}
+              ? (language === 'en' ? 'Show active' : language === 'he' ? 'הצג פעילים' : 'إظهار النشطة')
+              : `${language === 'en' ? 'Archive' : language === 'he' ? 'ארכיון' : 'الأرشيف'} (${archivedCount})`}
           </button>
         </div>
       )}
@@ -1069,8 +1071,8 @@ export default function ProjectsScreen({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           {[
             { label: language === 'he' ? 'פעילים' : language === 'en' ? 'Active' : 'نشطة', value: projects.filter(p => p.status === 'نشط').length, color: C.success, icon: CheckCircle2 },
-            { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'إيرادات', value: `₪${fmt(clientReceipts.reduce((s, r) => s + (r.amount || 0), 0))}`, color: C.primary, icon: TrendingUp },
-            { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'تكاليف', value: `₪${fmt(workDays.reduce((s, w) => s + (w.amount || 0), 0) + expenses.reduce((s, e) => s + (e.amount || 0), 0))}`, color: C.accent, icon: TrendingDown },
+            { label: language === 'he' ? 'הכנסות' : language === 'en' ? 'Revenue' : 'إيرادات', value: showAmounts ? `₪${fmt(clientReceipts.reduce((s, r) => s + (r.amount || 0), 0))}` : '•••', color: C.primary, icon: TrendingUp },
+            { label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'تكاليف', value: showAmounts ? `₪${fmt(workDays.reduce((s, w) => s + (w.amount || 0), 0) + expenses.reduce((s, e) => s + (e.amount || 0), 0))}` : '•••', color: C.accent, icon: TrendingDown },
           ].map(({ label, value, color, icon }, i) => (
             <PremiumStat key={label} label={label} value={value} color={color} icon={icon} delay={i * 0.05} />
           ))}
@@ -1094,6 +1096,7 @@ export default function ProjectsScreen({
                 stats={stats}
                 businessName={businesses.find(b => b.id === project.business_id)?.name}
                 lang={language}
+                showAmounts={showAmounts}
                 onOpen={setSelected}
                 delay={Math.min(i * 0.04, 0.3)}
               />

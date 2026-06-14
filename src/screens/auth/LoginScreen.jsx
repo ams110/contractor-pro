@@ -97,7 +97,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
         setError(language === 'en' ? 'Session expired — sign in with password once.' : language === 'he' ? 'הפעלה פגה — היכנס עם סיסמה פעם אחת.' : 'انتهت الجلسة — سجّل الدخول بالباسورد مرة واحدة.')
         setOwnerEntry('password')
       } else if (e.name !== 'NotAllowedError') {
-        setError(e.message || 'فشل التحقق بالبصمة')
+        setError(e.message || (language === 'en' ? 'Fingerprint authentication failed' : language === 'he' ? 'אימות טביעת האצבע נכשל' : 'فشل التحقق بالبصمة'))
       }
     }
     setLoading(false)
@@ -119,10 +119,10 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
       setTimeout(() => navigate('/welcome'), 350)
     } catch (e) {
       if (e.message?.includes('SESSION_EXPIRED')) {
-        setError(language === 'en' ? 'Session expired — sign in with password once.' : 'انتهت الجلسة — سجّل الدخول بالباسورد مرة واحدة.')
+        setError(language === 'en' ? 'Session expired — sign in with password once.' : language === 'he' ? 'ההפעלה פגה — היכנס עם סיסמה פעם אחת.' : 'انتهت الجلسة — سجّل الدخول بالباسورد مرة واحدة.')
         setOwnerEntry('password')
       } else if (e.message?.includes('PIN_LOCKED')) {
-        setError(language === 'en' ? 'Too many attempts — PIN cleared. Sign in with password.' : 'محاولات كثيرة — أُلغي الـ PIN. سجّل الدخول بالباسورد.')
+        setError(language === 'en' ? 'Too many attempts — PIN cleared. Sign in with password.' : language === 'he' ? 'יותר מדי ניסיונות — ה-PIN בוטל. היכנס עם סיסמה.' : 'محاولات كثيرة — أُلغي الـ PIN. سجّل الدخول بالباسورد.')
         setOwnerEntry('password')
       } else {
         setPinPhase('error')
@@ -158,8 +158,8 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
   // ── Register ───────────────────────────────────────────────────────────────
   async function handleRegister(e) {
     e.preventDefault()
-    if (!regName.trim()) { setError(language === 'en' ? 'Full name is required' : 'الاسم مطلوب'); return }
-    if (regPass.length < 8) { setError(language === 'en' ? 'Password must be at least 8 characters' : 'كلمة المرور 8 أحرف على الأقل'); return }
+    if (!regName.trim()) { setError(language === 'en' ? 'Full name is required' : language === 'he' ? 'נדרש שם מלא' : 'الاسم مطلوب'); return }
+    if (regPass.length < 8) { setError(language === 'en' ? 'Password must be at least 8 characters' : language === 'he' ? 'הסיסמה חייבת לפחות 8 תווים' : 'كلمة المرور 8 أحرف على الأقل'); return }
     setLoading(true); setError(''); setRegInfo('')
     try {
       const { data } = await signUp(regEmail.trim(), regPass, regName.trim())
@@ -171,9 +171,9 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     } catch (err) {
       const msg = err.message || ''
       if (msg.includes('already registered') || msg.includes('User already registered')) {
-        setError(language === 'en' ? 'Email already registered — try signing in.' : 'هذا البريد مسجّل مسبقاً — جرّب تسجيل الدخول')
+        setError(language === 'en' ? 'Email already registered — try signing in.' : language === 'he' ? 'האימייל כבר רשום — נסה להיכנס' : 'هذا البريد مسجّل مسبقاً — جرّب تسجيل الدخول')
       } else {
-        setError(msg || 'فشل إنشاء الحساب')
+        setError(msg || (language === 'en' ? 'Failed to create account' : language === 'he' ? 'יצירת החשבון נכשלה' : 'فشل إنشاء الحساب'))
       }
     }
     setLoading(false)
@@ -190,7 +190,9 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
 
   // ── Shared input style ─────────────────────────────────────────────────────
   const inputStyle = {
-    width: '100%', padding: '11px 13px 11px 38px',
+    width: '100%',
+    // مساحة الأيقونة (insetInlineStart) لازم تتبع الاتجاه: يسار في LTR، يمين في RTL
+    padding: dir === 'rtl' ? '11px 38px 11px 13px' : '11px 13px 11px 38px',
     background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
     color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none',
     direction: 'ltr', textAlign: dir === 'rtl' ? 'right' : 'left',
@@ -321,7 +323,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
                       <input
                         type={regShowPass ? 'text' : 'password'} value={regPass} onChange={e => setRegPass(e.target.value)}
                         placeholder="••••••••"
-                        style={{ ...inputStyle, padding: '11px 40px 11px 38px' }}
+                        style={{ ...inputStyle, padding: dir === 'rtl' ? '11px 38px 11px 40px' : '11px 40px 11px 38px' }}
                         required
                       />
                       <button type="button" onClick={() => setRegShowPass(v => !v)}
@@ -470,7 +472,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
                           <Lock size={15} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                           <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
                             placeholder="••••••••"
-                            style={{ ...inputStyle, padding: '11px 40px 11px 38px' }} required />
+                            style={{ ...inputStyle, padding: dir === 'rtl' ? '11px 38px 11px 40px' : '11px 40px 11px 38px' }} required />
                           <button type="button" onClick={() => setShowPass(v => !v)}
                             style={{ position: 'absolute', insetInlineEnd: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex', alignItems: 'center' }}>
                             {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -534,7 +536,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
                     <div style={{ position: 'relative' }}>
                       <input type={showPass ? 'text' : 'password'} value={teamPass} onChange={e => setTeamPass(e.target.value)}
                         placeholder="••••••••"
-                        style={{ width: '100%', padding: '11px 40px 11px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', direction: 'ltr' }}
+                        style={{ width: '100%', padding: dir === 'rtl' ? '11px 13px 11px 40px' : '11px 40px 11px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', direction: 'ltr' }}
                         required />
                       <button type="button" onClick={() => setShowPass(v => !v)}
                         style={{ position: 'absolute', insetInlineEnd: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: C.textDim }}>

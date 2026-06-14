@@ -21,6 +21,11 @@ i18n
     fallbackLng: 'ar',
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
+    // في التطوير: نبّه على أي مفتاح ترجمة ناقص حتى لا يصل للإنتاج بصمت
+    saveMissing: import.meta.env.DEV,
+    missingKeyHandler: import.meta.env.DEV
+      ? (lng, ns, key) => console.warn(`[i18n] مفتاح ناقص: "${key}" (${Array.isArray(lng) ? lng.join(',') : lng})`)
+      : undefined,
   })
 
 export function setLanguage(lang) {

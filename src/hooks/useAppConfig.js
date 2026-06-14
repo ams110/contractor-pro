@@ -3,9 +3,10 @@ import { supabase } from '../lib/supabase.js'
 
 export function useAppConfig(ownerId) {
   const [config, setConfig] = useState({
-    is_read_only:      false,
-    daily_spend_limit: 0,
-    session_timeout:   30,
+    is_read_only:          false,
+    daily_spend_limit:     0,
+    session_timeout:       30,
+    payment_bio_threshold: 0,
   })
 
   useEffect(() => { if (ownerId) load() }, [ownerId])
@@ -22,10 +23,11 @@ export function useAppConfig(ownerId) {
   async function update(changes) {
     setConfig(c => ({ ...c, ...changes }))
     await supabase.rpc('upsert_app_config', {
-      p_owner_id:          ownerId,
-      p_is_read_only:      changes.is_read_only      ?? config.is_read_only,
-      p_daily_spend_limit: changes.daily_spend_limit ?? config.daily_spend_limit,
-      p_session_timeout:   changes.session_timeout   ?? config.session_timeout,
+      p_owner_id:              ownerId,
+      p_is_read_only:          changes.is_read_only          ?? config.is_read_only,
+      p_daily_spend_limit:     changes.daily_spend_limit     ?? config.daily_spend_limit,
+      p_session_timeout:       changes.session_timeout       ?? config.session_timeout,
+      p_payment_bio_threshold: changes.payment_bio_threshold ?? config.payment_bio_threshold,
     })
   }
 

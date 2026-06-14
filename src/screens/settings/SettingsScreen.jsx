@@ -7,7 +7,7 @@ import {
   ChevronRight, ChevronDown, Check, LogOut, HardHat, Palette, CalendarDays,
   CreditCard, Banknote, ClipboardList, Package, Calculator,
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
-  Fingerprint, ShieldCheck, Clock, Lock, Eye, EyeOff, Smartphone,
+  Fingerprint, ShieldCheck, Clock, Lock, Eye, EyeOff, Smartphone, KeyRound,
   ToggleLeft, ToggleRight, Timer, CalendarOff, UserCheck, UserX, Wallet, SlidersHorizontal,
   RotateCw, QrCode, Copy, ArrowRight, MessageCircle, AlertTriangle,
 } from 'lucide-react'
@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
 import { HolographicSheen } from '../../ui/Premium.jsx'
 import { useAppStore } from '../../store/useAppStore.js'
+import { lockOnBackgroundEnabled, LOCK_ON_BG_KEY } from '../../lib/sessionLock.js'
 import { navigate } from '../../Router.jsx'
 import { usePushNotifications } from '../../hooks/usePushNotifications.js'
 import { useAuth } from '../../hooks/useAuth.js'
@@ -323,7 +324,7 @@ export default function SettingsScreen({
   addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod,
   pensionMonthly, setPensionMonthly, taxEnabled,
   setTaxEnabled, taxModules, setTaxModule,
-  salaryAlerts = true, setSalaryAlerts,
+  salaryAlerts = true, setSalaryAlerts, dailyDigest = true, setDailyDigest,
   holidays = [], addHoliday, deleteHoliday,
   permissions, teamMembers = [],
   addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, reloadTeam,
@@ -387,6 +388,8 @@ export default function SettingsScreen({
   const [loginLogOpen, setLoginLogOpen] = useState(false)
   const [limitInput, setLimitInput] = useState('')
   const [timeoutInput, setTimeoutInput] = useState('')
+  const [lockOnBg, setLockOnBg] = useState(lockOnBackgroundEnabled(localStorage.getItem(LOCK_ON_BG_KEY)))
+  const [bioThrInput, setBioThrInput] = useState('')
   const [memberExpiryEditing, setMemberExpiryEditing] = useState(null)
   const [memberExpiryValue, setMemberExpiryValue] = useState('')
 
@@ -397,6 +400,10 @@ export default function SettingsScreen({
   useEffect(() => {
     if (!timeoutInput && appCfg?.config) setTimeoutInput(String(appCfg.config.session_timeout || '30'))
   }, [appCfg?.config?.session_timeout])
+
+  useEffect(() => {
+    if (!bioThrInput && appCfg?.config?.payment_bio_threshold) setBioThrInput(String(appCfg.config.payment_bio_threshold))
+  }, [appCfg?.config?.payment_bio_threshold])
 
   async function loadLoginLog() {
     if (!appCfg) return
@@ -423,7 +430,7 @@ export default function SettingsScreen({
   const [editingName, setEditingName] = useState(false)
   const [updateStatus, setUpdateStatus] = useState('idle') // idle | checking | upToDate | updating
 
-  // ── إعدادات الضرائب: پنسيה شهرية + رقم العوسيك ──
+  // ── إعدادات الضرائب: פנסיה شهرية + رقم العوسيك ──
   const [pensionInput, setPensionInput] = useState(String(pensionMonthly || ''))
   const [taxNumInput,  setTaxNumInput]  = useState('')
   const [taxNumSaved,  setTaxNumSaved]  = useState(false)
@@ -746,6 +753,19 @@ export default function SettingsScreen({
               {salaryAlerts ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
             </button>
           </div>
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderTop: `1px solid ${C.border}` }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.cyan}15`, border: `1px solid ${C.cyan}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <BellRing size={16} color={C.cyan} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>الملخّص اليومي</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>إشعار يومي: الطلبات المعلّقة وصرف اليوم</div>
+            </div>
+            <button onClick={() => setDailyDigest?.(!dailyDigest)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: dailyDigest ? C.success : C.textDim }}>
+              {dailyDigest ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+            </button>
+          </div>
         </Section>
       )}
 
@@ -758,7 +778,7 @@ export default function SettingsScreen({
               <Banknote size={16} color={C.blue} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>قسط الپنسيה الشهري</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>قسط الפנסיה الشهري</div>
               <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>يُخصم من الوعاء الضريبي ويظهر الوفر في ملخص الضرائب</div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -870,14 +890,14 @@ export default function SettingsScreen({
                     }
                     <span style={{ fontSize: 12, fontWeight: 700, color: pushSubStatus === 'ok' ? C.success : pushSubStatus === 'subscribing' ? C.primary : pushSubStatus === 'no_vapid' ? C.warning : C.accent }}>
                       {pushSubStatus === 'ok'
-                        ? (language === 'en' ? 'Subscribed — background push active' : 'مشترك — الإشعارات الخلفية فعّالة')
+                        ? (language === 'en' ? 'Subscribed — background push active' : language === 'he' ? 'מנוי — התראות רקע פעילות' : 'مشترك — الإشعارات الخلفية فعّالة')
                         : pushSubStatus === 'subscribing'
-                        ? (language === 'en' ? 'Subscribing...' : 'جاري التسجيل...')
+                        ? (language === 'en' ? 'Subscribing...' : language === 'he' ? 'נרשם...' : 'جاري التسجيل...')
                         : pushSubStatus === 'no_vapid'
-                        ? (language === 'en' ? 'Push key not configured (admin)' : 'مفتاح الإشعارات غير مُعدّ')
+                        ? (language === 'en' ? 'Push key not configured (admin)' : language === 'he' ? 'מפתח ההתראות לא מוגדר' : 'مفتاح الإشعارات غير مُعدّ')
                         : pushSubStatus === 'db_error'
-                        ? (language === 'en' ? 'Subscription save error — retry' : 'خطأ في حفظ الاشتراك — أعد التفعيل')
-                        : (language === 'en' ? 'Not subscribed — tap Re-activate' : 'غير مشترك — اضغط إعادة التفعيل')
+                        ? (language === 'en' ? 'Subscription save error — retry' : language === 'he' ? 'שגיאה בשמירת המנוי — הפעל מחדש' : 'خطأ في حفظ الاشتراك — أعد التفعيل')
+                        : (language === 'en' ? 'Not subscribed — tap Re-activate' : language === 'he' ? 'לא רשום — לחץ להפעלה מחדש' : 'غير مشترك — اضغط إعادة التفعيل')
                       }
                     </span>
                   </div>
@@ -897,7 +917,7 @@ export default function SettingsScreen({
                     }}
                   >
                     <RefreshCw size={13} strokeWidth={2.5} />
-                    {language === 'en' ? 'Re-activate Push' : 'إعادة تفعيل الإشعارات'}
+                    {language === 'en' ? 'Re-activate Push' : language === 'he' ? 'הפעל התראות מחדש' : 'إعادة تفعيل الإشعارات'}
                   </motion.button>
                 )}
 
@@ -918,8 +938,8 @@ export default function SettingsScreen({
                     }}
                   >
                     {testNotifLoading
-                      ? <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}><RefreshCw size={13} /></motion.div>{language === 'en' ? 'Sending...' : 'جاري الإرسال...'}</>
-                      : <><BellRing size={13} strokeWidth={2.5} />{language === 'en' ? 'Send Test Notification' : 'إرسال إشعار تجريبي'}</>
+                      ? <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}><RefreshCw size={13} /></motion.div>{language === 'en' ? 'Sending...' : language === 'he' ? 'שולח...' : 'جاري الإرسال...'}</>
+                      : <><BellRing size={13} strokeWidth={2.5} />{language === 'en' ? 'Send Test Notification' : language === 'he' ? 'שלח התראת בדיקה' : 'إرسال إشعار تجريبي'}</>
                     }
                   </motion.button>
                 )}
@@ -1151,6 +1171,26 @@ export default function SettingsScreen({
             </div>
           </div>
 
+          {/* حدّ تأكيد البصمة للدفعات */}
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.secondary}15`, border: `1px solid ${C.secondary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <KeyRound size={16} color={C.secondary} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>بصمة للدفعات الكبيرة</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>تأكيد بصمة عند تسجيل دفعة بهذا المبلغ أو أكثر (0 = معطّل)</div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                type="number" min="0" value={bioThrInput}
+                onChange={e => setBioThrInput(e.target.value)}
+                onBlur={() => appCfg.update({ payment_bio_threshold: Number(bioThrInput) || 0 })}
+                style={{ width: 70, padding: '6px 8px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
+              />
+              <span style={{ fontSize: 11, color: C.textDim }}>₪</span>
+            </div>
+          </div>
+
           {/* مهلة الجلسة */}
           <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.cyan}15`, border: `1px solid ${C.cyan}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1169,6 +1209,25 @@ export default function SettingsScreen({
               />
               <span style={{ fontSize: 11, color: C.textDim }}>د</span>
             </div>
+          </div>
+
+          {/* قفل عند الخروج من التطبيق */}
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.primary}15`, border: `1px solid ${C.primary}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <LogOut size={16} color={C.primary} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>قفل فوري عند الخروج</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
+                {lockOnBg ? 'يُقفل التطبيق فوراً عند تصغيره أو التبديل لتطبيق آخر' : 'يُقفل فقط بعد مهلة الخمول'}
+              </div>
+            </div>
+            <button
+              onClick={() => { const v = !lockOnBg; setLockOnBg(v); localStorage.setItem(LOCK_ON_BG_KEY, v ? '1' : '0') }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: lockOnBg ? C.primary : C.textDim }}
+            >
+              {lockOnBg ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+            </button>
           </div>
 
           {/* سجل الدخول */}

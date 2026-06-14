@@ -18,7 +18,7 @@ function initialsOf(name) {
   return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
-export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'ar', qr, portalUrl, portalEnabled = true, onOpen, delay = 0 }) {
+export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'ar', qr, portalUrl, portalEnabled = true, showAmounts = true, onOpen, delay = 0 }) {
   const [flipped, setFlipped] = useState(false)
   const [copied, setCopied] = useState(false)
   const L = (ar, he, en) => (lang === 'en' ? en : lang === 'he' ? he : ar)
@@ -37,8 +37,8 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
   }
 
   const miniStats = [
-    { label: L('المستحق', 'הרוויח', 'Earned'), value: `₪${fmt(stats.earned || 0)}` },
-    { label: L('المدفوع', 'שולם', 'Paid'),     value: `₪${fmt(stats.paid || 0)}` },
+    { label: L('المستحق', 'הרוויח', 'Earned'), value: showAmounts ? `₪${fmt(stats.earned || 0)}` : '•••' },
+    { label: L('المدفوع', 'שולם', 'Paid'),     value: showAmounts ? `₪${fmt(stats.paid || 0)}` : '•••' },
     { label: L('أيام', 'ימים', 'Days'),         value: stats.days || 0 },
   ]
 
@@ -109,7 +109,7 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.78)', marginBottom: 1 }}>
                 <Wallet size={11} color="#fff" strokeWidth={2.4} /> {L('الرصيد', 'מאזן', 'Balance')}
               </div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.28)' }}>₪{fmt(Math.abs(balance))}</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.28)' }}>{showAmounts ? `₪${fmt(Math.abs(balance))}` : '•••'}</div>
             </div>
           </div>
 

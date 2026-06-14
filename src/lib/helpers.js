@@ -7,6 +7,11 @@ export const todayStr = () => new Date().toISOString().split('T')[0]
 /** تنسيق الأرقام بفواصل */
 export const fmt = (n) => (n || 0).toLocaleString('en-US')
 
+// تقنيع المبالغ لعضو فريق بلا صلاحية «مشاهدة المبالغ» (viewAmounts=false)
+// show=true → الرقم منسّقاً؛ show=false → •••. يُستعمل عبر الشاشات لإخفاء كل ₪.
+export const MONEY_MASK = '•••'
+export const fmtMoney = (n, show = true) => (show ? fmt(n) : MONEY_MASK)
+
 /** تحويل YYYY-MM-DD إلى DD/MM/YYYY */
 export const fmtDate = (d) => {
   if (!d) return ''
@@ -134,32 +139,35 @@ export function calcVATNet(clientReceipts, expenses, fromDate, toDate) {
   return { vatOut: Math.round(vatOut), vatIn: Math.round(vatIn), net: Math.round(vatOut - vatIn) }
 }
 
-// ─── ثوابت الضرائب الإسرائيلية 2024 ─────────────────────────────────────────
-// ביטוח לאומי + ביטוח בריאות للعمل الحر (עצמאי)
+// ─── ثوابت الضرائب الإسرائيلية 2025 ─────────────────────────────────────────
+// ביטוח לאומי + ביטוח בריאות للعمل الحر (עצמאי) — النِسب مجمّدة 2025↔2026 (تيكون 252)،
+// تتغيّر العتبات (₪) فقط سنوياً. (قيم 2026: سقف 51,910/شهر، شريحة 1 = 7,703/شهر.)
 // شريحة 1: حتى 60% من الأجر المتوسط (₪7,522/شهر = ₪90,264/سنة)
-//   ضمان اجتماعي 6.72% + تأمين صحي 3.10% = 9.82%
-// شريحة 2: من ₪7,522 حتى سقف ₪47,465/شهر (₪569,580/سنة)
-//   ضمان اجتماعي 11.23% + تأمين صحي 5.00% = 16.23%
-const _BL_TIER1_M  = 7522     // شريحة 1 شهرية
-const _BL_CAP_M    = 47465    // سقف شهري
-const _BL_TIER1_Y  = 90264    // شريحة 1 سنوية
-const _BL_CAP_Y    = 569580   // سقف سنوي
-const _BL_R1       = 0.0982   // نسبة شريحة 1
-const _BL_R2       = 0.1623   // نسبة شريحة 2
+//   ضمان اجتماعي 4.47% + تأمين صحي 3.23% = 7.70%
+// شريحة 2: من ₪7,522 حتى سقف ₪50,695/شهر (₪608,340/سنة)
+//   ضمان اجتماعي 12.83% + تأمين صحي 5.17% = 18.00%
+const _BL_TIER1_M  = 7522     // شريحة 1 شهرية (2025)
+const _BL_CAP_M    = 50695    // سقف شهري (2025)
+const _BL_TIER1_Y  = 90264    // شريحة 1 سنوية (2025)
+const _BL_CAP_Y    = 608340   // سقف سنوي (2025)
+const _BL_R1       = 0.077    // نسبة شريحة 1
+const _BL_R2       = 0.18     // نسبة شريحة 2
 
-// شرائح מס הכנסה 2024 (أحجام الشرائح السنوية)
+// شرائح מס הכנסה 2025 (أحجام الشرائح السنوية — مجمّدة 2025–2027).
+// السقوف: 84,120 / 120,720 / 193,800 / 269,280 / 560,280 / 721,560 / فوق.
 const _IT_BRACKETS = [
-  [81480,    0.10],
-  [35280,    0.14],
-  [70680,    0.20],
-  [73080,    0.31],
-  [281640,   0.35],
-  [Infinity, 0.47],
+  [84120,    0.10],
+  [36600,    0.14],
+  [73080,    0.20],
+  [75480,    0.31],
+  [291000,   0.35],
+  [161280,   0.47],
+  [Infinity, 0.50],   // מס יסף: 47% + 3% فوق ₪721,560
 ]
-const _IT_CREDIT = 6534  // نقاط زيكوي شخصية: 2.25 × ₪2,904
+const _IT_CREDIT = 6534  // نقاط زيكوي شخصية: 2.25 × ₪2,904 (قيمة النقطة مجمّدة)
 
 /**
- * تقدير ביטוח לאומי + ביטוח בריאות الشهري للعمل الحر — شرائح 2024
+ * تقدير ביטוח לאומי + ביטוח בריאות الشهري للعمل الحر — شرائح 2025
  */
 export function calcBituachLeumi(monthlyNetProfit) {
   if (monthlyNetProfit <= 0) return 0
@@ -170,7 +178,7 @@ export function calcBituachLeumi(monthlyNetProfit) {
 }
 
 /**
- * تقدير ביטוח לאומי + ביטוח בריאות السنوي — شرائح 2024
+ * تقدير ביטוח לאומי + ביטוח בריאות السنوي — شرائح 2025
  */
 export function calcBituachLeumiAnnual(annualNetProfit) {
   if (annualNetProfit <= 0) return 0
@@ -181,10 +189,10 @@ export function calcBituachLeumiAnnual(annualNetProfit) {
 }
 
 /**
- * تقدير מס הכנסה السنوي للعمل الحر — شرائح 2024
+ * تقدير מס הכנסה السنوي للعمل الحر — شرائح 2025
  * @param annualNetProfit  - صافي الربح السنوي (إيرادات - مصاريف - رواتب عمال)
- * @param pensionDeduction - مساهمات الپنסيה السنوية المدفوعة (تُخصم من الوعاء الضريبي)
- *   الحد الأقصى للخصم: 16% من الدخل (תקרת ניכוי לעצמאי 2024)
+ * @param pensionDeduction - مساهمات الפנסיה السنوية المدفوعة (تُخصم من الوعاء الضريبي)
+ *   الحد الأقصى للخصم: 16% من الدخل (תקרת ניכוי לעצמאי)
  * نقاط زيكوي شخصية: 2.25 × ₪2,904 = ₪6,534 خصم من الضريبة المحسوبة
  */
 export function estimateIncomeTax(annualNetProfit, pensionDeduction = 0) {
@@ -203,7 +211,7 @@ export function estimateIncomeTax(annualNetProfit, pensionDeduction = 0) {
 }
 
 /**
- * حساب الوفر الضريبي من مساهمات الپנסיה
+ * حساب الوفر الضريبي من مساهمات الפנסיה
  */
 export function pensionTaxSaving(annualNetProfit, pensionDeduction) {
   return estimateIncomeTax(annualNetProfit, 0) - estimateIncomeTax(annualNetProfit, pensionDeduction)

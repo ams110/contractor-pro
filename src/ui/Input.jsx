@@ -10,10 +10,13 @@ export const Input = forwardRef(function Input({
   containerStyle = {},
   ...props
 }, ref) {
+  const autoId = React.useId()
+  const inputId = props.id || autoId
+  const msgId = error ? `${inputId}-err` : hint ? `${inputId}-hint` : undefined
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5, ...containerStyle }}>
       {label && (
-        <label style={{ fontSize: 11, fontWeight: 700, color: '#64748B', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <label htmlFor={inputId} style={{ fontSize: 11, fontWeight: 700, color: '#64748B', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           {label}
         </label>
       )}
@@ -25,6 +28,9 @@ export const Input = forwardRef(function Input({
         )}
         <input
           ref={ref}
+          id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={msgId}
           style={{
             width: '100%',
             background: '#0D0F18',
@@ -51,8 +57,8 @@ export const Input = forwardRef(function Input({
           </span>
         )}
       </div>
-      {error && <span style={{ fontSize: 11, color: '#EF4444', fontWeight: 600 }}>{error}</span>}
-      {hint && !error && <span style={{ fontSize: 11, color: '#64748B' }}>{hint}</span>}
+      {error && <span id={`${inputId}-err`} role="alert" style={{ fontSize: 11, color: '#EF4444', fontWeight: 600 }}>{error}</span>}
+      {hint && !error && <span id={`${inputId}-hint`} style={{ fontSize: 11, color: '#64748B' }}>{hint}</span>}
     </div>
   )
 })

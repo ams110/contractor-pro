@@ -28,7 +28,8 @@ function projectGradient(status, profit) {
   }
 }
 
-export default function ProjectCard({ project, stats = {}, businessName, lang = 'ar', onOpen, delay = 0 }) {
+export default function ProjectCard({ project, stats = {}, businessName, lang = 'ar', showAmounts = true, onOpen, delay = 0 }) {
+  const M = (s) => showAmounts ? s : '•••'   // تقنيع المبالغ
   const [flipped, setFlipped] = useState(false)
   const L = (ar, he, en) => (lang === 'en' ? en : lang === 'he' ? he : ar)
 
@@ -42,8 +43,8 @@ export default function ProjectCard({ project, stats = {}, businessName, lang = 
   function flip(e) { e.stopPropagation(); setFlipped(f => !f) }
 
   const miniStats = [
-    { label: L('إيرادات', 'הכנסות', 'Revenue'), value: `₪${fmt(stats.revenue || 0)}` },
-    { label: L('التكاليف', 'הוצאות', 'Costs'),   value: `₪${fmt(stats.cost || 0)}` },
+    { label: L('إيرادات', 'הכנסות', 'Revenue'), value: M(`₪${fmt(stats.revenue || 0)}`) },
+    { label: L('التكاليف', 'הוצאות', 'Costs'),   value: M(`₪${fmt(stats.cost || 0)}`) },
     { label: L('أيام', 'ימים', 'Days'),           value: stats.wdCount || 0 },
   ]
 
@@ -103,7 +104,7 @@ export default function ProjectCard({ project, stats = {}, businessName, lang = 
                 {isProfit ? <TrendingUp size={11} color="#fff" strokeWidth={2.4} /> : <TrendingDown size={11} color="#fff" strokeWidth={2.4} />}
                 {isProfit ? L('الربح', 'רווח', 'Profit') : L('الخسارة', 'הפסד', 'Loss')}
               </div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.28)' }}>{isProfit ? '' : '−'}₪{fmt(Math.abs(profit))}</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.28)' }}>{M(`${isProfit ? '' : '−'}₪${fmt(Math.abs(profit))}`)}</div>
               {stats.margin ? <div style={{ fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{stats.margin}%</div> : null}
             </div>
           </div>
@@ -142,9 +143,9 @@ export default function ProjectCard({ project, stats = {}, businessName, lang = 
             <span style={{ fontSize: 13, fontWeight: 900, color: C.text }}>{L('الربح والخسارة', 'רווח והפסד', 'Profit & Loss')}</span>
           </div>
           {[
-            { label: L('الإيراد', 'הכנסה', 'Revenue'), value: `₪${fmt(stats.revenue || 0)}`, color: C.success },
-            { label: L('التكاليف', 'הוצאות', 'Costs'),  value: `₪${fmt(stats.cost || 0)}`, color: C.accent },
-            { label: L('صافي الربح', 'רווח נקי', 'Net Profit'), value: `${isProfit ? '' : '−'}₪${fmt(Math.abs(profit))}`, color: isProfit ? C.success : C.accent, bold: true },
+            { label: L('الإيراد', 'הכנסה', 'Revenue'), value: M(`₪${fmt(stats.revenue || 0)}`), color: C.success },
+            { label: L('التكاليف', 'הוצאות', 'Costs'),  value: M(`₪${fmt(stats.cost || 0)}`), color: C.accent },
+            { label: L('صافي الربح', 'רווח נקי', 'Net Profit'), value: M(`${isProfit ? '' : '−'}₪${fmt(Math.abs(profit))}`), color: isProfit ? C.success : C.accent, bold: true },
           ].map(row => (
             <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>{row.label}</span>
@@ -157,7 +158,7 @@ export default function ProjectCard({ project, stats = {}, businessName, lang = 
                 {remaining > 0 ? <Clock size={11} color={C.warning} strokeWidth={2.2} /> : <CheckCircle2 size={11} color={C.success} strokeWidth={2.2} />}
                 {remaining > 0 ? L('متبقّي تحصيله', 'נותר לגבות', 'Remaining') : L('اكتمل التحصيل', 'נגבה במלואו', 'Fully collected')}
               </span>
-              <span style={{ fontSize: 12, fontWeight: 800, color: remaining > 0 ? C.warning : C.success }}>{remaining > 0 ? `₪${fmt(remaining)}` : `₪${fmt(price)}`}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: remaining > 0 ? C.warning : C.success }}>{M(remaining > 0 ? `₪${fmt(remaining)}` : `₪${fmt(price)}`)}</span>
             </div>
           )}
           {businessName && (

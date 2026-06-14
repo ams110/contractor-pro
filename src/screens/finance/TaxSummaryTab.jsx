@@ -19,7 +19,7 @@ import { supabase } from '../../lib/supabase.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { computeTaxRunway } from '../../lib/insights.js'
 import TaxRunway from '../../components/TaxRunway.jsx'
-// مصدر واحد لحساب ضريبة الدخل — المحرّك المركزي (شرائح 2025 + نقاط الزكاء + خصم پنسيה)
+// مصدر واحد لحساب ضريبة الدخل — المحرّك المركزي (شرائح 2025 + نقاط الزكاء + خصم פנסיה)
 import { calcIncomeTaxAnnual } from '../../hooks/useTaxEngine.js'
 
 // ─── Period helpers ────────────────────────────────────────────────────────────
@@ -182,7 +182,7 @@ export default function TaxSummaryTab({ pensionMonthly = 0 }) {
 
   const incomeTax = bizType === 'hevra'
     ? yearProfit * 0.23                  // ضريبة شركات 23%
-    : calcIncomeTaxAnnual(yearProfit, 2.25, (pensionMonthly || 0) * 12)   // محرّك مركزي: شرائح + نقاط زكاء + خصم پنسيה
+    : calcIncomeTaxAnnual(yearProfit, 2.25, (pensionMonthly || 0) * 12)   // محرّك مركزي: شرائح + نقاط زكاء + خصم פנסיה
 
   // ביטוח לאומי + בריאות للعمل الحر: شريحتان (مخفّضة/كاملة) عبر المحرّك المركزي — لا نسبة مسطّحة
   const bituachLeumi = bizType !== 'hevra'

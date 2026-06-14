@@ -10,7 +10,7 @@ const ITEMS = [
   { key: 'passkey',    label: 'البصمة (Passkey)',   weight: 25, icon: 'Fingerprint', hint: 'فعّل البصمة لتأمين العمليات الحسّاسة', critical: true },
   { key: 'taxNumber',  label: 'رقم العوسيك / ח.פ',  weight: 15, icon: 'Tag',         hint: 'أضف رقمك الضريبي ليظهر على الفواتير' },
   { key: 'spendLimit', label: 'حدّ الصرف اليومي',   weight: 15, icon: 'Banknote',    hint: 'اضبط حدّاً يطلب توقيعاً عند تجاوزه', critical: true },
-  { key: 'pension',    label: 'قسط الپنسيה',        weight: 10, icon: 'Wallet',      hint: 'سجّل قسطك ليُخصم من الوعاء الضريبي' },
+  { key: 'pension',    label: 'قسط الפנסיה',        weight: 10, icon: 'Wallet',      hint: 'سجّل قسطك ليُخصم من الوعاء الضريبي' },
   { key: 'notify',     label: 'الإشعارات',           weight: 10, icon: 'Bell',        hint: 'فعّل الإشعارات لتنبيهات الموافقات والمتأخرات' },
   { key: 'avatar',     label: 'شعار / صورة',         weight: 10, icon: 'Camera',      hint: 'ارفع شعارك ليظهر في التطبيق' },
 ]

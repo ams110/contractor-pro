@@ -7,7 +7,7 @@ import {
   Bell, ClipboardCheck, HardHat, Gift,
   Clock, ShieldOff, Lock, CalendarDays, CreditCard, Banknote,
   ClipboardList, Package, Calculator, Activity, Grid3x3,
-  Search,
+  Search, AlertTriangle, RefreshCw,
 } from 'lucide-react'
 
 import { supabase }            from './lib/supabase.js'
@@ -28,18 +28,22 @@ import { useProfile }          from './hooks/useProfile.js'
 import { useTeam, teamMemberSignIn } from './hooks/useTeam.js'
 import { useNotifications }    from './hooks/useNotifications.js'
 import { useSalaryAlerts }     from './hooks/useSalaryAlerts.js'
+import { useDailyDigest }      from './hooks/useDailyDigest.js'
 
 import WorkerPortalScreen      from './screens/WorkerPortalScreen.jsx'
 import NotificationsPanel      from './components/NotificationsPanel.jsx'
 import ErrorBoundary            from './components/ErrorBoundary.jsx'
 import SmartSearch              from './components/SmartSearch.jsx'
 import BiometricConfirmModal   from './components/BiometricConfirmModal.jsx'
+import { useBiometricConfirm } from './hooks/useBiometricConfirm.js'
 import SessionLockScreen       from './components/SessionLockScreen.jsx'
 import ConnectionStatus        from './components/ConnectionStatus.jsx'
 import ScreenSkeleton          from './components/ScreenSkeleton.jsx'
 import { LoadingSpinner }       from './components/index.jsx'
 import { usePushNotifications } from './hooks/usePushNotifications.js'
 import { useAppConfig }        from './hooks/useAppConfig.js'
+import { hasPin }              from './lib/pinCrypto.js'
+import { hasUnlockMethod, idleTimeoutMs, lockOnBackgroundEnabled, LOCK_ON_BG_KEY, PASSKEY_KEY } from './lib/sessionLock.js'
 
 // ── New screens ───────────────────────────────────────────────────────────────
 const LoginScreen    = lazy(() => import('./screens/auth/LoginScreen.jsx'))
@@ -321,7 +325,7 @@ function OwnerApp() {
   const uid = user?.id
 
   // ─── Business onboarding ──────────────────────────────────────────────────
-  const { businesses, initialized: bizInit, load: loadBiz } = useBusinessStore()
+  const { businesses, initialized: bizInit, loading: bizLoading, error: bizError, load: loadBiz } = useBusinessStore()
   useEffect(() => { if (uid) loadBiz() }, [uid]) // eslint-disable-line
 
   const { teamMembers, permissions, effectiveOwnerId, allowedProjectIds, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
@@ -336,11 +340,13 @@ function OwnerApp() {
   const { taxAdvances,                     addTaxAdvance, deleteTaxAdvance } = useTaxAdvances(eid)
   const appCfg = useAppConfig(eid)
   const { clientReceipts, loading: crLoad, addReceipt, updateReceipt, deleteReceipt, refetch: refetchReceipts } = useClientReceipts(eid)
-  const { specs, expCats, payMethods, pensionMonthly, taxEnabled, taxModules, salaryAlerts, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly, setTaxEnabled, setTaxModule, setSalaryAlerts } = useSettings(eid)
+  const { specs, expCats, payMethods, pensionMonthly, taxEnabled, taxModules, salaryAlerts, dailyDigest, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly, setTaxEnabled, setTaxModule, setSalaryAlerts, setDailyDigest } = useSettings(eid)
   const { holidays, addHoliday, deleteHoliday } = useHolidays(eid)
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar, saveContractorNumber } = useProfile(uid)
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
   useSalaryAlerts(uid, employees, workDays, payments, advances, expenses, salaryAlerts)
+  // الملخّص اليومي للمالك فقط (ليس عضو فريق)
+  useDailyDigest(effectiveOwnerId ? null : uid, { workDays, expenses, payments }, dailyDigest)
   const { permission: pushPermission, requestPermission: requestPushPermission, subStatus: pushSubStatus, forceResubscribe: forceResubscribePush } = usePushNotifications(uid)
 
   const { org, loading: orgLoading, isPlanActive, isTrialActive, trialDaysLeft } = useOrganization(uid)
@@ -388,17 +394,29 @@ function OwnerApp() {
     appCfg.logLogin(uid, user?.email || '', role, navigator.userAgent.slice(0, 120))
   }, [uid])
 
-  // Session idle → lock (replace auto-signout)
+  // Session security: قفل عند الخمول + قفل فوري عند الخروج من التطبيق (نمط «المجلد الآمن»)
+  // يطبَّق على المالك وأعضاء الفريق، لكن فقط لمن سجّل وسيلة فتح (بصمة/PIN) — وإلا
+  // يعلق المستخدم بشاشة القفل بلا طريقة فتح (تسجيل الخروج فقط).
   useEffect(() => {
-    if (!uid || effectiveOwnerId) return
-    const timeoutMs = (appCfg.config.session_timeout || 30) * 60 * 1000
+    if (!uid) return
+    if (!hasUnlockMethod({ hasPasskey: !!localStorage.getItem(PASSKEY_KEY), hasPinSet: hasPin() })) return
+
+    const timeoutMs = idleTimeoutMs(appCfg.config.session_timeout)
     let timer
     const reset = () => { clearTimeout(timer); timer = setTimeout(lockSession, timeoutMs) }
+    // عند تصغير التطبيق/التبديل لتطبيق آخر → قفل فوري (ما لم يُعطَّل من الإعدادات)
+    const onHidden = () => { if (document.hidden && lockOnBackgroundEnabled(localStorage.getItem(LOCK_ON_BG_KEY))) lockSession() }
+
     const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'pointermove']
     events.forEach(e => window.addEventListener(e, reset, { passive: true }))
+    document.addEventListener('visibilitychange', onHidden)
     reset()
-    return () => { clearTimeout(timer); events.forEach(e => window.removeEventListener(e, reset)) }
-  }, [uid, effectiveOwnerId, appCfg.config.session_timeout])
+    return () => {
+      clearTimeout(timer)
+      events.forEach(e => window.removeEventListener(e, reset))
+      document.removeEventListener('visibilitychange', onHidden)
+    }
+  }, [uid, appCfg.config.session_timeout])
 
   // Log screen views for team members
   useEffect(() => {
@@ -433,6 +451,17 @@ function OwnerApp() {
   const _rejectExpense  = (id, r) => rejectExpense(id, r).then(() => showToast('رُفض المصروف', 'warning'))
   const _approvePayment = id      => approvePaymentRequest(id).then(() => showToast('تمت الموافقة على الدفعة'))
   const _rejectPayment  = (id, r) => rejectPaymentRequest(id, r).then(() => showToast('رُفضت الدفعة', 'warning'))
+
+  // تأكيد بصمة للدفعات فوق حدّ يضبطه المالك (payment_bio_threshold، 0 = معطّل)
+  const { confirm: _bioConfirm } = useBiometricConfirm()
+  const _addPayment = async (form) => {
+    const thr = Number(appCfg?.config?.payment_bio_threshold) || 0
+    if (thr > 0 && Number(form?.amount) >= thr) {
+      const sig = await _bioConfirm(`تأكيد دفعة ${form.amount}₪`, 'payments')
+      if (!sig) throw new Error('مطلوب تأكيد بصمة لاعتماد هذه الدفعة')
+    }
+    return addPayment(form)
+  }
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
 
@@ -519,13 +548,13 @@ function OwnerApp() {
     const allData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts, advances: visibleAdvances }
     switch (screen) {
       case 'dashboard':  content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} />; break
-      case 'finance':    content = <FinanceScreen {...allData} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} userId={uid} permissions={p} payMethods={payMethods} appCfg={appCfg} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} />; break
+      case 'finance':    content = (p?.viewAmounts === false) ? <NoAccess /> : <FinanceScreen {...allData} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} userId={uid} permissions={p} payMethods={payMethods} appCfg={appCfg} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} />; break
       case 'projects':   content = p?.viewProjects  ? <ProjectsScreen  addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} archiveProject={archiveProject} restoreProject={restoreProject} deleteProjectWithAll={deleteProjectWithAll} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addExpense={addExpense} deleteExpense={deleteExpense} expCats={expCats} userId={uid} permissions={p} payMethods={payMethods} holidays={holidays} /> : <NoAccess />; break
-      case 'workers':    content = p?.viewWorkers   ? <WorkersScreen   {...allData} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} payMethods={payMethods} profile={profile} appCfg={appCfg} /> : <NoAccess />; break
+      case 'workers':    content = p?.viewWorkers   ? <WorkersScreen   {...allData} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} payMethods={payMethods} profile={profile} appCfg={appCfg} /> : <NoAccess />; break
       case 'workdays':   setScreen('workers'); content = null; break
-      case 'settings':   content = <SettingsScreen  {...allData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} setTaxEnabled={setTaxEnabled} taxModules={taxModules} setTaxModule={setTaxModule} salaryAlerts={salaryAlerts} setSalaryAlerts={setSalaryAlerts} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} saveContractorNumber={saveContractorNumber} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} onNav={setScreen} appCfg={appCfg} pushSubStatus={pushSubStatus} forceResubscribePush={forceResubscribePush} />; break
+      case 'settings':   content = <SettingsScreen  {...allData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} setTaxEnabled={setTaxEnabled} taxModules={taxModules} setTaxModule={setTaxModule} salaryAlerts={salaryAlerts} setSalaryAlerts={setSalaryAlerts} dailyDigest={dailyDigest} setDailyDigest={setDailyDigest} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} saveContractorNumber={saveContractorNumber} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} onNav={setScreen} appCfg={appCfg} pushSubStatus={pushSubStatus} forceResubscribePush={forceResubscribePush} />; break
       case 'expenses':   content = p?.viewExpenses  ? <ExpensesScreen  expenses={visibleExpenses} projects={visibleProjects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={visibleEmployees} userId={uid} permissions={p} /> : <NoAccess />; break
-      case 'payments':   content = p?.viewPayments  ? <PaymentsScreen  payments={visiblePayments} employees={visibleEmployees} workDays={visibleWorkDays} expenses={visibleExpenses} advances={visibleAdvances} projects={visibleProjects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
+      case 'payments':   content = p?.viewPayments  ? <PaymentsScreen  payments={visiblePayments} employees={visibleEmployees} workDays={visibleWorkDays} expenses={visibleExpenses} advances={visibleAdvances} projects={visibleProjects} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
       case 'tracker':    content = p?.viewProjects  ? <UnitTrackerScreen projects={visibleProjects} /> : <NoAccess />; break
       case 'materials':  content = p?.viewProjects  ? <MaterialsScreen userId={eid} employees={visibleEmployees} projects={visibleProjects} /> : <NoAccess />; break
       case 'accounting': setScreen('finance'); content = null; break
@@ -543,8 +572,33 @@ function OwnerApp() {
     : NAV.find(n => n.id === screen) ? screen
     : 'dashboard'
 
+  // ─── فشل تحميل المصالح: لا نعرض «أنشئ أول مصلحة» (قد يكون للمالك مصالح أصلاً)
+  // بل شاشة إعادة محاولة. هذا يمنع ظهور onboarding خطأً عند عطل شبكة/جلسة.
+  if (uid && bizInit && bizError && businesses.length === 0 && permissions?.isOwner !== false) {
+    return (
+      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", padding: 32, textAlign: 'center' }}>
+        <style>{globalCSS}</style>
+        <div style={{ width: 72, height: 72, borderRadius: 24, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <AlertTriangle size={36} color={C.warning} strokeWidth={1.5} />
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 8 }}>تعذّر تحميل المصالح</div>
+        <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7, maxWidth: 300, marginBottom: 28 }}>
+          حدث خطأ أثناء جلب بياناتك. بياناتك محفوظة — تحقّق من الاتصال وأعد المحاولة.
+        </div>
+        <button onClick={() => loadBiz()} disabled={bizLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 32px', borderRadius: 16, background: GRAD.primary, border: 'none', color: '#000', fontSize: 15, fontWeight: 800, cursor: bizLoading ? 'wait' : 'pointer', opacity: bizLoading ? 0.7 : 1, boxShadow: '0 8px 28px rgba(245,158,11,0.4)', fontFamily: 'inherit' }}>
+          <RefreshCw size={18} strokeWidth={2.2} style={bizLoading ? { animation: 'spin 1s linear infinite' } : undefined} />
+          {bizLoading ? 'جارٍ المحاولة…' : 'إعادة المحاولة'}
+        </button>
+        <button onClick={() => supabase.auth.signOut()} style={{ marginTop: 14, padding: '10px 24px', borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+          تسجيل الخروج
+        </button>
+      </div>
+    )
+  }
+
   // ─── First-time setup: إذا المستخدم مسجّل دخول بس ما عنده مصالح → اعرض الإعداد الإجباري
-  if (uid && bizInit && businesses.length === 0 && permissions?.isOwner !== false) {
+  // شرط: التحميل اكتمل بنجاح (bizInit) بلا خطأ وبلا تحميل جارٍ — أي «فارغ فعلاً» مش «فشل».
+  if (uid && bizInit && !bizLoading && !bizError && businesses.length === 0 && permissions?.isOwner !== false) {
     return (
       <>
         <style>{globalCSS}</style>
