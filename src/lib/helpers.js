@@ -7,6 +7,11 @@ export const todayStr = () => new Date().toISOString().split('T')[0]
 /** تنسيق الأرقام بفواصل */
 export const fmt = (n) => (n || 0).toLocaleString('en-US')
 
+// تقنيع المبالغ لعضو فريق بلا صلاحية «مشاهدة المبالغ» (viewAmounts=false)
+// show=true → الرقم منسّقاً؛ show=false → •••. يُستعمل عبر الشاشات لإخفاء كل ₪.
+export const MONEY_MASK = '•••'
+export const fmtMoney = (n, show = true) => (show ? fmt(n) : MONEY_MASK)
+
 /** تحويل YYYY-MM-DD إلى DD/MM/YYYY */
 export const fmtDate = (d) => {
   if (!d) return ''

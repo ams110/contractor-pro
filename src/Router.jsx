@@ -9,6 +9,7 @@ import CookieConsent from './components/CookieConsent.jsx'
 
 const LoginScreen = lazy(() => import('./screens/auth/LoginScreen.jsx'))
 const AdStudio    = lazy(() => import('./pages/AdStudio.jsx'))
+const AdReel      = lazy(() => import('./pages/AdReel.jsx'))
 const DemoShot    = lazy(() => import('./pages/DemoShot.jsx'))
 
 // ─── Client-side navigation (no full page reload) ─────────────────────────────
@@ -32,6 +33,8 @@ export default function Router() {
 
   // /adstudio — محرّك البوسترات التسويقية (بلا لافتة كوكيز)
   if (path === '/adstudio') return <Suspense fallback={null}><AdStudio /></Suspense>
+  // /adreel — نسخة فيديو ٩:١٦ من البوسترات (تُسجَّل عبر scripts/reel-shots.mjs)
+  if (path === '/adreel') return <Suspense fallback={null}><AdReel /></Suspense>
   // /demoshot — يرندر الشاشات الفعلية ببيانات وهمية (للموكاب داخل البوسترات)
   if (path === '/demoshot') return <Suspense fallback={null}><DemoShot /></Suspense>
 

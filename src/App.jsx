@@ -42,6 +42,8 @@ import ScreenSkeleton          from './components/ScreenSkeleton.jsx'
 import { LoadingSpinner }       from './components/index.jsx'
 import { usePushNotifications } from './hooks/usePushNotifications.js'
 import { useAppConfig }        from './hooks/useAppConfig.js'
+import { hasPin }              from './lib/pinCrypto.js'
+import { hasUnlockMethod, idleTimeoutMs, lockOnBackgroundEnabled, LOCK_ON_BG_KEY, PASSKEY_KEY } from './lib/sessionLock.js'
 
 // ── New screens ───────────────────────────────────────────────────────────────
 const LoginScreen    = lazy(() => import('./screens/auth/LoginScreen.jsx'))
@@ -392,17 +394,29 @@ function OwnerApp() {
     appCfg.logLogin(uid, user?.email || '', role, navigator.userAgent.slice(0, 120))
   }, [uid])
 
-  // Session idle → lock (replace auto-signout)
+  // Session security: قفل عند الخمول + قفل فوري عند الخروج من التطبيق (نمط «المجلد الآمن»)
+  // يطبَّق على المالك وأعضاء الفريق، لكن فقط لمن سجّل وسيلة فتح (بصمة/PIN) — وإلا
+  // يعلق المستخدم بشاشة القفل بلا طريقة فتح (تسجيل الخروج فقط).
   useEffect(() => {
-    if (!uid || effectiveOwnerId) return
-    const timeoutMs = (appCfg.config.session_timeout || 30) * 60 * 1000
+    if (!uid) return
+    if (!hasUnlockMethod({ hasPasskey: !!localStorage.getItem(PASSKEY_KEY), hasPinSet: hasPin() })) return
+
+    const timeoutMs = idleTimeoutMs(appCfg.config.session_timeout)
     let timer
     const reset = () => { clearTimeout(timer); timer = setTimeout(lockSession, timeoutMs) }
+    // عند تصغير التطبيق/التبديل لتطبيق آخر → قفل فوري (ما لم يُعطَّل من الإعدادات)
+    const onHidden = () => { if (document.hidden && lockOnBackgroundEnabled(localStorage.getItem(LOCK_ON_BG_KEY))) lockSession() }
+
     const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'pointermove']
     events.forEach(e => window.addEventListener(e, reset, { passive: true }))
+    document.addEventListener('visibilitychange', onHidden)
     reset()
-    return () => { clearTimeout(timer); events.forEach(e => window.removeEventListener(e, reset)) }
-  }, [uid, effectiveOwnerId, appCfg.config.session_timeout])
+    return () => {
+      clearTimeout(timer)
+      events.forEach(e => window.removeEventListener(e, reset))
+      document.removeEventListener('visibilitychange', onHidden)
+    }
+  }, [uid, appCfg.config.session_timeout])
 
   // Log screen views for team members
   useEffect(() => {
@@ -534,7 +548,7 @@ function OwnerApp() {
     const allData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts, advances: visibleAdvances }
     switch (screen) {
       case 'dashboard':  content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} />; break
-      case 'finance':    content = <FinanceScreen {...allData} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} userId={uid} permissions={p} payMethods={payMethods} appCfg={appCfg} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} />; break
+      case 'finance':    content = (p?.viewAmounts === false) ? <NoAccess /> : <FinanceScreen {...allData} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} userId={uid} permissions={p} payMethods={payMethods} appCfg={appCfg} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} />; break
       case 'projects':   content = p?.viewProjects  ? <ProjectsScreen  addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} archiveProject={archiveProject} restoreProject={restoreProject} deleteProjectWithAll={deleteProjectWithAll} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addExpense={addExpense} deleteExpense={deleteExpense} expCats={expCats} userId={uid} permissions={p} payMethods={payMethods} holidays={holidays} /> : <NoAccess />; break
       case 'workers':    content = p?.viewWorkers   ? <WorkersScreen   {...allData} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} payMethods={payMethods} profile={profile} appCfg={appCfg} /> : <NoAccess />; break
       case 'workdays':   setScreen('workers'); content = null; break

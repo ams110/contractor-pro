@@ -188,15 +188,17 @@ export default function DemoShot() {
       projects: DEMO.projects, employees: DEMO.employees, workDays: DEMO.workDays,
       expenses: DEMO.expenses, payments: DEMO.payments, clientReceipts: DEMO.clientReceipts, advances: DEMO.advances,
     })
-    // تمرير لإظهار البطاقة المطلوبة (بعد ما تستقرّ الحركات)
+    // تمرير لإظهار البطاقة المطلوبة. نمرّر عدّة مرّات لأن البطاقات الفخمة
+    // تتحرّك للداخل (Framer) فيزيح موضعها — وحتى يلتقطه التسجيل (reel) مبكراً.
     if (!focus && !y) return
-    const t = setTimeout(() => {
+    const doScroll = () => {
       if (y) { window.scrollTo({ top: Number(y), behavior: 'instant' }); return }
       const el = [...document.querySelectorAll('div, section, h1, h2, h3, span')]
         .find(n => n.children.length < 6 && n.textContent && n.textContent.trim().startsWith(focus))
       if (el) el.scrollIntoView({ block: 'start', behavior: 'instant' })
-    }, 2200)
-    return () => clearTimeout(t)
+    }
+    const timers = [700, 1400, 2400, 3600].map(ms => setTimeout(doScroll, ms))
+    return () => timers.forEach(clearTimeout)
   }, [focus, y])
 
   return (
