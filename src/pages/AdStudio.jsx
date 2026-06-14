@@ -533,10 +533,10 @@ const SCREEN_MAP = [
   { s: 'dashboard', f: 'التوقّع' },        // 1  التوقّع الذكي
   { s: 'projects' },                        // 2  كاش بجيبك (إيرادات/ربح)
   { s: 'workers' },                         // 3  مستحقّات العمّال
-  { s: 'dashboard', f: 'تقادم' },          // 4  رادار التحصيل
+  { s: 'dashboard', f: 'ذمّتك' },          // 4  رادار التحصيل
   { s: 'projects' },                        // 5  ربحية المشاريع
   { s: 'expenses' },                        // 6  מע"מ تلقائي
-  { s: 'dashboard', f: 'مدرج' },           // 7  كل الضرائب
+  { s: 'dashboard', f: 'نبض' },            // 7  كل الضرائب
   { s: 'dashboard', f: 'مدرج' },           // 8  ضريبة الدخل
   { s: 'dashboard', f: 'مدرج' },           // 9  مدرج الضريبة
   { s: 'expenses' },                        // 10 مسح الإيصال OCR
@@ -545,7 +545,7 @@ const SCREEN_MAP = [
   { s: 'payments' },                        // 13 الرواتب
   { s: 'payments' },                        // 14 السلف
   { s: 'workers', f: 'لوحة شرف' },         // 15 بصمة العامل
-  { s: 'dashboard', f: 'الذمّة' },         // 16 الذمّة الصافية
+  { s: 'dashboard', f: 'ذمّتك' },          // 16 الذمّة الصافية
   { s: 'dashboard' },                       // 17 مركز القيادة
   { s: 'projects' },                        // 18 صحّة المشروع
   { s: 'expenses' },                        // 19 كشف الشذوذ
@@ -557,16 +557,16 @@ const SCREEN_MAP = [
   { s: 'dashboard' },                       // 25 الأمان
   { s: 'workdays' },                        // 26 بلا نت
   { s: 'dashboard' },                       // 27 متعدّد المصالح
-  { s: 'dashboard', f: 'جاهزية' },         // 28 جاهزية الحساب
+  { s: 'dashboard', f: 'نبض' },            // 28 جاهزية الحساب
   { s: 'dashboard' },                       // 29 كل شي بمكان واحد
-  { s: 'dashboard' },                       // 30 بطّل دفتر الورق
-  { s: 'dashboard', f: 'مدرج' },           // 31 وفّر على المحاسب
+  { s: 'dashboard', f: 'نبض' },            // 30 بطّل دفتر الورق
+  { s: 'dashboard', f: 'ذمّتك' },          // 31 وفّر على المحاسب
   { s: 'dashboard' },                       // 32 نام وانت مرتاح
   { s: 'expenses' },                        // 33 ولا فاتورة تضيع
   { s: 'projects' },                        // 34 ربحك الحقيقي
-  { s: 'dashboard', f: 'مدرج' },           // 35 موسم التقارير
+  { s: 'dashboard', f: 'نبض' },            // 35 موسم التقارير
   { s: 'workers' },                         // 36 بلا خلافات مع عمّالك
-  { s: 'dashboard' },                       // 37 جرّب مجاناً
+  { s: 'dashboard', f: 'نبض' },            // 37 جرّب مجاناً
 ]
 function Poster({ idea, ideaIndex, size }) {
   const { w, h } = SIZES[size] || SIZES.portrait
@@ -667,4 +667,4 @@ export default function AdStudio() {
   return <Poster idea={idea} ideaIndex={i} size={size} />
 }
 
-export { IDEAS, SIZES }
+export { IDEAS, SIZES, SCREEN_MAP, Phone }
