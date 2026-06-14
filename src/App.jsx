@@ -42,6 +42,7 @@ import ScreenSkeleton          from './components/ScreenSkeleton.jsx'
 import { LoadingSpinner }       from './components/index.jsx'
 import { usePushNotifications } from './hooks/usePushNotifications.js'
 import { useAppConfig }        from './hooks/useAppConfig.js'
+import { hasPin }              from './lib/pinCrypto.js'
 
 // ── New screens ───────────────────────────────────────────────────────────────
 const LoginScreen    = lazy(() => import('./screens/auth/LoginScreen.jsx'))
@@ -392,17 +393,30 @@ function OwnerApp() {
     appCfg.logLogin(uid, user?.email || '', role, navigator.userAgent.slice(0, 120))
   }, [uid])
 
-  // Session idle → lock (replace auto-signout)
+  // Session security: قفل عند الخمول + قفل فوري عند الخروج من التطبيق (نمط «المجلد الآمن»)
+  // يطبَّق على المالك وأعضاء الفريق، لكن فقط لمن سجّل وسيلة فتح (بصمة/PIN) — وإلا
+  // يعلق المستخدم بشاشة القفل بلا طريقة فتح (تسجيل الخروج فقط).
   useEffect(() => {
-    if (!uid || effectiveOwnerId) return
+    if (!uid) return
+    const hasUnlockMethod = !!localStorage.getItem('cpro_passkey_cred') || hasPin()
+    if (!hasUnlockMethod) return
+
     const timeoutMs = (appCfg.config.session_timeout || 30) * 60 * 1000
     let timer
     const reset = () => { clearTimeout(timer); timer = setTimeout(lockSession, timeoutMs) }
+    // عند تصغير التطبيق/التبديل لتطبيق آخر → قفل فوري (ما لم يُعطَّل من الإعدادات)
+    const onHidden = () => { if (document.hidden && localStorage.getItem('cpro_lock_on_bg') !== '0') lockSession() }
+
     const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'pointermove']
     events.forEach(e => window.addEventListener(e, reset, { passive: true }))
+    document.addEventListener('visibilitychange', onHidden)
     reset()
-    return () => { clearTimeout(timer); events.forEach(e => window.removeEventListener(e, reset)) }
-  }, [uid, effectiveOwnerId, appCfg.config.session_timeout])
+    return () => {
+      clearTimeout(timer)
+      events.forEach(e => window.removeEventListener(e, reset))
+      document.removeEventListener('visibilitychange', onHidden)
+    }
+  }, [uid, appCfg.config.session_timeout])
 
   // Log screen views for team members
   useEffect(() => {
