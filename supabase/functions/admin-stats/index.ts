@@ -309,6 +309,13 @@ serve(async (req) => {
       return json({ stats: data })
     }
 
+    // ── صندوق الإجراءات الذكي ──────────────────────────────────────────────────
+    if (action === 'action-items') {
+      const { data, error } = await admin.rpc('admin_action_items')
+      if (error) return json({ error: error.message }, 500)
+      return json({ items: data })
+    }
+
     return json({ error: 'إجراء غير معروف' }, 400)
   } catch (e) {
     return json({ error: e.message || 'خطأ غير متوقع' }, 500)

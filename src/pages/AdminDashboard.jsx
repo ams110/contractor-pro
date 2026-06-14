@@ -7,6 +7,7 @@ import {
   Fingerprint, Settings, KeyRound, X, Check,
   LayoutDashboard, Search, Megaphone, Ban, ShieldCheck as ShieldOk, Crown,
   CalendarPlus, ChevronLeft, Send, Activity, Mail, Zap,
+  Inbox, Sparkles, ArrowUpRight, ArrowDownRight, UserX, CalendarClock, Gauge, Download, Minus,
 } from 'lucide-react'
 import {
   ComposedChart, Area, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -149,7 +150,7 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            {tab === 'overview'  && <Dashboard stats={stats} />}
+            {tab === 'overview'  && <Dashboard stats={stats} token={token} />}
             {tab === 'users'     && <UsersTab token={token} />}
             {tab === 'broadcast' && <BroadcastTab token={token} />}
           </>
@@ -160,7 +161,7 @@ export default function AdminDashboard() {
 }
 
 // ── الإحصائيات ────────────────────────────────────────────────────────────────
-function Dashboard({ stats }) {
+function Dashboard({ stats, token }) {
   const u = stats.users || {}
   const s = stats.subscriptions || {}
   const tr = stats.trials || {}
@@ -171,13 +172,21 @@ function Dashboard({ stats }) {
   const recent = stats.recent_users || []
   const arr = (s.mrr || 0) * 12
   const convRate = f.signups ? Math.round(((f.paying || 0) / f.signups) * 100) : 0
+  const pulse = computePulse(stats)
+  const wow = wowDelta(u.new_7d || 0, u.new_prev_7d || 0)
 
   return (
     <>
+      {/* نبض المنصّة */}
+      <PlatformPulse pulse={pulse} />
+
+      {/* صندوق الإجراءات الذكي */}
+      <ActionInbox token={token} />
+
       {/* الصف الأول — الأرقام الكبرى */}
       <div style={grid(4)}>
         <PremiumStat icon={Users}     tone="cyan"    label="إجمالي المستخدمين" value={fmt(u.total)}     sub={`${u.confirmed || 0} مفعّل`} delay={0} />
-        <PremiumStat icon={UserPlus}  tone="success" label="جدد هذا الشهر"      value={fmt(u.new_30d)}   sub={`${fmt(u.new_7d)} هذا الأسبوع`} delay={0.05} />
+        <PremiumStat icon={UserPlus}  tone="success" label="جدد هذا الشهر"      value={fmt(u.new_30d)}   sub={wow.text} delay={0.05} />
         <PremiumStat icon={Wallet}    tone="warning" label="الإيراد الشهري (MRR)" value={fmt(s.mrr)} money sub={`${s.active || 0} اشتراك نشط`} delay={0.1} />
         <PremiumStat icon={CreditCard} tone="brand"  label="اشتراكات مدفوعة"    value={fmt(s.active)}    sub={s.past_due ? `${s.past_due} متعثّر` : 'لا متعثّرين'} delay={0.15} />
       </div>
@@ -590,10 +599,16 @@ function UsersTab({ token }) {
 
   return (
     <div>
-      <div style={{ position: 'relative', marginBottom: 12 }}>
-        <Search size={16} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 13, top: '50%', transform: 'translateY(-50%)' }} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث بالاسم أو البريد…"
-          style={{ width: '100%', padding: '12px 40px 12px 13px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <Search size={16} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 13, top: '50%', transform: 'translateY(-50%)' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث بالاسم أو البريد…"
+            style={{ width: '100%', padding: '12px 40px 12px 13px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
+        </div>
+        <button onClick={() => downloadUsersCSV(users)} disabled={!users.length} title="تصدير CSV"
+          style={{ flexShrink: 0, padding: '0 14px', borderRadius: 14, border: `1px solid ${C.cyan}33`, background: `${C.cyan}16`, color: C.cyan, fontSize: 12, fontWeight: 800, cursor: users.length ? 'pointer' : 'not-allowed', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Download size={15} /> CSV
+        </button>
       </div>
 
       {loading ? (
@@ -785,6 +800,188 @@ function BroadcastTab({ token }) {
       </form>
     </PremiumCard>
   )
+}
+
+// ── نبض المنصّة (مؤشّر صحّة 0–100) ────────────────────────────────────────────
+function clampP(n) { return Math.max(0, Math.min(100, Math.round(n || 0))) }
+
+function computePulse(stats) {
+  const u = stats.users || {}, f = stats.funnel || {}
+  const signups = f.signups || 0
+  const activation   = signups ? (f.activated / signups) * 100 : 0
+  const engagement   = signups ? (f.engaged / signups) * 100 : 0
+  const retention    = (u.active_30d || 0) ? ((u.active_7d || 0) / u.active_30d) * 100 : 0
+  const monetization = signups ? (f.paying / signups) * 100 : 0
+  const growth       = u.total ? Math.min(100, ((u.new_30d || 0) / Math.max(1, u.total)) * 100 * 2) : 0
+  const score = clampP(activation * 0.2 + engagement * 0.3 + retention * 0.2 + growth * 0.2 + monetization * 0.1)
+  const grade = score >= 80 ? { label: 'ممتاز', color: C.success }
+    : score >= 60 ? { label: 'جيد', color: C.cyan }
+    : score >= 40 ? { label: 'مقبول', color: C.warning }
+    : score >= 20 ? { label: 'ضعيف', color: C.primary }
+    : { label: 'حرج', color: C.accent }
+  return {
+    score, grade,
+    factors: [
+      { label: 'النمو', val: clampP(growth), color: C.primary },
+      { label: 'التفعيل', val: clampP(activation), color: C.cyan },
+      { label: 'التفاعل', val: clampP(engagement), color: C.secondary },
+      { label: 'الاستبقاء', val: clampP(retention), color: C.success },
+      { label: 'التحصيل', val: clampP(monetization), color: C.gold },
+    ],
+  }
+}
+
+function wowDelta(cur, prev) {
+  if (!prev && !cur) return { text: 'لا تسجيلات هذا الأسبوع' }
+  if (!prev) return { text: `${fmt(cur)} هذا الأسبوع ✦` }
+  const pct = Math.round(((cur - prev) / prev) * 100)
+  const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '→'
+  return { text: `${arrow}${Math.abs(pct)}% عن الأسبوع السابق` }
+}
+
+function PlatformPulse({ pulse }) {
+  const col = pulse.grade.color
+  return (
+    <PremiumCard color={col} delay={0} style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <IconChip icon={Gauge} color={col} size={34} radius={11} pulse />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 900 }}>نبض المنصّة</div>
+            <div style={{ fontSize: 10, color: C.textDim }}>مؤشّر صحّة عملك ككل</div>
+          </div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 36, fontWeight: 900, color: col, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{pulse.score}</div>
+          <span style={{ fontSize: 10, fontWeight: 800, color: col, padding: '2px 9px', borderRadius: 9, background: `${col}16`, border: `1px solid ${col}3a`, display: 'inline-block', marginTop: 3 }}>{pulse.grade.label}</span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {pulse.factors.map((ft, i) => (
+          <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ height: 54, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: 6 }}>
+              <motion.div initial={{ height: 0 }} animate={{ height: `${Math.max(6, ft.val)}%` }} transition={{ duration: 0.7, delay: 0.08 * i }}
+                style={{ width: '100%', maxWidth: 38, borderRadius: '6px 6px 3px 3px', background: ft.color, boxShadow: `0 0 12px ${ft.color}55` }} />
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: C.text }}>{ft.val}</div>
+            <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700 }}>{ft.label}</div>
+          </div>
+        ))}
+      </div>
+    </PremiumCard>
+  )
+}
+
+// ── صندوق الإجراءات الذكي ──────────────────────────────────────────────────────
+function ActionInbox({ token }) {
+  const [items, setItems] = useState(null)
+  const [busy, setBusy] = useState('')
+  const [selected, setSelected] = useState(null)
+
+  const load = useCallback(async () => {
+    try { const { items } = await callFn('action-items', {}, token); setItems(items || {}) } catch { setItems({}) }
+  }, [token])
+  useEffect(() => { load() }, [load])
+
+  async function quick(key, payload) {
+    setBusy(key)
+    try { await callFn(payload.action, payload, token); await load() } catch { /* ignore */ }
+    setBusy('')
+  }
+
+  if (!items) return null
+  const trials = items.trials_ending || [], churn = items.churn_risk || [], upsell = items.upsell || [], unconf = items.unconfirmed || []
+  const total = trials.length + churn.length + upsell.length + unconf.length
+
+  const row = (it, ctx, ctxColor, btn) => (
+    <div key={it.id + (ctx || '')} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 11 }}>
+      <button onClick={() => setSelected(it.id)} style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'right', fontFamily: 'inherit', padding: 0 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name || it.email}</div>
+        <div style={{ fontSize: 10.5, color: ctxColor || C.textDim, fontWeight: 600 }}>{ctx}</div>
+      </button>
+      {btn}
+    </div>
+  )
+
+  const actionBtn = (key, label, color, onClick) => (
+    <button onClick={onClick} disabled={busy === key}
+      style={{ flexShrink: 0, padding: '6px 11px', borderRadius: 9, border: `1px solid ${color}44`, background: `${color}16`, color, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }}>
+      {busy === key ? <Loader2 size={12} style={{ animation: 'spin .8s linear infinite' }} /> : label}
+    </button>
+  )
+
+  const Section = ({ icon: Icon, color, title, children }) => (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+        <Icon size={14} color={color} />
+        <span style={{ fontSize: 12, fontWeight: 800, color: C.text }}>{title}</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{children}</div>
+    </div>
+  )
+
+  return (
+    <PremiumCard color={total ? C.warning : C.success} delay={0.05} style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <IconChip icon={Inbox} color={total ? C.warning : C.success} size={32} radius={10} pulse={total > 0} />
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 900 }}>صندوق الإجراءات الذكي</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>{total ? `${total} بند يحتاج انتباهك` : 'كل شي تحت السيطرة'}</div>
+        </div>
+      </div>
+
+      {total === 0 ? (
+        <div style={{ textAlign: 'center', padding: '14px 0', color: C.textDim, fontSize: 13 }}>
+          <Sparkles size={26} color={C.success} style={{ marginBottom: 6 }} />
+          <div>لا إجراءات عاجلة — كل شي تمام 🎉</div>
+        </div>
+      ) : (
+        <>
+          {trials.length > 0 && (
+            <Section icon={CalendarClock} color={C.warning} title="تجارب تنتهي قريباً">
+              {trials.map(it => row(it, `تنتهي تجربته خلال ${it.days_left} يوم`, C.warning,
+                actionBtn(`tr-${it.id}`, '+30 يوم', C.warning, () => quick(`tr-${it.id}`, { action: 'set-trial', user_id: it.id, days: 30 }))))}
+            </Section>
+          )}
+          {upsell.length > 0 && (
+            <Section icon={Crown} color={C.success} title="مرشّحون للترقية (استخدام عالٍ · مجاني)">
+              {upsell.map(it => row(it, `استخدام ${fmt(it.usage)} عملية`, C.success,
+                actionBtn(`up-${it.id}`, 'ترقية Pro', C.success, () => quick(`up-${it.id}`, { action: 'set-plan', user_id: it.id, plan: 'pro' }))))}
+            </Section>
+          )}
+          {churn.length > 0 && (
+            <Section icon={UserX} color={C.accent} title="معرّضون للهجر">
+              {churn.map(it => row(it, `لم يدخل منذ ${it.days_inactive} يوم`, C.accent,
+                <ChevronLeft size={15} color={C.textDim} style={{ flexShrink: 0 }} />))}
+            </Section>
+          )}
+          {unconf.length > 0 && (
+            <Section icon={Mail} color={C.cyan} title="بريد غير مفعّل">
+              {unconf.map(it => row(it, `سجّل ${fmtDateTime(it.created_at)}`, C.cyan,
+                <ChevronLeft size={15} color={C.textDim} style={{ flexShrink: 0 }} />))}
+            </Section>
+          )}
+        </>
+      )}
+
+      <AnimatePresence>
+        {selected && <UserDetailModal token={token} userId={selected} onClose={() => setSelected(null)} onChanged={load} />}
+      </AnimatePresence>
+    </PremiumCard>
+  )
+}
+
+function downloadUsersCSV(users) {
+  const head = ['name', 'email', 'plan', 'confirmed', 'banned', 'created_at', 'last_sign_in_at']
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const rows = users.map(u => [u.name, u.email, u.plan, u.confirmed ? 'yes' : 'no', u.banned ? 'yes' : 'no', u.created_at, u.last_sign_in_at].map(esc).join(','))
+  const csv = '﻿' + [head.join(','), ...rows].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `contractor-pro-users-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(a.href)
 }
 
 function grid(cols) {
