@@ -1,4 +1,13 @@
 User-agent: *
 Allow: /
 
+# مسارات داخلية / أدوات لا قيمة لها في البحث
+Disallow: /admin
+Disallow: /adstudio
+Disallow: /adreel
+Disallow: /demoshot
+Disallow: /welcome
+Disallow: /*?portal
+Disallow: /*?worker
+
 Sitemap: https://app.linko.services/sitemap.xml

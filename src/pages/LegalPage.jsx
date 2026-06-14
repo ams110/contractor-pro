@@ -1,6 +1,15 @@
 import React, { useEffect } from 'react'
 import { HardHat, ArrowRight, Mail, MessageCircle, Shield, FileText, RotateCcw } from 'lucide-react'
 import { navigate } from '../Router.jsx'
+import { useSeo } from '../lib/seo.js'
+
+// أوصاف SEO قصيرة لكل صفحة قانونية
+const SEO = {
+  terms:   { desc: 'شروط استخدام تطبيق Contractor Pro لإدارة المقاولات.' },
+  privacy: { desc: 'سياسة الخصوصية وحماية بيانات مستخدمي Contractor Pro.' },
+  refund:  { desc: 'سياسة الإلغاء والاسترجاع لاشتراكات Contractor Pro.' },
+  contact: { desc: 'تواصل مع فريق Contractor Pro للدعم والاستفسارات.' },
+}
 
 // ─── Design Tokens (محلية — مطابقة لصفحة الهبوط) ───────────────────────────────
 const C = {
@@ -189,6 +198,12 @@ function ContactCards() {
 export default function LegalPage({ type = 'terms' }) {
   const doc = DOCS[type] || DOCS.terms
   const Icon = doc.icon
+
+  useSeo({
+    path: `/${type}`,
+    title: `${doc.title} | Contractor Pro`,
+    description: (SEO[type] || SEO.terms).desc,
+  })
 
   useEffect(() => { window.scrollTo(0, 0) }, [type])
 

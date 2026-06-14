@@ -4,6 +4,7 @@ import { navigate } from '../Router.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { useOrganization } from '../hooks/useOrganization.js'
 import { openCheckout, PLAN_META, pricesFor } from '../lib/paddle.js'
+import { useSeo } from '../lib/seo.js'
 
 const C = {
   bg:        '#07080F',
@@ -262,6 +263,11 @@ function FAQ() {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export default function PricingPage() {
+  useSeo({
+    path: '/pricing',
+    title: 'الأسعار والخطط | Contractor Pro — تطبيق إدارة المقاولات',
+    description: 'خطط Contractor Pro للمقاول العربي في إسرائيل: تجربة مجانية 14 يوم، ثم Starter ₪129 وPro ₪249 وBusiness ₪499 شهرياً مع خصم سنوي. كل أدوات إدارة المشاريع والعمّال والرواتب والضرائب.',
+  })
   const { user } = useAuth()
   const { org }  = useOrganization(user?.id)
   const [cycle, setCycle] = useState('month')   // 'month' | 'year'
