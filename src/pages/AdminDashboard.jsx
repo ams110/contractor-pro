@@ -5,6 +5,8 @@ import {
   Users, UserPlus, TrendingUp, Wallet, CreditCard, Clock,
   Building2, Briefcase, CalendarDays, CheckCircle2, AlertTriangle,
   Fingerprint, Settings, KeyRound, X, Check,
+  LayoutDashboard, Search, Megaphone, Ban, ShieldCheck as ShieldOk, Crown,
+  CalendarPlus, ChevronLeft, Send, Activity, Mail, Zap,
 } from 'lucide-react'
 import {
   ComposedChart, Area, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -49,6 +51,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('')
 
   const [showSettings, setShowSettings] = useState(false)
+  const [tab, setTab] = useState('overview')
 
   const loadStats = useCallback(async (tk) => {
     setLoading(true); setError('')
@@ -130,7 +133,27 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {stats && <Dashboard stats={stats} />}
+        {stats && (
+          <>
+            {/* تبويبات */}
+            <div style={{ display: 'flex', gap: 6, background: C.surface, borderRadius: 14, padding: 5, marginBottom: 16, border: `1px solid ${C.border}` }}>
+              {[
+                { id: 'overview',  label: 'نظرة عامة', icon: LayoutDashboard },
+                { id: 'users',     label: 'المستخدمون', icon: Users },
+                { id: 'broadcast', label: 'رسالة جماعية', icon: Megaphone },
+              ].map(t => (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: 'none', background: tab === t.id ? GRAD.primary : 'transparent', color: tab === t.id ? '#fff' : C.textDim, fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <t.icon size={15} /> {t.label}
+                </button>
+              ))}
+            </div>
+
+            {tab === 'overview'  && <Dashboard stats={stats} />}
+            {tab === 'users'     && <UsersTab token={token} />}
+            {tab === 'broadcast' && <BroadcastTab token={token} />}
+          </>
+        )}
       </div>
     </div>
   )
@@ -142,9 +165,12 @@ function Dashboard({ stats }) {
   const s = stats.subscriptions || {}
   const tr = stats.trials || {}
   const tot = stats.totals || {}
+  const f = stats.funnel || {}
   const plans = stats.plans || []
   const chart = (stats.signups_monthly || []).map(m => ({ month: m.month.slice(2), count: m.count }))
   const recent = stats.recent_users || []
+  const arr = (s.mrr || 0) * 12
+  const convRate = f.signups ? Math.round(((f.paying || 0) / f.signups) * 100) : 0
 
   return (
     <>
@@ -156,12 +182,51 @@ function Dashboard({ stats }) {
         <PremiumStat icon={CreditCard} tone="brand"  label="اشتراكات مدفوعة"    value={fmt(s.active)}    sub={s.past_due ? `${s.past_due} متعثّر` : 'لا متعثّرين'} delay={0.15} />
       </div>
 
-      {/* الصف الثاني — التجارب + إجماليات */}
+      {/* الصف الثاني — النشاط + الإيراد السنوي */}
       <div style={grid(4)}>
-        <PremiumStat icon={Clock}        tone="warning" label="تجارب نشطة"   value={fmt(tr.active)}   sub={`${fmt(tr.expired)} منتهية`} delay={0.2} />
-        <PremiumStat icon={UserPlus}     tone="brand"   label="جدد اليوم"     value={fmt(u.new_today)} delay={0.25} />
-        <PremiumStat icon={Briefcase}    tone="cyan"    label="مشاريع"        value={fmt(tot.projects)} delay={0.3} />
-        <PremiumStat icon={CalendarDays} tone="success" label="أيام عمل"      value={fmt(tot.work_days)} delay={0.35} />
+        <PremiumStat icon={Activity} tone="success" label="نشطون (30 يوم)" value={fmt(u.active_30d)} sub={`${fmt(u.active_7d)} هذا الأسبوع`} delay={0.2} />
+        <PremiumStat icon={TrendingUp} tone="cyan"  label="الإيراد السنوي (ARR)" value={fmt(arr)} money sub={`${convRate}% معدّل التحويل`} delay={0.25} />
+        <PremiumStat icon={Clock}     tone="warning" label="تجارب نشطة"   value={fmt(tr.active)}   sub={`${fmt(tr.expired)} منتهية`} delay={0.3} />
+        <PremiumStat icon={UserPlus}  tone="brand"   label="جدد اليوم"     value={fmt(u.new_today)} delay={0.35} />
+      </div>
+
+      {/* قمع التحويل */}
+      <PremiumCard tone="success" delay={0.38} style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <IconChip icon={Zap} color={C.success} size={32} radius={10} />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 900 }}>قمع التحويل</div>
+            <div style={{ fontSize: 10, color: C.textDim }}>من التسجيل إلى الاشتراك المدفوع</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[
+            { label: 'تسجيل', val: f.signups || 0, col: C.cyan },
+            { label: 'مفعّل', val: f.activated || 0, col: C.secondary },
+            { label: 'نشط', val: f.engaged || 0, col: C.warning },
+            { label: 'مدفوع', val: f.paying || 0, col: C.success },
+          ].map((st, i) => {
+            const pct = f.signups ? Math.round((st.val / f.signups) * 100) : 0
+            return (
+              <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+                <div style={{ height: 70, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: 6 }}>
+                  <motion.div initial={{ height: 0 }} animate={{ height: `${Math.max(8, pct)}%` }} transition={{ duration: 0.7, delay: 0.1 * i }}
+                    style={{ width: '100%', maxWidth: 46, borderRadius: '8px 8px 4px 4px', background: st.col, boxShadow: `0 0 14px ${st.col}55` }} />
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: C.text }}>{fmt(st.val)}</div>
+                <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700 }}>{st.label}</div>
+              </div>
+            )
+          })}
+        </div>
+      </PremiumCard>
+
+      {/* الصف الثالث — إجماليات الاستخدام */}
+      <div style={grid(4)}>
+        <PremiumStat icon={Briefcase}    tone="cyan"    label="مشاريع"   value={fmt(tot.projects)} delay={0.4} />
+        <PremiumStat icon={Users}        tone="purple"  label="عمّال"    value={fmt(tot.employees)} delay={0.42} />
+        <PremiumStat icon={CalendarDays} tone="success" label="أيام عمل" value={fmt(tot.work_days)} delay={0.44} />
+        <PremiumStat icon={Building2}    tone="warning" label="مصالح"    value={fmt(tot.businesses)} delay={0.46} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)', gap: 12, marginTop: 4 }} className="admin-cols">
@@ -498,6 +563,227 @@ function AdminSettings({ token, onClose }) {
         </form>
       </motion.div>
     </motion.div>
+  )
+}
+
+// ── تبويب المستخدمين ──────────────────────────────────────────────────────────
+function UsersTab({ token }) {
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState(null)
+
+  const load = useCallback(async (q) => {
+    setLoading(true)
+    try {
+      const { users } = await callFn('list-users', { search: q || '', limit: 200 }, token)
+      setUsers(users || [])
+    } catch { /* ignore */ }
+    setLoading(false)
+  }, [token])
+
+  useEffect(() => { load('') }, [load])
+  useEffect(() => {
+    const t = setTimeout(() => load(search), 350)
+    return () => clearTimeout(t)
+  }, [search]) // eslint-disable-line
+
+  return (
+    <div>
+      <div style={{ position: 'relative', marginBottom: 12 }}>
+        <Search size={16} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 13, top: '50%', transform: 'translateY(-50%)' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث بالاسم أو البريد…"
+          style={{ width: '100%', padding: '12px 40px 12px 13px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '50px 0', color: C.textDim }}><Loader2 size={28} style={{ animation: 'spin .8s linear infinite', color: C.primary }} /></div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {users.map((r, i) => {
+            const col = PLAN_COLORS[r.plan] || C.textDim
+            return (
+              <motion.button key={r.id} onClick={() => setSelected(r.id)}
+                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.02, 0.4) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.surface, border: `1px solid ${r.banned ? C.accent + '44' : C.border}`, borderRadius: 13, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'right', width: '100%' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: `${col}1c`, border: `1px solid ${col}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14, fontWeight: 800, color: col }}>
+                  {(r.name || r.email || '?').trim().charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {r.name || '—'} {r.banned && <span style={{ color: C.accent, fontSize: 10 }}>· محظور</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.textDim, direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.email}</div>
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 800, color: col, padding: '3px 8px', borderRadius: 8, background: `${col}16`, border: `1px solid ${col}33`, flexShrink: 0 }}>{PLAN_LABELS[r.plan] || '—'}</span>
+                <ChevronLeft size={16} color={C.textDim} style={{ flexShrink: 0 }} />
+              </motion.button>
+            )
+          })}
+          {users.length === 0 && <div style={{ textAlign: 'center', fontSize: 13, color: C.textDim, padding: '40px 0' }}>لا نتائج</div>}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {selected && <UserDetailModal token={token} userId={selected} onClose={() => setSelected(null)} onChanged={() => load(search)} />}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ── تفاصيل مستخدم + إجراءات التحكّم ────────────────────────────────────────────
+function UserDetailModal({ token, userId, onClose, onChanged }) {
+  const [u, setU] = useState(null)
+  const [busy, setBusy] = useState('')
+  const [msg, setMsg] = useState(null)
+
+  const reload = useCallback(async () => {
+    try { const { user } = await callFn('user-detail', { user_id: userId }, token); setU(user) } catch { /* ignore */ }
+  }, [token, userId])
+  useEffect(() => { reload() }, [reload])
+
+  async function act(kind, payload, okText) {
+    setBusy(kind); setMsg(null)
+    try {
+      await callFn(payload.action, payload, token)
+      setMsg({ type: 'ok', text: okText })
+      await reload(); onChanged?.()
+    } catch (err) {
+      setMsg({ type: 'err', text: err.message || 'فشل الإجراء' })
+    }
+    setBusy('')
+  }
+
+  const COUNT_LABELS = { projects: 'مشاريع', employees: 'عمّال', work_days: 'أيام عمل', expenses: 'مصاريف', businesses: 'مصالح', material_logs: 'بضاعة', team_members: 'فريق' }
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
+      <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()}
+        style={{ background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: 22, padding: '22px 18px', width: '100%', maxWidth: 460, marginTop: 24, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ fontSize: 16, fontWeight: 900, color: C.text }}>تفاصيل المستخدم</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex' }}><X size={20} /></button>
+        </div>
+
+        {!u ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}><Loader2 size={26} style={{ animation: 'spin .8s linear infinite', color: C.primary }} /></div>
+        ) : (
+          <>
+            {/* هوية */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: '#fff', flexShrink: 0 }}>
+                {(u.name || u.email || '?').trim().charAt(0).toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{u.name || '—'}</div>
+                <div style={{ fontSize: 11.5, color: C.textDim, direction: 'ltr', textAlign: 'right' }}>{u.email}</div>
+                <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 2 }}>سجّل {fmtDateTime(u.created_at)} · آخر دخول {u.last_sign_in_at ? fmtDateTime(u.last_sign_in_at) : '—'}</div>
+              </div>
+            </div>
+
+            {msg && (
+              <div style={{ background: msg.type === 'ok' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${msg.type === 'ok' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`, borderRadius: 10, padding: '9px 12px', fontSize: 12.5, color: msg.type === 'ok' ? '#86EFAC' : '#FCA5A5', marginBottom: 12 }}>{msg.text}</div>
+            )}
+
+            {/* عدّادات الاستخدام */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(72px,1fr))', gap: 8, marginBottom: 16 }}>
+              {Object.entries(u.counts || {}).map(([k, v]) => (
+                <div key={k} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 11, padding: '10px 6px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 17, fontWeight: 900, color: C.text }}>{fmt(v)}</div>
+                  <div style={{ fontSize: 9.5, color: C.textDim, fontWeight: 700 }}>{COUNT_LABELS[k] || k}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* تغيير الخطة */}
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 13, padding: 13, marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}><Crown size={15} color={C.secondary} /><span style={{ fontSize: 12.5, fontWeight: 800, color: C.text }}>الخطة الحالية: {PLAN_LABELS[u.plan] || u.plan}</span></div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {['free', 'starter', 'pro', 'business'].map(pl => (
+                  <button key={pl} disabled={busy === 'plan' || u.plan === pl}
+                    onClick={() => act('plan', { action: 'set-plan', user_id: userId, plan: pl }, `تم ضبط الخطة: ${PLAN_LABELS[pl]}`)}
+                    style={{ flex: 1, minWidth: 70, padding: '8px 4px', borderRadius: 9, border: `1px solid ${u.plan === pl ? PLAN_COLORS[pl] : C.border}`, background: u.plan === pl ? `${PLAN_COLORS[pl]}22` : 'transparent', color: u.plan === pl ? PLAN_COLORS[pl] : C.textDim, fontSize: 11.5, fontWeight: 800, cursor: u.plan === pl ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+                    {PLAN_LABELS[pl]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* التجربة */}
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 13, padding: 13, marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}><CalendarPlus size={15} color={C.warning} /><span style={{ fontSize: 12.5, fontWeight: 800, color: C.text }}>التجربة تنتهي: {u.trial_ends_at ? fmtDateTime(u.trial_ends_at) : '—'}</span></div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[14, 30, 90].map(d => (
+                  <button key={d} disabled={busy === 'trial'}
+                    onClick={() => act('trial', { action: 'set-trial', user_id: userId, days: d }, `تم تمديد التجربة ${d} يوم`)}
+                    style={{ flex: 1, padding: '9px 4px', borderRadius: 9, border: `1px solid ${C.warning}44`, background: `${C.warning}12`, color: C.warning, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    +{d} يوم
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* حظر */}
+            <button disabled={busy === 'ban'}
+              onClick={() => act('ban', { action: 'set-user-banned', user_id: userId, banned: !u.banned }, u.banned ? 'تم إلغاء الحظر' : 'تم حظر المستخدم')}
+              style={{ width: '100%', padding: '12px', borderRadius: 12, border: `1px solid ${u.banned ? C.success : C.accent}44`, background: `${u.banned ? C.success : C.accent}14`, color: u.banned ? C.success : C.accent, fontSize: 13.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              {busy === 'ban' ? <Loader2 size={16} style={{ animation: 'spin .8s linear infinite' }} /> : (u.banned ? <ShieldOk size={16} /> : <Ban size={16} />)}
+              {u.banned ? 'إلغاء الحظر (السماح بالدخول)' : 'حظر المستخدم (منع الدخول)'}
+            </button>
+          </>
+        )}
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ── تبويب الرسالة الجماعية ────────────────────────────────────────────────────
+function BroadcastTab({ token }) {
+  const [title, setTitle] = useState('')
+  const [body, setBody] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  async function send(e) {
+    e.preventDefault()
+    setMsg(null)
+    if (!title.trim() || !body.trim()) { setMsg({ type: 'err', text: 'العنوان والنص مطلوبان' }); return }
+    setBusy(true)
+    try {
+      const { count } = await callFn('broadcast', { title: title.trim(), body: body.trim() }, token)
+      setTitle(''); setBody('')
+      setMsg({ type: 'ok', text: `تم إرسال الإشعار إلى ${count} مستخدم ✓` })
+    } catch (err) {
+      setMsg({ type: 'err', text: err.message || 'فشل الإرسال' })
+    }
+    setBusy(false)
+  }
+
+  const inputStyle = { width: '100%', padding: '12px 13px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', marginBottom: 12 }
+
+  return (
+    <PremiumCard tone="purple">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        <IconChip icon={Megaphone} color={C.secondary} size={32} radius={10} />
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 900 }}>رسالة جماعية</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>يظهر كإشعار داخل تطبيق كل المستخدمين</div>
+        </div>
+      </div>
+      {msg && (
+        <div style={{ background: msg.type === 'ok' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${msg.type === 'ok' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`, borderRadius: 10, padding: '9px 12px', fontSize: 12.5, color: msg.type === 'ok' ? '#86EFAC' : '#FCA5A5', margin: '12px 0' }}>{msg.text}</div>
+      )}
+      <form onSubmit={send} style={{ marginTop: 14 }}>
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="عنوان الإشعار" style={inputStyle} maxLength={80} />
+        <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="نص الرسالة…" rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} maxLength={400} />
+        <button type="submit" disabled={busy}
+          style={{ width: '100%', padding: '13px', borderRadius: 13, background: busy ? `${C.secondary}60` : GRAD.premium, border: 'none', color: '#fff', fontSize: 14.5, fontWeight: 800, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          {busy ? <Loader2 size={17} style={{ animation: 'spin .8s linear infinite' }} /> : <Send size={16} />}
+          إرسال للجميع
+        </button>
+      </form>
+    </PremiumCard>
   )
 }
 
