@@ -88,11 +88,13 @@ serve(async (req) => {
     // سرّ توقيع التوكن — ثابت ومستقلّ عن كلمة المرور حتى لا تُبطَل الجلسات عند تغييرها
     const TOKEN_SECRET = Deno.env.get('ADMIN_JWT_SECRET') || (SERVICE_KEY + ':contractor-admin-v1')
 
-    if (!ENV_USER || !ENV_PASS) {
-      return json({ error: 'لوحة الأدمن غير مهيّأة — اضبط ADMIN_USERNAME و ADMIN_PASSWORD في أسرار Supabase.' }, 503)
-    }
-
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, SERVICE_KEY, { auth: { persistSession: false } })
+
+    // مهيّأة إذا وُجد سجلّ admin_auth بالقاعدة، أو ضُبطت أسرار البيئة (bootstrap)
+    const { data: dbCreds } = await admin.from('admin_auth').select('username').eq('id', 1).maybeSingle()
+    if (!dbCreds && (!ENV_USER || !ENV_PASS)) {
+      return json({ error: 'لوحة الأدمن غير مهيّأة — اضبط بيانات الدخول أولاً.' }, 503)
+    }
 
     const body = await req.json().catch(() => ({}))
     const action = body?.action || 'stats'
