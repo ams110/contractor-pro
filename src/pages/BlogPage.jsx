@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { HardHat, ArrowRight } from 'lucide-react'
 import { navigate } from '../Router.jsx'
+import { useSeo } from '../lib/seo.js'
 
 // ─── Design Tokens (محلية — مطابقة لباقي الصفحات) ──────────────────────────────
 const C = {
@@ -46,6 +47,11 @@ function TopBar() {
 }
 
 export default function BlogPage() {
+  useSeo({
+    path: '/blog',
+    title: 'المدوّنة | Contractor Pro — نصائح إدارة المقاولات والضرائب',
+    description: 'مقالات ونصائح للمقاول العربي في إسرائيل: إدارة المشاريع والعمّال، حساب الرواتب، وفهم الضرائب (מע"מ + ضريبة الدخل + ביטוח לאומי).',
+  })
   useEffect(() => {
     window.scrollTo(0, 0)
     // حقن سكربت Soro مرّة واحدة فقط (يبحث عن #soro-blog ويعرض المحتوى)
