@@ -170,7 +170,7 @@ function ContractorCard({ profile, business, lang }) {
   const portalEnabled = useHasFeature('pro')   // بوّابة العامل ميزة خطة Pro
   const portalUrl = `${window.location.origin}${window.location.pathname}?portal`
   const typeLabel = BUSINESS_TYPES.find(t => t.id === business?.type)?.label || ''
-  const name = profile?.display_name || (lang === 'en' ? 'Your Name' : lang === 'he' ? 'השם שלך' : 'اسمك هنا')
+  const name = profile?.full_name || (lang === 'en' ? 'Your Name' : lang === 'he' ? 'השם שלך' : 'اسمك هنا')
   const num = profile?.contractor_number
 
   useEffect(() => {
@@ -473,14 +473,14 @@ export default function SettingsScreen({
 
   // ── جاهزية الحساب: تُحسب من الإشارات الحقيقية ──
   const readiness = useMemo(() => computeAccountReadiness({
-    displayName:     profile?.display_name,
+    displayName:     profile?.full_name,
     hasAvatar:       !!profile?.avatar_url,
     contractorNumber: profile?.contractor_number,
     pensionMonthly,
     hasPasskey,
     notifGranted:    permission === 'granted',
     dailySpendLimit: appCfg?.config?.daily_spend_limit,
-  }), [profile?.display_name, profile?.avatar_url, profile?.contractor_number, pensionMonthly, hasPasskey, permission, appCfg?.config?.daily_spend_limit])
+  }), [profile?.full_name, profile?.avatar_url, profile?.contractor_number, pensionMonthly, hasPasskey, permission, appCfg?.config?.daily_spend_limit])
 
   // الفئات المرئية (data/security للمالك فقط) + الفئة النشطة
   const visibleCategories = useMemo(
@@ -657,8 +657,8 @@ export default function SettingsScreen({
                 </button>
               </div>
             ) : (
-              <div onClick={() => { setEditName(profile?.display_name || ''); setEditingName(true) }} style={{ cursor: 'pointer' }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{profile?.display_name || (language === 'en' ? 'Tap to set name' : language === 'he' ? 'לחץ להוסיף שם' : 'اضغط لإضافة اسم')}</div>
+              <div onClick={() => { setEditName(profile?.full_name || ''); setEditingName(true) }} style={{ cursor: 'pointer' }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{profile?.full_name || (language === 'en' ? 'Tap to set name' : language === 'he' ? 'לחץ להוסיף שם' : 'اضغط لإضافة اسم')}</div>
                 <div style={{ fontSize: 11, color: C.primary, marginTop: 2 }}>
                   {language === 'en' ? 'Tap to edit' : language === 'he' ? 'לחץ לעריכה' : 'اضغط للتعديل'}
                 </div>
