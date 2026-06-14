@@ -80,17 +80,17 @@ export default function AdminDashboard() {
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px', position: 'relative', zIndex: 1 }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 30px rgba(249,115,22,0.35)' }}>
+        <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 30px rgba(249,115,22,0.35)', flexShrink: 0 }}>
               <ShieldCheck size={24} color="#fff" strokeWidth={2} />
             </div>
-            <div>
-              <div style={{ fontSize: 19, fontWeight: 900, letterSpacing: '-0.02em' }}>مركز القيادة</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 19, fontWeight: 900, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>مركز القيادة</div>
               <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>لوحة تحكّم المنصّة · Admin</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="admin-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={() => loadStats(token)} disabled={loading}
               style={btnStyle(C.cyan)}>
               {loading ? <Loader2 size={15} style={{ animation: 'spin .8s linear infinite' }} /> : <RefreshCw size={15} />}
@@ -104,6 +104,14 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
+
+        <style>{`
+          @media (max-width: 640px){
+            .admin-header{ align-items: stretch !important; }
+            .admin-actions{ width: 100%; }
+            .admin-actions button{ flex: 1; justify-content: center; }
+          }
+        `}</style>
 
         <AnimatePresence>
           {showSettings && <AdminSettings token={token} onClose={() => setShowSettings(false)} />}
