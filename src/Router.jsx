@@ -8,6 +8,7 @@ import BlogPage    from './pages/BlogPage.jsx'
 import CookieConsent from './components/CookieConsent.jsx'
 
 const LoginScreen = lazy(() => import('./screens/auth/LoginScreen.jsx'))
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'))
 const AdStudio    = lazy(() => import('./pages/AdStudio.jsx'))
 const AdReel      = lazy(() => import('./pages/AdReel.jsx'))
 const DemoShot    = lazy(() => import('./pages/DemoShot.jsx'))
@@ -31,6 +32,8 @@ export default function Router() {
   const params = new URLSearchParams(window.location.search)
   if (params.has('portal') || params.has('worker')) return <App />
 
+  // /admin — لوحة تحكّم المنصّة (مركز قيادة الأدمن، دخول مخصّص — بلا لافتة كوكيز)
+  if (path === '/admin') return <Suspense fallback={null}><AdminDashboard /></Suspense>
   // /adstudio — محرّك البوسترات التسويقية (بلا لافتة كوكيز)
   if (path === '/adstudio') return <Suspense fallback={null}><AdStudio /></Suspense>
   // /adreel — نسخة فيديو ٩:١٦ من البوسترات (تُسجَّل عبر scripts/reel-shots.mjs)
