@@ -255,6 +255,53 @@ serve(async (req) => {
       return json({ count: count || 0, username: await currentUsername() })
     }
 
+    // ── إدارة المستخدمين ──────────────────────────────────────────────────────
+    if (action === 'list-users') {
+      const { data, error } = await admin.rpc('admin_list_users', { p_search: String(body?.search || ''), p_limit: Number(body?.limit || 100) })
+      if (error) return json({ error: error.message }, 500)
+      return json({ users: data })
+    }
+    if (action === 'user-detail') {
+      if (!body?.user_id) return json({ error: 'مطلوب user_id' }, 400)
+      const { data, error } = await admin.rpc('admin_user_detail', { p_uid: body.user_id })
+      if (error) return json({ error: error.message }, 500)
+      return json({ user: data })
+    }
+    if (action === 'set-user-banned') {
+      if (!body?.user_id) return json({ error: 'مطلوب user_id' }, 400)
+      const { error } = await admin.auth.admin.updateUserById(body.user_id, { ban_duration: body?.banned ? '876000h' : 'none' })
+      if (error) return json({ error: error.message }, 500)
+      return json({ success: true })
+    }
+
+    // ── التحكّم بالاشتراكات ────────────────────────────────────────────────────
+    if (action === 'set-trial') {
+      if (!body?.user_id) return json({ error: 'مطلوب user_id' }, 400)
+      const days = Number(body?.days || 14)
+      const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+      const { error } = await admin.from('organizations').update({ trial_ends_at: until }).eq('owner_id', body.user_id)
+      if (error) return json({ error: error.message }, 500)
+      return json({ success: true, trial_ends_at: until })
+    }
+    if (action === 'set-plan') {
+      if (!body?.user_id) return json({ error: 'مطلوب user_id' }, 400)
+      const plan = String(body?.plan || '')
+      if (!['free', 'starter', 'pro', 'business'].includes(plan)) return json({ error: 'خطة غير صالحة' }, 400)
+      const { error } = await admin.from('organizations').update({ plan }).eq('owner_id', body.user_id)
+      if (error) return json({ error: error.message }, 500)
+      return json({ success: true })
+    }
+
+    // ── بثّ إشعار لكل المستخدمين ───────────────────────────────────────────────
+    if (action === 'broadcast') {
+      const title = String(body?.title || '').trim()
+      const text = String(body?.body || '').trim()
+      if (!title || !text) return json({ error: 'العنوان والنص مطلوبان' }, 400)
+      const { data, error } = await admin.rpc('admin_broadcast', { p_title: title, p_body: text })
+      if (error) return json({ error: error.message }, 500)
+      return json({ success: true, count: data })
+    }
+
     // ════════════════ الإحصائيات ════════════════
     if (action === 'stats') {
       const { data, error } = await admin.rpc('admin_get_stats')
