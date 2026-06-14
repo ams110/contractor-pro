@@ -4,10 +4,12 @@ import {
   ShieldCheck, Lock, User, Loader2, Eye, EyeOff, LogOut, RefreshCw,
   Users, UserPlus, TrendingUp, Wallet, CreditCard, Clock,
   Building2, Briefcase, CalendarDays, CheckCircle2, AlertTriangle,
+  Fingerprint, Settings, KeyRound, X, Check,
 } from 'lucide-react'
 import {
   ComposedChart, Area, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
+import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 import { C, GRAD } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
 import { PremiumCard, PremiumStat, IconChip } from '../ui/Premium.jsx'
@@ -20,13 +22,13 @@ const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 const PLAN_LABELS = { free: 'مجاني', starter: 'المبتدئ', pro: 'المحترف', business: 'الأعمال' }
 const PLAN_COLORS = { free: C.textDim, starter: C.cyan, pro: C.primary, business: C.secondary }
 
-async function callFn(action, { token, username, password } = {}) {
+async function callFn(action, payload = {}, token) {
   const headers = { 'Content-Type': 'application/json', apikey: ANON }
   if (token) headers.Authorization = `Bearer ${token}`
   const res = await fetch(FN_URL, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ action, username, password }),
+    body: JSON.stringify({ action, ...payload }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data?.error || 'حدث خطأ')
@@ -46,10 +48,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const [showSettings, setShowSettings] = useState(false)
+
   const loadStats = useCallback(async (tk) => {
     setLoading(true); setError('')
     try {
-      const { stats } = await callFn('stats', { token: tk })
+      const { stats } = await callFn('stats', {}, tk)
       setStats(stats)
     } catch (e) {
       if (/جلسة|session|401/i.test(e.message)) { logout() }
@@ -92,11 +96,18 @@ export default function AdminDashboard() {
               {loading ? <Loader2 size={15} style={{ animation: 'spin .8s linear infinite' }} /> : <RefreshCw size={15} />}
               تحديث
             </button>
+            <button onClick={() => setShowSettings(true)} style={btnStyle(C.secondary)}>
+              <Settings size={15} /> إعدادات
+            </button>
             <button onClick={logout} style={btnStyle(C.accent)}>
               <LogOut size={15} /> خروج
             </button>
           </div>
         </div>
+
+        <AnimatePresence>
+          {showSettings && <AdminSettings token={token} onClose={() => setShowSettings(false)} />}
+        </AnimatePresence>
 
         {error && (
           <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#FCA5A5', marginBottom: 16 }}>
@@ -280,6 +291,20 @@ function AdminLogin({ onSuccess, initialError }) {
     }
   }
 
+  async function handlePasskey() {
+    setLoading(true); setError('')
+    try {
+      const options = await callFn('wa-auth-options')
+      const assertion = await startAuthentication(options)
+      const { token } = await callFn('wa-auth-verify', { credential: assertion })
+      onSuccess(token)
+    } catch (err) {
+      if (err.name === 'NotAllowedError') setError('أُلغيت عملية البصمة')
+      else setError(err.message || 'فشلت البصمة')
+      setLoading(false)
+    }
+  }
+
   const inputStyle = {
     width: '100%', padding: '11px 38px 11px 13px',
     background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
@@ -338,6 +363,11 @@ function AdminLogin({ onSuccess, initialError }) {
             دخول
           </motion.button>
 
+          <button type="button" onClick={handlePasskey} disabled={loading}
+            style={{ marginTop: 10, width: '100%', padding: '12px', borderRadius: 14, background: `${C.secondary}16`, border: `1px solid ${C.secondary}33`, color: C.secondary, fontSize: 14, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <Fingerprint size={17} /> الدخول بالبصمة
+          </button>
+
           <button type="button" onClick={() => navigate('/')}
             style={{ marginTop: 14, width: '100%', background: 'none', border: 'none', color: C.textDim, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
             ← العودة للموقع
@@ -345,6 +375,121 @@ function AdminLogin({ onSuccess, initialError }) {
         </form>
       </motion.div>
     </div>
+  )
+}
+
+// ── إعدادات الأدمن: تفعيل البصمة + تغيير كلمة المرور ──────────────────────────
+function AdminSettings({ token, onClose }) {
+  const [pkCount, setPkCount] = useState(null)
+  const [busy, setBusy] = useState('')
+  const [msg, setMsg] = useState(null) // { type: 'ok'|'err', text }
+
+  // تغيير كلمة المرور
+  const [curPass, setCurPass] = useState('')
+  const [newPass, setNewPass] = useState('')
+  const [confPass, setConfPass] = useState('')
+  const [newUser, setNewUser] = useState('')
+
+  useEffect(() => {
+    callFn('passkey-status', {}, token).then(d => setPkCount(d.count)).catch(() => setPkCount(0))
+  }, [token])
+
+  async function enableBiometric() {
+    setBusy('bio'); setMsg(null)
+    try {
+      const options = await callFn('wa-reg-options', {}, token)
+      const cred = await startRegistration(options)
+      await callFn('wa-reg-verify', { credential: cred }, token)
+      localStorage.setItem('cp_admin_has_passkey', '1')
+      const d = await callFn('passkey-status', {}, token).catch(() => null)
+      if (d) setPkCount(d.count)
+      setMsg({ type: 'ok', text: 'تم تفعيل البصمة على هذا الجهاز ✓' })
+    } catch (err) {
+      if (err.name === 'NotAllowedError') setMsg({ type: 'err', text: 'أُلغيت عملية البصمة' })
+      else setMsg({ type: 'err', text: err.message || 'فشل تفعيل البصمة' })
+    }
+    setBusy('')
+  }
+
+  async function changePassword(e) {
+    e.preventDefault()
+    setMsg(null)
+    if (newPass.length < 8) { setMsg({ type: 'err', text: 'كلمة المرور الجديدة 8 أحرف على الأقل' }); return }
+    if (newPass !== confPass) { setMsg({ type: 'err', text: 'تأكيد كلمة المرور غير مطابق' }); return }
+    setBusy('pass')
+    try {
+      await callFn('change-password', { current_password: curPass, new_password: newPass, new_username: newUser || undefined }, token)
+      setCurPass(''); setNewPass(''); setConfPass(''); setNewUser('')
+      setMsg({ type: 'ok', text: 'تم تغيير بيانات الدخول ✓' })
+    } catch (err) {
+      setMsg({ type: 'err', text: err.message || 'فشل التغيير' })
+    }
+    setBusy('')
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '11px 13px', background: C.card, border: `1px solid ${C.border}`,
+    borderRadius: 12, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none',
+    direction: 'ltr', textAlign: 'right', marginBottom: 10,
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
+      <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+        onClick={e => e.stopPropagation()}
+        style={{ background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: 22, padding: '22px 18px', width: '100%', maxWidth: 420, marginTop: 30 }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <IconChip icon={Settings} color={C.secondary} size={30} radius={9} />
+            <div style={{ fontSize: 16, fontWeight: 900, color: C.text }}>إعدادات الأمان</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex' }}><X size={20} /></button>
+        </div>
+
+        {msg && (
+          <div style={{ background: msg.type === 'ok' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${msg.type === 'ok' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`, borderRadius: 10, padding: '9px 12px', fontSize: 12.5, color: msg.type === 'ok' ? '#86EFAC' : '#FCA5A5', marginBottom: 14 }}>
+            {msg.text}
+          </div>
+        )}
+
+        {/* البصمة */}
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
+            <Fingerprint size={18} color={C.secondary} />
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: C.text }}>الدخول بالبصمة</div>
+            {pkCount > 0 && <span style={{ marginInlineStart: 'auto', fontSize: 10, fontWeight: 800, color: C.success, padding: '3px 8px', borderRadius: 8, background: `${C.success}16`, border: `1px solid ${C.success}33`, display: 'flex', alignItems: 'center', gap: 4 }}><Check size={11} /> مفعّلة ({pkCount})</span>}
+          </div>
+          <div style={{ fontSize: 11.5, color: C.textDim, lineHeight: 1.6, marginBottom: 12 }}>
+            فعّل بصمة الإصبع / Face ID على هذا الجهاز لتدخل بضغطة بدل كلمة المرور. (لكل جهاز بصمته الخاصة.)
+          </div>
+          <button onClick={enableBiometric} disabled={busy === 'bio'}
+            style={{ width: '100%', padding: '11px', borderRadius: 12, background: GRAD.premium, border: 'none', color: '#fff', fontSize: 13.5, fontWeight: 800, cursor: busy === 'bio' ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {busy === 'bio' ? <Loader2 size={16} style={{ animation: 'spin .8s linear infinite' }} /> : <Fingerprint size={16} />}
+            {pkCount > 0 ? 'إضافة بصمة هذا الجهاز' : 'تفعيل البصمة على هذا الجهاز'}
+          </button>
+        </div>
+
+        {/* تغيير كلمة المرور */}
+        <form onSubmit={changePassword} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+            <KeyRound size={18} color={C.primary} />
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: C.text }}>تغيير بيانات الدخول</div>
+          </div>
+          <input type="password" value={curPass} onChange={e => setCurPass(e.target.value)} placeholder="كلمة المرور الحالية" style={inputStyle} required autoComplete="current-password" />
+          <input type="text" value={newUser} onChange={e => setNewUser(e.target.value)} placeholder="اسم مستخدم جديد (اختياري)" style={inputStyle} autoComplete="off" />
+          <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="كلمة المرور الجديدة (8 أحرف+)" style={inputStyle} required autoComplete="new-password" />
+          <input type="password" value={confPass} onChange={e => setConfPass(e.target.value)} placeholder="تأكيد كلمة المرور الجديدة" style={{ ...inputStyle, marginBottom: 14 }} required autoComplete="new-password" />
+          <button type="submit" disabled={busy === 'pass'}
+            style={{ width: '100%', padding: '11px', borderRadius: 12, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 13.5, fontWeight: 800, cursor: busy === 'pass' ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {busy === 'pass' ? <Loader2 size={16} style={{ animation: 'spin .8s linear infinite' }} /> : <Check size={16} />}
+            حفظ التغييرات
+          </button>
+        </form>
+      </motion.div>
+    </motion.div>
   )
 }
 
