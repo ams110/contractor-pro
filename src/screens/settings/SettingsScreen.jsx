@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
 import { HolographicSheen } from '../../ui/Premium.jsx'
 import { useAppStore } from '../../store/useAppStore.js'
+import { lockOnBackgroundEnabled, LOCK_ON_BG_KEY } from '../../lib/sessionLock.js'
 import { navigate } from '../../Router.jsx'
 import { usePushNotifications } from '../../hooks/usePushNotifications.js'
 import { useAuth } from '../../hooks/useAuth.js'
@@ -387,7 +388,7 @@ export default function SettingsScreen({
   const [loginLogOpen, setLoginLogOpen] = useState(false)
   const [limitInput, setLimitInput] = useState('')
   const [timeoutInput, setTimeoutInput] = useState('')
-  const [lockOnBg, setLockOnBg] = useState(localStorage.getItem('cpro_lock_on_bg') !== '0')
+  const [lockOnBg, setLockOnBg] = useState(lockOnBackgroundEnabled(localStorage.getItem(LOCK_ON_BG_KEY)))
   const [bioThrInput, setBioThrInput] = useState('')
   const [memberExpiryEditing, setMemberExpiryEditing] = useState(null)
   const [memberExpiryValue, setMemberExpiryValue] = useState('')
@@ -1222,7 +1223,7 @@ export default function SettingsScreen({
               </div>
             </div>
             <button
-              onClick={() => { const v = !lockOnBg; setLockOnBg(v); localStorage.setItem('cpro_lock_on_bg', v ? '1' : '0') }}
+              onClick={() => { const v = !lockOnBg; setLockOnBg(v); localStorage.setItem(LOCK_ON_BG_KEY, v ? '1' : '0') }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: lockOnBg ? C.primary : C.textDim }}
             >
               {lockOnBg ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
