@@ -8,11 +8,13 @@ import {
   LayoutDashboard, Search, Megaphone, Ban, ShieldCheck as ShieldOk, Crown,
   CalendarPlus, ChevronLeft, Send, Activity, Mail, Zap,
   Inbox, Sparkles, ArrowUpRight, ArrowDownRight, UserX, CalendarClock, Gauge, Download, Minus,
+  Radio, Target, LogIn, Rocket, Pencil,
 } from 'lucide-react'
 import {
   ComposedChart, Area, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
+import { supabase } from '../lib/supabase.js'
 import { C, GRAD } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
 import { PremiumCard, PremiumStat, IconChip } from '../ui/Premium.jsx'
@@ -140,6 +142,7 @@ export default function AdminDashboard() {
             <div style={{ display: 'flex', gap: 6, background: C.surface, borderRadius: 14, padding: 5, marginBottom: 16, border: `1px solid ${C.border}` }}>
               {[
                 { id: 'overview',  label: 'نظرة عامة', icon: LayoutDashboard },
+                { id: 'live',      label: 'مباشر', icon: Radio },
                 { id: 'users',     label: 'المستخدمون', icon: Users },
                 { id: 'broadcast', label: 'رسالة جماعية', icon: Megaphone },
               ].map(t => (
@@ -151,6 +154,7 @@ export default function AdminDashboard() {
             </div>
 
             {tab === 'overview'  && <Dashboard stats={stats} token={token} />}
+            {tab === 'live'      && <ActivityFeed token={token} />}
             {tab === 'users'     && <UsersTab token={token} />}
             {tab === 'broadcast' && <BroadcastTab token={token} />}
           </>
@@ -168,7 +172,7 @@ function Dashboard({ stats, token }) {
   const tot = stats.totals || {}
   const f = stats.funnel || {}
   const plans = stats.plans || []
-  const chart = (stats.signups_monthly || []).map(m => ({ month: m.month.slice(2), count: m.count }))
+  const chart = buildForecastChart(stats.signups_monthly || [])
   const recent = stats.recent_users || []
   const arr = (s.mrr || 0) * 12
   const convRate = f.signups ? Math.round(((f.paying || 0) / f.signups) * 100) : 0
@@ -230,6 +234,9 @@ function Dashboard({ stats, token }) {
         </div>
       </PremiumCard>
 
+      {/* الأهداف */}
+      <TargetsCard token={token} stats={stats} />
+
       {/* الصف الثالث — إجماليات الاستخدام */}
       <div style={grid(4)}>
         <PremiumStat icon={Briefcase}    tone="cyan"    label="مشاريع"   value={fmt(tot.projects)} delay={0.4} />
@@ -244,8 +251,8 @@ function Dashboard({ stats, token }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
             <IconChip icon={TrendingUp} color={C.primary} size={32} radius={10} />
             <div>
-              <div style={{ fontSize: 14, fontWeight: 900 }}>نمو التسجيلات</div>
-              <div style={{ fontSize: 10, color: C.textDim }}>آخر 12 شهراً</div>
+              <div style={{ fontSize: 14, fontWeight: 900 }}>نمو التسجيلات + توقّع</div>
+              <div style={{ fontSize: 10, color: C.textDim }}>١٢ شهراً ماضية · <span style={{ color: C.cyan }}>٣ أشهر متوقّعة ┄</span></div>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={210}>
@@ -261,10 +268,10 @@ function Dashboard({ stats, token }) {
               <Tooltip
                 contentStyle={{ background: C.card, border: `1px solid ${C.borderMid}`, borderRadius: 12, fontSize: 12 }}
                 labelStyle={{ color: C.textDim }} itemStyle={{ color: C.text }}
-                formatter={(v) => [v, 'تسجيلات']}
+                formatter={(v, n) => [v, n === 'proj' ? 'متوقّع' : 'تسجيلات']}
               />
-              <Area type="monotone" dataKey="count" stroke={C.primary} strokeWidth={2.5} fill="url(#adminGrad)" />
-              <Line type="monotone" dataKey="count" stroke={C.primary} strokeWidth={0} dot={{ r: 3, fill: C.primary }} />
+              <Area type="monotone" dataKey="count" stroke={C.primary} strokeWidth={2.5} fill="url(#adminGrad)" connectNulls />
+              <Line type="monotone" dataKey="proj" stroke={C.cyan} strokeWidth={2.5} strokeDasharray="5 4" dot={{ r: 3, fill: C.cyan }} connectNulls />
             </ComposedChart>
           </ResponsiveContainer>
         </PremiumCard>
@@ -669,6 +676,19 @@ function UserDetailModal({ token, userId, onClose, onChanged }) {
     setBusy('')
   }
 
+  async function impersonate() {
+    setBusy('imp'); setMsg(null)
+    try {
+      const { token_hash } = await callFn('impersonate', { user_id: userId }, token)
+      const { error } = await supabase.auth.verifyOtp({ token_hash, type: 'magiclink' })
+      if (error) throw new Error('فشل فتح جلسة المستخدم')
+      navigate('/app')
+    } catch (err) {
+      setMsg({ type: 'err', text: err.message || 'فشل الدخول كمستخدم' })
+      setBusy('')
+    }
+  }
+
   const COUNT_LABELS = { projects: 'مشاريع', employees: 'عمّال', work_days: 'أيام عمل', expenses: 'مصاريف', businesses: 'مصالح', material_logs: 'بضاعة', team_members: 'فريق' }
 
   return (
@@ -738,6 +758,13 @@ function UserDetailModal({ token, userId, onClose, onChanged }) {
                 ))}
               </div>
             </div>
+
+            {/* دخول كهذا المستخدم */}
+            <button onClick={impersonate} disabled={busy === 'imp'}
+              style={{ width: '100%', padding: '12px', borderRadius: 12, border: `1px solid ${C.secondary}44`, background: `${C.secondary}14`, color: C.secondary, fontSize: 13.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+              {busy === 'imp' ? <Loader2 size={16} style={{ animation: 'spin .8s linear infinite' }} /> : <LogIn size={16} />}
+              دخول كهذا المستخدم (للدعم)
+            </button>
 
             {/* حظر */}
             <button disabled={busy === 'ban'}
@@ -967,6 +994,170 @@ function ActionInbox({ token }) {
       <AnimatePresence>
         {selected && <UserDetailModal token={token} userId={selected} onClose={() => setSelected(null)} onChanged={load} />}
       </AnimatePresence>
+    </PremiumCard>
+  )
+}
+
+// ── توقّع النمو: يمدّد المنحنى 3 أشهر بمتوسّط آخر 3 ──────────────────────────
+function buildForecastChart(monthly) {
+  const data = monthly.map(m => ({ month: m.month.slice(2), count: m.count, proj: null }))
+  if (data.length) {
+    const last3 = monthly.slice(-3).map(m => m.count || 0)
+    const avg = last3.length ? Math.max(0, Math.round(last3.reduce((a, b) => a + b, 0) / last3.length)) : 0
+    data[data.length - 1] = { ...data[data.length - 1], proj: data[data.length - 1].count }
+    let [y, mo] = (monthly[monthly.length - 1].month).split('-').map(Number)
+    for (let i = 0; i < 3; i++) {
+      mo++; if (mo > 12) { mo = 1; y++ }
+      data.push({ month: `${String(y).slice(2)}-${String(mo).padStart(2, '0')}`, count: null, proj: avg })
+    }
+  }
+  return data
+}
+
+function timeAgo(d) {
+  const diff = Math.floor((Date.now() - new Date(d).getTime()) / 1000)
+  if (diff < 60) return 'الآن'
+  if (diff < 3600) return `منذ ${Math.floor(diff / 60)} دقيقة`
+  if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} ساعة`
+  return `منذ ${Math.floor(diff / 86400)} يوم`
+}
+
+// ── سجلّ النشاط الحيّ ──────────────────────────────────────────────────────────
+function ActivityFeed({ token }) {
+  const [feed, setFeed] = useState(null)
+  const load = useCallback(async () => {
+    try { const { feed } = await callFn('activity-feed', { limit: 40 }, token); setFeed(feed || []) } catch { setFeed([]) }
+  }, [token])
+  useEffect(() => {
+    load()
+    const iv = setInterval(load, 20000) // تحديث تلقائي كل 20 ثانية
+    return () => clearInterval(iv)
+  }, [load])
+
+  const META = {
+    signup:       { icon: UserPlus,   color: C.success, label: 'تسجيل جديد' },
+    subscription: { icon: CreditCard, color: C.gold,    label: 'اشتراك جديد' },
+  }
+
+  return (
+    <PremiumCard tone="success">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <IconChip icon={Radio} color={C.success} size={32} radius={10} pulse />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 900 }}>النشاط المباشر</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>يتحدّث تلقائياً كل ٢٠ ثانية</div>
+        </div>
+        <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.6, repeat: Infinity }}
+          style={{ width: 8, height: 8, borderRadius: '50%', background: C.success, boxShadow: `0 0 8px ${C.success}` }} />
+      </div>
+      {!feed ? (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}><Loader2 size={26} style={{ animation: 'spin .8s linear infinite', color: C.primary }} /></div>
+      ) : feed.length === 0 ? (
+        <div style={{ textAlign: 'center', fontSize: 13, color: C.textDim, padding: '30px 0' }}>لا نشاط بعد</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {feed.map((e, i) => {
+            const m = META[e.type] || META.signup
+            return (
+              <motion.div key={i} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i * 0.015, 0.3) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 11 }}>
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: `${m.color}1c`, border: `1px solid ${m.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <m.icon size={15} color={m.color} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {m.label}{e.detail ? ` · ${PLAN_LABELS[e.detail] || e.detail}` : ''}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: C.textDim, direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name || e.email}</div>
+                </div>
+                <span style={{ fontSize: 10, color: C.textDim, flexShrink: 0 }}>{timeAgo(e.at)}</span>
+              </motion.div>
+            )
+          })}
+        </div>
+      )}
+    </PremiumCard>
+  )
+}
+
+// ── بطاقة الأهداف + التقدّم ────────────────────────────────────────────────────
+function TargetsCard({ token, stats }) {
+  const [t, setT] = useState(stats.targets || {})
+  const [edit, setEdit] = useState(false)
+  const [tu, setTu] = useState(t.users || '')
+  const [tm, setTm] = useState(t.mrr || '')
+  const [busy, setBusy] = useState(false)
+
+  const curUsers = stats.users?.total || 0
+  const curMrr = stats.subscriptions?.mrr || 0
+  const hasTargets = t.users || t.mrr
+
+  async function save() {
+    setBusy(true)
+    try {
+      await callFn('set-targets', { target_users: tu || null, target_mrr: tm || null }, token)
+      setT({ users: tu ? Number(tu) : null, mrr: tm ? Number(tm) : null })
+      setEdit(false)
+    } catch { /* ignore */ }
+    setBusy(false)
+  }
+
+  const Bar = ({ label, cur, target, color, money }) => {
+    const pct = target ? Math.min(100, Math.round((cur / target) * 100)) : 0
+    return (
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+          <span style={{ color: C.text }}>{label}</span>
+          <span style={{ color: C.textDim }}>{money ? '₪' : ''}{fmt(cur)} / {money ? '₪' : ''}{fmt(target)} · <span style={{ color }}>{pct}%</span></span>
+        </div>
+        <div style={{ height: 10, borderRadius: 6, background: C.card, overflow: 'hidden' }}>
+          <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: 'easeOut' }}
+            style={{ height: '100%', borderRadius: 6, background: color, boxShadow: `0 0 12px ${color}66` }} />
+        </div>
+      </div>
+    )
+  }
+
+  const inputStyle = { flex: 1, padding: '10px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 11, color: C.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', direction: 'ltr', textAlign: 'right' }
+
+  return (
+    <PremiumCard tone="cyan" delay={0.39} style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <IconChip icon={Target} color={C.cyan} size={32} radius={10} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 900 }}>أهدافك</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>تقدّمك نحو ما تطمح إليه</div>
+        </div>
+        {!edit && (
+          <button onClick={() => { setTu(t.users || ''); setTm(t.mrr || ''); setEdit(true) }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex' }}><Pencil size={16} /></button>
+        )}
+      </div>
+
+      {edit ? (
+        <div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <input value={tu} onChange={e => setTu(e.target.value.replace(/[^0-9]/g, ''))} placeholder="هدف المستخدمين" style={inputStyle} inputMode="numeric" />
+            <input value={tm} onChange={e => setTm(e.target.value.replace(/[^0-9]/g, ''))} placeholder="هدف MRR (₪)" style={inputStyle} inputMode="numeric" />
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setEdit(false)} style={{ flex: 1, padding: '10px', borderRadius: 11, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>إلغاء</button>
+            <button onClick={save} disabled={busy} style={{ flex: 1, padding: '10px', borderRadius: 11, background: GRAD.cyan || C.cyan, border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              {busy ? <Loader2 size={15} style={{ animation: 'spin .8s linear infinite' }} /> : <Check size={15} />} حفظ
+            </button>
+          </div>
+        </div>
+      ) : hasTargets ? (
+        <>
+          {t.users ? <Bar label="المستخدمون" cur={curUsers} target={t.users} color={C.cyan} /> : null}
+          {t.mrr ? <Bar label="الإيراد الشهري" cur={curMrr} target={t.mrr} color={C.success} money /> : null}
+        </>
+      ) : (
+        <button onClick={() => setEdit(true)}
+          style={{ width: '100%', padding: '12px', borderRadius: 12, background: `${C.cyan}14`, border: `1px dashed ${C.cyan}44`, color: C.cyan, fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Rocket size={16} /> حدّد هدفك الأول
+        </button>
+      )}
     </PremiumCard>
   )
 }
