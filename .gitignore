@@ -77,3 +77,6 @@ android/assetlinks.json
 
 # Android build deliverables (sent to chat, not committed)
 dist-android/
+
+# Promo/ad generation artifacts (screens, cards, music, rendered video — sent to chat, not committed)
+promo-frames/
