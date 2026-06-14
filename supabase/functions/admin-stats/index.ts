@@ -306,7 +306,9 @@ serve(async (req) => {
     if (action === 'stats') {
       const { data, error } = await admin.rpc('admin_get_stats')
       if (error) return json({ error: error.message }, 500)
-      return json({ stats: data })
+      const { data: cfg } = await admin.from('admin_auth').select('target_users, target_mrr').eq('id', 1).maybeSingle()
+      const stats = { ...data, targets: { users: cfg?.target_users ?? null, mrr: cfg?.target_mrr ?? null } }
+      return json({ stats })
     }
 
     // ── صندوق الإجراءات الذكي ──────────────────────────────────────────────────
@@ -314,6 +316,32 @@ serve(async (req) => {
       const { data, error } = await admin.rpc('admin_action_items')
       if (error) return json({ error: error.message }, 500)
       return json({ items: data })
+    }
+
+    // ── سجلّ النشاط الحيّ ──────────────────────────────────────────────────────
+    if (action === 'activity-feed') {
+      const { data, error } = await admin.rpc('admin_activity_feed', { p_limit: Number(body?.limit || 30) })
+      if (error) return json({ error: error.message }, 500)
+      return json({ feed: data })
+    }
+
+    // ── ضبط الأهداف ───────────────────────────────────────────────────────────
+    if (action === 'set-targets') {
+      const tu = body?.target_users === '' || body?.target_users == null ? null : Number(body.target_users)
+      const tm = body?.target_mrr === '' || body?.target_mrr == null ? null : Number(body.target_mrr)
+      const { error } = await admin.from('admin_auth').update({ target_users: tu, target_mrr: tm }).eq('id', 1)
+      if (error) return json({ error: error.message }, 500)
+      return json({ success: true })
+    }
+
+    // ── دخول كمستخدم (انتحال للدعم) → token_hash لجلسة Supabase ─────────────────
+    if (action === 'impersonate') {
+      if (!body?.user_id) return json({ error: 'مطلوب user_id' }, 400)
+      const { data: ud } = await admin.auth.admin.getUserById(body.user_id)
+      if (!ud?.user?.email) return json({ error: 'مستخدم بلا بريد صالح' }, 400)
+      const { data: link, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email: ud.user.email })
+      if (error || !link?.properties?.hashed_token) return json({ error: 'فشل إنشاء الجلسة' }, 400)
+      return json({ token_hash: link.properties.hashed_token, email: ud.user.email })
     }
 
     return json({ error: 'إجراء غير معروف' }, 400)
