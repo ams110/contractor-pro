@@ -4,7 +4,7 @@ import { navigate } from '../Router.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { useOrganization } from '../hooks/useOrganization.js'
 import { openCheckout, PLAN_META, pricesFor } from '../lib/paddle.js'
-import { useRouteSeo } from '../lib/seo.js'
+import { useRouteSeo, faqLd } from '../lib/seo.js'
 
 const C = {
   bg:        '#07080F',
@@ -262,7 +262,8 @@ function FAQ() {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export default function PricingPage() {
-  useRouteSeo('/pricing')
+  // ميتا المسار من seoRoutes (عنوان/وصف/breadcrumb تلقائي) + FAQPage من أسئلة الصفحة
+  useRouteSeo('/pricing', faqLd(FAQS))
   const { user } = useAuth()
   const { org }  = useOrganization(user?.id)
   const [cycle, setCycle] = useState('month')   // 'month' | 'year'
