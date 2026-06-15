@@ -66,11 +66,16 @@ export default defineConfig({
     // والمكتبات تُحمّل من الكاش بين الإصدارات.
     rollupOptions: {
       output: {
-        manualChunks: {
-          react:  ['react', 'react-dom'],
-          charts: ['recharts'],
-          motion: ['framer-motion'],
-          icons:  ['lucide-react'],
+        // دالة (لا كائن): ترسم مكتبات الفيندور لـchunks مستقلة للكاش، **دون**
+        // إجبارها داخل رسم الاستيراد الثابت للمدخل. هيك المكتبات المستعملة فقط
+        // عبر استيراد ديناميكي (مثل recharts داخل App الكسول) ما تُحمَّل/تُمهَّد على
+        // صفحة الهبوط — تُحمَّل فقط مع الجزء الكسول الذي يحتاجها.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react'
+          if (id.includes('recharts')) return 'charts'
+          if (id.includes('framer-motion')) return 'motion'
+          if (id.includes('lucide-react')) return 'icons'
         },
       },
     },
