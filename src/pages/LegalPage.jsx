@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { HardHat, ArrowRight, Mail, MessageCircle, Shield, FileText, RotateCcw } from 'lucide-react'
 import { navigate } from '../Router.jsx'
-import { useSeo } from '../lib/seo.js'
+import { useSeo, breadcrumbLd } from '../lib/seo.js'
 
 // أوصاف SEO قصيرة لكل صفحة قانونية
 const SEO = {
@@ -203,6 +203,10 @@ export default function LegalPage({ type = 'terms' }) {
     path: `/${type}`,
     title: `${doc.title} | Contractor Pro`,
     description: (SEO[type] || SEO.terms).desc,
+    jsonLd: breadcrumbLd([
+      { name: 'الرئيسية', path: '/' },
+      { name: doc.title, path: `/${type}` },
+    ]),
   })
 
   useEffect(() => { window.scrollTo(0, 0) }, [type])

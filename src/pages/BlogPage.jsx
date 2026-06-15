@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { HardHat, ArrowRight } from 'lucide-react'
 import { navigate } from '../Router.jsx'
-import { useSeo } from '../lib/seo.js'
+import { useSeo, breadcrumbLd } from '../lib/seo.js'
 
 // ─── Design Tokens (محلية — مطابقة لباقي الصفحات) ──────────────────────────────
 const C = {
@@ -51,6 +51,10 @@ export default function BlogPage() {
     path: '/blog',
     title: 'المدوّنة | Contractor Pro — نصائح إدارة المقاولات والضرائب',
     description: 'مقالات ونصائح للمقاول العربي في إسرائيل: إدارة المشاريع والعمّال، حساب الرواتب، وفهم الضرائب (מע"מ + ضريبة الدخل + ביטוח לאומי).',
+    jsonLd: breadcrumbLd([
+      { name: 'الرئيسية', path: '/' },
+      { name: 'المدوّنة', path: '/blog' },
+    ]),
   })
   useEffect(() => {
     window.scrollTo(0, 0)

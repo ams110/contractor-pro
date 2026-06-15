@@ -39,12 +39,55 @@ const ROUTE_LD_ID = 'cp-route-jsonld'
 function setRouteJsonLd(schema) {
   const existing = document.getElementById(ROUTE_LD_ID)
   if (existing) existing.remove()
-  if (!schema) return
+  // فلترة العناصر الفارغة (مثل faqLd الذي يرجّع null لقائمة فارغة) من المصفوفة
+  const clean = Array.isArray(schema) ? schema.filter(Boolean) : schema
+  if (!clean || (Array.isArray(clean) && clean.length === 0)) return
   const s = document.createElement('script')
   s.id = ROUTE_LD_ID
   s.type = 'application/ld+json'
-  s.text = JSON.stringify(schema)
+  s.text = JSON.stringify(Array.isArray(clean) && clean.length === 1 ? clean[0] : clean)
   document.head.appendChild(s)
+}
+
+// ─── بُناة بيانات منظّمة (JSON-LD) قابلة لإعادة الاستخدام ──────────────────────
+// دوال نقيّة تبني schema.org صالحاً من بيانات الصفحة، فتظهر نتائج غنية في جوجل
+// (FAQ + فتات تنقّل) بلا تكرار يدوي في كل صفحة.
+
+/**
+ * يبني FAQPage من قائمة أسئلة/أجوبة مرئية على الصفحة.
+ * @param {Array<{q:string, a:string}>} items
+ * @returns {object|null}
+ */
+export function faqLd(items) {
+  if (!Array.isArray(items) || items.length === 0) return null
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map(({ q, a }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  }
+}
+
+/**
+ * يبني BreadcrumbList (فتات التنقّل) — يساعد جوجل يعرض مسار الصفحة في النتائج.
+ * @param {Array<{name:string, path:string}>} crumbs مرتّبة من الجذر للصفحة الحالية
+ * @returns {object|null}
+ */
+export function breadcrumbLd(crumbs) {
+  if (!Array.isArray(crumbs) || crumbs.length === 0) return null
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: crumbs.map((c, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: c.name,
+      item: ORIGIN + (c.path || '/'),
+    })),
+  }
 }
 
 /**

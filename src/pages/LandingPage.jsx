@@ -10,7 +10,7 @@ import { C, GRAD } from '../constants/index.js'
 import { PremiumCard, IconChip, HolographicSheen, useCountUp } from '../ui/Premium.jsx'
 import { supabase } from '../lib/supabase.js'
 import { navigate } from '../Router.jsx'
-import { useSeo } from '../lib/seo.js'
+import { useSeo, faqLd } from '../lib/seo.js'
 
 // نستعمل نفس توكنات الهوية (C/GRAD) ومكوّنات kit الفخامة (PremiumCard/IconChip)
 // المستعملة في التطبيق — لا توكنات محليّة ولا بطاقات معاد بناؤها (CLAUDE.md §2.1/§19).
@@ -1396,15 +1396,7 @@ export default function LandingPage() {
 
   useSeo({
     path: '/',
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'FAQPage',
-      mainEntity: FAQ_ITEMS.map(({ q, a }) => ({
-        '@type': 'Question',
-        name: q,
-        acceptedAnswer: { '@type': 'Answer', text: a },
-      })),
-    },
+    jsonLd: faqLd(FAQ_ITEMS),
   })
   // شاشة الإقلاع — مرة واحدة بالجلسة، وتُتخطّى مع تقليل الحركة
   const [boot, setBoot] = useState(() => {
