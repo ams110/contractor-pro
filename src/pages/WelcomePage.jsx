@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { HardHat } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth.js'
 import { navigate } from '../Router.jsx'
-import { useSeo } from '../lib/seo.js'
+import { useRouteSeo } from '../lib/seo.js'
 
 // ── Module-level: generated once, never re-randomised on re-render ────────────
 const STARS = Array.from({ length: 80 }, () => ({
@@ -51,7 +51,7 @@ const CSS = `
 `
 
 export default function WelcomePage() {
-  useSeo({ path: '/welcome', title: 'أهلاً بك | Contractor Pro', noindex: true })
+  useRouteSeo('/welcome')
   const { user, loading } = useAuth()
   const [fading, setFading] = useState(false)
 

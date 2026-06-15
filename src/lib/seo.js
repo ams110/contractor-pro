@@ -1,16 +1,17 @@
 import { useEffect } from 'react'
+import {
+  ORIGIN, OG_IMAGE, DEFAULT_TITLE, DEFAULT_DESC,
+  ROUTE_SEO, breadcrumbFor,
+} from './seoRoutes.js'
 
 // ─── محرّك SEO لكل مسار (SPA) ──────────────────────────────────────────────────
 // التطبيق Single-Page، فـ index.html يحمل ميتا ثابتة لكل المسارات. هذا الـhook
 // يحدّث العنوان/الوصف/الـcanonical/Open Graph/Twitter + بيانات JSON-LD ديناميكياً
 // حسب الصفحة، فيظهر كل مسار في جوجل بعنوانه ووصفه الخاص (لا تكرار). بلا أي
-// اعتماد خارجي (react-helmet) — DOM صِرف.
+// اعتماد خارجي (react-helmet) — DOM صِرف. مصدر بيانات المسارات: seoRoutes.js.
 
-export const ORIGIN = 'https://app.linko.services'
-const DEFAULT_IMAGE = `${ORIGIN}/pwa-512.png`
-const DEFAULT_TITLE = 'Contractor Pro | تطبيق إدارة المقاولات للمقاول العربي في إسرائيل'
-const DEFAULT_DESC =
-  'Contractor Pro — التطبيق الأول للمقاول العربي في إسرائيل لإدارة المشاريع والعمّال وأيام العمل وحساب الرواتب والمصاريف والضرائب (מע"מ + ضريبة الدخل + ביטוח לאומי). كل أعمالك المحاسبية في جيبك.'
+export { ORIGIN }
+const DEFAULT_IMAGE = OG_IMAGE
 
 function setMeta(attr, key, content) {
   if (content == null) return
@@ -89,4 +90,23 @@ export function useSeo(opts = {}) {
     return () => setRouteJsonLd(null) // نظّف JSON-LD الخاص بالمسار
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(opts)])
+}
+
+/**
+ * Hook مختصر يقرأ ميتا المسار من ROUTE_SEO ويضيف breadcrumb تلقائياً.
+ * extraSchema: schema إضافي (مثل FAQ) يُدمج مع الـbreadcrumb في مصفوفة.
+ */
+export function useRouteSeo(path, extraSchema = null) {
+  const meta = ROUTE_SEO[path] || {}
+  const crumb = breadcrumbFor(path)
+  const own = meta.schema || extraSchema
+  const schemas = [crumb, own].filter(Boolean)
+  const jsonLd = schemas.length === 0 ? null : schemas.length === 1 ? schemas[0] : schemas
+  useSeo({
+    path,
+    title: meta.title,
+    description: meta.description,
+    noindex: meta.noindex,
+    jsonLd,
+  })
 }
