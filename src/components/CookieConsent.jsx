@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Cookie, X } from 'lucide-react'
 import { navigate } from '../Router.jsx'
-import { isGranted, loadGtag } from '../lib/analytics.js'
+import { isGranted, initAnalytics, grantConsent } from '../lib/analytics.js'
 
 // مفتاح إصدار v2: يُعيد سؤال كل المستخدمين بعد إضافة تحليلات Google Analytics
 // (المفتاح القديم cp_cookie_consent كان لوعد «بلا تتبّع» فلا يُستعمل للموافقة هنا).
@@ -22,19 +22,19 @@ export default function CookieConsent() {
   const [show, setShow] = useState(false)
 
   useEffect(() => {
-    // لا تظهر داخل بوّابة العامل
+    // لا تحليلات داخل بوّابة العامل
     const params = new URLSearchParams(window.location.search)
     if (params.has('portal') || params.has('worker')) return
     let stored = null
     try { stored = localStorage.getItem(KEY) } catch { /* تخزين غير متاح */ }
-    if (!stored) { setShow(true); return }
-    // قرار سابق: فعّل التحليلات فقط إن وافق المستخدم
-    if (isGranted(stored)) loadGtag()
+    // Consent Mode v2: حمّل GA للجميع بحالة موافقة مبدئية حسب القرار السابق
+    initAnalytics(isGranted(stored))
+    if (!stored) setShow(true)
   }, [])
 
   function decide(value) {
     try { localStorage.setItem(KEY, value) } catch { /* تخزين غير متاح */ }
-    if (isGranted(value)) loadGtag()
+    if (isGranted(value)) grantConsent()
     setShow(false)
   }
 

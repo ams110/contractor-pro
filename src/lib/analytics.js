@@ -1,31 +1,49 @@
-// ─── Google Analytics 4 — تحميل مشروط بالموافقة ───────────────────────────────
-// لا يُحمَّل gtag إطلاقاً إلا بعد موافقة المستخدم الصريحة على لافتة الكوكيز.
-// هذا يحترم وعد الخصوصية: لا تتبّع ولا كوكيز تحليلات قبل القبول. الدالة النقيّة
-// isGranted قابلة للاختبار، وبقيّة الدوال تلمس DOM/window بحراسة آمنة.
+// ─── Google Analytics 4 + Consent Mode v2 ─────────────────────────────────────
+// نُحمّل gtag لكل الزوّار من أول ثانية، لكن مع حالة موافقة افتراضية = denied
+// (بلا كوكيز تحليلات). عند ضغط المستخدم «موافق» نرفعها إلى granted فتُفعَّل
+// الكوكيز كاملةً. بهذا نقيس الجميع تقريباً (جوجل تقدّر بيانات غير الموافقين
+// إحصائياً) مع الالتزام بالخصوصية. الدالة النقيّة isGranted قابلة للاختبار.
 
 export const GA_ID = 'G-KFGX0K1VT5'
 
-let loaded = false
+let initialized = false
 
 /** نقيّة: هل القيمة المخزّنة تعني موافقة على التحليلات؟ */
 export function isGranted(value) {
   return value === 'granted'
 }
 
+function gtag() {
+  // gtag يعتمد على arguments الحقيقية (لا rest spread)
+  window.dataLayer.push(arguments)
+}
+
 /**
- * يحقن سكربت gtag مرّة واحدة ويهيّئ GA4. يُستدعى فقط بعد الموافقة.
- * anonymize_ip لتقليل البيانات الشخصية المُرسلة.
+ * يحقن gtag مرّة واحدة ويضبط الموافقة الافتراضية = denied (Consent Mode v2)،
+ * ثم يهيّئ GA4. آمن للاستدعاء قبل أي قرار موافقة.
+ * @param {boolean} alreadyGranted لو وافق المستخدم سابقاً، نبدأ بـ granted مباشرة
  */
-export function loadGtag(id = GA_ID) {
-  if (loaded || typeof document === 'undefined' || !id) return
-  loaded = true
+export function initAnalytics(alreadyGranted = false, id = GA_ID) {
+  if (initialized || typeof document === 'undefined' || !id) return
+  initialized = true
+  window.dataLayer = window.dataLayer || []
+  // الموافقة الافتراضية قبل تحميل السكربت — منع كوكيز التحليلات حتى القبول
+  gtag('consent', 'default', {
+    analytics_storage: alreadyGranted ? 'granted' : 'denied',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+  })
   const s = document.createElement('script')
   s.async = true
   s.src = `https://www.googletagmanager.com/gtag/js?id=${id}`
   document.head.appendChild(s)
-  window.dataLayer = window.dataLayer || []
-  function gtag() { window.dataLayer.push(arguments) }
-  window.gtag = gtag
   gtag('js', new Date())
   gtag('config', id, { anonymize_ip: true })
+}
+
+/** يرفع الموافقة إلى granted بعد ضغط المستخدم «موافق» (يفعّل كوكيز التحليلات). */
+export function grantConsent() {
+  if (typeof window === 'undefined' || !window.dataLayer) return
+  gtag('consent', 'update', { analytics_storage: 'granted' })
 }
