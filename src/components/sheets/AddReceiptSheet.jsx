@@ -9,6 +9,7 @@ import { C, GRAD } from '../../constants/index.js'
 import { todayStr } from '../../lib/helpers.js'
 import { uploadReceipt } from '../../lib/storage.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
+import { useAppStore } from '../../store/useAppStore.js'
 
 const METHODS = [
   { id: 'cash',     label: 'كاش',            Icon: Banknote   },
@@ -59,6 +60,7 @@ export default function AddReceiptSheet({
   const [err,    setErr]    = useState({})
   const fileRef = useRef()
   const { confirm: bioConfirm, hasAnyMethod } = useBiometricConfirm()
+  const showToast = useAppStore(s => s.showToast)
 
   const lockedProject = !!defaultProjectId
   const noProjects    = projects.length === 0
@@ -121,6 +123,7 @@ export default function AddReceiptSheet({
     } catch (e) {
       console.error(e)
       setSaving(false)
+      showToast?.(e?.message || 'تعذّر حفظ القبضة — حاول مرة أخرى', 'error')
     }
   }
 

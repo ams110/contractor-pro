@@ -1,15 +1,8 @@
 import React, { useEffect } from 'react'
 import { HardHat, ArrowRight, Mail, MessageCircle, Shield, FileText, RotateCcw } from 'lucide-react'
 import { navigate } from '../Router.jsx'
-import { useSeo, breadcrumbLd } from '../lib/seo.js'
+import { useRouteSeo } from '../lib/seo.js'
 
-// أوصاف SEO قصيرة لكل صفحة قانونية
-const SEO = {
-  terms:   { desc: 'شروط استخدام تطبيق Contractor Pro لإدارة المقاولات.' },
-  privacy: { desc: 'سياسة الخصوصية وحماية بيانات مستخدمي Contractor Pro.' },
-  refund:  { desc: 'سياسة الإلغاء والاسترجاع لاشتراكات Contractor Pro.' },
-  contact: { desc: 'تواصل مع فريق Contractor Pro للدعم والاستفسارات.' },
-}
 
 // ─── Design Tokens (محلية — مطابقة لصفحة الهبوط) ───────────────────────────────
 const C = {
@@ -33,7 +26,6 @@ export const LEGAL_INFO = {
 }
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #07080F; font-family: 'Noto Sans Arabic', system-ui, sans-serif; -webkit-font-smoothing: antialiased; direction: rtl; }
   .lg-btn { transition: transform .15s ease, opacity .15s ease !important; }
@@ -200,15 +192,7 @@ export default function LegalPage({ type = 'terms' }) {
   const doc = DOCS[type] || DOCS.terms
   const Icon = doc.icon
 
-  useSeo({
-    path: `/${type}`,
-    title: `${doc.title} | Contractor Pro`,
-    description: (SEO[type] || SEO.terms).desc,
-    jsonLd: breadcrumbLd([
-      { name: 'الرئيسية', path: '/' },
-      { name: doc.title, path: `/${type}` },
-    ]),
-  })
+  useRouteSeo(`/${type}`)
 
   useEffect(() => { window.scrollTo(0, 0) }, [type])
 

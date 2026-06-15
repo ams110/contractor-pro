@@ -10,7 +10,8 @@ import { C, GRAD } from '../constants/index.js'
 import { PremiumCard, IconChip, HolographicSheen, useCountUp } from '../ui/Premium.jsx'
 import { supabase } from '../lib/supabase.js'
 import { navigate } from '../Router.jsx'
-import { useSeo, faqLd } from '../lib/seo.js'
+import { useRouteSeo } from '../lib/seo.js'
+import { FAQ_ITEMS } from '../lib/seoRoutes.js'
 
 // نستعمل نفس توكنات الهوية (C/GRAD) ومكوّنات kit الفخامة (PremiumCard/IconChip)
 // المستعملة في التطبيق — لا توكنات محليّة ولا بطاقات معاد بناؤها (CLAUDE.md §2.1/§19).
@@ -32,7 +33,6 @@ const rise = (delay = 0) => ({
 const SPRING = { stiffness: 90, damping: 22, mass: 0.4 }
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #07080F; font-family: 'Noto Sans Arabic', system-ui, sans-serif; -webkit-font-smoothing: antialiased; direction: rtl; overflow-x: hidden; overflow-x: clip; }
   .lp-btn { transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease !important; }
@@ -823,10 +823,10 @@ function MegaHero() {
             <CircleDot size={10} strokeWidth={3} />
             التطبيق الأول للمقاول العربي في إسرائيل
           </div>
-          <h1 style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, color: C.text, lineHeight: 1.15, marginBottom: 22, letterSpacing: '-0.02em' }}>
+          <h2 style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, color: C.text, lineHeight: 1.15, marginBottom: 22, letterSpacing: '-0.02em' }}>
             كل يوم شغل، كل دفعة،<br />كل مصروف —<br />
             <span className="grad-text">محفوظ. مش في دماغك.</span>
-          </h1>
+          </h2>
           <p style={{ fontSize: 'clamp(15px,2.5vw,19px)', color: C.textDim, lineHeight: 1.7, maxWidth: 580, margin: '0 auto 36px' }}>
             Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
           </p>
@@ -1243,41 +1243,7 @@ function PricingTeaser() {
 
 // ─── الأسئلة الشائعة (FAQ) ─────────────────────────────────────────────────────
 // محتوى مرئي حقيقي يستهدف استعلامات بحث المقاول العربي + يغذّي FAQPage JSON-LD
-// (نتائج غنية في جوجل). الأسئلة مصدر الحقيقة هنا، والـschema يُبنى منها في Main.
-export const FAQ_ITEMS = [
-  {
-    q: 'ما هو تطبيق Contractor Pro؟',
-    a: 'Contractor Pro تطبيق إدارة مقاولات مصمّم للمقاول العربي في إسرائيل: يدير المشاريع والعمّال وأيام العمل، يحسب الرواتب والمصاريف والمقبوضات، ويحسب الضرائب الإسرائيلية (מע"מ + ضريبة الدخل + ביטוח לאומי) — كله من هاتفك.',
-  },
-  {
-    q: 'كيف يحسب التطبيق ضريبة القيمة المضافة (מע"מ) وضريبة الدخل والبيتواح ليئومي؟',
-    a: 'يحسب מע"מ تلقائياً على المدخولات ويخصمها على المصاريف حسب الفئة، ويقدّر ضريبة الدخل بالشرائح الإسرائيلية التصاعدية، ويحسب ביטוח לאומי بشريحتين (لا نسبة مسطّحة). يدعم עוסק פטור و עוסק מורשה و חברה.',
-  },
-  {
-    q: 'هل أقدر أحسب رواتب العمّال وأتابع أيام العمل؟',
-    a: 'نعم. سجّل أيام العمل (مفرد أو جماعي أو لمدى تواريخ)، واحسب الرواتب مع الإضافي تلقائياً، وتابع السلف والدفعات، وأرسل كشف الحساب للعامل عبر واتساب.',
-  },
-  {
-    q: 'هل التطبيق مناسب للعوسك باتور (עוסק פטור)؟',
-    a: 'نعم، يدعم עוסק פטור بالكامل بدون מע"מ، مع تنبيه عند الاقتراب من الحدّ السنوي (₪120,000)، كما يدعم עוסק מורשה و חברה بحساب מע"מ كامل.',
-  },
-  {
-    q: 'هل في تجربة مجانية وكم سعر الاشتراك؟',
-    a: 'نعم، تجربة مجانية 14 يوم بدون بطاقة ائتمان. بعدها الخطط: Starter بـ₪129 وPro بـ₪249 وBusiness بـ₪499 شهرياً، مع خصم على الاشتراك السنوي.',
-  },
-  {
-    q: 'هل يعمل على الآيفون والأندرويد؟',
-    a: 'نعم، يعمل على الآيفون والأندرويد والكمبيوتر كتطبيق ويب (PWA) تثبّته على شاشتك الرئيسية ويعمل حتى بدون إنترنت مؤقتاً، بالعربي والعبري والإنجليزي.',
-  },
-  {
-    q: 'هل في بوّابة خاصة للعمّال؟',
-    a: 'نعم، لكل عامل بوّابة ذاتية يشوف فيها كشف حسابه، يسجّل أيام عمله ومصاريفه وبضاعته، ويطلب سلفة أو راتب — وأنت تتحكّم بصلاحياته بالكامل.',
-  },
-  {
-    q: 'هل بياناتي آمنة؟',
-    a: 'نعم، بياناتك محمية بتشفير ونظام صلاحيات دقيق، مع دخول بالبصمة (Passkey) وقفل الجلسة وسجلّ تدقيق لكل العمليات. كل مقاول يرى بياناته فقط.',
-  },
-]
+// (نتائج غنية في جوجل). FAQ_ITEMS مصدرها seoRoutes.js (مشترك مع prerender).
 
 function FAQ() {
   const [open, setOpen] = useState(0)
@@ -1394,10 +1360,7 @@ export default function LandingPage() {
   const [loggedIn, setLoggedIn] = useState(false)
   const reduce = useReducedMotion()
 
-  useSeo({
-    path: '/',
-    jsonLd: faqLd(FAQ_ITEMS),
-  })
+  useRouteSeo('/')
   // شاشة الإقلاع — مرة واحدة بالجلسة، وتُتخطّى مع تقليل الحركة
   const [boot, setBoot] = useState(() => {
     try { return !sessionStorage.getItem('cp_lp_boot') } catch { return true }
