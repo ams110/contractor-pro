@@ -42,8 +42,7 @@ import ScreenSkeleton          from './components/ScreenSkeleton.jsx'
 import { LoadingSpinner }       from './components/index.jsx'
 import { usePushNotifications } from './hooks/usePushNotifications.js'
 import { useAppConfig }        from './hooks/useAppConfig.js'
-import { hasPin }              from './lib/pinCrypto.js'
-import { hasUnlockMethod, idleTimeoutMs, lockOnBackgroundEnabled, LOCK_ON_BG_KEY, PASSKEY_KEY } from './lib/sessionLock.js'
+import { idleTimeoutMs, lockOnBackgroundEnabled, LOCK_ON_BG_KEY } from './lib/sessionLock.js'
 
 // ── New screens ───────────────────────────────────────────────────────────────
 const LoginScreen    = lazy(() => import('./screens/auth/LoginScreen.jsx'))
@@ -395,11 +394,11 @@ function OwnerApp() {
   }, [uid])
 
   // Session security: قفل عند الخمول + قفل فوري عند الخروج من التطبيق (نمط «المجلد الآمن»)
-  // يطبَّق على المالك وأعضاء الفريق، لكن فقط لمن سجّل وسيلة فتح (بصمة/PIN) — وإلا
-  // يعلق المستخدم بشاشة القفل بلا طريقة فتح (تسجيل الخروج فقط).
+  // يطبَّق على المالك وأعضاء الفريق دائماً عند تسجيل الدخول — شاشة القفل تقبل
+  // البصمة/PIN/كلمة السر، فلا يعتمد التفعيل على وجود وسيلة فتح محلية (كانت تُفقد
+  // عند مسح التخزين فيتعطّل القفل بصمت).
   useEffect(() => {
     if (!uid) return
-    if (!hasUnlockMethod({ hasPasskey: !!localStorage.getItem(PASSKEY_KEY), hasPinSet: hasPin() })) return
 
     const timeoutMs = idleTimeoutMs(appCfg.config.session_timeout)
     let timer

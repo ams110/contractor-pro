@@ -16,6 +16,7 @@ import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
 import { HolographicSheen } from '../../ui/Premium.jsx'
 import { useAppStore } from '../../store/useAppStore.js'
 import { lockOnBackgroundEnabled, LOCK_ON_BG_KEY } from '../../lib/sessionLock.js'
+import { hasPin } from '../../lib/pinCrypto.js'
 import { navigate } from '../../Router.jsx'
 import { usePushNotifications } from '../../hooks/usePushNotifications.js'
 import { useAuth } from '../../hooks/useAuth.js'
@@ -1131,6 +1132,19 @@ export default function SettingsScreen({
       {/* ── Security & Access Control ── */}
       {permissions?.isOwner && appCfg && (
         <Section id="set-security" icon={Lock} accent={C.accent} title="الأمان والتحكم">
+
+          {/* تنبيه: لا وسيلة فتح سريعة → القفل يطلب كلمة السر كل مرّة */}
+          {!hasPasskey && !hasPin() && (
+            <div style={{ margin: '12px 16px', padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start', background: `${C.warning}14`, border: `1px solid ${C.warning}3a`, borderRadius: 12 }}>
+              <AlertTriangle size={17} color={C.warning} strokeWidth={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: C.text }}>ما في وسيلة فتح سريعة</div>
+                <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 2, lineHeight: 1.5 }}>
+                  قفل الجلسة شغّال، لكن فتحه رح يتطلّب <b style={{ color: C.text }}>كلمة سرّ حسابك</b> كل مرّة. فعّل <b style={{ color: C.text }}>البصمة</b> أو عيّن <b style={{ color: C.text }}>PIN</b> (بالأسفل) لفتح أسرع.
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* وضع القراءة فقط */}
           <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.border}` }}>
