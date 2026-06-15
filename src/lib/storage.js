@@ -75,11 +75,16 @@ export async function uploadReceipt(userId, file) {
 
   if (upErr) throw new Error(upErr.message)
 
-  // Signed URL بدلاً من public URL ─ محمية بالمصادقة وتنتهي بعد سنة
+  // Signed URL بدلاً من public URL ─ محمية بالمصادقة وتنتهي بعد سنة.
+  // ⚠️ لا نرمي خطأً إذا فشل توليد الرابط: القبضة (البيانات المالية) أهمّ بكثير
+  // من رابط الصورة. عند الفشل نُخزّن صيغة public URL (قابلة للتفسير وإعادة
+  // التوقيع لاحقاً عبر refreshSignedUrl عند العرض) حتى لا تضيع القبضة أبداً.
   const { data, error: signErr } = await supabase.storage
     .from('receipts')
     .createSignedUrl(path, SIGNED_URL_TTL)
-  if (signErr || !data?.signedUrl) throw new Error('فشل توليد رابط الإيصال')
+  if (signErr || !data?.signedUrl) {
+    return supabase.storage.from('receipts').getPublicUrl(path).data.publicUrl
+  }
   return data.signedUrl
 }
 
