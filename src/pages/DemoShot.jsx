@@ -3,6 +3,7 @@ import { C, SPECS, EXP_CATS, PAY_METHODS } from '../constants/index.js'
 import { OWNER_PERMS } from '../hooks/useTeam.js'
 import { setPlanInfo } from '../store/usePlanStore.js'
 import { useDataStore } from '../store/useDataStore.js'
+import { useBusinessStore } from '../store/useBusinessStore.js'
 import ErrorBoundary from '../components/ErrorBoundary.jsx'
 
 import DashboardScreen from '../screens/dashboard/DashboardScreen.jsx'
@@ -30,6 +31,8 @@ function buildDemo() {
     { id: 'p4', name: 'شقة الزيتون',  status: 'مكتمل',  type: 'مقاولة مغلقة', client_name: 'ليلى ناصر', client_phone: '0524445566', total_amount: 142000, created_at: '2026-01-12' },
     { id: 'p5', name: 'مكاتب الأمل',  status: 'موافق عليه', type: 'مقاولة مغلقة', client_name: 'مجموعة الأمل', client_phone: '0537778899', total_amount: 210000, created_at: '2026-05-20' },
   ]
+  // كل المشاريع تتبع المصلحة الوهمية (لتعمل وحدة المالية في الديمو)
+  projects.forEach(p => { p.business_id = 'biz1' })
 
   const empNames = [
     ['e1', 'محمد العبد', 420, 'بناء / تشطيبات'],
@@ -187,6 +190,15 @@ export default function DemoShot() {
     useDataStore.getState().setData({
       projects: DEMO.projects, employees: DEMO.employees, workDays: DEMO.workDays,
       expenses: DEMO.expenses, payments: DEMO.payments, clientReceipts: DEMO.clientReceipts, advances: DEMO.advances,
+    })
+    // بذر مخزن المصالح (وإلا تعلق وحدة المالية على «تحميل...») — مصلحة עוסק מורשה لإظهار מע"מ
+    const demoBiz = {
+      id: 'biz1', name: 'مقاولات النور', business_type: 'osek_moreh',
+      sort_order: 0, created_at: '2026-01-01',
+    }
+    useBusinessStore.setState({
+      businesses: [demoBiz], activeBusinessId: 'biz1', activeBusiness: demoBiz,
+      initialized: true, loading: false, error: null,
     })
     // تمرير لإظهار البطاقة المطلوبة. نمرّر عدّة مرّات لأن البطاقات الفخمة
     // تتحرّك للداخل (Framer) فيزيح موضعها — وحتى يلتقطه التسجيل (reel) مبكراً.
