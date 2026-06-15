@@ -1118,17 +1118,32 @@ function BotActivityFeed({ token }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           {bots.map((b, i) => {
             const m = META[b.event] || META.signup
+            const chips = [
+              b.reason && { t: `سبب: ${b.reason}`, c: C.warning },
+              b.provider && { t: b.provider, c: C.secondary },
+              b.ip && { t: b.ip, c: C.cyan },
+              b.confirmed === true && { t: 'مؤكَّد ✓', c: C.success },
+            ].filter(Boolean)
             return (
               <motion.div key={i} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i * 0.015, 0.3) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', background: C.card, border: `1px solid ${m.color}26`, borderRadius: 11 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 9, background: `${m.color}1c`, border: `1px solid ${m.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 11px', background: C.card, border: `1px solid ${m.color}26`, borderRadius: 11 }}>
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: `${m.color}1c`, border: `1px solid ${m.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                   <m.icon size={15} color={m.color} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: C.text }}>{m.label}</div>
-                  <div style={{ fontSize: 10.5, color: C.textDim, direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.email}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: C.text }}>{m.label}</span>
+                    <span style={{ fontSize: 10, color: C.textDim, flexShrink: 0 }}>{timeAgo(b.at)}</span>
+                  </div>
+                  <div style={{ fontSize: 10.5, color: C.textDim, direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>{b.email}</div>
+                  {chips.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+                      {chips.map((ch, j) => (
+                        <span key={j} style={{ fontSize: 9.5, fontWeight: 700, color: ch.c, background: `${ch.c}18`, border: `1px solid ${ch.c}33`, borderRadius: 6, padding: '2px 6px', direction: 'ltr' }}>{ch.t}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <span style={{ fontSize: 10, color: C.textDim, flexShrink: 0 }}>{timeAgo(b.at)}</span>
               </motion.div>
             )
           })}
