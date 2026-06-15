@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Lock, Fingerprint, ShieldCheck, AlertCircle, Delete } from 'lucide-react'
+import { Lock, Fingerprint, ShieldCheck, AlertCircle, Delete, KeyRound } from 'lucide-react'
 import { supabase } from '../lib/supabase.js'
 import { useAppStore } from '../store/useAppStore.js'
 import { runBiometricAuth, verifyPinLocal } from '../hooks/useBiometricConfirm.js'
@@ -15,15 +15,35 @@ export default function SessionLockScreen() {
 
   const hasPasskey = !!localStorage.getItem(PASSKEY_KEY)
   const pinSet     = hasPin()
-  const initMode   = hasPasskey ? 'fingerprint' : 'pin'
+  // وسيلة الفتح الافتراضية: بصمة ← PIN ← كلمة السر (دائماً متاحة كحلّ أخير)
+  const initMode   = hasPasskey ? 'fingerprint' : pinSet ? 'pin' : 'password'
 
   const [mode,   setMode]   = useState(initMode)
   const [phase,  setPhase]  = useState('idle')
   const [pin,    setPin]    = useState('')
   const [pinErr, setPinErr] = useState('')
   const [fpErr,  setFpErr]  = useState('')
+  const [pw,     setPw]     = useState('')
+  const [pwErr,  setPwErr]  = useState('')
 
   if (!isLocked) return null
+
+  async function handlePassword(e) {
+    e?.preventDefault?.()
+    if (!pw || phase === 'scanning') return
+    setPhase('scanning'); setPwErr('')
+    try {
+      const { data } = await supabase.auth.getUser()
+      const email = data?.user?.email
+      if (!email) throw new Error('no-email')
+      const { error } = await supabase.auth.signInWithPassword({ email, password: pw })
+      if (error) throw error
+      setPhase('success')
+      setTimeout(() => { unlockSession(); setPhase('idle'); setPw('') }, 600)
+    } catch {
+      setPhase('idle'); setPwErr('كلمة السر غير صحيحة'); setPw('')
+    }
+  }
 
   async function handleFingerprint() {
     setPhase('scanning'); setFpErr('')
@@ -150,9 +170,43 @@ export default function SessionLockScreen() {
         </div>
       )}
 
+      {/* Password mode — يعمل دائماً (لا يعتمد على تخزين محلي) */}
+      {mode === 'password' && (
+        <form onSubmit={handlePassword} style={{ width: '100%', maxWidth: 320 }}>
+          <input
+            type="password" value={pw} autoFocus
+            onChange={e => { setPw(e.target.value); setPwErr('') }}
+            placeholder="كلمة سر حسابك"
+            style={{ width: '100%', boxSizing: 'border-box', padding: '14px 16px', borderRadius: 14, background: C.card, border: `1px solid ${pwErr ? C.accent : C.border}`, color: C.text, fontSize: 15, fontFamily: 'inherit', outline: 'none', textAlign: 'center', marginBottom: 12 }}
+          />
+          {pwErr && <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: C.accent, fontSize: 12, marginBottom: 10, justifyContent: 'center' }}><AlertCircle size={13} />{pwErr}</div>}
+          <button type="submit" disabled={!pw || phase === 'scanning'}
+            style={{ width: '100%', padding: '16px', borderRadius: 16, border: 'none', background: phase === 'success' ? C.success : GRAD, color: '#fff', fontSize: 14, fontWeight: 800, cursor: pw ? 'pointer' : 'default', opacity: pw ? 1 : 0.6, fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: `0 4px 20px ${C.primary}44` }}>
+            {phase === 'scanning' ? 'جاري التحقق...' : phase === 'success' ? 'تم التحقق' : <><KeyRound size={18} /> فتح القفل</>}
+          </button>
+        </form>
+      )}
+
+      {/* تبديل وسيلة الفتح */}
+      {mode !== 'password' ? (
+        <button
+          onClick={() => { setMode('password'); setPin(''); setPinErr(''); setFpErr('') }}
+          style={{ marginTop: 24, background: 'none', border: 'none', color: C.primary, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          فتح بكلمة السر
+        </button>
+      ) : (hasPasskey || pinSet) && (
+        <button
+          onClick={() => { setMode(hasPasskey ? 'fingerprint' : 'pin'); setPw(''); setPwErr('') }}
+          style={{ marginTop: 24, background: 'none', border: 'none', color: C.primary, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          {hasPasskey ? 'فتح بالبصمة' : 'فتح بالـ PIN'}
+        </button>
+      )}
+
       <button
         onClick={() => supabase.auth.signOut()}
-        style={{ marginTop: 32, background: 'none', border: 'none', color: C.textDim, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+        style={{ marginTop: 16, background: 'none', border: 'none', color: C.textDim, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
       >
         تسجيل الخروج
       </button>
