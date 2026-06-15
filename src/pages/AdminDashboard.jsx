@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Search, Megaphone, Ban, ShieldCheck as ShieldOk, Crown,
   CalendarPlus, ChevronLeft, Send, Activity, Mail, Zap,
   Inbox, Sparkles, ArrowUpRight, ArrowDownRight, UserX, CalendarClock, Gauge, Download, Minus,
-  Radio, Target, LogIn, Rocket, Pencil,
+  Radio, Target, LogIn, Rocket, Pencil, Bot, Trash2,
 } from 'lucide-react'
 import {
   ComposedChart, Area, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -154,7 +154,7 @@ export default function AdminDashboard() {
             </div>
 
             {tab === 'overview'  && <Dashboard stats={stats} token={token} />}
-            {tab === 'live'      && <ActivityFeed token={token} />}
+            {tab === 'live'      && <><ActivityFeed token={token} /><BotActivityFeed token={token} /></>}
             {tab === 'users'     && <UsersTab token={token} />}
             {tab === 'broadcast' && <BroadcastTab token={token} />}
           </>
@@ -1071,6 +1071,64 @@ function ActivityFeed({ token }) {
                   <div style={{ fontSize: 10.5, color: C.textDim, direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name || e.email}</div>
                 </div>
                 <span style={{ fontSize: 10, color: C.textDim, flexShrink: 0 }}>{timeAgo(e.at)}</span>
+              </motion.div>
+            )
+          })}
+        </div>
+      )}
+    </PremiumCard>
+  )
+}
+
+// ── قائمة نشاط البوتات (مرصودة ومصنّفة — لا تُتجاهل) ────────────────────────────
+function BotActivityFeed({ token }) {
+  const [bots, setBots] = useState(null)
+  const load = useCallback(async () => {
+    try { const { bots } = await callFn('bot-activity', { limit: 60 }, token); setBots(bots || []) } catch { setBots([]) }
+  }, [token])
+  useEffect(() => {
+    load()
+    const iv = setInterval(load, 20000)
+    return () => clearInterval(iv)
+  }, [load])
+
+  const META = {
+    signup:  { icon: UserPlus, color: C.warning, label: 'سجّل' },
+    login:   { icon: LogIn,    color: C.cyan,    label: 'سجّل دخول' },
+    deleted: { icon: Trash2,   color: C.accent,  label: 'محا حسابه' },
+  }
+
+  return (
+    <PremiumCard tone="warning" delay={0.1}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <IconChip icon={Bot} color={C.warning} size={32} radius={10} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 900 }}>نشاط البوتات</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>مرصودة ومصنّفة · دخول/تسجيل/محو</div>
+        </div>
+        <span style={{ fontSize: 11, fontWeight: 800, color: C.warning, background: `${C.warning}1c`, border: `1px solid ${C.warning}44`, borderRadius: 8, padding: '3px 9px' }}>
+          {bots ? bots.length : '…'}
+        </span>
+      </div>
+      {!bots ? (
+        <div style={{ textAlign: 'center', padding: '30px 0' }}><Loader2 size={24} style={{ animation: 'spin .8s linear infinite', color: C.warning }} /></div>
+      ) : bots.length === 0 ? (
+        <div style={{ textAlign: 'center', fontSize: 13, color: C.textDim, padding: '24px 0' }}>لا بوتات مرصودة</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {bots.map((b, i) => {
+            const m = META[b.event] || META.signup
+            return (
+              <motion.div key={i} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i * 0.015, 0.3) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', background: C.card, border: `1px solid ${m.color}26`, borderRadius: 11 }}>
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: `${m.color}1c`, border: `1px solid ${m.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <m.icon size={15} color={m.color} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: C.text }}>{m.label}</div>
+                  <div style={{ fontSize: 10.5, color: C.textDim, direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.email}</div>
+                </div>
+                <span style={{ fontSize: 10, color: C.textDim, flexShrink: 0 }}>{timeAgo(b.at)}</span>
               </motion.div>
             )
           })}
