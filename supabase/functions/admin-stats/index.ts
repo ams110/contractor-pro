@@ -325,6 +325,13 @@ serve(async (req) => {
       return json({ feed: data })
     }
 
+    // ── قائمة نشاط البوتات ──────────────────────────────────────────────────────
+    if (action === 'bot-activity') {
+      const { data, error } = await admin.rpc('admin_bot_activity', { p_limit: Number(body?.limit || 50) })
+      if (error) return json({ error: error.message }, 500)
+      return json({ bots: data })
+    }
+
     // ── ضبط الأهداف ───────────────────────────────────────────────────────────
     if (action === 'set-targets') {
       const tu = body?.target_users === '' || body?.target_users == null ? null : Number(body.target_users)
