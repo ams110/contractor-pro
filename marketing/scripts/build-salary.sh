@@ -8,7 +8,7 @@ FPS=30
 ENC="-c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -r $FPS -an"
 
 # ① الهوك: فيديو الإرهاق الحقيقي + نص محروق فوقه (4ث)
-ffmpeg -y -loglevel error -i "$M/higgsfield/hero-stress.mp4" -loop 1 -t 4 -i "$PF/sal-hook.png" \
+ffmpeg -y -loglevel error -i "$M/higgsfield/salary-hook-new.mp4" -loop 1 -t 4 -i "$PF/sal-hook.png" \
   -filter_complex "[0:v]scale=1080:-2,crop=1080:1920,trim=duration=4,setpts=PTS-STARTPTS[bg];[bg][1:v]overlay=0:0:shortest=1,format=yuv420p[v]" \
   -map "[v]" -t 4 $ENC "$PF/s-hook.mp4"
 
