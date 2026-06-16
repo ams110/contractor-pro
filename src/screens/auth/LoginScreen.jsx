@@ -31,7 +31,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
   const { t } = useTranslation()
   const { language, setLanguage } = useAppStore()
   const dir = language === 'en' ? 'ltr' : 'rtl'
-  const { signInWithPasskey, signInWithPin, hasPasskeyRegistered, signUp, user: authUser } = useAuth()
+  const { signInWithPasskey, signInWithPin, hasPasskeyRegistered, signUp, signInWithGoogle, user: authUser } = useAuth()
 
   // ── Top-level mode ─────────────────────────────────────────────────────────
   const [mode,      setMode]      = useState('owner') // 'owner' | 'team'
@@ -55,6 +55,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
 
   // ── Shared ─────────────────────────────────────────────────────────────────
   const [loading,    setLoading]   = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error,      setError]     = useState('')
   const [resetSent,  setResetSent] = useState(false)
   const [showReset,  setShowReset] = useState(false)
@@ -84,6 +85,60 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     if (language === 'he') return f.label_he
     if (language === 'en') return f.label_en
     return f.label_ar
+  }
+
+  // ── Google OAuth ───────────────────────────────────────────────────────────
+  async function handleGoogle() {
+    setGoogleLoading(true); setError('')
+    try {
+      await signInWithGoogle()  // يعيد توجيه المتصفح لجوجل — لا يرجع هنا عادةً
+    } catch (e) {
+      const msg = e?.message || ''
+      // الخطأ الشائع حين لا يكون المزوّد مفعّلاً بعد بلوحة Supabase
+      if (/provider is not enabled|not enabled|Unsupported provider/i.test(msg)) {
+        setError(language === 'en' ? 'Google sign-in is not enabled yet.' : language === 'he' ? 'כניסה עם Google עדיין לא מופעלת.' : 'الدخول بجوجل غير مُفعّل بعد.')
+      } else {
+        setError(msg || (language === 'en' ? 'Google sign-in failed' : language === 'he' ? 'כניסה עם Google נכשלה' : 'فشل الدخول بجوجل'))
+      }
+      setGoogleLoading(false)
+    }
+  }
+
+  const googleLabel = subView === 'register'
+    ? (language === 'en' ? 'Sign up with Google' : language === 'he' ? 'הרשמה עם Google' : 'التسجيل بحساب Google')
+    : (language === 'en' ? 'Continue with Google' : language === 'he' ? 'המשך עם Google' : 'تابع بحساب Google')
+
+  // زر Google موحّد (شعار جوجل الرسمي — علامة تجارية، ليس أيقونة UI عامة)
+  function GoogleButton() {
+    return (
+      <motion.button type="button" onClick={handleGoogle} whileTap={{ scale: 0.97 }} disabled={googleLoading || loading}
+        style={{ width: '100%', padding: '12px', borderRadius: 14, background: '#fff', border: '1px solid rgba(0,0,0,0.1)', color: '#1F1F1F', fontSize: 14, fontWeight: 700, cursor: (googleLoading || loading) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}>
+        {googleLoading ? (
+          <Loader2 size={18} color="#5F6368" style={{ animation: 'spin 0.75s linear infinite' }} />
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+        )}
+        {googleLabel}
+      </motion.button>
+    )
+  }
+
+  // فاصل «أو»
+  function OrDivider() {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0' }}>
+        <div style={{ flex: 1, height: 1, background: C.border }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color: C.textDim }}>
+          {language === 'en' ? 'or' : language === 'he' ? 'או' : 'أو'}
+        </span>
+        <div style={{ flex: 1, height: 1, background: C.border }} />
+      </div>
+    )
   }
 
   // ── Passkey login ──────────────────────────────────────────────────────────
@@ -158,15 +213,23 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
   // ── Register ───────────────────────────────────────────────────────────────
   async function handleRegister(e) {
     e.preventDefault()
-    if (!regName.trim()) { setError(language === 'en' ? 'Full name is required' : language === 'he' ? 'נדרש שם מלא' : 'الاسم مطلوب'); return }
     if (regPass.length < 8) { setError(language === 'en' ? 'Password must be at least 8 characters' : language === 'he' ? 'הסיסמה חייבת לפחות 8 תווים' : 'كلمة المرور 8 أحرف على الأقل'); return }
     setLoading(true); setError(''); setRegInfo('')
     try {
-      const { data } = await signUp(regEmail.trim(), regPass, regName.trim())
-      if (!data?.session) {
-        setRegInfo(language === 'en' ? 'Account created! Check your email to activate.' : language === 'he' ? 'החשבון נוצר! בדוק את האימייל לאישור.' : 'تم إنشاء الحساب! تحقق من بريدك للتفعيل.')
-      } else {
+      const email = regEmail.trim()
+      // الاسم اختياري — نمرّر فارغاً ويُجمع لاحقاً في الإعداد إن تُرك
+      const { data } = await signUp(email, regPass, regName.trim() || null)
+      // دخول فوري: لو رجعت الجلسة من signUp (تأكيد الإيميل مطفأ) → ندخل مباشرة.
+      // وإلا نحاول تسجيل دخول تلقائي بنفس البيانات (يشتغل لحظة إطفاء التأكيد بلوحة Supabase)،
+      // فإن لم تنجح (التأكيد ما زال مطلوباً) نعرض رسالة لطيفة بدل حائط «تحقّق من بريدك».
+      if (data?.session) {
+        navigate('/welcome'); return
+      }
+      const { data: signInData } = await supabase.auth.signInWithPassword({ email, password: regPass })
+      if (signInData?.session) {
         navigate('/welcome')
+      } else {
+        setRegInfo(language === 'en' ? 'Account created! You can sign in now.' : language === 'he' ? 'החשבון נוצר! אפשר להיכנס עכשיו.' : 'تم إنشاء حسابك! تقدر تدخل الآن.')
       }
     } catch (err) {
       const msg = err.message || ''
@@ -281,10 +344,14 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
                     </div>
                   </div>
 
-                  {/* Full name */}
+                  {/* Google — one tap */}
+                  <GoogleButton />
+                  <OrDivider />
+
+                  {/* Full name (اختياري — نجمعه لاحقاً إن تُرك فارغاً) */}
                   <div style={{ marginBottom: 14 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: C.textDim, marginBottom: 7 }}>
-                      {language === 'en' ? 'Full Name' : language === 'he' ? 'שם מלא' : 'الاسم الكامل'}
+                      {language === 'en' ? 'Full Name (optional)' : language === 'he' ? 'שם מלא (אופציונלי)' : 'الاسم الكامل (اختياري)'}
                     </label>
                     <div style={{ position: 'relative' }}>
                       <User size={15} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
@@ -292,7 +359,6 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
                         type="text" value={regName} onChange={e => setRegName(e.target.value)}
                         placeholder={language === 'en' ? 'Your name' : language === 'he' ? 'השם שלך' : 'اسمك الكامل'}
                         style={inputStyle}
-                        required
                       />
                     </div>
                   </div>
@@ -453,6 +519,10 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
 
                   {ownerEntry === 'password' && (
                     <form onSubmit={handleOwnerLogin}>
+                      {/* Google — one tap */}
+                      <GoogleButton />
+                      <OrDivider />
+
                       <div style={{ marginBottom: 14 }}>
                         <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: C.textDim, marginBottom: 7 }}>
                           {language === 'he' ? 'אימייל' : language === 'en' ? 'Email' : 'البريد الإلكتروني'}
