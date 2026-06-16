@@ -264,10 +264,26 @@ export function useAuth() {
     if (error) throw error
   }
 
+  // ─── Google OAuth ───────────────────────────────────────────────────────────
+
+  // دخول/تسجيل بضغطة عبر Google. يعيد توجيه المتصفح لجوجل ثم يرجع لـ/welcome
+  // حيث يلتقط supabase-js الجلسة من الـURL تلقائياً (detectSessionInUrl).
+  // يتطلّب تفعيل مزوّد Google في Supabase (Authentication → Providers → Google).
+  async function signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/welcome`,
+        queryParams: { access_type: 'offline', prompt: 'select_account' },
+      },
+    })
+    if (error) throw error
+  }
+
   return {
     user, loading,
     signUp, signIn, signOut,
-    signInWithMagicLink,
+    signInWithMagicLink, signInWithGoogle,
     registerPasskey, signInWithPasskey,
     isPasskeySupported, hasPasskeyRegistered, removePasskey,
     setPin, signInWithPin, hasPinSet, removePin,
