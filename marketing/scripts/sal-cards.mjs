@@ -29,8 +29,8 @@ ${glow('rgba(239,68,68,.30)','top:-120px','inset-inline-end:-160px',780)}
   <div class="kufi" style="font-weight:900;font-size:112px;line-height:1.16;letter-spacing:-0.04em;text-shadow:0 6px 30px rgba(0,0,0,.85)">كل شهر تتلخبط<br><span style="color:${C.accent}">بحساب الرواتب؟</span></div>
 </div>`, false)
 
-// حل سفلي شفّاف (أخضر + ✓)
-const sol = base(`
+// حل سفلي شفّاف (أخضر + ✓) — كابشن مختلف لكل شاشة
+const sol = (line, sub) => base(`
 <div style="position:absolute;inset-inline:0;bottom:0;height:680px;
   background:linear-gradient(to top, rgba(7,8,15,.98) 20%, rgba(7,8,15,.85) 54%, transparent);
   display:flex;flex-direction:column;justify-content:flex-end;gap:26px;padding:0 80px 250px;z-index:2">
@@ -38,9 +38,9 @@ const sol = base(`
     <div style="width:70px;height:70px;border-radius:50%;background:${C.success}22;border:2px solid ${C.success};display:flex;align-items:center;justify-content:center;flex:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="${C.success}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="width:38px;height:38px"><path d="M20 6 9 17l-5-5"/></svg>
     </div>
-    <div class="kufi" style="font-weight:900;font-size:76px;line-height:1.1;letter-spacing:-0.03em">راتب كل عامل لحالو</div>
+    <div class="kufi" style="font-weight:900;font-size:74px;line-height:1.1;letter-spacing:-0.03em">${line}</div>
   </div>
-  <div style="font-size:44px;color:${C.textDim};font-weight:600;padding-inline-start:92px">ساعات · سلف · خصومات — بدون غلطة</div>
+  <div style="font-size:44px;color:${C.textDim};font-weight:600;padding-inline-start:92px">${sub}</div>
 </div>`, false)
 
 // CTA: جرّب بدون تسجيل (متوافق مع قمع الديمو)
@@ -55,7 +55,13 @@ ${glow('rgba(249,115,22,.32)','top:50%','inset-inline-start:50%;transform:transl
   <div style="font-size:38px;color:${C.textDim};font-weight:600">الرابط بالبايو 👆</div>
 </div>`)
 
-const cards = { 'sal-hook': hook, 'sal-sol': sol, 'sal-cta': cta }
+const cards = {
+  'sal-hook': hook,
+  'sal-sol1': sol('سجّل يوم العمل بثانية', 'كامل · نص · ساعات إضافية'),
+  'sal-sol2': sol('راتب كل عامل لحالو', 'مع السلف والخصومات — بدون غلطة'),
+  'sal-sol3': sol('ادفع وكل إشي موثّق', 'مين اندفعله · كم · إيمتى'),
+  'sal-cta': cta,
+}
 
 const browser = await chromium.launch({ channel:'chromium' })
   .catch(()=>chromium.launch({ channel:'chrome' }))
