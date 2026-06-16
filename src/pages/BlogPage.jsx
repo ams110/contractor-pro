@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { HardHat, ArrowRight } from 'lucide-react'
 import { navigate } from '../Router.jsx'
+import { useRouteSeo } from '../lib/seo.js'
 
 // ─── Design Tokens (محلية — مطابقة لباقي الصفحات) ──────────────────────────────
 const C = {
@@ -13,7 +14,6 @@ const GRAD = { brand: 'linear-gradient(135deg, #F97316, #DC2626)' }
 const SORO_SRC = 'https://app.trysoro.com/api/embed/63d5ce7b-1c67-4654-927c-2bad2b65f3c7'
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #07080F; font-family: 'Noto Sans Arabic', system-ui, sans-serif; -webkit-font-smoothing: antialiased; direction: rtl; }
   .bl-btn { transition: transform .15s ease, opacity .15s ease !important; }
@@ -46,6 +46,7 @@ function TopBar() {
 }
 
 export default function BlogPage() {
+  useRouteSeo('/blog')
   useEffect(() => {
     window.scrollTo(0, 0)
     // حقن سكربت Soro مرّة واحدة فقط (يبحث عن #soro-blog ويعرض المحتوى)

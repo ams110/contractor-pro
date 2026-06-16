@@ -1,5 +1,4 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react'
-import App         from './App.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import PricingPage from './pages/PricingPage.jsx'
 import WelcomePage from './pages/WelcomePage.jsx'
@@ -7,7 +6,11 @@ import LegalPage   from './pages/LegalPage.jsx'
 import BlogPage    from './pages/BlogPage.jsx'
 import CookieConsent from './components/CookieConsent.jsx'
 
+// التطبيق الكامل lazy — صفحات التسويق (هبوط/أسعار/قانونية) ما تنزّل كود التطبيق
+// والـhooks والشاشات معها، فتصغر الحزمة الأولى كثيراً (أداء أسرع على الموبايل).
+const App = lazy(() => import('./App.jsx'))
 const LoginScreen = lazy(() => import('./screens/auth/LoginScreen.jsx'))
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'))
 const AdStudio    = lazy(() => import('./pages/AdStudio.jsx'))
 const AdReel      = lazy(() => import('./pages/AdReel.jsx'))
 const DemoShot    = lazy(() => import('./pages/DemoShot.jsx'))
@@ -29,8 +32,10 @@ export default function Router() {
 
   // ?portal and ?worker query params always go straight to the app
   const params = new URLSearchParams(window.location.search)
-  if (params.has('portal') || params.has('worker')) return <App />
+  if (params.has('portal') || params.has('worker')) return <Suspense fallback={null}><App /></Suspense>
 
+  // /admin — لوحة تحكّم المنصّة (مركز قيادة الأدمن، دخول مخصّص — بلا لافتة كوكيز)
+  if (path === '/admin') return <Suspense fallback={null}><AdminDashboard /></Suspense>
   // /adstudio — محرّك البوسترات التسويقية (بلا لافتة كوكيز)
   if (path === '/adstudio') return <Suspense fallback={null}><AdStudio /></Suspense>
   // /adreel — نسخة فيديو ٩:١٦ من البوسترات (تُسجَّل عبر scripts/reel-shots.mjs)
@@ -49,7 +54,7 @@ export default function Router() {
   else if (path === '/blog')     page = <BlogPage />
   else if (path === '/login')    page = <Suspense fallback={null}><LoginScreen /></Suspense>
   else if (path === '/register') page = <Suspense fallback={null}><LoginScreen initialView="register" /></Suspense>
-  else                           page = <App />
+  else                           page = <Suspense fallback={null}><App /></Suspense>
 
   return <>{page}<CookieConsent /></>
 }

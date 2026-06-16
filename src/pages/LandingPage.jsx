@@ -10,6 +10,8 @@ import { C, GRAD } from '../constants/index.js'
 import { PremiumCard, IconChip, HolographicSheen, useCountUp } from '../ui/Premium.jsx'
 import { supabase } from '../lib/supabase.js'
 import { navigate } from '../Router.jsx'
+import { useRouteSeo } from '../lib/seo.js'
+import { FAQ_ITEMS } from '../lib/seoRoutes.js'
 
 // نستعمل نفس توكنات الهوية (C/GRAD) ومكوّنات kit الفخامة (PremiumCard/IconChip)
 // المستعملة في التطبيق — لا توكنات محليّة ولا بطاقات معاد بناؤها (CLAUDE.md §2.1/§19).
@@ -31,7 +33,6 @@ const rise = (delay = 0) => ({
 const SPRING = { stiffness: 90, damping: 22, mass: 0.4 }
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #07080F; font-family: 'Noto Sans Arabic', system-ui, sans-serif; -webkit-font-smoothing: antialiased; direction: rtl; overflow-x: hidden; overflow-x: clip; }
   .lp-btn { transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease !important; }
@@ -822,10 +823,10 @@ function MegaHero() {
             <CircleDot size={10} strokeWidth={3} />
             التطبيق الأول للمقاول العربي في إسرائيل
           </div>
-          <h1 style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, color: C.text, lineHeight: 1.15, marginBottom: 22, letterSpacing: '-0.02em' }}>
+          <h2 style={{ fontSize: 'clamp(28px,6vw,56px)', fontWeight: 900, color: C.text, lineHeight: 1.15, marginBottom: 22, letterSpacing: '-0.02em' }}>
             كل يوم شغل، كل دفعة،<br />كل مصروف —<br />
             <span className="grad-text">محفوظ. مش في دماغك.</span>
-          </h1>
+          </h2>
           <p style={{ fontSize: 'clamp(15px,2.5vw,19px)', color: C.textDim, lineHeight: 1.7, maxWidth: 580, margin: '0 auto 36px' }}>
             Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
           </p>
@@ -1240,6 +1241,53 @@ function PricingTeaser() {
   )
 }
 
+// ─── الأسئلة الشائعة (FAQ) ─────────────────────────────────────────────────────
+// محتوى مرئي حقيقي يستهدف استعلامات بحث المقاول العربي + يغذّي FAQPage JSON-LD
+// (نتائج غنية في جوجل). FAQ_ITEMS مصدرها seoRoutes.js (مشترك مع prerender).
+
+function FAQ() {
+  const [open, setOpen] = useState(0)
+  return (
+    <section style={{ padding: '60px 24px', direction: 'rtl' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto' }}>
+        <motion.h2 {...rise()} style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12, textAlign: 'center' }}>
+          أسئلة شائعة
+        </motion.h2>
+        <motion.p {...rise(0.05)} style={{ fontSize: 15, color: C.textDim, marginBottom: 32, textAlign: 'center' }}>
+          كل اللي بتحتاج تعرفه عن إدارة مقاولاتك.
+        </motion.p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {FAQ_ITEMS.map((item, i) => {
+            const isOpen = open === i
+            return (
+              <motion.div key={i} {...rise(Math.min(i * 0.04, 0.2))}
+                style={{ background: C.surface, border: `1px solid ${isOpen ? C.borderMid : C.border}`, borderRadius: 16, overflow: 'hidden' }}>
+                <button onClick={() => setOpen(isOpen ? -1 : i)} className="lp-btn"
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'transparent', border: 'none', color: C.text, fontSize: 'clamp(14px,2.4vw,16px)', fontWeight: 800, cursor: 'pointer', padding: '18px 20px', textAlign: 'right' }}>
+                  <span>{item.q}</span>
+                  <span style={{ flexShrink: 0, color: C.primary, fontSize: 20, fontWeight: 400, transform: isOpen ? 'rotate(45deg)' : 'none', transition: 'transform .2s ease' }}>+</span>
+                </button>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                      style={{ overflow: 'hidden' }}>
+                      <p style={{ fontSize: 14, color: C.textDim, lineHeight: 1.8, padding: '0 20px 18px' }}>{item.a}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 function FinalCTA() {
   return (
@@ -1311,6 +1359,8 @@ function Footer() {
 export default function LandingPage() {
   const [loggedIn, setLoggedIn] = useState(false)
   const reduce = useReducedMotion()
+
+  useRouteSeo('/')
   // شاشة الإقلاع — مرة واحدة بالجلسة، وتُتخطّى مع تقليل الحركة
   const [boot, setBoot] = useState(() => {
     try { return !sessionStorage.getItem('cp_lp_boot') } catch { return true }
@@ -1341,6 +1391,7 @@ export default function LandingPage() {
         <FeaturesGrid />
         <Testimonials />
         <PricingTeaser />
+        <FAQ />
         <FinalCTA />
         <Footer />
       </div>

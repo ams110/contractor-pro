@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react'
 import { HardHat, ArrowRight, Mail, MessageCircle, Shield, FileText, RotateCcw } from 'lucide-react'
 import { navigate } from '../Router.jsx'
+import { useRouteSeo } from '../lib/seo.js'
+
 
 // ─── Design Tokens (محلية — مطابقة لصفحة الهبوط) ───────────────────────────────
 const C = {
@@ -24,7 +26,6 @@ export const LEGAL_INFO = {
 }
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #07080F; font-family: 'Noto Sans Arabic', system-ui, sans-serif; -webkit-font-smoothing: antialiased; direction: rtl; }
   .lg-btn { transition: transform .15s ease, opacity .15s ease !important; }
@@ -90,7 +91,7 @@ const DOCS = {
         'تُخزَّن بياناتك بشكل آمن عبر بنية Supabase مع تشفير أثناء النقل، وعزل صارم على مستوى الصفوف (RLS) بحيث لا يصل أحد لبياناتك سواك ومن تمنحه الصلاحية.',
       ]},
       { h: '5. مشاركة البيانات مع أطراف ثالثة', p: [
-        'لا نبيع بياناتك. نشاركها فقط مع مزوّدي الخدمة الضروريين لتشغيل التطبيق: Paddle (الفوترة)، Supabase (الاستضافة وقاعدة البيانات).',
+        'لا نبيع بياناتك. نشاركها فقط مع مزوّدي الخدمة الضروريين لتشغيل التطبيق: Paddle (الفوترة)، Supabase (الاستضافة وقاعدة البيانات)، وGoogle Analytics (إحصاءات استخدام مجهّلة للموقع — اختيارية وتُفعَّل بموافقتك فقط).',
       ]},
       { h: '6. حقوقك', p: [
         'يحقّ لك الوصول إلى بياناتك وتصحيحها وتصديرها وحذفها. يوفّر التطبيق تصدير نسخة احتياطية كاملة من بياناتك في أي وقت.',
@@ -98,6 +99,7 @@ const DOCS = {
       ]},
       { h: '7. ملفّات تعريف الارتباط (Cookies)', p: [
         'نستخدم تخزيناً محلياً وملفّات ضرورية لتشغيل الجلسة وتذكّر تفضيلاتك (اللغة، الإعدادات). لا نستخدم تتبّعاً إعلانياً.',
+'نستخدم Google Analytics لقياس استخدام الموقع وتحسينه (مع إخفاء عنوان الـIP). نعتمد وضع الموافقة (Consent Mode): لا تُفعَّل كوكيز التحليلات إلا بعد ضغطك «موافق» على لافتة الكوكيز، وإذا رفضت لا تُحفظ أي كوكيز تحليلات. لا يؤثّر اختيارك على عمل التطبيق.',
       ]},
       { h: '8. التواصل', p: [
         `لأي سؤال حول خصوصيتك، راسلنا على ${E.supportEmail}.`,
@@ -189,6 +191,8 @@ function ContactCards() {
 export default function LegalPage({ type = 'terms' }) {
   const doc = DOCS[type] || DOCS.terms
   const Icon = doc.icon
+
+  useRouteSeo(`/${type}`)
 
   useEffect(() => { window.scrollTo(0, 0) }, [type])
 

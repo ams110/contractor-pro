@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="google-site-verification" content="R3Dl_yoj6EKDzYX3FkllM9ybbsFGjaJmALHvpMHmq9c" />
+  <!-- Bing Webmaster: استبدل المحتوى برمز التحقّق من bing.com/webmasters ثم أزِل التعليق
+  <meta name="msvalidate.01" content="ضع-رمز-Bing-هنا" /> -->
+  <!-- Yandex Webmaster: استبدل المحتوى برمز التحقّق من webmaster.yandex.com ثم أزِل التعليق
+  <meta name="yandex-verification" content="ضع-رمز-Yandex-هنا" /> -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#F97316" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -16,6 +20,13 @@
   <link rel="apple-touch-icon" sizes="167x167" href="/icon-167.png" />
   <link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png" />
   <link rel="apple-touch-icon" sizes="120x120" href="/icon-120.png" />
+
+  <!-- ===== الخطوط (تحميل غير حاجب للرسم — أسرع LCP) ===== -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&family=Inter:wght@400;600;700;800;900&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&family=Inter:wght@400;600;700;800;900&display=swap" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&family=Inter:wght@400;600;700;800;900&display=swap" /></noscript>
 
   <!-- ===== SEO الأساسي ===== -->
   <title>Contractor Pro | تطبيق إدارة المقاولات للمقاول العربي في إسرائيل</title>
@@ -32,35 +43,61 @@
   <meta property="og:title" content="Contractor Pro | تطبيق إدارة المقاولات للمقاول العربي في إسرائيل" />
   <meta property="og:description" content="إدارة المشاريع والعمّال وأيام العمل وحساب الرواتب والمصاريف والضرائب (מע&quot;מ + ضريبة دخل + بيتواح ليئومي) — كل شي في جيبك." />
   <meta property="og:url" content="https://app.linko.services/" />
-  <meta property="og:image" content="https://app.linko.services/pwa-512.png" />
-  <meta property="og:image:width" content="512" />
-  <meta property="og:image:height" content="512" />
-  <meta property="og:locale" content="ar_AR" />
+  <meta property="og:image" content="https://app.linko.services/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Contractor Pro — تطبيق إدارة المقاولات للمقاول العربي في إسرائيل" />
+  <meta property="og:locale" content="ar_IL" />
   <meta property="og:locale:alternate" content="he_IL" />
+  <meta property="og:locale:alternate" content="en_US" />
 
   <!-- ===== Twitter Card ===== -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Contractor Pro | تطبيق إدارة المقاولات للمقاول العربي في إسرائيل" />
   <meta name="twitter:description" content="إدارة المشاريع والعمّال والرواتب والمصاريف والضرائب — كل أعمالك المحاسبية في جيبك." />
-  <meta name="twitter:image" content="https://app.linko.services/pwa-512.png" />
+  <meta name="twitter:image" content="https://app.linko.services/og-image.png" />
 
   <!-- ===== بيانات منظّمة JSON-LD ===== -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Contractor Pro",
-    "alternateName": "كونتراكتور برو",
-    "applicationCategory": "BusinessApplication",
-    "operatingSystem": "Web, iOS, Android",
-    "url": "https://app.linko.services/",
-    "inLanguage": ["ar", "he", "en"],
-    "description": "تطبيق إدارة المقاولات للمقاول العربي في إسرائيل: المشاريع، العمّال، أيام العمل، الرواتب، المصاريف، والضرائب (מע\"מ + ضريبة دخل + بيتواح ליئومي).",
-    "offers": {
-      "@type": "Offer",
-      "price": "129",
-      "priceCurrency": "ILS"
-    }
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://app.linko.services/#org",
+        "name": "Contractor Pro",
+        "alternateName": "كونتراكتور برو",
+        "url": "https://app.linko.services/",
+        "logo": "https://app.linko.services/icon-1024.png",
+        "areaServed": "IL"
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://app.linko.services/#website",
+        "name": "Contractor Pro",
+        "url": "https://app.linko.services/",
+        "inLanguage": ["ar", "he", "en"],
+        "publisher": { "@id": "https://app.linko.services/#org" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Contractor Pro",
+        "alternateName": "كونتراكتور برو",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "url": "https://app.linko.services/",
+        "inLanguage": ["ar", "he", "en"],
+        "publisher": { "@id": "https://app.linko.services/#org" },
+        "description": "تطبيق إدارة المقاولات للمقاول العربي في إسرائيل: المشاريع، العمّال، أيام العمل، الرواتب، المصاريف، والضرائب (מע\"מ + ضريبة دخل + ביטוח לאומי).",
+        "offers": {
+          "@type": "AggregateOffer",
+          "priceCurrency": "ILS",
+          "lowPrice": "129",
+          "highPrice": "499",
+          "offerCount": "3"
+        }
+      }
+    ]
   }
   </script>
   <style>
