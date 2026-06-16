@@ -47,3 +47,14 @@ export function grantConsent() {
   if (typeof window === 'undefined' || !window.dataLayer) return
   gtag('consent', 'update', { analytics_storage: 'granted' })
 }
+
+/**
+ * يسجّل حدث تحويل في GA4 (قمع: زيارة هبوط · دخول ديمو · بدء تسجيل · ...).
+ * آمن: لا يفعل شيئاً إن لم يُحمّل gtag بعد (بلا أخطاء).
+ * @param {string} name اسم الحدث
+ * @param {object} [params] خصائص إضافية
+ */
+export function trackEvent(name, params = {}) {
+  if (typeof window === 'undefined' || !window.dataLayer || !name) return
+  gtag('event', name, params)
+}

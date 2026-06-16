@@ -162,11 +162,19 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     if (regPass.length < 8) { setError(language === 'en' ? 'Password must be at least 8 characters' : language === 'he' ? 'הסיסמה חייבת לפחות 8 תווים' : 'كلمة المرور 8 أحرف على الأقل'); return }
     setLoading(true); setError(''); setRegInfo('')
     try {
-      const { data } = await signUp(regEmail.trim(), regPass, regName.trim())
-      if (!data?.session) {
-        setRegInfo(language === 'en' ? 'Account created! Check your email to activate.' : language === 'he' ? 'החשבון נוצר! בדוק את האימייל לאישור.' : 'تم إنشاء الحساب! تحقق من بريدك للتفعيل.')
-      } else {
+      const email = regEmail.trim()
+      const { data } = await signUp(email, regPass, regName.trim())
+      // دخول فوري: لو رجعت الجلسة من signUp (تأكيد الإيميل مطفأ) → ندخل مباشرة.
+      // وإلا نحاول تسجيل دخول تلقائي بنفس البيانات (يشتغل لحظة إطفاء التأكيد بلوحة Supabase)،
+      // فإن لم تنجح (التأكيد ما زال مطلوباً) نعرض رسالة لطيفة بدل حائط «تحقّق من بريدك».
+      if (data?.session) {
+        navigate('/welcome'); return
+      }
+      const { data: signInData } = await supabase.auth.signInWithPassword({ email, password: regPass })
+      if (signInData?.session) {
         navigate('/welcome')
+      } else {
+        setRegInfo(language === 'en' ? 'Account created! You can sign in now.' : language === 'he' ? 'החשבון נוצר! אפשר להיכנס עכשיו.' : 'تم إنشاء حسابك! تقدر تدخل الآن.')
       }
     } catch (err) {
       const msg = err.message || ''

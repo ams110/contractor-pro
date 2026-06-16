@@ -14,6 +14,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'))
 const AdStudio    = lazy(() => import('./pages/AdStudio.jsx'))
 const AdReel      = lazy(() => import('./pages/AdReel.jsx'))
 const DemoShot    = lazy(() => import('./pages/DemoShot.jsx'))
+const DemoApp     = lazy(() => import('./pages/DemoApp.jsx'))
 
 // ─── Client-side navigation (no full page reload) ─────────────────────────────
 export function navigate(path) {
@@ -33,6 +34,9 @@ export default function Router() {
   // ?portal and ?worker query params always go straight to the app
   const params = new URLSearchParams(window.location.search)
   if (params.has('portal') || params.has('worker')) return <Suspense fallback={null}><App /></Suspense>
+
+  // /demo (أو ?demo) — الديمو العام التفاعلي: التطبيق الحقيقي ببيانات وهمية بلا تسجيل
+  if (path === '/demo' || params.has('demo')) return <Suspense fallback={null}><DemoApp /></Suspense>
 
   // /admin — لوحة تحكّم المنصّة (مركز قيادة الأدمن، دخول مخصّص — بلا لافتة كوكيز)
   if (path === '/admin') return <Suspense fallback={null}><AdminDashboard /></Suspense>

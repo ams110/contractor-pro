@@ -953,9 +953,9 @@ function MegaHero() {
                   <ArrowLeft size={18} strokeWidth={2.5} />
                 </button>
               </Magnetic>
-              <button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }) }} className="lp-btn"
+              <button onClick={() => navigate('/demo')} className="lp-btn"
                 style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '14px 26px', borderRadius: 16 }}>
-                شاهد كيف يعمل
+                جرّب بدون تسجيل
               </button>
             </motion.div>
 
