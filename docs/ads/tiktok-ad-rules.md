@@ -102,6 +102,31 @@
   4. تحقّق بصرياً من آخر إطار وأول إطار قبل النشر — ما في لوغو غريب.
 - **مرجع الإنتاج الموجود**: `marketing/README.md` (خطّ Higgsfield + ffmpeg + شاشات حقيقية) · `marketing/scripts/` (بطاقات/تركيب) · شخصية الحاج: `marketing/higgsfield/haj.png` + `vo-haj.wav`.
 
+## 8.7) 🔄 تحديث بحث 16/06/2026 — جديد/مصقول (بحث عميق ثانٍ)
+
+> دفعة جديدة من البحث الموثّق. الأشياء أدناه **مش مكرّرة** من فوق — إضافات أو تصحيحات. نفس مفتاح الثقة.
+
+**أ. التوزيع للحسابات الصغيرة (خبر سار إلنا)**
+- ✅/🟡 **توزيع مرحلي «دفعة اختبار»**: الرفعة الجديدة تُعرض أول لعيّنة صغيرة (~**300–1,000** مستخدم مطابق للاهتمام)؛ لو الإكمال/التفاعل قوي → توسّع تدريجي. **عدد المتابعين مش بوّابة.** [Hootsuite](https://blog.hootsuite.com/tiktok-algorithm/) · [Socialync](https://www.socialync.io/blog/tiktok-algorithm-tips-new-accounts-2026)
+- 🟡 **الحسابات الجديدة بتتخطّى اختبار-المتابعين** وبتروح مباشرة لغير-المتابعين حسب الاهتمام — ميزة: حساب صفر-متابعين بيقدر يوصل FYP من فيديو #1 لو العيّنة خلّصت المشاهدة. الحدّ العملي المتداول: **~70% إكمال** يطلق التوسّع. [vidgrow](https://vidgrow.co/blog/grow-tiktok-zero-followers-2026/)
+
+**ب. النصّ المنطوق صار إشارة ترتيب**
+- ✅ **التفريغ التلقائي للصوت (transcript)** صار مُدخل ترتيب/مطابقة موضوع للـFYP والبحث منذ منتصف 2025. → **احكي بوضوح بالعربي** يعطي تيك توك نصّ يصنّفك فيه. [Hootsuite](https://blog.hootsuite.com/tiktok-algorithm/) · [Sprout](https://sproutsocial.com/insights/tiktok-algorithm/)
+
+**ج. مدفوع — تفاصيل Smart+ والمنصّات**
+- ✅ **Smart+ App** أهدافه: **MAI (تثبيت)** · **AEO (حدث داخل التطبيق مثل «أكمل التسجيل»)** · **VBO (قيمة، أندرويد فقط)**. تعطيه 3–6 إبداعات وهو يتولّى الاستهداف/المزايدة. [TikTok](https://ads.tiktok.com/help/article/about-smart-plus-app-campaigns)
+- ✅ **iOS AEO بدّو ~90 تثبيت/يوم** لتجاوز عتبة خصوصية Apple (SKAdNetwork) — تحتها الأداء/الإسناد بينهار. → **ابدأ أندرويد** (بيانات أسرع + إسناد أكمل)، ثبّت، ثم أضف iOS. [tikadtools](https://tikadtools.com/blog/tiktok-ads-app-install/)
+- 🟡 **قاعدة ميزانية إبهام: ~20× الـCPA المستهدف/يوم لكل ad group** لتعلّم سليم (CPA $10 → ~$200/يوم). هاد السبب الأكبر إن الميزانية الصغيرة بتتخبّط بالمدفوع. → الخلاصة تتأكّد: **عضوي أولاً + Spark للرابح المثبَت.** [benly](https://benly.ai/learn/tiktok-ads/smart-plus-campaigns-guide)
+
+**د. القمع/التسجيل — أرقام تدعم فيكس #229**
+- ✅ **حائط التسجيل قبل القيمة بيقتل التحويل**: ~**48%** بيتركوا منتج SaaS لأن التسجيل طويل · ~**36%** بيستسلموا عند **تأكيد الإيميل** تحديداً. [Groto](https://www.letsgroto.com/blog/saas-signup-flow-ux) · [Gamalogic](https://blog.gamalogic.com/how-email-validation-improves-saas-onboarding-activation/)
+- ✅ **«خلّيه يدخل أولاً، يأكّد لاحقاً»** + **الوصول للقيمة خلال ~72 ساعة** أقوى تنبّؤ بالتحويل · **SSO (Continue with Google) بيشيل ~90% من احتكاك التسجيل**. [Eleken](https://www.eleken.co/blog-posts/sign-up-flow) · [SaaSfactor](https://www.saasfactor.co/blogs/saas-customer-onboarding)
+- 🟢 **كل هاد بالضبط اللي عملناه بـ#229** (ديمو `/demo` بلا حساب + شيل تأكيد إيميل + Google one-tap). نقطة مطابقة: **خلّي أول شاشة بالتطبيق = نفس وعد الإعلان** (لو الإعلان «احسب رواتب العمّال بثانية» → أول شاشة تعمل هيك مباشرة، مملوءة مسبقاً).
+
+**هـ. اللهجة وأوقات النشر**
+- ✅/🟡 **لهجة محكية فلسطينية/شامية — لا فصحى أبداً.** الفصحى تُقرأ رسمية/شركاتية وتنفر على تيك توك؛ المحكية المحلّية تفوز بفارق كبير بالتفاعل. [thehovi (سياق خليجي، المبدأ يعمّم)](https://thehovi.com/blog/industry-guides/tiktok-marketing-saudi-arabia-business-guide-2026)
+- ⚠️ **أوقات النشر = فرضية لا داتا**: ما في مجموعة بيانات موثوقة للعرب بإسرائيل B2B. جرّب **صباح باكر ~5:30–7 (قبل بدء الورشة)** و**مسا ~7–9 (بعد الشغل)**، وخلّي تبويب **«نشاط المتابعين»** بتحليلاتك (بعد ~100 متابع) يحسم — أي «جدول أفضل وقت» جاهز هو تخمين. [Sprout](https://sproutsocial.com/insights/best-times-to-post-on-tiktok/)
+
 ## 9) المصادر الأساسية
 - TikTok FYF Standards — https://www.tiktok.com/community-guidelines/en/fyf-standards
 - How TikTok recommends videos — https://newsroom.tiktok.com/en-us/how-tiktok-recommends-videos-for-you
