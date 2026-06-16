@@ -831,10 +831,14 @@ function MegaHero() {
             Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/register')} className="lp-btn"
+            <button onClick={() => navigate('/demo')} className="lp-btn"
               style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 38px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              جرّب مجاناً 14 يوم
+              جرّب التطبيق — بدون تسجيل
               <ArrowLeft size={18} strokeWidth={2.5} />
+            </button>
+            <button onClick={() => navigate('/register')} className="lp-btn"
+              style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 16, fontWeight: 700, cursor: 'pointer', padding: '16px 30px', borderRadius: 16 }}>
+              ابدأ مجاناً 14 يوم
             </button>
           </div>
         </div>
@@ -947,15 +951,15 @@ function MegaHero() {
             <motion.div initial={{ opacity: 0, y: 24, rotateX: 18, transformPerspective: 900 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, delay: gradDelay + 0.24, ease: [0.22, 1, 0.36, 1] }}
               style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', pointerEvents: 'auto' }}>
               <Magnetic>
-                <button onClick={() => navigate('/register')} className="lp-btn"
+                <button onClick={() => navigate('/demo')} className="lp-btn"
                   style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', padding: '14px 34px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  جرّب مجاناً 14 يوم
+                  جرّب التطبيق — بدون تسجيل
                   <ArrowLeft size={18} strokeWidth={2.5} />
                 </button>
               </Magnetic>
-              <button onClick={() => navigate('/demo')} className="lp-btn"
+              <button onClick={() => navigate('/register')} className="lp-btn"
                 style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '14px 26px', borderRadius: 16 }}>
-                جرّب بدون تسجيل
+                ابدأ مجاناً 14 يوم
               </button>
             </motion.div>
 

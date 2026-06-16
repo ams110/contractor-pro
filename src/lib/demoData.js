@@ -12,11 +12,11 @@ import { useBusinessStore } from '../store/useBusinessStore.js'
 export function buildDemo() {
   const M = (n) => Math.round(n)
   const projects = [
-    { id: 'p1', name: 'فيلا الياسمين', status: 'نشط',    type: 'مقاولة مغلقة', client_name: 'سمير حدّاد', client_phone: '0521234567', total_amount: 380000, created_at: '2026-02-01' },
-    { id: 'p2', name: 'عمارة الورد',  status: 'نشط',    type: 'يومي',         client_name: 'شركة البناء الحديث', client_phone: '0539876543', total_amount: 0, created_at: '2026-03-05' },
-    { id: 'p3', name: 'محل النور',    status: 'نشط',    type: 'مقاولة مغلقة', client_name: 'خالد عثمان', client_phone: '0501112233', total_amount: 96000, created_at: '2026-04-10' },
-    { id: 'p4', name: 'شقة الزيتون',  status: 'مكتمل',  type: 'مقاولة مغلقة', client_name: 'ليلى ناصر', client_phone: '0524445566', total_amount: 142000, created_at: '2026-01-12' },
-    { id: 'p5', name: 'مكاتب الأمل',  status: 'موافق عليه', type: 'مقاولة مغلقة', client_name: 'مجموعة الأمل', client_phone: '0537778899', total_amount: 210000, created_at: '2026-05-20' },
+    { id: 'p1', name: 'فيلا الياسمين', status: 'نشط',    type: 'مقاولة مغلقة', client_name: 'سمير حدّاد', client_phone: '0521234567', price: 380000, created_at: '2026-02-01' },
+    { id: 'p2', name: 'عمارة الورد',  status: 'نشط',    type: 'يومي',         client_name: 'شركة البناء الحديث', client_phone: '0539876543', price: 0, created_at: '2026-03-05' },
+    { id: 'p3', name: 'محل النور',    status: 'نشط',    type: 'مقاولة مغلقة', client_name: 'خالد عثمان', client_phone: '0501112233', price: 96000, created_at: '2026-04-10' },
+    { id: 'p4', name: 'شقة الزيتون',  status: 'مكتمل',  type: 'مقاولة مغلقة', client_name: 'ليلى ناصر', client_phone: '0524445566', price: 142000, created_at: '2026-01-12' },
+    { id: 'p5', name: 'مكاتب الأمل',  status: 'موافق عليه', type: 'مقاولة مغلقة', client_name: 'مجموعة الأمل', client_phone: '0537778899', price: 210000, created_at: '2026-05-20' },
   ]
   // كل المشاريع تتبع المصلحة الوهمية (لتعمل وحدة المالية في الديمو)
   projects.forEach(p => { p.business_id = 'biz1' })
