@@ -10,7 +10,7 @@ import {
   DollarSign, CreditCard, BarChart3, Crown, Sparkles, Lock,
 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
-import { fmt, isPaymentOverdue } from '../../lib/helpers.js'
+import { fmt, fmtDateFull, isPaymentOverdue } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { usePlanStore } from '../../store/usePlanStore.js'
 import { navigate } from '../../Router.jsx'
@@ -363,16 +363,36 @@ export default function DashboardScreen({
   const cashPositive = stats.cashOnHand >= 0
   const cashAccent = cashPositive ? C.success : C.accent
 
+  // تحية سياقية حسب وقت اليوم + تاريخ اليوم (محتوى حيّ بدل سطر عام)
+  const { greeting, todayLabel } = useMemo(() => {
+    const h = new Date().getHours()
+    const g = language === 'he'
+      ? (h < 12 ? 'בוקר טוב' : h < 17 ? 'צהריים טובים' : 'ערב טוב')
+      : language === 'en'
+        ? (h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening')
+        : (h < 12 ? 'صباح الخير' : h < 17 ? 'مساء النور' : 'مساء الخير')
+    const loc = language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'ar'
+    let label = ''
+    try { label = new Date().toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }) }
+    catch { label = fmtDateFull(new Date().toISOString().slice(0, 10)) }
+    return { greeting: g, todayLabel: label }
+  }, [language])
+
   return (
     <div dir={dir} style={{ padding: '16px 16px 8px', maxWidth: 900, margin: '0 auto' }}>
 
       {/* ─── Header ─── */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 800, color: C.primary, letterSpacing: '-0.01em' }}>{greeting}</span>
+            <span style={{ width: 3, height: 3, borderRadius: '50%', background: C.textDim, opacity: 0.55, flexShrink: 0 }} />
+            <span style={{ fontSize: 11.5, color: C.textDim, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{todayLabel}</span>
+          </div>
+          <div style={{ fontSize: 'clamp(22px, 6.5vw, 27px)', fontWeight: 900, color: C.text, letterSpacing: '-0.025em', lineHeight: 1.05, textWrap: 'balance' }}>
             {t('dashboard.title')}
           </div>
-          <div style={{ fontSize: 12, color: C.textDim, marginTop: 3 }}>
+          <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>
             {language === 'he' ? 'סיכום כל הפעילות שלך' : language === 'en' ? 'Overview of all your activity' : 'نظرة شاملة على نشاطك'}
           </div>
         </div>
