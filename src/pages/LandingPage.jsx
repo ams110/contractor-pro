@@ -3,7 +3,7 @@ import {
   HardHat, BarChart3, Users, CalendarDays, Receipt,
   CheckCircle2, ArrowLeft, Shield, Smartphone, TrendingUp,
   Menu, X, Building2, Wallet, Settings, LayoutDashboard,
-  Bell, Search, CircleDot, Sun, CloudSun, Clock, Check, Hourglass
+  Bell, Search, CircleDot, Sun, CloudSun, Clock, Check, Hourglass, Plus
 } from 'lucide-react'
 import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue, useVelocity, useReducedMotion } from 'framer-motion'
 import { C, GRAD } from '../constants/index.js'
@@ -38,6 +38,11 @@ const css = `
   .lp-btn { transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease !important; }
   .lp-btn:hover { opacity: .92; }
   .lp-btn:active { transform: scale(0.96) !important; }
+  /* وصول لوحة المفاتيح: حلقة تركيز واضحة على الخلفية الداكنة (اللون = C.primary) */
+  .lp-btn:focus-visible, .lp-link:focus-visible { outline: 2px solid #F97316; outline-offset: 3px; border-radius: 8px; }
+  /* روابط الفوتر/الشعار: لون خافت → نص كامل عند المرور، قابلة للتركيز بالكيبورد */
+  .lp-link { color: #64748B; text-decoration: none; transition: color .2s ease; cursor: pointer; background: none; border: none; font: inherit; padding: 0; }
+  .lp-link:hover { color: #F8FAFC; }
   @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
   @keyframes glow  { 0%,100%{opacity:.5} 50%{opacity:1} }
   .float    { animation: float 3.5s ease-in-out infinite }
@@ -838,7 +843,7 @@ function MegaHero() {
             </button>
           </div>
         </div>
-        <h2 style={{ fontSize: 'clamp(20px,3.4vw,32px)', fontWeight: 900, color: C.text, marginBottom: 36 }}>
+        <h2 style={{ fontSize: 'clamp(20px,3.4vw,32px)', fontWeight: 900, color: C.text, marginBottom: 36, letterSpacing: '-0.02em', textWrap: 'balance' }}>
           كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
         </h2>
         <div className="lp-cinema-grid" style={{ margin: '0 auto', textAlign: 'start' }}>
@@ -865,7 +870,7 @@ function MegaHero() {
       <div id="features" aria-hidden style={{ position: 'absolute', top: '30%' }} />
 
       <div onPointerMove={onMove} onPointerLeave={onLeave}
-        style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden' }}>
+        style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden' }}>
 
         {/* خلفية: توهّجات + أرضية الشبكة + غبار */}
         <div className="glow-orb" style={{ position: 'absolute', top: '-12%', right: '-6%', width: 620, height: 620, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.12) 0%, transparent 65%)', pointerEvents: 'none' }} />
@@ -1054,10 +1059,10 @@ function PainPoints() {
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
         <Depth tilt={16} lift={60}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
-            <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
+            <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12, letterSpacing: '-0.02em', textWrap: 'balance' }}>
               شايف نفسك هنا؟
             </h2>
-            <p style={{ fontSize: 16, color: C.textDim }}>هذه المشاكل اليومية لها حل واحد.</p>
+            <p style={{ fontSize: 16, color: C.textDim, maxWidth: 560, marginInline: 'auto', textWrap: 'pretty' }}>هذه المشاكل اليومية لها حل واحد.</p>
           </div>
         </Depth>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
@@ -1138,10 +1143,10 @@ function Testimonials() {
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
         <Depth tilt={16} lift={60}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
-            <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
+            <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12, letterSpacing: '-0.02em', textWrap: 'balance' }}>
               مبني خصّيصاً لشغل المقاول
             </h2>
-            <p style={{ fontSize: 16, color: C.textDim }}>كل ميزة حلّ لمشكلة حقيقية بتواجهك كل يوم.</p>
+            <p style={{ fontSize: 16, color: C.textDim, maxWidth: 560, marginInline: 'auto', textWrap: 'pretty' }}>كل ميزة حلّ لمشكلة حقيقية بتواجهك كل يوم.</p>
           </div>
         </Depth>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 20 }}>
@@ -1174,10 +1179,10 @@ function PricingTeaser() {
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
         <Depth tilt={16} lift={60}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
+            <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12, letterSpacing: '-0.02em', textWrap: 'balance' }}>
               خطط بسيطة وواضحة
             </h2>
-            <p style={{ fontSize: 16, color: C.textDim }}>كل الخطط تبدأ بتجربة مجانية 14 يوم — بدون بطاقة ائتمان.</p>
+            <p style={{ fontSize: 16, color: C.textDim, maxWidth: 560, marginInline: 'auto', textWrap: 'pretty' }}>كل الخطط تبدأ بتجربة مجانية 14 يوم — بدون بطاقة ائتمان.</p>
           </div>
 
           {/* مبدّل دورة الفوترة */}
@@ -1250,7 +1255,7 @@ function FAQ() {
   return (
     <section style={{ padding: '60px 24px', direction: 'rtl' }}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <motion.h2 {...rise()} style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12, textAlign: 'center' }}>
+        <motion.h2 {...rise()} style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12, textAlign: 'center', letterSpacing: '-0.02em', textWrap: 'balance' }}>
           أسئلة شائعة
         </motion.h2>
         <motion.p {...rise(0.05)} style={{ fontSize: 15, color: C.textDim, marginBottom: 32, textAlign: 'center' }}>
@@ -1265,7 +1270,7 @@ function FAQ() {
                 <button onClick={() => setOpen(isOpen ? -1 : i)} className="lp-btn"
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'transparent', border: 'none', color: C.text, fontSize: 'clamp(14px,2.4vw,16px)', fontWeight: 800, cursor: 'pointer', padding: '18px 20px', textAlign: 'right' }}>
                   <span>{item.q}</span>
-                  <span style={{ flexShrink: 0, color: C.primary, fontSize: 20, fontWeight: 400, transform: isOpen ? 'rotate(45deg)' : 'none', transition: 'transform .2s ease' }}>+</span>
+                  <span style={{ flexShrink: 0, color: C.primary, display: 'flex', transform: isOpen ? 'rotate(45deg)' : 'none', transition: 'transform .2s ease' }}><Plus size={18} strokeWidth={2.4} /></span>
                 </button>
                 <AnimatePresence initial={false}>
                   {isOpen && (
@@ -1298,7 +1303,7 @@ function FinalCTA() {
           <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px', boxShadow: '0 16px 56px rgba(249,115,22,0.45)' }}>
             <HardHat size={36} color="#fff" strokeWidth={2} />
           </div>
-          <h2 style={{ fontSize: 'clamp(24px,5vw,44px)', fontWeight: 900, color: C.text, lineHeight: 1.2, marginBottom: 18 }}>
+          <h2 style={{ fontSize: 'clamp(24px,5vw,44px)', fontWeight: 900, color: C.text, lineHeight: 1.2, marginBottom: 18, letterSpacing: '-0.02em', textWrap: 'balance' }}>
             ابدأ اليوم — مجاناً لمدة 14 يوم
           </h2>
           <p style={{ fontSize: 17, color: C.textDim, lineHeight: 1.7, marginBottom: 40 }}>
@@ -1346,8 +1351,8 @@ function Footer() {
             { l: 'الإلغاء والاسترجاع', path: '/refund' },
             { l: 'تواصل معنا',     path: '/contact' },
           ].map(({ l, path }) => (
-            <span key={l} onClick={() => navigate(path)}
-              style={{ fontSize: 12, color: C.textDim, cursor: 'pointer' }}>{l}</span>
+            <button key={l} type="button" className="lp-link" onClick={() => navigate(path)}
+              style={{ fontSize: 12 }}>{l}</button>
           ))}
         </div>
       </motion.div>
@@ -1382,7 +1387,7 @@ export default function LandingPage() {
       <AnimatePresence>
         {boot && !reduce && <BootIntro onDone={endBoot} />}
       </AnimatePresence>
-      <div style={{ background: C.bg, minHeight: '100vh', color: C.text }}>
+      <div style={{ background: C.bg, minHeight: '100dvh', color: C.text }}>
         <ScrollProgress />
         <Navbar loggedIn={loggedIn} />
         <MegaHero />
