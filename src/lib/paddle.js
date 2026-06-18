@@ -91,8 +91,10 @@ export async function openCheckout({ plan, user, org, cycle = 'month' }) {
   }
 
   // TikTok: نيّة اشتراك (فتح صفحة الدفع) — إشارة تحويل قويّة لتقييم الإعلانات.
-  // إتمام الشراء الفعلي يُسجَّل خادمياً عبر paddle-webhook.
-  ttTrack('InitiateCheckout', { content_name: plan, content_type: cycle, currency: 'ILS' })
+  // إتمام الشراء الفعلي يُسجَّل خادمياً عبر paddle-webhook. value مطلوب لـROAS.
+  const monthly = PLAN_META[plan]?.price ?? 0
+  const value = cycle === 'year' ? monthly * 10 : monthly
+  ttTrack('InitiateCheckout', { content_name: plan, content_type: cycle, currency: 'ILS', value })
 
   paddle.Checkout.open({
     items: [{ priceId, quantity: 1 }],

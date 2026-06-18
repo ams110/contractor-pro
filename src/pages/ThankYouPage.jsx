@@ -4,7 +4,15 @@ import { C, GRAD } from '../constants/index.js'
 import { navigate } from '../Router.jsx'
 import { trackEvent } from '../lib/analytics.js'
 import { ttTrackBoth } from '../lib/tiktok.js'
+import { PLAN_META } from '../lib/paddle.js'
 import { supabase } from '../lib/supabase.js'
+
+// قيمة الصفقة لتقارير ROAS — السنوي = شهري × 10 (خصم شهرين، نفس حساب PricingPage).
+function planValue(plan, cycle) {
+  const monthly = PLAN_META[plan]?.price
+  if (!monthly) return 0
+  return cycle === 'year' ? monthly * 10 : monthly
+}
 
 // صفحة الشكر بعد نجاح الدفع — يصلها الزبون **فقط** عبر successUrl من Paddle.
 // تُستعمل كصفحة تحويل الشراء في Google Ads (قياس دقيق: لا يصلها إلا الدافع)،
@@ -16,18 +24,20 @@ export default function ThankYouPage() {
     const params = new URLSearchParams(window.location.search)
     const p = params.get('plan') || ''
     const cycle = params.get('cycle') || 'month'
+    const value = planValue(p, cycle)
     setPlan(p)
 
     // أحداث تحويل الشراء — مرّة واحدة عند فتح الصفحة
-    trackEvent('purchase', { plan: p, cycle, currency: 'ILS' })
+    trackEvent('purchase', { plan: p, cycle, currency: 'ILS', value })
     // CompletePayment على القناتين (client + server)؛ paddle-webhook يطلق Subscribe
     // مستقلاً بنفس الحدث القاعدي → TikTok يدمج عبر event_id فلا تكرار.
+    // value مطلوب لحساب ROAS بدقّة على تيك توك.
     ;(async () => {
       const { data } = await supabase.auth.getUser().catch(() => ({ data: null }))
       const email = data?.user?.email
       const externalId = data?.user?.id
       ttTrackBoth('CompletePayment', {
-        properties: { content_name: p, content_type: cycle, currency: 'ILS' },
+        properties: { content_name: p, content_type: cycle, currency: 'ILS', value },
         user: { email, external_id: externalId },
       })
     })()
