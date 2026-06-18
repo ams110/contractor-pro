@@ -1,4 +1,5 @@
 import { initializePaddle } from '@paddle/paddle-js'
+import { ttTrack } from './tiktok.js'
 
 // ─── Singleton paddle instance ────────────────────────────────────────────────
 let _paddle = null
@@ -88,6 +89,10 @@ export async function openCheckout({ plan, user, org, cycle = 'month' }) {
     const suffix = cycle === 'year' ? `${plan.toUpperCase()}_ANNUAL` : plan.toUpperCase()
     throw new Error(`No Paddle price configured for plan "${plan}" (${cycle}). Set VITE_PADDLE_PRICE_${suffix} in your .env`)
   }
+
+  // TikTok: نيّة اشتراك (فتح صفحة الدفع) — إشارة تحويل قويّة لتقييم الإعلانات.
+  // إتمام الشراء الفعلي يُسجَّل خادمياً عبر paddle-webhook.
+  ttTrack('InitiateCheckout', { content_name: plan, content_type: cycle, currency: 'ILS' })
 
   paddle.Checkout.open({
     items: [{ priceId, quantity: 1 }],

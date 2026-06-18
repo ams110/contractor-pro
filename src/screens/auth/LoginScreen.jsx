@@ -13,6 +13,7 @@ import { teamMemberSignIn as _teamSignIn } from '../../hooks/useTeam.js'
 import { useAuth } from '../../hooks/useAuth.js'
 import { hasPin as hasPinStored } from '../../lib/pinCrypto.js'
 import { navigate } from '../../Router.jsx'
+import { ttTrack } from '../../lib/tiktok.js'
 
 const LANGS = [
   { code: 'ar', label: 'العربية', dir: 'rtl' },
@@ -219,6 +220,8 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
       const email = regEmail.trim()
       // الاسم اختياري — نمرّر فارغاً ويُجمع لاحقاً في الإعداد إن تُرك
       const { data } = await signUp(email, regPass, regName.trim() || null)
+      // TikTok: تحويل تسجيل ناجح (المقياس الأساسي لتقييم الإعلانات)
+      ttTrack('CompleteRegistration', { content_name: 'signup' })
       // دخول فوري: لو رجعت الجلسة من signUp (تأكيد الإيميل مطفأ) → ندخل مباشرة.
       // وإلا نحاول تسجيل دخول تلقائي بنفس البيانات (يشتغل لحظة إطفاء التأكيد بلوحة Supabase)،
       // فإن لم تنجح (التأكيد ما زال مطلوباً) نعرض رسالة لطيفة بدل حائط «تحقّق من بريدك».
