@@ -1,8 +1,7 @@
-// ─── Google Analytics 4 + Consent Mode v2 ─────────────────────────────────────
-// نُحمّل gtag لكل الزوّار من أول ثانية، لكن مع حالة موافقة افتراضية = denied
-// (بلا كوكيز تحليلات). عند ضغط المستخدم «موافق» نرفعها إلى granted فتُفعَّل
-// الكوكيز كاملةً. بهذا نقيس الجميع تقريباً (جوجل تقدّر بيانات غير الموافقين
-// إحصائياً) مع الالتزام بالخصوصية. الدالة النقيّة isGranted قابلة للاختبار.
+// ─── Google Analytics 4 ───────────────────────────────────────────────────────
+// نُحمّل gtag لكل الزوّار من أول ثانية بموافقة افتراضية = granted (تتبّع كامل
+// دائماً، بلا انتظار قرار المستخدم) — لجمع بيانات تحليلية حقيقية لتقييم الإعلانات،
+// بنفس سلوك TikTok Pixel. الدالة النقيّة isGranted قابلة للاختبار.
 
 export const GA_ID = 'G-KFGX0K1VT5'
 
@@ -19,20 +18,20 @@ function gtag() {
 }
 
 /**
- * يحقن gtag مرّة واحدة ويضبط الموافقة الافتراضية = denied (Consent Mode v2)،
- * ثم يهيّئ GA4. آمن للاستدعاء قبل أي قرار موافقة.
- * @param {boolean} alreadyGranted لو وافق المستخدم سابقاً، نبدأ بـ granted مباشرة
+ * يحقن gtag مرّة واحدة ويهيّئ GA4 بموافقة افتراضية = granted (تتبّع كامل دائماً).
+ * آمن للاستدعاء مرّة واحدة عند الإقلاع.
+ * @param {boolean} _alreadyGranted (مُتجاهَل — التتبّع مُفعّل دائماً)
  */
-export function initAnalytics(alreadyGranted = false, id = GA_ID) {
+export function initAnalytics(_alreadyGranted = false, id = GA_ID) {
   if (initialized || typeof document === 'undefined' || !id) return
   initialized = true
   window.dataLayer = window.dataLayer || []
-  // الموافقة الافتراضية قبل تحميل السكربت — منع كوكيز التحليلات حتى القبول
+  // موافقة افتراضية granted — تتبّع كامل للجميع بلا انتظار قرار المستخدم
   gtag('consent', 'default', {
-    analytics_storage: alreadyGranted ? 'granted' : 'denied',
-    ad_storage: 'denied',
-    ad_user_data: 'denied',
-    ad_personalization: 'denied',
+    analytics_storage: 'granted',
+    ad_storage: 'granted',
+    ad_user_data: 'granted',
+    ad_personalization: 'granted',
   })
   const s = document.createElement('script')
   s.async = true
