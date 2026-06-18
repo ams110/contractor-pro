@@ -58,6 +58,9 @@ interface TrackBody {
   user?: { email?: string; phone?: string; external_id?: string; ttclid?: string; ttp?: string }
   page?: { url?: string; referrer?: string }
   properties?: Record<string, unknown>
+  // اختياري: يطغى على متغيّر البيئة لإرسال حدث واحد فقط لتبويب Test Events
+  // بدل التبديل العام على/إيقاف الـsecret. مفيد للتجربة بدون pollute للداتا الإنتاجية.
+  test_event_code?: string
 }
 
 Deno.serve(async (req) => {
@@ -81,10 +84,11 @@ Deno.serve(async (req) => {
   const ua = req.headers.get('user-agent') ?? undefined
   const ip = clientIp(req)
 
+  const testCode = body.test_event_code || TEST_EVENT_CODE
   const payload = {
     event_source: 'web',
     event_source_id: PIXEL_ID,
-    ...(TEST_EVENT_CODE ? { test_event_code: TEST_EVENT_CODE } : {}),
+    ...(testCode ? { test_event_code: testCode } : {}),
     data: [{
       event:      body.event,
       event_time: body.event_time || Math.floor(Date.now() / 1000),
