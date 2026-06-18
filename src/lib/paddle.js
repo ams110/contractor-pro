@@ -107,6 +107,11 @@ export async function openCheckout({ plan, user, org, cycle = 'month' }) {
       displayMode: 'overlay',
       theme:       'dark',
       locale:      'en',
+      // تحويل للزبون لصفحة الشكر **بعد نجاح الدفع فقط** — تستعملها Google Ads
+      // كصفحة تحويل الشراء (لا يصلها إلا الدافع فعلاً، فالقياس دقيق 100%).
+      successUrl: typeof window !== 'undefined'
+        ? `${window.location.origin}/thankyou?plan=${plan}&cycle=${cycle}`
+        : undefined,
     },
   })
 }
