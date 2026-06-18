@@ -12,6 +12,14 @@ import { supabase } from '../lib/supabase.js'
 import { navigate } from '../Router.jsx'
 import { useRouteSeo } from '../lib/seo.js'
 import { FAQ_ITEMS } from '../lib/seoRoutes.js'
+import { ttTrack } from '../lib/tiktok.js'
+
+// TikTok ClickButton — يُطلق قبل التنقّل من أي CTA رئيسي بصفحة الهبوط.
+// الفصل بدالة واحدة بدل تكرار ttTrack بكل onClick (~6 أزرار).
+function ctaGo(target, label) {
+  ttTrack('ClickButton', { content_name: label, content_category: 'landing_cta' })
+  navigate(target)
+}
 
 // نستعمل نفس توكنات الهوية (C/GRAD) ومكوّنات kit الفخامة (PremiumCard/IconChip)
 // المستعملة في التطبيق — لا توكنات محليّة ولا بطاقات معاد بناؤها (CLAUDE.md §2.1/§19).
@@ -293,7 +301,7 @@ function Navbar({ loggedIn }) {
                 style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '8px 18px', borderRadius: 12 }}>
                 تسجيل الدخول
               </button>
-              <button onClick={() => navigate('/register')} className="lp-btn"
+              <button onClick={() => ctaGo('/register', 'nav_start_free')} className="lp-btn"
                 style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', padding: '9px 20px', borderRadius: 12, boxShadow: '0 4px 18px rgba(249,115,22,0.4)' }}>
                 ابدأ مجاناً
               </button>
@@ -326,7 +334,7 @@ function Navbar({ loggedIn }) {
                 style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '13px', borderRadius: 13 }}>
                 تسجيل الدخول
               </button>
-              <button onClick={() => { setMenuOpen(false); navigate('/register') }} className="lp-btn"
+              <button onClick={() => { setMenuOpen(false); ctaGo('/register', 'nav_mobile_start_free') }} className="lp-btn"
                 style={{ width: '100%', background: GRAD.brand, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', padding: '13px', borderRadius: 13, boxShadow: '0 4px 18px rgba(249,115,22,0.4)' }}>
                 ابدأ مجاناً
               </button>
@@ -836,7 +844,7 @@ function MegaHero() {
             Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/register')} className="lp-btn"
+            <button onClick={() => ctaGo('/register', 'hero_try_free_14d')} className="lp-btn"
               style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 38px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
               جرّب مجاناً 14 يوم
               <ArrowLeft size={18} strokeWidth={2.5} />
@@ -952,13 +960,13 @@ function MegaHero() {
             <motion.div initial={{ opacity: 0, y: 24, rotateX: 18, transformPerspective: 900 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 0.6, delay: gradDelay + 0.24, ease: [0.22, 1, 0.36, 1] }}
               style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', pointerEvents: 'auto' }}>
               <Magnetic>
-                <button onClick={() => navigate('/register')} className="lp-btn"
+                <button onClick={() => ctaGo('/register', 'mega_hero_try_free_14d')} className="lp-btn"
                   style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', padding: '14px 34px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   جرّب مجاناً 14 يوم
                   <ArrowLeft size={18} strokeWidth={2.5} />
                 </button>
               </Magnetic>
-              <button onClick={() => navigate('/demo')} className="lp-btn"
+              <button onClick={() => ctaGo('/demo', 'mega_hero_try_demo')} className="lp-btn"
                 style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '14px 26px', borderRadius: 16 }}>
                 جرّب بدون تسجيل
               </button>
@@ -1232,7 +1240,7 @@ function PricingTeaser() {
                     </div>
                   )}
                   <div style={{ fontSize: 13, color: C.textDim, marginBottom: 24, lineHeight: 1.5 }}>{plan.desc}</div>
-                  <button onClick={() => navigate('/register')} className="lp-btn"
+                  <button onClick={() => ctaGo('/register', `plan_card_${plan.name}`)} className="lp-btn"
                     style={{ width: '100%', background: plan.highlight ? `linear-gradient(135deg, ${plan.color}, ${plan.color}CC)` : `${plan.color}15`, border: `1px solid ${plan.color}30`, color: plan.highlight ? '#fff' : plan.color, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '10px', borderRadius: 12 }}>
                     ابدأ مجاناً
                   </button>
@@ -1311,7 +1319,7 @@ function FinalCTA() {
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Magnetic>
-              <button onClick={() => navigate('/register')} className="lp-btn"
+              <button onClick={() => ctaGo('/register', 'final_cta_start_trial')} className="lp-btn"
                 style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 44px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 ابدأ التجربة المجانية
                 <ArrowLeft size={18} strokeWidth={2.5} />

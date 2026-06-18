@@ -13,7 +13,7 @@ import { teamMemberSignIn as _teamSignIn } from '../../hooks/useTeam.js'
 import { useAuth } from '../../hooks/useAuth.js'
 import { hasPin as hasPinStored } from '../../lib/pinCrypto.js'
 import { navigate } from '../../Router.jsx'
-import { ttTrack } from '../../lib/tiktok.js'
+import { ttTrack, ttTrackBoth } from '../../lib/tiktok.js'
 
 const LANGS = [
   { code: 'ar', label: 'العربية', dir: 'rtl' },
@@ -221,7 +221,18 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
       // الاسم اختياري — نمرّر فارغاً ويُجمع لاحقاً في الإعداد إن تُرك
       const { data } = await signUp(email, regPass, regName.trim() || null)
       // TikTok: تحويل تسجيل ناجح (المقياس الأساسي لتقييم الإعلانات)
-      ttTrack('CompleteRegistration', { content_name: 'signup' })
+      // قناتان متزامنتان (client + server عبر Events API، deduplication بنفس event_id)
+      // → يصمد رغم adblock/iOS. والحدثان معاً: Lead (قمع التحويل الذي اخترناه
+      // بـTikTok Events Manager «Offer sign-up») + CompleteRegistration (يقاس بالـPixel).
+      const userId = data?.user?.id || data?.session?.user?.id
+      ttTrackBoth('CompleteRegistration', {
+        properties: { content_name: 'signup' },
+        user: { email, external_id: userId },
+      })
+      ttTrackBoth('Lead', {
+        properties: { content_name: 'trial_signup' },
+        user: { email, external_id: userId },
+      })
       // دخول فوري: لو رجعت الجلسة من signUp (تأكيد الإيميل مطفأ) → ندخل مباشرة.
       // وإلا نحاول تسجيل دخول تلقائي بنفس البيانات (يشتغل لحظة إطفاء التأكيد بلوحة Supabase)،
       // فإن لم تنجح (التأكيد ما زال مطلوباً) نعرض رسالة لطيفة بدل حائط «تحقّق من بريدك».
