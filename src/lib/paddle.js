@@ -43,6 +43,16 @@ export function pricesFor(cycle) {
   return cycle === 'year' ? PLAN_PRICES_ANNUAL : PLAN_PRICES
 }
 
+/** هل تمّ إعداد سعر Paddle لهذه الخطة/الدورة؟ (واجهة موحّدة مع باقي المزوّدين) */
+export function isCheckoutConfigured(cycle, plan) {
+  return !!pricesFor(cycle)[plan]
+}
+
+/** إدارة/إلغاء الاشتراك — واجهة موحّدة مع باقي المزوّدين */
+export function manageSubscription(subscription) {
+  return openCustomerPortal(subscription?.paddle_subscription_id)
+}
+
 export const PLAN_META = {
   starter: {
     name:       'Starter',

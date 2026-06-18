@@ -3,7 +3,7 @@ import { HardHat, Star, Check, X, CheckCircle2, AlertTriangle, Lightbulb, ArrowL
 import { navigate } from '../Router.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { useOrganization } from '../hooks/useOrganization.js'
-import { openCheckout, PLAN_META, pricesFor } from '../lib/paddle.js'
+import { openCheckout, isCheckoutConfigured } from '../lib/billing.js'
 import { useRouteSeo, faqLd } from '../lib/seo.js'
 
 const C = {
@@ -284,7 +284,7 @@ export default function PricingPage() {
       return
     }
 
-    if (!pricesFor(cycle)[plan]) {
+    if (!isCheckoutConfigured(cycle, plan)) {
       setCheckoutError('لم يتم إعداد رابط الدفع بعد — تواصل معنا.')
       return
     }
