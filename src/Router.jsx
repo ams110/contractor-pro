@@ -5,6 +5,7 @@ import WelcomePage from './pages/WelcomePage.jsx'
 import LegalPage   from './pages/LegalPage.jsx'
 import BlogPage    from './pages/BlogPage.jsx'
 import CookieConsent from './components/CookieConsent.jsx'
+import { ttPage } from './lib/tiktok.js'
 
 // التطبيق الكامل lazy — صفحات التسويق (هبوط/أسعار/قانونية) ما تنزّل كود التطبيق
 // والـhooks والشاشات معها، فتصغر الحزمة الأولى كثيراً (أداء أسرع على الموبايل).
@@ -30,6 +31,14 @@ export default function Router() {
     window.addEventListener('popstate', sync)
     return () => window.removeEventListener('popstate', sync)
   }, [])
+
+  // TikTok Pixel: أطلق حدث عرض صفحة عند كل تنقّل client-side (SPA).
+  // الـHTML يطلق page() الأولى تلقائياً، فنتجاهلها هنا لتفادي التكرار.
+  const firstPv = React.useRef(true)
+  useEffect(() => {
+    if (firstPv.current) { firstPv.current = false; return }
+    ttPage()
+  }, [path])
 
   // ?portal and ?worker query params always go straight to the app
   const params = new URLSearchParams(window.location.search)
