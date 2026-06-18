@@ -29,7 +29,7 @@ import { fmtDate } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
 import { useSubscription } from '../../hooks/useSubscription.js'
 import { usePlanStore, useHasFeature } from '../../store/usePlanStore.js'
-import { openCustomerPortal } from '../../lib/paddle.js'
+import { manageSubscription } from '../../lib/billing.js'
 import PortalUpsell from '../../components/PortalUpsell.jsx'
 
 const PLAN_META_UI = {
@@ -972,10 +972,10 @@ export default function SettingsScreen({
               </div>
               <span style={{ fontSize: 10, fontWeight: 800, color: pm.color, background: `${pm.color}16`, border: `1px solid ${pm.color}3a`, borderRadius: 9, padding: '4px 9px', whiteSpace: 'nowrap' }}>{pm.label}</span>
             </div>
-            {/* زر الإدارة: المشترك → بوّابة Paddle · غير المشترك → صفحة الأسعار */}
-            {paid && subscription?.paddle_subscription_id ? (
+            {/* زر الإدارة: المشترك → بوّابة المزوّد (Paddle/iCount) · غير المشترك → صفحة الأسعار */}
+            {paid && subscription ? (
               <Row icon={SlidersHorizontal} label={language === 'he' ? 'ניהול / ביטול מנוי' : language === 'en' ? 'Manage / Cancel' : 'إدارة / إلغاء الاشتراك'} color={C.gold}
-                onClick={() => openCustomerPortal(subscription.paddle_subscription_id)} last />
+                onClick={() => { manageSubscription(subscription)?.catch?.(e => alert(e.message)) }} last />
             ) : (
               <Row icon={Shield} label={language === 'he' ? 'בחר תוכנית' : language === 'en' ? 'Choose a plan' : 'اختر خطة اشتراك'} color={C.gold}
                 onClick={() => navigate('/pricing')} last />
