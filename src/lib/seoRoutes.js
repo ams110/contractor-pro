@@ -114,6 +114,10 @@ export const ROUTE_SEO = {
     title: 'أهلاً بك | Contractor Pro',
     noindex: true,
   },
+  '/thankyou': {
+    title: 'تم تفعيل اشتراكك | Contractor Pro',
+    noindex: true,
+  },
 }
 
 // يبني breadcrumb JSON-LD لمسار (الرئيسية ← الصفحة)

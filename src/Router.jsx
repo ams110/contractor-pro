@@ -4,6 +4,7 @@ import PricingPage from './pages/PricingPage.jsx'
 import WelcomePage from './pages/WelcomePage.jsx'
 import LegalPage   from './pages/LegalPage.jsx'
 import BlogPage    from './pages/BlogPage.jsx'
+import ThankYouPage from './pages/ThankYouPage.jsx'
 import CookieConsent from './components/CookieConsent.jsx'
 import { ttPage } from './lib/tiktok.js'
 
@@ -65,6 +66,7 @@ export default function Router() {
   else if (path === '/refund')   page = <LegalPage type="refund" />
   else if (path === '/contact')  page = <LegalPage type="contact" />
   else if (path === '/blog')     page = <BlogPage />
+  else if (path === '/thankyou') page = <ThankYouPage />
   else if (path === '/login')    page = <Suspense fallback={null}><LoginScreen /></Suspense>
   else if (path === '/register') page = <Suspense fallback={null}><LoginScreen initialView="register" /></Suspense>
   else                           page = <Suspense fallback={null}><App /></Suspense>
