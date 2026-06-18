@@ -152,6 +152,14 @@ async function fireTikTokSubscribe(opts: {
   }
 }
 
+// أسعار اللائحة بـILS — احتياط لو grand_total ما توفّر بالحدث (دفعات جزئية، تجارب...).
+// النسخة المرجعية في src/lib/paddle.js (PLAN_META) — حافظ على التوافق.
+const PLAN_FALLBACK_PRICE: Record<string, number> = { starter: 129, pro: 249, business: 499 }
+function fallbackPrice(plan: string, cycle: 'month' | 'year'): number {
+  const monthly = PLAN_FALLBACK_PRICE[plan] ?? 0
+  return cycle === 'year' ? monthly * 10 : monthly
+}
+
 /** يقرأ إيميل المستخدم من جدول auth.users عبر RLS bypass (service role). */
 async function getUserEmail(userId: string | undefined | null): Promise<string | null> {
   if (!userId) return null
@@ -200,9 +208,11 @@ async function handleCreated(data: Record<string, unknown>) {
 
   // TikTok Events API — Subscribe (الأقوى إشارة لـoptimization إعلانات الاشتراك)
   // يعمل بالخلفية بلا انتظار. مصدره موثوق (Paddle) فلا يتأثّر بـadblock/iOS.
+  // Paddle يرجع المبالغ بأقل وحدة (agorot لـILS) — نقسم على 100 لقيمة شيكل.
+  // احتياط: لو grand_total فاضي نرجع لسعر اللائحة (PLAN_FALLBACK_PRICE).
   const cycleStr = (data.billing_cycle as { interval?: string } | null)?.interval === 'year' ? 'year' : 'month'
   const total    = (data.recurring_transaction_details as { totals?: { grand_total?: string } } | null)?.totals?.grand_total
-  const value    = total ? Number(total) : undefined
+  const value    = total ? Number(total) / 100 : fallbackPrice(plan, cycleStr)
   const email    = await getUserEmail(userId)
   fireTikTokSubscribe({ userId, email, plan, cycle: cycleStr, value }).catch(() => {})
 }
