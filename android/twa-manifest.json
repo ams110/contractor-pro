@@ -1,5 +1,5 @@
 {
-  "packageId": "services.linko.app",
+  "packageId": "app.linko.services",
   "host": "app.linko.services",
   "name": "Contractor Pro",
   "launcherName": "Contractor Pro",

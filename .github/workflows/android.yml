@@ -136,7 +136,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: services.linko.app
+          packageName: app.linko.services
           releaseFiles: android/app-release-bundle.aab
           track: ${{ inputs.track }}
           status: ${{ inputs.status }}
