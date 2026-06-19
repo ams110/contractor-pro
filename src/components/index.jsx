@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, Check, X } from 'lucide-react'
+import { AlertTriangle, Check, X, Hammer } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 
 /* ─── AnimatedNumber ─── */
@@ -322,15 +322,48 @@ export function SuccessToast({ message, onClose }) {
   )
 }
 
-/* ─── LoadingSpinner ─── */
-export function LoadingSpinner() {
+/* ─── LoadingSpinner — شاكوش يدقّ (طابع المقاولات) ─── */
+// شاكوش يتأرجح/يدقّ + توهّج نابض + ٣ نقاط متتابعة بألوان الهوية. CSS نقيّ ومستقلّ
+// (يعمل حتى كـ Suspense fallback قبل تحميل framer). يحترم prefers-reduced-motion.
+export function LoadingSpinner({ size = 60, label }) {
+  const dot = Math.max(5, Math.round(size * 0.1))
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 40 }}>
-      <div style={{ position: 'relative', width: 44, height: 44 }}>
-        <div style={{ position: 'absolute', inset: 0, border: `3px solid ${C.border}`, borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', inset: 0, border: '3px solid transparent', borderTopColor: C.primary, borderRadius: '50%', animation: 'spin .75s linear infinite' }} />
-        <div style={{ position: 'absolute', inset: 7, border: '2px solid transparent', borderTopColor: C.secondary, borderRadius: '50%', animation: 'spin .5s linear infinite reverse' }} />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32 }}>
+      <style>{`
+        @keyframes cpHmrTap  { 0%,26%{transform:rotate(-18deg)} 44%{transform:rotate(14deg)} 60%,100%{transform:rotate(-18deg)} }
+        @keyframes cpHmrGlow { 0%,100%{opacity:.28;transform:translate(-50%,-50%) scale(.92)} 50%{opacity:.58;transform:translate(-50%,-50%) scale(1.12)} }
+        @keyframes cpHmrSpark{ 0%,40%{opacity:0;transform:translate(-50%,0) scaleY(.2)} 48%{opacity:.95;transform:translate(-50%,0) scaleY(1)} 74%,100%{opacity:0;transform:translate(-50%,0) scaleY(1)} }
+        @keyframes cpHmrDot  { 0%,75%,100%{opacity:.22;transform:scale(.75)} 38%{opacity:1;transform:scale(1)} }
+        @media (prefers-reduced-motion: reduce){ .cp-hmr *{animation-duration:0s!important;animation-iteration-count:1!important} }
+      `}</style>
+
+      <div className="cp-hmr" style={{ position: 'relative', width: size, height: size }}>
+        {/* توهّج نابض */}
+        <div style={{ position: 'absolute', top: '52%', left: '50%', width: size * 0.95, height: size * 0.95, borderRadius: '50%', background: `radial-gradient(circle, ${C.primary}55, transparent 70%)`, animation: 'cpHmrGlow 1.05s ease-in-out infinite' }} />
+
+        {/* الشاكوش يدقّ */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ transformOrigin: '32% 78%', animation: 'cpHmrTap 1.05s cubic-bezier(.45,0,.25,1) infinite', filter: `drop-shadow(0 3px 8px ${C.primary}70)` }}>
+            <Hammer size={size * 0.64} color={C.primary} strokeWidth={2.2} />
+          </div>
+        </div>
+
+        {/* شرر ارتطام صغير عند رأس الشاكوش (أعلى يمين) */}
+        <div style={{ position: 'absolute', top: size * 0.12, right: size * 0.12, width: size * 0.28, height: size * 0.28 }}>
+          {[-38, 0, 38].map((deg, i) => (
+            <span key={i} style={{ position: 'absolute', left: '50%', top: 0, width: 2, height: size * 0.13, borderRadius: 2, background: `linear-gradient(180deg, ${C.gold}, transparent)`, transformOrigin: 'top', transform: `translate(-50%,0) rotate(${deg}deg)`, animation: `cpHmrSpark 1.05s ease-out ${i * 0.02}s infinite` }} />
+          ))}
+        </div>
       </div>
+
+      {/* نقاط تحميل متتابعة */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {[C.primary, C.gold, C.secondary].map((c, i) => (
+          <span key={i} style={{ width: dot, height: dot, borderRadius: '50%', background: c, boxShadow: `0 0 6px ${c}80`, animation: `cpHmrDot 1.05s ease-in-out ${i * 0.16}s infinite` }} />
+        ))}
+      </div>
+
+      {label && <div style={{ fontSize: 12, fontWeight: 700, color: C.textDim, letterSpacing: '.02em' }}>{label}</div>}
     </div>
   )
 }
