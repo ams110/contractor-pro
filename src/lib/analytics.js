@@ -5,6 +5,12 @@
 
 export const GA_ID = 'G-KFGX0K1VT5'
 
+// مُعرّف وسم Google Ads (AW-XXXXXXXXX) — لتسجيل التحويلات في حساب الإعلانات.
+// يُحمَّل عبر نفس gtag.js مع GA4، فحدث conversion_event_signup (وأي تحويل آخر)
+// يُحتسب في Google Ads تلقائياً. اتركه فارغاً = التحويلات تروح GA4 فقط (بلا كسر).
+// املأه بمُعرّفك من: Google Ads → Tools → Conversions → الوسم.
+export const GADS_ID = ''
+
 let initialized = false
 
 /** نقيّة: هل القيمة المخزّنة تعني موافقة على التحليلات؟ */
@@ -39,6 +45,20 @@ export function initAnalytics(_alreadyGranted = false, id = GA_ID) {
   document.head.appendChild(s)
   gtag('js', new Date())
   gtag('config', id, { anonymize_ip: true })
+  // وسم Google Ads على نفس gtag (إن ضُبط) — يفعّل احتساب التحويلات في الإعلانات
+  if (GADS_ID) gtag('config', GADS_ID)
+}
+
+/**
+ * يسجّل تحويل Google Ads عبر حدث gtag باسم إجراء التحويل (مثلاً
+ * conversion_event_signup). آمن إن لم يُحمّل gtag. لا حاجة لـhelper تأخير
+ * التنقّل (gtagSendEvent) لأنّ التطبيق SPA — التنقّل لا يقطع البيكون.
+ * @param {string} name اسم حدث التحويل من Google Ads
+ * @param {object} [params] قيمة/عملة اختيارية (value/currency) لتحويلات الإيراد
+ */
+export function trackAdsConversion(name, params = {}) {
+  if (typeof window === 'undefined' || !window.dataLayer || !name) return
+  gtag('event', name, params)
 }
 
 /** يرفع الموافقة إلى granted بعد ضغط المستخدم «موافق» (يفعّل كوكيز التحليلات). */

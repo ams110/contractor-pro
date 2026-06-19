@@ -13,7 +13,7 @@
 // غاب أي مزوّد. **استعمل هذه الطبقة بدل نداء analytics/tiktok مباشرة** لأي حدث
 // قمع جديد — هيك يبقى القياس موحّداً على المنصّتين بلا تكرار أو انجراف.
 
-import { trackEvent, pageview, setAnalyticsUser } from './analytics.js'
+import { trackEvent, pageview, setAnalyticsUser, trackAdsConversion } from './analytics.js'
 import { ttTrack, ttTrackBoth, ttIdentify } from './tiktok.js'
 
 const CUR = 'ILS' // كل المبالغ بالشيكل — لازم لحساب ROAS بدقّة على المنصّتين
@@ -75,6 +75,9 @@ export function trackBeginCheckout({ plan, cycle, value } = {}) {
 export function trackSignUp({ email, userId } = {}) {
   trackEvent('sign_up', { method: 'email' })
   trackEvent('generate_lead', { currency: CUR })
+  // تحويل Google Ads — إجراء التحويل المُنشأ في حساب الإعلانات (يُحتسب فقط إن
+  // ضُبط GADS_ID؛ وإلا يبقى حدثاً عادياً في GA4 بلا كسر).
+  trackAdsConversion('conversion_event_signup')
   const user = { email, external_id: userId }
   ttTrackBoth('CompleteRegistration', { properties: { content_name: 'signup' }, user })
   ttTrackBoth('Lead', { properties: { content_name: 'trial_signup' }, user })

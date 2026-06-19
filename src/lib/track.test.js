@@ -84,6 +84,11 @@ describe('trackSignUp — تسجيل (القناتان + بيانات هوية)'
     expect(ttEvents).toContain('CompleteRegistration')
     expect(ttEvents).toContain('Lead')
   })
+
+  it('يطلق تحويل Google Ads conversion_event_signup', () => {
+    trackSignUp({ email: 'a@b.com', userId: 'u1' })
+    expect(gaEventNames()).toContain('conversion_event_signup')
+  })
 })
 
 describe('trackLogin — GA فقط (ليس حدث تحويل إعلاني)', () => {
