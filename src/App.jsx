@@ -38,6 +38,7 @@ import BiometricConfirmModal   from './components/BiometricConfirmModal.jsx'
 import { useBiometricConfirm } from './hooks/useBiometricConfirm.js'
 import SessionLockScreen       from './components/SessionLockScreen.jsx'
 import ConnectionStatus        from './components/ConnectionStatus.jsx'
+import Celebration             from './components/Celebration.jsx'
 import ScreenSkeleton          from './components/ScreenSkeleton.jsx'
 import { LoadingSpinner }       from './components/index.jsx'
 import { usePushNotifications } from './hooks/usePushNotifications.js'
@@ -778,6 +779,9 @@ function OwnerApp() {
       {/* ─── Biometric Confirm ─── */}
       <BiometricConfirmModal />
       <SessionLockScreen />
+
+      {/* ─── Celebration bursts (لحظات الفوز) ─── */}
+      <Celebration />
 
       {/* ─── Smart Search (cmdk) ─── */}
       <SmartSearch projects={projects} employees={employees} expenses={expenses} payments={payments} onNav={nav => { setScreen(nav); setShowSearch(false) }} />

@@ -81,7 +81,7 @@ export default function IncomeTab({
     () => businesses.find(b => b.id === activeBizId) ?? businesses[0] ?? null,
     [businesses, activeBizId]
   )
-  const { showToast } = useAppStore()
+  const { showToast, celebrate } = useAppStore()
   const { confirm: bioConfirm } = useBiometricConfirm()
 
   const [entries,     setEntries]     = useState([])
@@ -176,6 +176,7 @@ export default function IncomeTab({
     setEntries(prev => [data, ...prev])
     onMutate?.()
     showToast('تم تسجيل القبضة')
+    celebrate('money')
   }
 
   async function handleDelete(id) {
