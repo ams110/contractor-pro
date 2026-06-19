@@ -1,5 +1,5 @@
 import { initializePaddle } from '@paddle/paddle-js'
-import { ttTrack } from './tiktok.js'
+import { trackBeginCheckout } from './track.js'
 
 // ─── Singleton paddle instance ────────────────────────────────────────────────
 let _paddle = null
@@ -90,9 +90,12 @@ export async function openCheckout({ plan, user, org, cycle = 'month' }) {
     throw new Error(`No Paddle price configured for plan "${plan}" (${cycle}). Set VITE_PADDLE_PRICE_${suffix} in your .env`)
   }
 
-  // TikTok: نيّة اشتراك (فتح صفحة الدفع) — إشارة تحويل قويّة لتقييم الإعلانات.
-  // إتمام الشراء الفعلي يُسجَّل خادمياً عبر paddle-webhook.
-  ttTrack('InitiateCheckout', { content_name: plan, content_type: cycle, currency: 'ILS' })
+  // نيّة اشتراك (فتح صفحة الدفع) — إشارة تحويل قويّة لتقييم الإعلانات، تُطلق على
+  // القناتين (GA4 begin_checkout + TikTok InitiateCheckout). إتمام الشراء الفعلي
+  // يُسجَّل خادمياً عبر paddle-webhook. value مطلوب لحساب ROAS بدقّة.
+  const monthly = PLAN_META[plan]?.price ?? 0
+  const value = cycle === 'year' ? monthly * 10 : monthly
+  trackBeginCheckout({ plan, cycle, value })
 
   paddle.Checkout.open({
     items: [{ priceId, quantity: 1 }],

@@ -100,6 +100,74 @@ async function notifyUser(userId: string | null | undefined, title: string, body
   if (error) console.error('paddle-webhook: notification insert error', error)
 }
 
+// ─── TikTok Events API (server-side Subscribe) ───────────────────────────────
+// نطلق Subscribe من الـwebhook لأنّه أوثق مصدر للحدث (مضمون من Paddle نفسها،
+// لا يتأثّر بـadblock أو إغلاق المتصفّح). Client يطلق CompletePayment على
+// /thankyou لو فُتحت — حدثان منفصلان عمداً (Subscribe = اشتراك دوري ناجح،
+// CompletePayment = صفحة الشكر فُتحت). TikTok يدمج بنفس event_id لو تطابقا.
+const TT_ENDPOINT     = 'https://business-api.tiktok.com/open_api/v1.3/event/track/'
+const TT_PIXEL_ID     = Deno.env.get('TIKTOK_PIXEL_ID')     ?? ''
+const TT_ACCESS_TOKEN = Deno.env.get('TIKTOK_ACCESS_TOKEN') ?? ''
+
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function fireTikTokSubscribe(opts: {
+  userId?: string | null
+  email?: string | null
+  plan: string
+  cycle: 'month' | 'year'
+  value?: number
+}) {
+  if (!TT_PIXEL_ID || !TT_ACCESS_TOKEN) return
+  try {
+    const emailHash = opts.email ? await sha256Hex(opts.email.trim().toLowerCase()) : undefined
+    const idHash    = opts.userId ? await sha256Hex(opts.userId.trim()) : undefined
+    const payload = {
+      event_source: 'web',
+      event_source_id: TT_PIXEL_ID,
+      data: [{
+        event: 'Subscribe',
+        event_time: Math.floor(Date.now() / 1000),
+        event_id:   crypto.randomUUID(),
+        user: { email: emailHash, external_id: idHash },
+        properties: {
+          content_name: opts.plan,
+          content_type: opts.cycle,
+          currency:     'ILS',
+          value:        opts.value ?? 0,
+        },
+      }],
+    }
+    const res = await fetch(TT_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Access-Token': TT_ACCESS_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) console.error('paddle-webhook: tiktok subscribe failed', res.status, await res.text())
+  } catch (err) {
+    console.error('paddle-webhook: tiktok subscribe error', err)
+  }
+}
+
+// أسعار اللائحة بـILS — احتياط لو grand_total ما توفّر بالحدث (دفعات جزئية، تجارب...).
+// النسخة المرجعية في src/lib/paddle.js (PLAN_META) — حافظ على التوافق.
+const PLAN_FALLBACK_PRICE: Record<string, number> = { starter: 129, pro: 249, business: 499 }
+function fallbackPrice(plan: string, cycle: 'month' | 'year'): number {
+  const monthly = PLAN_FALLBACK_PRICE[plan] ?? 0
+  return cycle === 'year' ? monthly * 10 : monthly
+}
+
+/** يقرأ إيميل المستخدم من جدول auth.users عبر RLS bypass (service role). */
+async function getUserEmail(userId: string | undefined | null): Promise<string | null> {
+  if (!userId) return null
+  const { data, error } = await supabase.auth.admin.getUserById(userId)
+  if (error) { console.error('paddle-webhook: getUserById', error); return null }
+  return data?.user?.email ?? null
+}
+
 // ─── Event handlers ───────────────────────────────────────────────────────────
 
 async function handleCreated(data: Record<string, unknown>) {
@@ -137,6 +205,16 @@ async function handleCreated(data: Record<string, unknown>) {
     .eq('id', orgId)
 
   if (orgErr) console.error('paddle-webhook: org update error', orgErr)
+
+  // TikTok Events API — Subscribe (الأقوى إشارة لـoptimization إعلانات الاشتراك)
+  // يعمل بالخلفية بلا انتظار. مصدره موثوق (Paddle) فلا يتأثّر بـadblock/iOS.
+  // Paddle يرجع المبالغ بأقل وحدة (agorot لـILS) — نقسم على 100 لقيمة شيكل.
+  // احتياط: لو grand_total فاضي نرجع لسعر اللائحة (PLAN_FALLBACK_PRICE).
+  const cycleStr = (data.billing_cycle as { interval?: string } | null)?.interval === 'year' ? 'year' : 'month'
+  const total    = (data.recurring_transaction_details as { totals?: { grand_total?: string } } | null)?.totals?.grand_total
+  const value    = total ? Number(total) / 100 : fallbackPrice(plan, cycleStr)
+  const email    = await getUserEmail(userId)
+  fireTikTokSubscribe({ userId, email, plan, cycle: cycleStr, value }).catch(() => {})
 }
 
 async function handleUpdated(data: Record<string, unknown>) {

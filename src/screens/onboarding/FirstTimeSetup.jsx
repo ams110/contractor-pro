@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Building2, Plus, Sparkles, ChevronLeft, HardHat, Users, Wallet } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
+import { useAppStore } from '../../store/useAppStore.js'
 import BusinessSetup from '../finance/BusinessSetup.jsx'
 
 const LANG = {
@@ -60,6 +61,7 @@ export default function FirstTimeSetup({ language = 'ar' }) {
     try {
       await create({ name: t.default_name, business_type: 'osek_patur' })
       await load()
+      useAppStore.getState().celebrate('win', { label: 'مرحباً بك!' })
     } catch (e) {
       console.error(e)
       setErr('حدث خطأ — حاول مجدداً')
@@ -80,7 +82,7 @@ export default function FirstTimeSetup({ language = 'ar' }) {
             <ChevronLeft size={16} />
             {t.back}
           </button>
-          <BusinessSetup onDone={() => load()} />
+          <BusinessSetup onDone={() => { load(); useAppStore.getState().celebrate('win', { label: 'مرحباً بك!' }) }} />
         </div>
       </div>
     )

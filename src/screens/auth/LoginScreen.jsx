@@ -13,7 +13,7 @@ import { teamMemberSignIn as _teamSignIn } from '../../hooks/useTeam.js'
 import { useAuth } from '../../hooks/useAuth.js'
 import { hasPin as hasPinStored } from '../../lib/pinCrypto.js'
 import { navigate } from '../../Router.jsx'
-import { ttTrack } from '../../lib/tiktok.js'
+import { trackSignUp, trackLogin } from '../../lib/track.js'
 
 const LANGS = [
   { code: 'ar', label: 'العربية', dir: 'rtl' },
@@ -147,6 +147,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     setLoading(true); setError('')
     try {
       await signInWithPasskey()
+      trackLogin('passkey')
       navigate('/welcome')
     } catch (e) {
       if (e.name === 'SessionExpiredError' || e.message?.includes('SESSION_EXPIRED')) {
@@ -172,6 +173,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     try {
       await signInWithPin(candidate)
       setPinPhase('success')
+      trackLogin('pin')
       setTimeout(() => navigate('/welcome'), 350)
     } catch (e) {
       if (e.message?.includes('SESSION_EXPIRED')) {
@@ -193,7 +195,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     if (!email || !password) return
     setLoading(true); setError('')
     const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-    if (err) { setError(err.message || t('auth.wrongCredentials')) } else { navigate('/welcome') }
+    if (err) { setError(err.message || t('auth.wrongCredentials')) } else { trackLogin('password'); navigate('/welcome') }
     setLoading(false)
   }
 
@@ -204,6 +206,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     setLoading(true); setError('')
     try {
       await _teamSignIn(teamCode, teamPass)
+      trackLogin('team')
       navigate('/welcome')
     } catch (err) {
       setError(err.message || t('auth.wrongCredentials'))
@@ -220,8 +223,12 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
       const email = regEmail.trim()
       // الاسم اختياري — نمرّر فارغاً ويُجمع لاحقاً في الإعداد إن تُرك
       const { data } = await signUp(email, regPass, regName.trim() || null)
-      // TikTok: تحويل تسجيل ناجح (المقياس الأساسي لتقييم الإعلانات)
-      ttTrack('CompleteRegistration', { content_name: 'signup' })
+      // تحويل تسجيل ناجح (المقياس الأساسي لتقييم الإعلانات) على القناتين:
+      // GA4 (sign_up + generate_lead) وTikTok (CompleteRegistration + Lead،
+      // client + server عبر Events API بنفس event_id → deduplication يصمد رغم
+      // adblock/iOS). كله موحّد في trackSignUp.
+      const userId = data?.user?.id || data?.session?.user?.id
+      trackSignUp({ email, userId })
       // دخول فوري: لو رجعت الجلسة من signUp (تأكيد الإيميل مطفأ) → ندخل مباشرة.
       // وإلا نحاول تسجيل دخول تلقائي بنفس البيانات (يشتغل لحظة إطفاء التأكيد بلوحة Supabase)،
       // فإن لم تنجح (التأكيد ما زال مطلوباً) نعرض رسالة لطيفة بدل حائط «تحقّق من بريدك».

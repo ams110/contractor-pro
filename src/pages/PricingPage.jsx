@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth.js'
 import { useOrganization } from '../hooks/useOrganization.js'
 import { openCheckout, PLAN_META, pricesFor } from '../lib/paddle.js'
 import { useRouteSeo, faqLd } from '../lib/seo.js'
+import { trackViewPricing } from '../lib/track.js'
 
 const C = {
   bg:        '#07080F',
@@ -272,6 +273,12 @@ export default function PricingPage() {
   const [checkoutSuccess, setCheckoutSuccess] = useState(
     new URLSearchParams(window.location.search).get('checkout') === 'success'
   )
+
+  // عرض صفحة الأسعار على القناتين (GA4 view_item_list + TikTok ViewContent) —
+  // إشارة قمع وسطى يحتاجها الخوارزم للتعلّم.
+  useEffect(() => {
+    trackViewPricing(cycle)
+  }, [])
 
   async function handleSubscribe(plan) {
     setCheckoutError('')

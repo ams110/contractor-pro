@@ -61,6 +61,7 @@ function buildHtml(path, meta) {
 }
 
 let count = 0
+const indexable = []
 for (const [path, meta] of Object.entries(ROUTE_SEO)) {
   if (meta.noindex) continue            // صفحات داخلية (welcome) لا تُولَّد ثابتة
   const html = buildHtml(path, meta)
@@ -71,6 +72,32 @@ for (const [path, meta] of Object.entries(ROUTE_SEO)) {
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, 'index.html'), html)
   }
+  indexable.push(path)
   count++
 }
-console.log(`✓ prerender: ${count} صفحة ثابتة (${Object.keys(ROUTE_SEO).filter(p => !ROUTE_SEO[p].noindex).join(', ')})`)
+console.log(`✓ prerender: ${count} صفحة ثابتة (${indexable.join(', ')})`)
+
+// ─── sitemap.xml مولّد (نفس مصدر المسارات) ──────────────────────────────────────
+// يُبنى من المسارات القابلة للفهرسة (يستثني noindex تلقائياً) مع lastmod = تاريخ
+// البناء، فيبقى طازجاً بلا صيانة يدوية. أولوية/تكرار لكل مسار عبر خريطة صغيرة.
+const SITEMAP_META = {
+  '/':        { priority: '1.0', changefreq: 'weekly'  },
+  '/pricing': { priority: '0.8', changefreq: 'monthly' },
+  '/blog':    { priority: '0.7', changefreq: 'weekly'  },
+  '/login':   { priority: '0.5', changefreq: 'monthly' },
+  '/register':{ priority: '0.5', changefreq: 'monthly' },
+  // قانونية — نادرة التغيّر
+  '/terms':   { priority: '0.3', changefreq: 'yearly'  },
+  '/privacy': { priority: '0.3', changefreq: 'yearly'  },
+  '/refund':  { priority: '0.3', changefreq: 'yearly'  },
+  '/contact': { priority: '0.3', changefreq: 'yearly'  },
+}
+const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+const urls = indexable.map((path) => {
+  const loc = ORIGIN + (path === '/' ? '/' : path)
+  const m = SITEMAP_META[path] || { priority: '0.5', changefreq: 'monthly' }
+  return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${m.changefreq}</changefreq>\n    <priority>${m.priority}</priority>\n  </url>`
+}).join('\n')
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`
+writeFileSync(join(DIST, 'sitemap.xml'), sitemap)
+console.log(`✓ sitemap: ${indexable.length} مسار (lastmod ${today})`)

@@ -2,8 +2,17 @@ import React, { useEffect, useState } from 'react'
 import { CheckCircle2, HardHat, ArrowLeft } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { navigate } from '../Router.jsx'
-import { trackEvent } from '../lib/analytics.js'
-import { ttTrack } from '../lib/tiktok.js'
+import { trackPurchase } from '../lib/track.js'
+import { useAppStore } from '../store/useAppStore.js'
+import { PLAN_META } from '../lib/paddle.js'
+import { supabase } from '../lib/supabase.js'
+
+// قيمة الصفقة لتقارير ROAS — السنوي = شهري × 10 (خصم شهرين، نفس حساب PricingPage).
+function planValue(plan, cycle) {
+  const monthly = PLAN_META[plan]?.price
+  if (!monthly) return 0
+  return cycle === 'year' ? monthly * 10 : monthly
+}
 
 // صفحة الشكر بعد نجاح الدفع — يصلها الزبون **فقط** عبر successUrl من Paddle.
 // تُستعمل كصفحة تحويل الشراء في Google Ads (قياس دقيق: لا يصلها إلا الدافع)،
@@ -15,11 +24,21 @@ export default function ThankYouPage() {
     const params = new URLSearchParams(window.location.search)
     const p = params.get('plan') || ''
     const cycle = params.get('cycle') || 'month'
+    const value = planValue(p, cycle)
     setPlan(p)
 
-    // أحداث تحويل الشراء — مرّة واحدة عند فتح الصفحة
-    trackEvent('purchase', { plan: p, cycle, currency: 'ILS' })
-    ttTrack('CompletePayment', { content_name: p, content_type: cycle, currency: 'ILS' })
+    // حدث تحويل الشراء — مرّة واحدة عند فتح الصفحة — على القناتين (GA4 purchase +
+    // TikTok CompletePayment، client + server). paddle-webhook يطلق Subscribe
+    // مستقلاً → TikTok يدمج عبر event_id فلا تكرار. value مطلوب لحساب ROAS.
+    useAppStore.getState().celebrate('win', { label: 'مبروك الاشتراك!' })
+    ;(async () => {
+      const { data } = await supabase.auth.getUser().catch(() => ({ data: null }))
+      trackPurchase({
+        plan: p, cycle, value,
+        email: data?.user?.email,
+        userId: data?.user?.id,
+      })
+    })()
   }, [])
 
   return (

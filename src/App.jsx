@@ -22,6 +22,7 @@ import { useOrganization }     from './hooks/useOrganization.js'
 import { setPlanInfo }         from './store/usePlanStore.js'
 import FeatureGate             from './components/FeatureGate.jsx'
 import { setSentryUser }       from './lib/sentry.js'
+import { identifyUser }         from './lib/track.js'
 import { useProjects, useEmployees, useWorkDays, useExpenses, usePayments, useClientReceipts, useHolidays, useAdvances, useTaxAdvances } from './hooks/useData.js'
 import { useSettings }         from './hooks/useSettings.js'
 import { useProfile }          from './hooks/useProfile.js'
@@ -350,8 +351,12 @@ function OwnerApp() {
 
   const { org, loading: orgLoading, isPlanActive, isTrialActive, trialDaysLeft } = useOrganization(uid)
 
-  // ربط هوية المستخدم بتقارير الأخطاء (Sentry) — خامل ما لم يُضبط DSN
-  useEffect(() => { setSentryUser(user || null) }, [user])
+  // ربط هوية المستخدم بتقارير الأخطاء (Sentry) + تحليلات القمع (GA4 user_id +
+  // TikTok identify) — يغطّي كل الجلسات المصادَقة لقياس أدقّ عبر الأجهزة.
+  useEffect(() => {
+    setSentryUser(user || null)
+    identifyUser(user ? { id: user.id, email: user.email } : null)
+  }, [user])
 
   // مزامنة معلومات الخطة لمخزن مشترك تقرأه الشاشات لتقييد الميزات (بدون prop-drilling)
   useEffect(() => {
@@ -448,7 +453,7 @@ function OwnerApp() {
   const _rejectWorkDay  = (id, r) => rejectWorkDay(id, r).then(() => showToast('رُفض يوم العمل', 'warning'))
   const _approveExpense = id      => approveExpense(id).then(() => showToast('تمت الموافقة على المصروف'))
   const _rejectExpense  = (id, r) => rejectExpense(id, r).then(() => showToast('رُفض المصروف', 'warning'))
-  const _approvePayment = id      => approvePaymentRequest(id).then(() => showToast('تمت الموافقة على الدفعة'))
+  const _approvePayment = id      => approvePaymentRequest(id).then(() => { showToast('تمت الموافقة على الدفعة'); useAppStore.getState().celebrate('success') })
   const _rejectPayment  = (id, r) => rejectPaymentRequest(id, r).then(() => showToast('رُفضت الدفعة', 'warning'))
 
   // تأكيد بصمة للدفعات فوق حدّ يضبطه المالك (payment_bio_threshold، 0 = معطّل)
@@ -459,7 +464,9 @@ function OwnerApp() {
       const sig = await _bioConfirm(`تأكيد دفعة ${form.amount}₪`, 'payments')
       if (!sig) throw new Error('مطلوب تأكيد بصمة لاعتماد هذه الدفعة')
     }
-    return addPayment(form)
+    const res = await addPayment(form)
+    useAppStore.getState().celebrate('money')
+    return res
   }
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
