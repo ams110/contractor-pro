@@ -8,8 +8,7 @@ export const GA_ID = 'G-KFGX0K1VT5'
 // مُعرّف وسم Google Ads (AW-XXXXXXXXX) — لتسجيل التحويلات في حساب الإعلانات.
 // يُحمَّل عبر نفس gtag.js مع GA4، فحدث conversion_event_signup (وأي تحويل آخر)
 // يُحتسب في Google Ads تلقائياً. اتركه فارغاً = التحويلات تروح GA4 فقط (بلا كسر).
-// املأه بمُعرّفك من: Google Ads → Tools → Conversions → الوسم.
-export const GADS_ID = ''
+export const GADS_ID = 'AW-18239676814'
 
 let initialized = false
 
