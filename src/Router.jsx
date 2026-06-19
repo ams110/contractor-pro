@@ -65,6 +65,7 @@ export default function Router() {
   else if (path === '/privacy')  page = <LegalPage type="privacy" />
   else if (path === '/refund')   page = <LegalPage type="refund" />
   else if (path === '/contact')  page = <LegalPage type="contact" />
+  else if (path === '/delete-account') page = <LegalPage type="delete-account" />
   else if (path === '/blog')     page = <BlogPage />
   else if (path === '/thankyou') page = <ThankYouPage />
   else if (path === '/login')    page = <Suspense fallback={null}><LoginScreen /></Suspense>

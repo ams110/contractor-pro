@@ -100,6 +100,11 @@ export const ROUTE_SEO = {
     description: 'تواصل مع فريق Contractor Pro للدعم والاستفسارات.',
     crumb: 'تواصل معنا',
   },
+  '/delete-account': {
+    title: 'حذف الحساب والبيانات | Contractor Pro',
+    description: 'كيفية طلب حذف حسابك في Contractor Pro وكل البيانات المرتبطة به نهائياً.',
+    crumb: 'حذف الحساب',
+  },
   '/login': {
     title: 'تسجيل الدخول | Contractor Pro',
     description: 'سجّل دخولك إلى Contractor Pro لإدارة مشاريع مقاولاتك وعمّالك ورواتبك.',
