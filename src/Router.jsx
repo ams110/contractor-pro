@@ -7,6 +7,7 @@ import BlogPage    from './pages/BlogPage.jsx'
 import ThankYouPage from './pages/ThankYouPage.jsx'
 import CookieConsent from './components/CookieConsent.jsx'
 import Celebration from './components/Celebration.jsx'
+import HammerPreview from './pages/_HammerPreview.jsx'
 import { ttPage } from './lib/tiktok.js'
 
 // التطبيق الكامل lazy — صفحات التسويق (هبوط/أسعار/قانونية) ما تنزّل كود التطبيق
@@ -44,6 +45,8 @@ export default function Router() {
 
   // ?portal and ?worker query params always go straight to the app
   const params = new URLSearchParams(window.location.search)
+
+  if (import.meta.env?.DEV && params.has('hammers')) return <HammerPreview />
   if (params.has('portal') || params.has('worker')) return <Suspense fallback={null}><App /></Suspense>
 
   // /demo (أو ?demo) — الديمو العام التفاعلي: التطبيق الحقيقي ببيانات وهمية بلا تسجيل
