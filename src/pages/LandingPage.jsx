@@ -3,26 +3,28 @@ import {
   HardHat, BarChart3, Users, CalendarDays, Receipt,
   CheckCircle2, ArrowLeft, Shield, Smartphone, TrendingUp,
   Menu, X, Building2, Wallet, Settings, LayoutDashboard,
-  Bell, Search, CircleDot
+  Bell, Search, CircleDot, Sun, CloudSun, MapPin, Check, Hourglass,
+  Activity, Clock, ChevronLeft, Sparkles,
 } from 'lucide-react'
 import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue, useReducedMotion } from 'framer-motion'
 import { C, GRAD } from '../constants/index.js'
-import { PremiumCard, IconChip, HolographicSheen, useCountUp } from '../ui/Premium.jsx'
+import { PremiumCard, IconChip, HolographicSheen, useCountUp, TONES } from '../ui/Premium.jsx'
 import { supabase } from '../lib/supabase.js'
 import { navigate } from '../Router.jsx'
 
 // نستعمل نفس توكنات الهوية (C/GRAD) ومكوّنات kit الفخامة (PremiumCard/IconChip)
 // المستعملة في التطبيق — لا توكنات محليّة ولا بطاقات معاد بناؤها (CLAUDE.md §2.1/§19).
 //
-// بنية الصفحة — «المخطط الهندسي الحي» هي الروح: الصفحة دفتر مخططات معماري.
-// - الهيرو = ورقة الغلاف CP-00: رسمة موقع (مبنى + رافعة) بخط المخططات ترسم
-//   حالها (SVG pathLength)، عنوان «مُقاس» بخطوط أبعاد، وختم «جاهز للتنفيذ».
-// - كل قسم رئيسي «ورقة» مرقّمة بإطار Sheet موحّد (زوايا + رقم + شبكة سماوية):
-//   CP-01 مخطط الشاشة (التلفون الحي + #features) · CP-02 الميزات · CP-03 الأسعار.
-// كله Framer Motion + SVG (بلا WebGL) — خفيف وسريع.
+// النسخة «التطبيق نفسه» — كل المحتوى والتصميم من التطبيق الحقيقي بنفس الـDNA:
+// 1) الهيرو = لوحة التحكم الحيّة داخل إطار التطبيق: نبض المصلحة بعدّاده الدائري
+//    النابض + بطاقات KPI + مخطّط شهري + كرت مشروع — مبنية بنفس kit الفخامة
+//    (PremiumCard/IconChip/useCountUp/HolographicSheen/Gauge) وتتنفّس قدام الزائر.
+// 2) «من الفوضى للنظام»: تذاكر شِفت وكروت مشاريع وصفوف رواتب طبق الأصل من
+//    مكوّنات التطبيق تنشفط جوّا التلفون الحي.
+// 3) ورقة CP-01 «نماذج حية» · CP-02 الميزات · CP-03 الأسعار.
 //
-// 💾 نسخ محفوظة بتاريخ الفرع: «المدينة الحيّة» (Three.js) commit b8a0ab7 ·
-//    «من الفوضى للنظام» commit 7986143.
+// 💾 نسخ محفوظة بتاريخ الفرع: المدينة الحيّة b8a0ab7 · الفوضى→النظام 7986143 ·
+//    المخطط الهندسي 6f9006e · الهجينة 09ab2df.
 
 // دخول موحّد بروح 3D: يطلع من العمق مع ميلان خفيف.
 const rise = (delay = 0) => ({
@@ -60,9 +62,15 @@ const css = `
   /* شبكة قسم «جوّا التطبيق» + فولباك تقليل الحركة */
   .lp-cinema-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; max-width: 1000px; width: 100%; }
   @media (max-width: 860px) { .lp-cinema-grid { grid-template-columns: 1fr; gap: 24px; } }
-  /* شبكة هيرو المخطط: نص + رسمة (عمود واحد على الموبايل) */
+  /* شبكة هيرو المخطط: نص + المشهد الحي (عمود واحد على الموبايل) */
   .lp-hero-grid { display: grid; grid-template-columns: 1.04fr 1fr; align-items: center; max-width: 1180px; margin: 0 auto; gap: 10px; padding: 26px 26px 64px; }
-  @media (max-width: 900px) { .lp-hero-grid { grid-template-columns: 1fr; padding: 40px 18px 76px; } }
+  .lp-hero-canvas { height: clamp(420px, 64vh, 600px); }
+  @media (max-width: 900px) {
+    .lp-hero-grid { grid-template-columns: 1fr; padding: 40px 18px 76px; }
+    .lp-hero-canvas { height: min(48vh, 440px); }
+  }
+  /* بطاقات الفوضى الإضافية — تنخفي على الشاشات الضيّقة (ازدحام) */
+  @media (max-width: 700px) { .lp-chaos-hide { display: none; } }
   /* ورقة المخطط الهندسي: رسمة + callouts (عمود واحد على الموبايل) */
   .lp-bp-grid { display: grid; grid-template-columns: 1fr 1.05fr; }
   @media (max-width: 860px) { .lp-bp-grid { grid-template-columns: 1fr; } }
@@ -515,7 +523,15 @@ function Sheet({ no, title, children, style = {} }) {
   )
 }
 
-// رسمة الغلاف: موقع عمل بخط المخططات — مبنى + رافعة + أبعاد (ترسم حالها)
+// ─── الهيرو = التطبيق نفسه حيّاً ──────────────────────────────────────────────
+// بدل أي تجريد (مدن/مخططات): نعرض لوحة التحكم الحقيقية بالحجم الكبير — نبض
+// المصلحة بعدّاده الدائري النابض + بطاقات KPI + كرت مشروع + مخطّط شهري — كلها
+// مبنية بنفس kit التطبيق (PremiumCard/IconChip/useCountUp/HolographicSheen)
+// وبنفس الـDNA حرفياً، تتنفّس قدام الزائر داخل إطار التطبيق. أصدق وعد:
+// «هاد بالضبط اللي رح تفتحه». headline + CTA بجانبها (ديسكتوب) أو فوقها (موبايل).
+
+// العدّاد الدائري — نسخة مطابقة لـBusinessPulse.Gauge (بمقاس الهيرو)
+// ─── Hero — «المخطط الهندسي الحي» (ورقة الغلاف CP-00) ───────────────────────
 const HERO_PATHS = [
   { d: 'M16 388 L504 388', w: 2 },                                                            // خط الأرض
   { d: 'M64 388 V172 L184 124 L304 172 V388', w: 1.8 },                                       // هيكل المبنى
@@ -696,55 +712,313 @@ function BlueprintHero() {
   )
 }
 
-
-
-// ─── App Showcase — جوّا التطبيق ──────────────────────────────────────────────
-// التلفون الحي (لوحة التحكم الحقيقية) مع قصّة الميزات — ورقة CP-01 بدفتر
-// المخططات: «مخطط الشاشة» — مرساة زر «شاهد كيف يعمل» (#features).
-function AppShowcase() {
+function LandingTicket({ day, month, weekday, name, project, type, color, grad, TypeIcon, chips = [], amount, status, notch = C.bg, width = 330 }) {
+  const st = status === 'pending'
+    ? { color: C.warning, label: 'بانتظار', Icon: Hourglass }
+    : { color: C.success, label: 'معتمد', Icon: Check }
   return (
-    <section id="features" style={{ padding: '36px 24px 72px', direction: 'rtl' }}>
+    <div dir="rtl" style={{
+      position: 'relative', display: 'flex', alignItems: 'stretch', minHeight: 86, width, maxWidth: '88vw',
+      borderRadius: 18, overflow: 'hidden',
+      background: `linear-gradient(135deg, ${color}14, ${C.card} 55%)`,
+      border: `1px solid ${color}33`, boxShadow: `0 10px 28px ${color}1c`,
+    }}>
+      <HolographicSheen opacity={0.2} />
+      {/* كعب التاريخ المتدرّج */}
+      <div style={{ width: 64, flexShrink: 0, background: grad, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', gap: 1 }}>
+        <TypeIcon size={13} color="#fff" strokeWidth={2.2} style={{ opacity: 0.95, marginBottom: 2 }} />
+        <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.04em', textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>{day}</div>
+        <div style={{ fontSize: 9, fontWeight: 800, opacity: 0.95 }}>{month}</div>
+        <div style={{ fontSize: 8, fontWeight: 600, opacity: 0.8 }}>{weekday}</div>
+      </div>
+      {/* الوسط: الاسم + المشروع + الشرائح */}
+      <div style={{ flex: 1, minWidth: 0, padding: '9px 11px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 900, color: C.text, letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+        {project && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, color: C.textDim, whiteSpace: 'nowrap' }}>
+            <MapPin size={10} color={color} strokeWidth={2.2} /> {project}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color, background: `${color}1c`, border: `1px solid ${color}38`, borderRadius: 7, padding: '2px 8px' }}>{type}</span>
+          {chips.map((c, i) => (
+            <span key={i} style={{ fontSize: 9, fontWeight: 700, color: C.textDim, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, borderRadius: 7, padding: '2px 8px' }}>{c}</span>
+          ))}
+        </div>
+      </div>
+      {/* خط التثقيب + الحفرتان */}
+      <div style={{ width: 0, borderInlineStart: `2px dashed ${color}40`, margin: '11px 0', flexShrink: 0 }} />
+      <div aria-hidden style={{ position: 'absolute', insetInlineEnd: 80, top: -8, width: 16, height: 16, borderRadius: '50%', background: notch }} />
+      <div aria-hidden style={{ position: 'absolute', insetInlineEnd: 80, bottom: -8, width: 16, height: 16, borderRadius: '50%', background: notch }} />
+      {/* كعب الأجر + ختم الحالة */}
+      <div style={{ width: 80, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 5px' }}>
+        <div style={{ fontSize: 8, fontWeight: 700, color: C.textDim }}>الأجر</div>
+        <div style={{ fontSize: 15, fontWeight: 900, color, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>₪{amount}</div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontWeight: 800, color: st.color, background: `${st.color}1a`, border: `1px solid ${st.color}40`, borderRadius: 20, padding: '2px 7px' }}>
+          <st.Icon size={8} strokeWidth={2.8} /> {st.label}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function LandingProjectCard({ name, client, status = 'نشط', profit, margin, stats = [], width = 310 }) {
+  // تدرّج «نشط» الحقيقي من ProjectCard: أخضر → أزرق → سماوي
+  const gradient = `linear-gradient(135deg, ${C.success} 0%, #0EA5E9 58%, ${C.cyan} 115%)`
+  return (
+    <div dir="rtl" style={{
+      position: 'relative', width, maxWidth: '88vw', aspectRatio: '1.6 / 1', borderRadius: 20, overflow: 'hidden',
+      background: gradient,
+      boxShadow: '0 12px 36px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.22)',
+      padding: 13, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+    }}>
+      <HolographicSheen />
+      <div aria-hidden style={{ position: 'absolute', top: -52, insetInlineEnd: -38, width: 150, height: 150, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.16)', pointerEvents: 'none' }} />
+      <div aria-hidden style={{ position: 'absolute', top: -28, insetInlineEnd: -12, width: 110, height: 110, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.10)', pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(255,255,255,0.20)', border: '1px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <Building2 size={17} color="#fff" strokeWidth={1.9} />
+        </div>
+        <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', padding: '3px 9px', borderRadius: 999, background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.28)' }}>{status}</span>
+      </div>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.7)', marginBottom: 2 }}>PROJECT</div>
+          <div style={{ fontSize: 15.5, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.25)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+          {client && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.85)', marginTop: 1 }}><MapPin size={9} color="#fff" strokeWidth={2.2} /> {client}</div>}
+        </div>
+        <div style={{ textAlign: 'end', flexShrink: 0 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.78)' }}>
+            <TrendingUp size={10} color="#fff" strokeWidth={2.4} /> الربح
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.28)', fontVariantNumeric: 'tabular-nums' }}>₪{profit}</div>
+          {margin && <div style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{margin}%</div>}
+        </div>
+      </div>
+      <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
+        {stats.map((s) => (
+          <div key={s.label} style={{ background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 8, padding: '4px 5px', textAlign: 'center', backdropFilter: 'blur(2px)' }}>
+            <div style={{ fontSize: 9.5, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+            <div style={{ fontSize: 7.5, fontWeight: 600, color: 'rgba(255,255,255,0.78)', marginTop: 1 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// صف راتب — توقيع شاشة الدفعات: أفاتار دائري متدرّج + ترقيم PAY- + حبّة مبلغ
+function LandingPayRow({ init, name, sub, amt, color, status, grad, width = 300 }) {
+  return (
+    <div dir="rtl" style={{ width, maxWidth: '84vw', background: C.card, borderRadius: 14, padding: '10px 12px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 9, boxShadow: '0 10px 28px rgba(0,0,0,0.4)' }}>
+      <div style={{ width: 30, height: 30, borderRadius: '50%', background: grad, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#fff', flexShrink: 0 }}>{init}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap' }}>{name}</div>
+        <div style={{ fontSize: 9.5, color: C.textDim, marginTop: 1, whiteSpace: 'nowrap' }}>{sub}</div>
+      </div>
+      <div style={{ textAlign: 'center', padding: '4px 9px', borderRadius: 9, background: `${color}20`, border: `1px solid ${color}44`, flexShrink: 0 }}>
+        <div style={{ fontSize: 11, fontWeight: 900, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1.1 }}>{amt}</div>
+        <div style={{ fontSize: 7.5, fontWeight: 800, color, opacity: 0.85 }}>{status}</div>
+      </div>
+    </div>
+  )
+}
+
+// ورقة ملاحظة عامة (إيصال/מע"מ) — نمط شرائح الرؤى
+function NoteCard({ Icon, color, title, sub, amt, width = 280 }) {
+  return (
+    <div dir="rtl" style={{
+      display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', width, maxWidth: '80vw',
+      background: `linear-gradient(135deg, ${color}16, ${C.card} 70%)`, borderRadius: 14,
+      border: `1px solid ${color}55`, boxShadow: `0 12px 34px rgba(0,0,0,0.5), 0 0 18px ${color}1a`,
+    }}>
+      <div style={{ width: 30, height: 30, borderRadius: 10, background: `${color}1c`, border: `1px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon size={14} color={color} strokeWidth={2.3} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap' }}>{title}</div>
+        <div style={{ fontSize: 9.5, color: C.textDim, marginTop: 1, whiteSpace: 'nowrap' }}>{sub}</div>
+      </div>
+      <div style={{ fontSize: 12.5, fontWeight: 900, color, fontVariantNumeric: 'tabular-nums' }}>{amt}</div>
+    </div>
+  )
+}
+
+// ─── من الفوضى للنظام — بمكوّنات التطبيق الحقيقية ────────────────────────────
+// قسم مثبّت: تذاكر شِفت وكروت مشاريع وصفوف رواتب حقيقية الشكل طايرة بفوضى —
+// ومع السكرول التلفون الحي يطلع وكلها تنشفط جوّاه + ختم «محفوظ. مرتّب. محسوب.».
+const TICKET_GRAD_FULL = `linear-gradient(160deg, ${C.primary}, ${C.gold})`
+const TICKET_GRAD_HALF = `linear-gradient(160deg, ${C.warning}, ${C.gold})`
+const CHAOS_CARDS = [
+  { sx: '-33vw', sy: '-26vh', rot: -14, dur: 5.2, render: () => (
+    <LandingTicket day={8} month="يونيو" weekday="الثلاثاء" name="محمد ع." project="فيلا رهط" type="كامل"
+      color={C.primary} grad={TICKET_GRAD_FULL} TypeIcon={Sun} chips={['8 ساعات']} amount="450" status="approved" />
+  ) },
+  { sx: '32vw', sy: '-27vh', rot: 12, dur: 6.0, render: () => (
+    <LandingTicket day={9} month="يونيو" weekday="الأربعاء" name="أحمد س." project="شقة الناصرة" type="نص يوم"
+      color={C.warning} grad={TICKET_GRAD_HALF} TypeIcon={CloudSun} chips={['4 ساعات']} amount="225" status="pending" />
+  ) },
+  { sx: '-36vw', sy: '7vh', rot: 10, dur: 4.8, render: () => (
+    <LandingProjectCard name="فيلا رهط" client="أبو يوسف" profit="42,500" margin={28}
+      stats={[{ label: 'إيرادات', value: '₪150K' }, { label: 'التكاليف', value: '₪108K' }, { label: 'أيام', value: '64' }]} />
+  ) },
+  { sx: '35vw', sy: '9vh', rot: -12, dur: 5.6, render: () => (
+    <LandingPayRow init="أ" name="راتب أحمد" sub="نيسان · PAY-1043" amt="₪3,800" color={C.secondary} status="مدفوع" grad={GRAD.premium} />
+  ) },
+  { sx: '-25vw', sy: '31vh', rot: 17, dur: 5.0, hideM: true, render: () => (
+    <NoteCard Icon={Receipt} color={C.cyan} title={'מע"מ للاسترداد'} sub="فاتورة INV-1042" amt="₪357" />
+  ) },
+  { sx: '26vw', sy: '30vh', rot: -16, dur: 5.8, hideM: true, render: () => (
+    <NoteCard Icon={Receipt} color={C.accent} title="فاتورة مواد" sub="حديد + إسمنت" amt="₪2,340" />
+  ) },
+]
+
+function ChaosCard({ c, i, p }) {
+  const a = 0.26 + i * 0.055
+  const b = a + 0.2
+  const x = useTransform(p, [a, b], [c.sx, '0vw'])
+  const y = useTransform(p, [a, b], [c.sy, '3vh'])
+  const rotate = useTransform(p, [a, b], [c.rot, 0])
+  const scale = useTransform(p, [a, b - 0.03, b], [1, 0.55, 0.12])
+  const opacity = useTransform(p, [b - 0.02, b], [1, 0])
+  return (
+    <motion.div className={c.hideM ? 'lp-chaos-hide' : undefined}
+      style={{ position: 'absolute', x, y, rotate, scale, opacity, zIndex: 6, pointerEvents: 'none' }}>
+      <div className="float" style={{ animationDuration: `${c.dur}s`, animationDelay: `${(i % 5) * 0.6}s` }}>
+        {c.render()}
+      </div>
+    </motion.div>
+  )
+}
+
+function ChaosToOrder() {
+  const ref = useRef(null)
+  const reduce = useReducedMotion()
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
+  const p = useSpring(scrollYProgress, { stiffness: 120, damping: 26, mass: 0.35 })
+  const chaosLabelOp = useTransform(p, [0, 0.08, 0.5, 0.58], [1, 1, 1, 0])
+  const headOp = useTransform(p, [0.02, 0.1], [0, 1])
+  const phoneY = useTransform(p, [0.03, 0.24], ['76vh', '0vh'])
+  const phoneRotX = useTransform(p, [0.03, 0.24], [16, 0])
+  const doneOp = useTransform(p, [0.84, 0.91], [0, 1])
+  const doneScale = useTransform(p, [0.84, 0.94], [1.7, 1])
+
+  if (reduce) {
+    return (
+      <section id="features" style={{ padding: '72px 24px', direction: 'rtl' }}>
+        <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 10 }}>
+            كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
+          </h2>
+          <p style={{ fontSize: 15, color: C.textDim, marginBottom: 28 }}>تذاكر الشِفتات، كروت المشاريع، الرواتب — كلها محفوظة لحالها.</p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            {CHAOS_CARDS.filter(c => !c.hideM).map((c, i) => <div key={i}>{c.render()}</div>)}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section ref={ref} style={{ position: 'relative', height: '300vh', direction: 'rtl' }}>
+      {/* مرساة «شاهد كيف يعمل» */}
+      <div id="features" aria-hidden style={{ position: 'absolute', top: '28%' }} />
+      <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'clip', background: C.bg }}>
+        <div className="lp-grain" aria-hidden />
+        {/* العنوان */}
+        <div style={{ position: 'absolute', top: 'clamp(74px, 9.6vh, 100px)', left: 0, right: 0, textAlign: 'center', padding: '0 18px', zIndex: 7, pointerEvents: 'none' }}>
+          <motion.div style={{ opacity: chaosLabelOp, fontSize: 11, color: C.accent, fontWeight: 800, letterSpacing: '0.12em', marginBottom: 7 }}>
+            هاي مش رسومات — هاي شاشاتك الحقيقية، بس مبعثرة
+          </motion.div>
+          <motion.h2 style={{ opacity: headOp, fontSize: 'clamp(19px,3vw,30px)', fontWeight: 900, color: C.text, lineHeight: 1.25, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>
+            كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
+          </motion.h2>
+        </div>
+
+        {/* المكوّنات الحقيقية الطايرة */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 6, pointerEvents: 'none' }}>
+          {CHAOS_CARDS.map((c, i) => <ChaosCard key={i} c={c} i={i} p={p} />)}
+        </div>
+
+        {/* التلفون الحي — اللاقط */}
+        <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', y: phoneY, rotateX: phoneRotX, transformPerspective: 1100, zIndex: 4, pointerEvents: 'none' }}>
+          <div aria-hidden style={{ position: 'absolute', width: 440, height: 440, borderRadius: '50%', background: 'radial-gradient(circle, rgba(249,115,22,0.14) 0%, transparent 62%)' }} />
+          <div style={{ position: 'relative', borderRadius: 42, overflow: 'hidden', marginTop: 30 }}>
+            <PhoneMockup float={false} />
+            <HolographicSheen duration={5} repeatDelay={2.2} opacity={0.2} />
+          </div>
+          {/* ختم النهاية */}
+          <motion.div style={{
+            opacity: doneOp, scale: doneScale, position: 'absolute', top: 'calc(50% - 326px)', zIndex: 8,
+            display: 'inline-flex', alignItems: 'center', gap: 6, background: `${C.success}1c`, border: `1px solid ${C.success}55`,
+            borderRadius: 100, padding: '7px 16px', fontSize: 13, fontWeight: 900, color: C.success,
+            boxShadow: `0 10px 30px rgba(0,0,0,0.45), 0 0 24px ${C.success}33`, backdropFilter: 'blur(6px)', whiteSpace: 'nowrap',
+          }}>
+            <CheckCircle2 size={15} strokeWidth={2.6} />
+            محفوظ. مرتّب. محسوب.
+          </motion.div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+
+// ─── ورقة CP-01 — نماذج حية من شاشاتك ────────────────────────────────────────
+// التذاكر والكروت بالحجم الكامل كما تبدو فعلاً بالتطبيق + التلفون الحي.
+function AppShowcase() {
+  const SHEET_BG = '#0A1226'   // أرضية ورقة المخطط — لحفر التثقيب بالتذاكر
+  return (
+    <section style={{ padding: '36px 24px 72px', direction: 'rtl' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-        <Sheet no="CP-01" title="مخطط الشاشة">
-          <div style={{ padding: '52px 22px 36px' }}>
+        <Sheet no="CP-01" title="نماذج حية من شاشاتك">
+          <div style={{ padding: '54px 22px 36px' }}>
             <Depth tilt={16} lift={60}>
-              <div style={{ textAlign: 'center', marginBottom: 44 }}>
+              <div style={{ textAlign: 'center', marginBottom: 42 }}>
                 <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
-                  كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
+                  هيك رح تشوف <span className="grad-text">شغلك بالضبط</span>
                 </h2>
-                <p style={{ fontSize: 16, color: C.textDim }}>لوحة تحكم حيّة — نفس الشاشات اللي رح تشتغل عليها كل يوم.</p>
+                <p style={{ fontSize: 16, color: C.textDim }}>مش موك-أب — نفس تذاكر الشِفت وكروت المشاريع اللي جوّا التطبيق.</p>
               </div>
             </Depth>
-            <div className="lp-cinema-grid" style={{ margin: '0 auto' }}>
-              <div>
-                {STORY.map((s, i) => (
-                  <Flip3D key={i} delay={i * 0.1} dir={i % 2 ? -1 : 1} style={{ height: 'auto' }}>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 22 }}>
-                      <IconChip icon={s.Icon} color={s.color} size={40} radius={12} iconSize={19} strokeWidth={2.2} />
-                      <div>
-                        <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 5 }}>{s.title}</div>
-                        <p style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7 }}>{s.desc}</p>
-                      </div>
-                    </div>
-                  </Flip3D>
-                ))}
+            <div className="lp-cinema-grid" style={{ margin: '0 auto', alignItems: 'start' }}>
+              {/* عمود التذاكر + الراتب */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
+                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.primary, letterSpacing: '0.1em' }}>أيام العمل — تذاكر الشِفت</div>
+                <Flip3D delay={0} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <LandingTicket day={8} month="يونيو" weekday="الثلاثاء" name="محمد ع." project="فيلا رهط" type="كامل"
+                    color={C.primary} grad={TICKET_GRAD_FULL} TypeIcon={Sun} chips={['8 ساعات']} amount="450" status="approved" notch={SHEET_BG} width={440} />
+                </Flip3D>
+                <Flip3D delay={0.12} dir={-1} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <LandingTicket day={9} month="يونيو" weekday="الأربعاء" name="أحمد س." project="شقة الناصرة" type="نص يوم"
+                    color={C.warning} grad={TICKET_GRAD_HALF} TypeIcon={CloudSun} chips={['4 ساعات']} amount="225" status="pending" notch={SHEET_BG} width={440} />
+                </Flip3D>
+                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.secondary, letterSpacing: '0.1em', marginTop: 8 }}>الرواتب</div>
+                <Flip3D delay={0.2} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <LandingPayRow init="أ" name="راتب أحمد" sub="نيسان · PAY-1043" amt="₪3,800" color={C.secondary} status="مدفوع" grad={GRAD.premium} width={440} />
+                </Flip3D>
               </div>
-              <Depth tilt={18} lift={80} from={0.9} style={{ display: 'flex', justifyContent: 'center' }}>
-                <div style={{ position: 'relative' }}>
-                  {/* خطا بُعد حول التلفون — كأنه مرسوم بالمخطط */}
-                  <div aria-hidden style={{ position: 'absolute', top: -18, insetInlineStart: 0, insetInlineEnd: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 1.5, height: 10, background: `${C.gold}99` }} />
-                    <span style={{ flex: 1, height: 1.2, background: `${C.gold}66` }} />
-                    <span style={{ fontSize: 9, fontWeight: 800, color: C.gold }}>6.1″</span>
-                    <span style={{ flex: 1, height: 1.2, background: `${C.gold}66` }} />
-                    <span style={{ width: 1.5, height: 10, background: `${C.gold}99` }} />
-                  </div>
-                  <div style={{ position: 'relative', borderRadius: 42, overflow: 'hidden' }}>
-                    <PhoneMockup />
-                    <HolographicSheen duration={5} repeatDelay={2.2} opacity={0.22} />
-                  </div>
+              {/* عمود كرت المشروع + قصّة الميزات */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
+                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.success, letterSpacing: '0.1em' }}>المشاريع — كروت Wallet</div>
+                <Flip3D delay={0.1} dir={-1} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <LandingProjectCard name="فيلا رهط" client="أبو يوسف" profit="42,500" margin={28} width={400}
+                    stats={[{ label: 'إيرادات', value: '₪150K' }, { label: 'التكاليف', value: '₪108K' }, { label: 'أيام', value: '64' }]} />
+                </Flip3D>
+                <div style={{ width: '100%', maxWidth: 440, marginTop: 6 }}>
+                  {STORY.map((s, i) => (
+                    <Flip3D key={i} delay={0.2 + i * 0.1} dir={i % 2 ? -1 : 1} style={{ height: 'auto' }}>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
+                        <IconChip icon={s.Icon} color={s.color} size={36} radius={11} iconSize={17} strokeWidth={2.2} />
+                        <div>
+                          <div style={{ fontSize: 14.5, fontWeight: 900, color: C.text, marginBottom: 4 }}>{s.title}</div>
+                          <p style={{ fontSize: 12.5, color: C.textDim, lineHeight: 1.65 }}>{s.desc}</p>
+                        </div>
+                      </div>
+                    </Flip3D>
+                  ))}
                 </div>
-              </Depth>
+              </div>
             </div>
           </div>
         </Sheet>
@@ -752,6 +1026,7 @@ function AppShowcase() {
     </section>
   )
 }
+
 
 
 // ─── Stats strip ─────────────────────────────────────────────────────────────
@@ -1202,6 +1477,7 @@ export default function LandingPage() {
         <Navbar loggedIn={loggedIn} />
         <BlueprintHero />
         <StatsStrip />
+        <ChaosToOrder />
         <AppShowcase />
         <BlueprintFeatures />
         <PainPoints />
