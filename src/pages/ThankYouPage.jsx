@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { CheckCircle2, HardHat, ArrowLeft } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { navigate } from '../Router.jsx'
-import { trackEvent } from '../lib/analytics.js'
-import { ttTrackBoth } from '../lib/tiktok.js'
+import { trackPurchase } from '../lib/track.js'
 import { PLAN_META } from '../lib/paddle.js'
 import { supabase } from '../lib/supabase.js'
 
@@ -27,18 +26,15 @@ export default function ThankYouPage() {
     const value = planValue(p, cycle)
     setPlan(p)
 
-    // أحداث تحويل الشراء — مرّة واحدة عند فتح الصفحة
-    trackEvent('purchase', { plan: p, cycle, currency: 'ILS', value })
-    // CompletePayment على القناتين (client + server)؛ paddle-webhook يطلق Subscribe
-    // مستقلاً بنفس الحدث القاعدي → TikTok يدمج عبر event_id فلا تكرار.
-    // value مطلوب لحساب ROAS بدقّة على تيك توك.
+    // حدث تحويل الشراء — مرّة واحدة عند فتح الصفحة — على القناتين (GA4 purchase +
+    // TikTok CompletePayment، client + server). paddle-webhook يطلق Subscribe
+    // مستقلاً → TikTok يدمج عبر event_id فلا تكرار. value مطلوب لحساب ROAS.
     ;(async () => {
       const { data } = await supabase.auth.getUser().catch(() => ({ data: null }))
-      const email = data?.user?.email
-      const externalId = data?.user?.id
-      ttTrackBoth('CompletePayment', {
-        properties: { content_name: p, content_type: cycle, currency: 'ILS', value },
-        user: { email, external_id: externalId },
+      trackPurchase({
+        plan: p, cycle, value,
+        email: data?.user?.email,
+        userId: data?.user?.id,
       })
     })()
   }, [])

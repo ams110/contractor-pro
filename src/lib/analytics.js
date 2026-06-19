@@ -48,6 +48,34 @@ export function grantConsent() {
 }
 
 /**
+ * يسجّل مشاهدة صفحة في GA4 يدوياً — ضروري للتطبيق أحادي الصفحة (SPA): GA يرسل
+ * مشاهدة واحدة تلقائياً عند الإقلاع فقط، فأي تنقّل client-side لاحق لا يُحتسب
+ * إلا بنداء هذه الدالة. آمن: لا يفعل شيئاً إن لم يُحمّل gtag بعد.
+ * @param {string} [path] مسار الصفحة (افتراضياً location.pathname)
+ * @param {string} [title] عنوان الصفحة (افتراضياً document.title)
+ */
+export function pageview(path, title) {
+  if (typeof window === 'undefined' || !window.dataLayer) return
+  const loc = typeof location !== 'undefined' ? location : null
+  gtag('event', 'page_view', {
+    page_path:     path  || loc?.pathname,
+    page_location: loc?.href,
+    page_title:    title || (typeof document !== 'undefined' ? document.title : undefined),
+  })
+}
+
+/**
+ * يربط هوية المستخدم بـ GA4 (user_id) لتوحيد الجلسات عبر الأجهزة وقياس أدقّ
+ * لمسار التحويل. تمرير null يلغي الربط (تسجيل خروج). آمن إن لم يُحمّل gtag.
+ * @param {string|null} id معرّف المستخدم (مثلاً Supabase auth uid)
+ */
+export function setAnalyticsUser(id) {
+  if (typeof window === 'undefined' || !window.dataLayer) return
+  gtag('set', { user_id: id || undefined })
+  if (id) gtag('config', GA_ID, { user_id: id })
+}
+
+/**
  * يسجّل حدث تحويل في GA4 (قمع: زيارة هبوط · دخول ديمو · بدء تسجيل · ...).
  * آمن: لا يفعل شيئاً إن لم يُحمّل gtag بعد (بلا أخطاء).
  * @param {string} name اسم الحدث

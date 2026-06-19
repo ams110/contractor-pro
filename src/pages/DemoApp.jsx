@@ -8,6 +8,7 @@ import {
 import { C, GRAD, NAV } from '../constants/index.js'
 import { buildDemo, makeDemoBag, seedDemoStores } from '../lib/demoData.js'
 import { trackEvent } from '../lib/analytics.js'
+import { trackCtaClick, trackDemoView } from '../lib/track.js'
 import { useAppStore } from '../store/useAppStore.js'
 import { navigate } from '../Router.jsx'
 import ErrorBoundary from '../components/ErrorBoundary.jsx'
@@ -31,7 +32,7 @@ const DEMO = buildDemo()
 const NAV_ICONS = { dashboard: LayoutDashboard, projects: Building2, workers: Users, finance: Wallet, settings: Settings }
 
 function goRegister(from) {
-  trackEvent('demo_cta_register', { from })
+  trackCtaClick('demo_register', { from })
   navigate('/register')
 }
 
@@ -114,7 +115,7 @@ export default function DemoApp() {
   useEffect(() => {
     seedDemoStores(DEMO)
     document.documentElement.dir = 'rtl'
-    trackEvent('demo_view')
+    trackDemoView()   // GA4 demo_view + TikTok ViewContent (إشارة اهتمام قويّة)
     // بعض شاشات الإنشاء/الحذف تنتظر تأكيد بصمة (مودالها في App لا الديمو) فتعلق.
     // نتجاوزها في الديمو: أي طلب تأكيد = تحويل للتسجيل. نستعيد الأصل عند المغادرة.
     useAppStore.setState({
