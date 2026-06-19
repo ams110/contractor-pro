@@ -1,4 +1,5 @@
-import { useMemo, useEffect } from 'react'
+import { useMemo, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PartyPopper, Coins, Trophy, BadgeCheck } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore.js'
@@ -130,9 +131,20 @@ function Burst({ celebration, reduced }) {
 export default function Celebration() {
   const celebration = useAppStore(s => s.celebration)
   const reduced = useMemo(prefersReducedMotion, [])
-  return (
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+    // DEV-only: نداء يدوي من الكونسول للتحقّق البصري — window.__celebrate('win')
+    if (import.meta.env?.DEV && typeof window !== 'undefined') {
+      window.__celebrate = (v = 'win', o) => useAppStore.getState().celebrate(v, o)
+    }
+  }, [])
+  // بوّابة على body: تطفو فوق كل الشيتات/النوافذ ولا تنحبس داخل سياق تكديس
+  if (!mounted || typeof document === 'undefined') return null
+  return createPortal(
     <AnimatePresence>
       {celebration && <Burst key={celebration.id} celebration={celebration} reduced={reduced} />}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }

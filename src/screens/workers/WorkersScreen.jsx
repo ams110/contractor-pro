@@ -127,6 +127,7 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
       if (!sig) { setSaving(false); return }
       await onSave({ ...form, daily_rate: Number(form.daily_rate) || 0 })
       setForm({ name: '', specialization: specs[0] || '', phone: '', daily_rate: '', notes: '' })
+      useAppStore.getState().celebrate('success')
       onClose()
     } catch (e) {
       setError(e.message || 'حدث خطأ، حاول مجدداً')

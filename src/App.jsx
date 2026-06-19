@@ -38,7 +38,6 @@ import BiometricConfirmModal   from './components/BiometricConfirmModal.jsx'
 import { useBiometricConfirm } from './hooks/useBiometricConfirm.js'
 import SessionLockScreen       from './components/SessionLockScreen.jsx'
 import ConnectionStatus        from './components/ConnectionStatus.jsx'
-import Celebration             from './components/Celebration.jsx'
 import ScreenSkeleton          from './components/ScreenSkeleton.jsx'
 import { LoadingSpinner }       from './components/index.jsx'
 import { usePushNotifications } from './hooks/usePushNotifications.js'
@@ -449,7 +448,7 @@ function OwnerApp() {
   const _rejectWorkDay  = (id, r) => rejectWorkDay(id, r).then(() => showToast('رُفض يوم العمل', 'warning'))
   const _approveExpense = id      => approveExpense(id).then(() => showToast('تمت الموافقة على المصروف'))
   const _rejectExpense  = (id, r) => rejectExpense(id, r).then(() => showToast('رُفض المصروف', 'warning'))
-  const _approvePayment = id      => approvePaymentRequest(id).then(() => showToast('تمت الموافقة على الدفعة'))
+  const _approvePayment = id      => approvePaymentRequest(id).then(() => { showToast('تمت الموافقة على الدفعة'); useAppStore.getState().celebrate('success') })
   const _rejectPayment  = (id, r) => rejectPaymentRequest(id, r).then(() => showToast('رُفضت الدفعة', 'warning'))
 
   // تأكيد بصمة للدفعات فوق حدّ يضبطه المالك (payment_bio_threshold، 0 = معطّل)
@@ -460,7 +459,9 @@ function OwnerApp() {
       const sig = await _bioConfirm(`تأكيد دفعة ${form.amount}₪`, 'payments')
       if (!sig) throw new Error('مطلوب تأكيد بصمة لاعتماد هذه الدفعة')
     }
-    return addPayment(form)
+    const res = await addPayment(form)
+    useAppStore.getState().celebrate('money')
+    return res
   }
 
   const dataLoading = pLoad || eLoad || wLoad || xLoad || pyLoad || crLoad
@@ -779,9 +780,6 @@ function OwnerApp() {
       {/* ─── Biometric Confirm ─── */}
       <BiometricConfirmModal />
       <SessionLockScreen />
-
-      {/* ─── Celebration bursts (لحظات الفوز) ─── */}
-      <Celebration />
 
       {/* ─── Smart Search (cmdk) ─── */}
       <SmartSearch projects={projects} employees={employees} expenses={expenses} payments={payments} onNav={nav => { setScreen(nav); setShowSearch(false) }} />
