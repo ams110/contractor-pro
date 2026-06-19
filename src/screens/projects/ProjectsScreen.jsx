@@ -122,6 +122,9 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
         ref_number:     form.ref_number   || null,
       }
       await onSave(payload)
+      const justCompleted = form.status === 'مكتمل' && initialData?.status !== 'مكتمل'
+      if (justCompleted)    useAppStore.getState().celebrate('win', { label: 'مشروع مكتمل!' })
+      else if (!isEdit)     useAppStore.getState().celebrate('success')
       onClose()
     } catch (e) {
       setError(e.message)
