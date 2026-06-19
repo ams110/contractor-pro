@@ -17,6 +17,7 @@ const AdStudio    = lazy(() => import('./pages/AdStudio.jsx'))
 const AdReel      = lazy(() => import('./pages/AdReel.jsx'))
 const DemoShot    = lazy(() => import('./pages/DemoShot.jsx'))
 const DemoApp     = lazy(() => import('./pages/DemoApp.jsx'))
+const BpDemo      = lazy(() => import('./pages/BpDemo.jsx'))   // معاينة مؤقّتة /bpdemo
 
 // ─── Client-side navigation (no full page reload) ─────────────────────────────
 export function navigate(path) {
@@ -56,6 +57,8 @@ export default function Router() {
   if (path === '/adreel') return <Suspense fallback={null}><AdReel /></Suspense>
   // /demoshot — يرندر الشاشات الفعلية ببيانات وهمية (للموكاب داخل البوسترات)
   if (path === '/demoshot') return <Suspense fallback={null}><DemoShot /></Suspense>
+  // معاينة مؤقّتة للطابع الهندسي على الشاشات الفاضية (تُحذف بعد الاعتماد)
+  if (path === '/bpdemo') return <Suspense fallback={null}><BpDemo /></Suspense>
 
   let page
   if (path === '/')              page = <LandingPage />
