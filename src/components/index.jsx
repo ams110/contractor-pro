@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useId } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, Check, X } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
@@ -322,43 +322,11 @@ export function SuccessToast({ message, onClose }) {
   )
 }
 
-/* ─── شعار شاكوش مرسوم (SVG مخصّص — منظر «إيموجي» مجسّم بألوان الهوية، بلا إيموجي) ─── */
-// رأس فولاذي متدرّج + مقبض برتقالي (هوية)، فبياخد دفء شكل الإيموجي ويبقى متلوّناً
-// ومتناسقاً ومتّسقاً عبر كل الأجهزة (بعكس غليف الإيموجي). يلتزم بقاعدة «أيقونات فقط».
-export function HammerGlyph({ size = 44, glow = false }) {
-  const u = useId().replace(/[:]/g, '')
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true"
-      style={glow ? { filter: `drop-shadow(0 4px 10px ${C.primary}80)` } : undefined}>
-      <defs>
-        <linearGradient id={`${u}s`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#F8FAFC" />
-          <stop offset="0.5" stopColor="#94A3B8" />
-          <stop offset="1" stopColor="#475569" />
-        </linearGradient>
-        <linearGradient id={`${u}w`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#FB923C" />
-          <stop offset="1" stopColor="#C2410C" />
-        </linearGradient>
-      </defs>
-      {/* المقبض */}
-      <rect x="28" y="23" width="8" height="34" rx="4" fill={`url(#${u}w)`} />
-      <rect x="30.4" y="26" width="1.7" height="28" rx="0.85" fill="#FFFFFF" opacity="0.22" />
-      {/* العنق */}
-      <rect x="27.5" y="19.5" width="9" height="6.5" rx="2" fill="#334155" />
-      {/* رأس الشاكوش */}
-      <rect x="13" y="10" width="38" height="13.5" rx="5" fill={`url(#${u}s)`} />
-      {/* وجه الطرق (يمين، أعرض) */}
-      <rect x="44" y="6.5" width="9.5" height="20" rx="3.5" fill={`url(#${u}s)`} />
-      {/* لمعة علويّة */}
-      <rect x="17" y="12" width="22" height="3" rx="1.5" fill="#FFFFFF" opacity="0.45" />
-    </svg>
-  )
-}
-
 /* ─── LoadingSpinner — شاكوش يدقّ (طابع المقاولات) ─── */
-// شاكوش (SVG مخصّص) يتأرجح/يدقّ + توهّج نابض + ٣ نقاط متتابعة بألوان الهوية.
-// CSS نقيّ ومستقلّ (يعمل حتى كـ Suspense fallback). يحترم prefers-reduced-motion.
+// إيموجي شاكوش 🔨 يتأرجح/يدقّ + توهّج برتقالي نابض + ٣ نقاط متتابعة بألوان الهوية.
+// ⚠️ استثناء مقصود لقاعدة «ممنوع إيموجي في UI» (CLAUDE.md §2/§19) — باختيار المالك الصريح.
+// الإيموجي غليف نظام (ما يتلوّن بالهوية ويختلف بين الأجهزة)، والتوهّج/النقاط البرتقالية
+// حواليه يربطوه بالهوية. CSS نقيّ مستقلّ (يعمل كـ Suspense fallback) + يحترم reduced-motion.
 export function LoadingSpinner({ size = 60, label }) {
   const dot = Math.max(5, Math.round(size * 0.1))
   return (
@@ -374,11 +342,9 @@ export function LoadingSpinner({ size = 60, label }) {
         {/* توهّج نابض */}
         <div style={{ position: 'absolute', top: '52%', left: '50%', width: size * 0.95, height: size * 0.95, borderRadius: '50%', background: `radial-gradient(circle, ${C.primary}55, transparent 70%)`, animation: 'cpHmrGlow 1.05s ease-in-out infinite' }} />
 
-        {/* الشاكوش يدقّ */}
+        {/* إيموجي الشاكوش يدقّ */}
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ transformOrigin: '50% 86%', animation: 'cpHmrTap 1.05s cubic-bezier(.45,0,.25,1) infinite' }}>
-            <HammerGlyph size={size * 0.74} glow />
-          </div>
+          <div role="img" aria-label="جاري التحميل" style={{ fontSize: size * 0.6, lineHeight: 1, transformOrigin: '50% 82%', animation: 'cpHmrTap 1.05s cubic-bezier(.45,0,.25,1) infinite', filter: `drop-shadow(0 3px 8px ${C.primary}70)`, fontFamily: '"Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif' }}>{'🔨'}</div>
         </div>
       </div>
 
