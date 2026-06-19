@@ -5,6 +5,11 @@
 
 export const GA_ID = 'G-KFGX0K1VT5'
 
+// مُعرّف وسم Google Ads (AW-XXXXXXXXX) — لتسجيل التحويلات في حساب الإعلانات.
+// يُحمَّل عبر نفس gtag.js مع GA4، فحدث conversion_event_signup (وأي تحويل آخر)
+// يُحتسب في Google Ads تلقائياً. اتركه فارغاً = التحويلات تروح GA4 فقط (بلا كسر).
+export const GADS_ID = 'AW-18239676814'
+
 let initialized = false
 
 /** نقيّة: هل القيمة المخزّنة تعني موافقة على التحليلات؟ */
@@ -39,12 +44,54 @@ export function initAnalytics(_alreadyGranted = false, id = GA_ID) {
   document.head.appendChild(s)
   gtag('js', new Date())
   gtag('config', id, { anonymize_ip: true })
+  // وسم Google Ads على نفس gtag (إن ضُبط) — يفعّل احتساب التحويلات في الإعلانات
+  if (GADS_ID) gtag('config', GADS_ID)
+}
+
+/**
+ * يسجّل تحويل Google Ads عبر حدث gtag باسم إجراء التحويل (مثلاً
+ * conversion_event_signup). آمن إن لم يُحمّل gtag. لا حاجة لـhelper تأخير
+ * التنقّل (gtagSendEvent) لأنّ التطبيق SPA — التنقّل لا يقطع البيكون.
+ * @param {string} name اسم حدث التحويل من Google Ads
+ * @param {object} [params] قيمة/عملة اختيارية (value/currency) لتحويلات الإيراد
+ */
+export function trackAdsConversion(name, params = {}) {
+  if (typeof window === 'undefined' || !window.dataLayer || !name) return
+  gtag('event', name, params)
 }
 
 /** يرفع الموافقة إلى granted بعد ضغط المستخدم «موافق» (يفعّل كوكيز التحليلات). */
 export function grantConsent() {
   if (typeof window === 'undefined' || !window.dataLayer) return
   gtag('consent', 'update', { analytics_storage: 'granted' })
+}
+
+/**
+ * يسجّل مشاهدة صفحة في GA4 يدوياً — ضروري للتطبيق أحادي الصفحة (SPA): GA يرسل
+ * مشاهدة واحدة تلقائياً عند الإقلاع فقط، فأي تنقّل client-side لاحق لا يُحتسب
+ * إلا بنداء هذه الدالة. آمن: لا يفعل شيئاً إن لم يُحمّل gtag بعد.
+ * @param {string} [path] مسار الصفحة (افتراضياً location.pathname)
+ * @param {string} [title] عنوان الصفحة (افتراضياً document.title)
+ */
+export function pageview(path, title) {
+  if (typeof window === 'undefined' || !window.dataLayer) return
+  const loc = typeof location !== 'undefined' ? location : null
+  gtag('event', 'page_view', {
+    page_path:     path  || loc?.pathname,
+    page_location: loc?.href,
+    page_title:    title || (typeof document !== 'undefined' ? document.title : undefined),
+  })
+}
+
+/**
+ * يربط هوية المستخدم بـ GA4 (user_id) لتوحيد الجلسات عبر الأجهزة وقياس أدقّ
+ * لمسار التحويل. تمرير null يلغي الربط (تسجيل خروج). آمن إن لم يُحمّل gtag.
+ * @param {string|null} id معرّف المستخدم (مثلاً Supabase auth uid)
+ */
+export function setAnalyticsUser(id) {
+  if (typeof window === 'undefined' || !window.dataLayer) return
+  gtag('set', { user_id: id || undefined })
+  if (id) gtag('config', GA_ID, { user_id: id })
 }
 
 /**

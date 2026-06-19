@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth.js'
 import { useOrganization } from '../hooks/useOrganization.js'
 import { openCheckout, PLAN_META, pricesFor } from '../lib/paddle.js'
 import { useRouteSeo, faqLd } from '../lib/seo.js'
-import { ttTrack } from '../lib/tiktok.js'
+import { trackViewPricing } from '../lib/track.js'
 
 const C = {
   bg:        '#07080F',
@@ -274,9 +274,10 @@ export default function PricingPage() {
     new URLSearchParams(window.location.search).get('checkout') === 'success'
   )
 
-  // TikTok: ViewContent عند فتح صفحة الأسعار (إشارة قمع وسطى — يحتاجها algo للتعلّم)
+  // عرض صفحة الأسعار على القناتين (GA4 view_item_list + TikTok ViewContent) —
+  // إشارة قمع وسطى يحتاجها الخوارزم للتعلّم.
   useEffect(() => {
-    ttTrack('ViewContent', { content_category: 'pricing', content_name: 'pricing_page' })
+    trackViewPricing(cycle)
   }, [])
 
   async function handleSubscribe(plan) {

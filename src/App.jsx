@@ -22,6 +22,7 @@ import { useOrganization }     from './hooks/useOrganization.js'
 import { setPlanInfo }         from './store/usePlanStore.js'
 import FeatureGate             from './components/FeatureGate.jsx'
 import { setSentryUser }       from './lib/sentry.js'
+import { identifyUser }         from './lib/track.js'
 import { useProjects, useEmployees, useWorkDays, useExpenses, usePayments, useClientReceipts, useHolidays, useAdvances, useTaxAdvances } from './hooks/useData.js'
 import { useSettings }         from './hooks/useSettings.js'
 import { useProfile }          from './hooks/useProfile.js'
@@ -350,8 +351,12 @@ function OwnerApp() {
 
   const { org, loading: orgLoading, isPlanActive, isTrialActive, trialDaysLeft } = useOrganization(uid)
 
-  // ربط هوية المستخدم بتقارير الأخطاء (Sentry) — خامل ما لم يُضبط DSN
-  useEffect(() => { setSentryUser(user || null) }, [user])
+  // ربط هوية المستخدم بتقارير الأخطاء (Sentry) + تحليلات القمع (GA4 user_id +
+  // TikTok identify) — يغطّي كل الجلسات المصادَقة لقياس أدقّ عبر الأجهزة.
+  useEffect(() => {
+    setSentryUser(user || null)
+    identifyUser(user ? { id: user.id, email: user.email } : null)
+  }, [user])
 
   // مزامنة معلومات الخطة لمخزن مشترك تقرأه الشاشات لتقييد الميزات (بدون prop-drilling)
   useEffect(() => {
