@@ -11,6 +11,7 @@ import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
 import { supabase } from '../../lib/supabase.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
+import { BlueprintEmpty } from '../../ui/Blueprint.jsx'
 
 const STATUS_COLOR = {
   'نشط':        C.success,
@@ -37,12 +38,11 @@ const sheetInp = (focus, key) => ({
   boxSizing: 'border-box', transition: 'border-color .2s',
 })
 
-// ─── EmptyState ───────────────────────────────────────────────────────────────
+// ─── EmptyState ─── (طابع «دفتر المخططات» الخفيف عبر BlueprintEmpty)
 function EmptyState({ icon: Icon, msg }) {
   return (
-    <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-      <Icon size={32} color={C.textDim} style={{ marginBottom: 12, opacity: 0.4 }} />
-      <div style={{ fontSize: 13, color: C.textDim, fontWeight: 600 }}>{msg}</div>
+    <div style={{ padding: '6px 0' }}>
+      <BlueprintEmpty icon={<Icon size={28} color={C.cyan} strokeWidth={1.9} />} text={msg} />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, Check, X } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
+import { BlueprintEmpty } from '../ui/Blueprint.jsx'
 
 /* ─── AnimatedNumber ─── */
 export function AnimatedNumber({ value, prefix = '', suffix = '', duration = 900 }) {
@@ -267,13 +268,15 @@ export function SectionLabel({ children, color = C.primary, action, onAction }) 
   )
 }
 
-/* ─── EmptyState ─── */
+/* ─── EmptyState ─── (بطابع «دفتر المخططات» الخفيف — أكسسوار هندسي) */
 export function EmptyState({ icon, text, action, onAction }) {
   return (
-    <div style={{ textAlign: 'center', padding: '52px 20px' }}>
-      <div style={{ fontSize: 52, marginBottom: 14, opacity: 0.5 }}>{icon}</div>
-      <div style={{ fontSize: 14, color: C.textDim, marginBottom: 22, lineHeight: 1.7 }}>{text}</div>
-      {action && <Btn onClick={onAction}>{action}</Btn>}
+    <div style={{ padding: '8px 0' }}>
+      <BlueprintEmpty
+        icon={icon}
+        text={text}
+        action={action ? <Btn onClick={onAction}>{action}</Btn> : null}
+      />
     </div>
   )
 }
