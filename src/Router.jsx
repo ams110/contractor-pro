@@ -6,6 +6,7 @@ import LegalPage   from './pages/LegalPage.jsx'
 import BlogPage    from './pages/BlogPage.jsx'
 import ThankYouPage from './pages/ThankYouPage.jsx'
 import CookieConsent from './components/CookieConsent.jsx'
+import Celebration from './components/Celebration.jsx'
 import { ttPage } from './lib/tiktok.js'
 import { pageview } from './lib/analytics.js'
 
@@ -74,5 +75,5 @@ export default function Router() {
   else if (path === '/register') page = <Suspense fallback={null}><LoginScreen initialView="register" /></Suspense>
   else                           page = <Suspense fallback={null}><App /></Suspense>
 
-  return <>{page}<CookieConsent /></>
+  return <>{page}<CookieConsent /><Celebration /></>
 }

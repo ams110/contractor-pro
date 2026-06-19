@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { setLanguage, getCurrentLang } from '../i18n/index.js'
+import { celebrationConfig } from '../lib/celebrations.js'
 
 export const useAppStore = create((set, get) => ({
   // ─── Navigation ───────────────────────────────────────────────────────────
@@ -35,6 +36,25 @@ export const useAppStore = create((set, get) => ({
     const { toastTimer } = get()
     if (toastTimer) clearTimeout(toastTimer)
     set({ toast: null, toastTimer: null })
+  },
+
+  // ─── Celebration (لحظات الاحتفال) ─────────────────────────────────────────
+  // يُطلق انفجار احتفال عابر على كل التطبيق. variant: win | money | success | milestone.
+  // النمط زي showToast: نخزّن النيّة + مؤقّت تنظيف ذاتي، والمكوّن <Celebration/> يعرضها.
+  celebration:      null,   // { id, variant, label } | null
+  celebrationTimer: null,
+  celebrate: (variant = 'win', opts = {}) => {
+    const { celebrationTimer } = get()
+    if (celebrationTimer) clearTimeout(celebrationTimer)
+    const { duration } = celebrationConfig(variant)
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    const timer = setTimeout(() => set({ celebration: null, celebrationTimer: null }), duration + 500)
+    set({ celebration: { id, variant, label: opts.label || '' }, celebrationTimer: timer })
+  },
+  clearCelebration: () => {
+    const { celebrationTimer } = get()
+    if (celebrationTimer) clearTimeout(celebrationTimer)
+    set({ celebration: null, celebrationTimer: null })
   },
 
   // ─── Online state ─────────────────────────────────────────────────────────

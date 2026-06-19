@@ -3,6 +3,7 @@ import { CheckCircle2, HardHat, ArrowLeft } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { navigate } from '../Router.jsx'
 import { trackPurchase } from '../lib/track.js'
+import { useAppStore } from '../store/useAppStore.js'
 import { PLAN_META } from '../lib/paddle.js'
 import { supabase } from '../lib/supabase.js'
 
@@ -29,6 +30,7 @@ export default function ThankYouPage() {
     // حدث تحويل الشراء — مرّة واحدة عند فتح الصفحة — على القناتين (GA4 purchase +
     // TikTok CompletePayment، client + server). paddle-webhook يطلق Subscribe
     // مستقلاً → TikTok يدمج عبر event_id فلا تكرار. value مطلوب لحساب ROAS.
+    useAppStore.getState().celebrate('win', { label: 'مبروك الاشتراك!' })
     ;(async () => {
       const { data } = await supabase.auth.getUser().catch(() => ({ data: null }))
       trackPurchase({

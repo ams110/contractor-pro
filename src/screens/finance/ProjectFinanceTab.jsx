@@ -259,7 +259,7 @@ function AddExpenseSheet({ open, onClose, onSave, projectId, userId }) {
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function ProjectFinanceTab({ userId }) {
-  const { showToast } = useAppStore()
+  const { showToast, celebrate } = useAppStore()
 
   // ── مصلحة نشطة (نفس نمط IncomeTab) ──────────────────────────────────────
   const businesses    = useBusinessStore(s => s.businesses)
@@ -359,6 +359,7 @@ export default function ProjectFinanceTab({ userId }) {
     if (error) throw error
     setReceipts(prev => [data, ...prev])
     showToast('تم تسجيل القبضة')
+    celebrate('money')
   }
 
   async function addExpense(fields) {
