@@ -2,6 +2,8 @@
 // المراحل الإنشائية: مخطط → أساس → هيكل → تشطيب → مكتمل
 // لكل مرحلة وزن (0–100) يُحسب منه تقدّم الوحدة والقطعة والموقع كاملاً.
 
+import { C } from '../constants/index.js'
+
 export const SITE_PHASES = [
   { id: 'planned',   label: 'مخطط',  weight: 0   },
   { id: 'foundation', label: 'أساس',  weight: 25  },
@@ -9,6 +11,12 @@ export const SITE_PHASES = [
   { id: 'finishing', label: 'تشطيب', weight: 80  },
   { id: 'done',      label: 'مكتمل', weight: 100 },
 ]
+
+// لون كل مرحلة (مصدر واحد يشاركه SiteMapTab والمجسّم 3D)
+export const PHASE_COLOR = {
+  planned: C.textDim, foundation: C.primary, structure: C.warning, finishing: C.cyan, done: C.success,
+}
+export const phaseColor = (status) => PHASE_COLOR[status] || C.textDim
 
 export const phaseOf = (status) => SITE_PHASES.find(p => p.id === status) || SITE_PHASES[0]
 export const phaseWeight = (status) => phaseOf(status).weight

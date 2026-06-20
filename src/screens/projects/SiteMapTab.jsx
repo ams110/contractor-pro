@@ -1,18 +1,15 @@
 import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, Trash2, Building2, Layers, MapPin, ChevronDown, Check, X, Radar,
+  Plus, Trash2, MapPin, Check, X, Radar, Box,
 } from 'lucide-react'
 import { C } from '../../constants/index.js'
 import {
-  SITE_PHASES, phaseOf, nextPhase, buildingProgress, blockProgress, siteProgress, phaseTally,
+  SITE_PHASES, phaseColor, buildingProgress, blockProgress, siteProgress, phaseTally,
 } from '../../lib/siteMap.js'
+import Building3D, { Building3DViewer } from '../../components/Building3D.jsx'
 
 const BLUE = C.cyan
-const PHASE_COLOR = {
-  planned: C.textDim, foundation: C.primary, structure: C.warning, finishing: C.cyan, done: C.success,
-}
-const phaseColor = (s) => PHASE_COLOR[s] || C.textDim
 
 const blueprintBg = {
   backgroundColor: C.surface,
@@ -56,17 +53,6 @@ function AddRow({ placeholder, onAdd, onCancel, color = BLUE }) {
   )
 }
 
-// ─── شارة المرحلة (قابلة للتدوير) ─────────────────────────────────────────────
-function PhasePill({ status, onClick }) {
-  const ph = phaseOf(status); const col = phaseColor(status)
-  return (
-    <motion.button whileTap={{ scale: 0.93 }} onClick={onClick}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 8, background: `${col}18`, border: `1px solid ${col}44`, color: col, fontSize: 10.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-      <LiveSignal color={col} active={false} /> {ph.label}
-    </motion.button>
-  )
-}
-
 // ─── شريط تقدّم رفيع ───────────────────────────────────────────────────────────
 function Bar({ pct, color }) {
   return (
@@ -81,6 +67,8 @@ function Bar({ pct, color }) {
 export default function SiteMapTab({ units, addSiteUnit, updateSiteUnit, deleteSiteUnit }) {
   const [addingBlock, setAddingBlock] = useState(false)
   const [confirmDel, setConfirmDel] = useState(null)
+  // عارض المجسّم 3D: { buildingId, celebrate }
+  const [viewer, setViewer] = useState(null)
 
   const blocks = useMemo(
     () => units.filter(u => u.level === 'block' && !u.parent_id).sort((a, b) => a.sort_order - b.sort_order),
@@ -88,7 +76,8 @@ export default function SiteMapTab({ units, addSiteUnit, updateSiteUnit, deleteS
   )
   const overall = useMemo(() => siteProgress(units), [units])
   const tally = useMemo(() => phaseTally(units), [units])
-  const cycle = (u) => updateSiteUnit(u.id, { status: nextPhase(u.status) })
+  // العمارة المعروضة في العارض (حيّة من units)
+  const viewerBuilding = viewer ? units.find(u => u.id === viewer.buildingId) : null
 
   return (
     <div style={{ direction: 'rtl' }}>
@@ -122,7 +111,8 @@ export default function SiteMapTab({ units, addSiteUnit, updateSiteUnit, deleteS
       {/* ── القطع ── */}
       {blocks.map(block => (
         <BlockSection key={block.id} block={block} units={units}
-          addSiteUnit={addSiteUnit} cycle={cycle} onDelete={setConfirmDel} />
+          addSiteUnit={addSiteUnit} onDelete={setConfirmDel}
+          openViewer={(b, celebrate) => setViewer({ buildingId: b.id, celebrate })} />
       ))}
 
       {/* إضافة قطعة */}
@@ -166,12 +156,22 @@ export default function SiteMapTab({ units, addSiteUnit, updateSiteUnit, deleteS
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── عارض المجسّم 3D ── */}
+      <AnimatePresence>
+        {viewerBuilding && (
+          <Building3DViewer
+            building={viewerBuilding} units={units} celebrate={viewer?.celebrate}
+            addSiteUnit={addSiteUnit} updateSiteUnit={updateSiteUnit} deleteSiteUnit={deleteSiteUnit}
+            onClose={() => setViewer(null)} />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
 // ─── قسم القطعة ───────────────────────────────────────────────────────────────
-function BlockSection({ block, units, addSiteUnit, cycle, onDelete }) {
+function BlockSection({ block, units, addSiteUnit, onDelete, openViewer }) {
   const [addingBuilding, setAddingBuilding] = useState(false)
   const buildings = units.filter(u => u.level === 'building' && u.parent_id === block.id).sort((a, b) => a.sort_order - b.sort_order)
   const pct = blockProgress(block, units)
@@ -194,16 +194,20 @@ function BlockSection({ block, units, addSiteUnit, cycle, onDelete }) {
       {/* العمائر */}
       <div style={{ padding: 10, background: C.bg }}>
         {buildings.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: buildings.length ? 8 : 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8, marginBottom: buildings.length ? 8 : 0 }}>
             {buildings.map(b => (
-              <BuildingTile key={b.id} building={b} units={units} addSiteUnit={addSiteUnit} cycle={cycle} onDelete={onDelete} />
+              <BuildingTile key={b.id} building={b} units={units} onDelete={onDelete} openViewer={openViewer} />
             ))}
           </div>
         )}
         {addingBuilding ? (
           <div style={{ padding: '8px', background: C.surface, borderRadius: 11, border: `1px solid ${BLUE}33` }}>
             <AddRow placeholder="اسم العمارة (مثال: عمارة A)" onCancel={() => setAddingBuilding(false)}
-              onAdd={async (name) => { await addSiteUnit({ level: 'building', name, parent_id: block.id }); setAddingBuilding(false) }} />
+              onAdd={async (name) => {
+                const created = await addSiteUnit({ level: 'building', name, parent_id: block.id })
+                setAddingBuilding(false)
+                if (created) openViewer(created, true) // لحظة الـ«wow»: افتح المجسّم 3D
+              }} />
           </div>
         ) : (
           <button onClick={() => setAddingBuilding(true)}
@@ -216,63 +220,38 @@ function BlockSection({ block, units, addSiteUnit, cycle, onDelete }) {
   )
 }
 
-// ─── بلاطة العمارة (بالإشارة الحيّة) ──────────────────────────────────────────
-function BuildingTile({ building, units, addSiteUnit, cycle, onDelete }) {
-  const [open, setOpen] = useState(false)
-  const [addingFloor, setAddingFloor] = useState(false)
-  const floors = units.filter(u => u.level === 'floor' && u.parent_id === building.id).sort((a, b) => a.sort_order - b.sort_order)
+// ─── بلاطة العمارة — مجسّم 3D مصغّر، نقرة تفتح العارض ─────────────────────────
+function BuildingTile({ building, units, onDelete, openViewer }) {
+  const floors = units.filter(u => u.level === 'floor' && u.parent_id === building.id)
   const pct = buildingProgress(building, units)
-  const col = pct >= 100 ? C.success : phaseColor(building.status)
-  const hasFloors = floors.length > 0
+  const col = pct >= 100 ? C.success : (floors.length ? BLUE : phaseColor(building.status))
 
   return (
-    <div style={{ ...blueprintBg, border: `1px solid ${col}3a`, borderRadius: 11, overflow: 'hidden' }}>
-      <div style={{ padding: '9px 10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+    <motion.div whileTap={{ scale: 0.97 }} onClick={() => openViewer(building, false)}
+      style={{ ...blueprintBg, border: `1px solid ${col}3a`, borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
+      {/* مسرح المجسّم 3D المصغّر */}
+      <div style={{ position: 'relative', height: 96, borderBottom: `1px solid ${col}1f`, overflow: 'hidden' }}>
+        <Building3D building={building} units={units} size="mini" animate={false} />
+        <div style={{ position: 'absolute', insetInlineStart: 7, top: 7, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 800, color: col, background: `${C.bg}cc`, border: `1px solid ${col}44`, borderRadius: 7, padding: '2px 6px' }}>
+          <Box size={10} /> 3D
+        </div>
+        <button onClick={e => { e.stopPropagation(); onDelete(building) }}
+          style={{ position: 'absolute', insetInlineEnd: 6, top: 6, width: 24, height: 24, borderRadius: 7, background: `${C.bg}cc`, border: `1px solid ${C.borderMid}`, color: C.textDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Trash2 size={12} />
+        </button>
+      </div>
+      {/* معلومات */}
+      <div style={{ padding: '8px 10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
           <LiveSignal color={col} active={pct > 0 && pct < 100} />
           <span style={{ flex: 1, fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{building.name}</span>
-          <button onClick={() => onDelete(building)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 1, display: 'flex' }}><Trash2 size={12} /></button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
-          <Building2 size={11} color={C.textDim} />
-          <span style={{ fontSize: 10, color: C.textDim, flex: 1 }}>{hasFloors ? `${floors.length} طابق` : 'بلا طوابق'} · {pct}%</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: col, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
         </div>
         <Bar pct={pct} color={col} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-          {/* بلا طوابق → تدوير حالة العمارة مباشرة. مع طوابق → الحالة محسوبة منها */}
-          {!hasFloors && <PhasePill status={building.status} onClick={() => cycle(building)} />}
-          <button onClick={() => setOpen(o => !o)}
-            style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 700, color: BLUE, background: `${BLUE}12`, border: `1px solid ${BLUE}33`, borderRadius: 8, padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit' }}>
-            <Layers size={12} /> طوابق
-            <motion.span animate={{ rotate: open ? 180 : 0 }}><ChevronDown size={12} /></motion.span>
-          </button>
+        <div style={{ fontSize: 9.5, color: C.textDim, marginTop: 6 }}>
+          {floors.length ? `${floors.length} طابق · انقر للـ3D` : 'انقر لبناء الطوابق'}
         </div>
       </div>
-
-      {open && (
-        <div style={{ borderTop: `1px solid ${BLUE}1f`, background: C.bg }}>
-          <div style={{ padding: 8 }}>
-            {floors.map(f => (
-              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 4px' }}>
-                <span style={{ flex: 1, fontSize: 11.5, color: C.text, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</span>
-                <PhasePill status={f.status} onClick={() => cycle(f)} />
-                <button onClick={() => onDelete(f)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 1, display: 'flex' }}><Trash2 size={11} /></button>
-              </div>
-            ))}
-            {addingFloor ? (
-              <div style={{ marginTop: 4 }}>
-                <AddRow placeholder="اسم الطابق (مثال: طابق أرضي)" onCancel={() => setAddingFloor(false)}
-                  onAdd={async (name) => { await addSiteUnit({ level: 'floor', name, parent_id: building.id }) }} />
-              </div>
-            ) : (
-              <button onClick={() => setAddingFloor(true)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', marginTop: 4, background: 'transparent', border: `1px dashed ${BLUE}33`, borderRadius: 9, color: BLUE, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                <Plus size={12} strokeWidth={2.5} /> طابق
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+    </motion.div>
   )
 }
