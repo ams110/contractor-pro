@@ -230,7 +230,7 @@ function BuildingTile({ building, units, onDelete, openViewer }) {
     <motion.div whileTap={{ scale: 0.97 }} onClick={() => openViewer(building, false)}
       style={{ ...blueprintBg, border: `1px solid ${col}3a`, borderRadius: 12, overflow: 'hidden', cursor: 'pointer' }}>
       {/* مسرح المجسّم 3D المصغّر */}
-      <div style={{ position: 'relative', height: 96, borderBottom: `1px solid ${col}1f`, overflow: 'hidden' }}>
+      <div style={{ position: 'relative', height: 124, borderBottom: `1px solid ${col}1f`, overflow: 'hidden' }}>
         <Building3D building={building} units={units} size="mini" animate={false} />
         <div style={{ position: 'absolute', insetInlineStart: 7, top: 7, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 800, color: col, background: `${C.bg}cc`, border: `1px solid ${col}44`, borderRadius: 7, padding: '2px 6px' }}>
           <Box size={10} /> 3D

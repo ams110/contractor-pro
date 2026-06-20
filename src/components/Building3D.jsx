@@ -14,7 +14,31 @@ import {
 const ov = (a, base) => `linear-gradient(0deg, rgba(2,6,15,${a}), rgba(2,6,15,${a})), ${base}`
 const lite = (a, base) => `linear-gradient(0deg, rgba(255,255,255,${a}), rgba(255,255,255,${a})), ${base}`
 
-function Face({ w, h, transform, bg, wire, glow }) {
+// زجاج الشبابيك حسب المرحلة: مكتمل=مضيء دافئ · تشطيب=مضيء سماوي · هيكل=فتحات غامقة · أساس/مخطّط=بلا
+function glassFor(status) {
+  if (status === 'done') return { glass: 'linear-gradient(180deg,#fde68a,#f59e0b)', glow: '#f59e0b' }
+  if (status === 'finishing') return { glass: 'linear-gradient(180deg,#a5f3fc,#22d3ee)', glow: '#06b6d4' }
+  if (status === 'structure') return { glass: '#0a1018', glow: null }
+  return null
+}
+
+// صفّ شبابيك داخل وجه جداري
+function Windows({ fw, fh, n, g }) {
+  const wWin = fw / (n * 2.0)
+  const hWin = fh * 0.5
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-evenly', padding: `0 ${fw * 0.09}px` }}>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} style={{
+          width: wWin, height: hWin, borderRadius: 1, background: g.glass,
+          boxShadow: g.glow ? `0 0 ${fh * 0.35}px ${g.glow}, inset 0 0 2px rgba(255,255,255,0.6)` : 'inset 0 0 3px rgba(0,0,0,0.7)',
+        }} />
+      ))}
+    </div>
+  )
+}
+
+function Face({ w, h, transform, bg, wire, glow, children }) {
   return (
     <div style={{
       position: 'absolute', top: '50%', left: '50%', width: w, height: h,
@@ -22,28 +46,24 @@ function Face({ w, h, transform, bg, wire, glow }) {
       background: wire ? `${C.cyan}10` : bg,
       border: wire ? `1px dashed ${C.cyan}99` : `0.5px solid rgba(2,6,15,0.45)`,
       boxShadow: glow ? `inset 0 0 16px ${glow}` : 'none',
-      boxSizing: 'border-box', backfaceVisibility: 'hidden',
-    }} />
+      boxSizing: 'border-box', backfaceVisibility: 'hidden', overflow: 'hidden',
+    }}>{children}</div>
   )
 }
 
 // صندوق طابق واحد عند ارتفاع y (سالب = أعلى). يهبط من فوق عند الإضافة (متل الرافعة).
-function FloorBox({ w, d, h, y, color, wire, glow, delay = 0, animate = true }) {
+function FloorBox({ w, d, h, y, color, status, wire, glow, nWin = 3, delay = 0, animate = true }) {
+  const g = wire ? null : glassFor(status)
+  const win = (fw, fh) => (g ? <Windows fw={fw} fh={fh} n={nWin} g={g} /> : null)
   const faces = wire
     ? { front: null, back: null, left: null, right: null, top: null }
-    : {
-        front: color,
-        back: ov(0.30, color),
-        right: ov(0.20, color),
-        left: ov(0.40, color),
-        top: lite(0.20, color),
-      }
+    : { front: color, back: ov(0.30, color), right: ov(0.20, color), left: ov(0.40, color), top: lite(0.20, color) }
   const inner = (
     <>
-      <Face w={w} h={h} transform={`translateZ(${d / 2}px)`} bg={faces.front} wire={wire} glow={glow} />
-      <Face w={w} h={h} transform={`rotateY(180deg) translateZ(${d / 2}px)`} bg={faces.back} wire={wire} />
-      <Face w={d} h={h} transform={`rotateY(90deg) translateZ(${w / 2}px)`} bg={faces.right} wire={wire} />
-      <Face w={d} h={h} transform={`rotateY(-90deg) translateZ(${w / 2}px)`} bg={faces.left} wire={wire} />
+      <Face w={w} h={h} transform={`translateZ(${d / 2}px)`} bg={faces.front} wire={wire} glow={glow}>{win(w, h)}</Face>
+      <Face w={w} h={h} transform={`rotateY(180deg) translateZ(${d / 2}px)`} bg={faces.back} wire={wire}>{win(w, h)}</Face>
+      <Face w={d} h={h} transform={`rotateY(90deg) translateZ(${w / 2}px)`} bg={faces.right} wire={wire}>{win(d, h)}</Face>
+      <Face w={d} h={h} transform={`rotateY(-90deg) translateZ(${w / 2}px)`} bg={faces.left} wire={wire}>{win(d, h)}</Face>
       <Face w={w} h={d} transform={`rotateX(90deg) translateZ(${h / 2}px)`} bg={faces.top} wire={wire} glow={glow} />
     </>
   )
@@ -76,9 +96,10 @@ function FloorBox({ w, d, h, y, color, wire, glow, delay = 0, animate = true }) 
  */
 export default function Building3D({ building, units, size = 'mini', spin = false, animate = true }) {
   const mini = size === 'mini'
-  const W = mini ? 46 : 104
-  const D = mini ? 46 : 104
-  const H = mini ? 13 : 26
+  const W = mini ? 54 : 116
+  const D = mini ? 54 : 116
+  const H = mini ? 18 : 33
+  const nWin = mini ? 2 : 3
 
   const floors = useMemo(
     () => units.filter(u => u.level === 'floor' && u.parent_id === building.id).sort((a, b) => a.sort_order - b.sort_order),
@@ -91,7 +112,7 @@ export default function Building3D({ building, units, size = 'mini', spin = fals
 
   return (
     <div style={{ perspective: mini ? 460 : 820, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
-      <div style={{ transformStyle: 'preserve-3d', transform: 'rotateX(-22deg)' }}>
+      <div style={{ transformStyle: 'preserve-3d', transform: 'rotateX(-25deg)' }}>
         <motion.div
           style={{ transformStyle: 'preserve-3d', position: 'relative', width: 0, height: 0 }}
           animate={spin ? { rotateY: [-36, 324] } : { rotateY: -36 }}
@@ -107,7 +128,7 @@ export default function Building3D({ building, units, size = 'mini', spin = fals
               const col = phaseColor(f.status)
               const y = -(H / 2 + i * H)
               return (
-                <FloorBox key={f.id} w={W} d={D} h={H} y={y} color={col} wire={wire}
+                <FloorBox key={f.id} w={W} d={D} h={H} y={y} color={col} status={f.status} wire={wire} nWin={nWin}
                   glow={f.status === 'done' ? `${col}77` : null}
                   delay={animate ? i * 0.09 : 0} animate={animate} />
               )
