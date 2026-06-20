@@ -10,6 +10,8 @@ export function useProjectVault(ownerId, projectId) {
   const [drawings, setDrawings]   = useState([])
   const [materials, setMaterials] = useState([])
   const [siteUnits, setSiteUnits] = useState([])
+  const [documents, setDocuments] = useState([])
+  const [deliveries, setDeliveries] = useState([]) // material_logs المسجّلة من بوّابة العامل لهذا المشروع
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState('')
 
@@ -17,7 +19,7 @@ export function useProjectVault(ownerId, projectId) {
     if (!ownerId || !projectId) { setLoading(false); return }
     setLoading(true); setError('')
     try {
-      const [dRes, mRes, sRes] = await Promise.all([
+      const [dRes, mRes, sRes, docRes, delRes] = await Promise.all([
         supabase.from('project_drawings')
           .select('*').eq('owner_id', ownerId).eq('project_id', projectId)
           .order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
@@ -27,13 +29,24 @@ export function useProjectVault(ownerId, projectId) {
         supabase.from('project_site_units')
           .select('*').eq('owner_id', ownerId).eq('project_id', projectId)
           .order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
+        supabase.from('project_documents')
+          .select('*').eq('owner_id', ownerId).eq('project_id', projectId)
+          .order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
+        supabase.from('material_logs')
+          .select('id, date, item_name, quantity, unit, notes, created_at, employees ( name )')
+          .eq('owner_id', ownerId).eq('project_id', projectId)
+          .order('date', { ascending: false }).order('created_at', { ascending: false }),
       ])
       if (dRes.error) throw new Error(dRes.error.message)
       if (mRes.error) throw new Error(mRes.error.message)
       if (sRes.error) throw new Error(sRes.error.message)
+      if (docRes.error) throw new Error(docRes.error.message)
+      // deliveries غير حرجة — لا نُفشل التحميل لو تعذّرت
       setDrawings(dRes.data || [])
       setMaterials(mRes.data || [])
       setSiteUnits(sRes.data || [])
+      setDocuments(docRes.data || [])
+      setDeliveries(delRes.error ? [] : (delRes.data || []))
     } catch (e) {
       setError(e.message)
     } finally {
@@ -131,10 +144,33 @@ export function useProjectVault(ownerId, projectId) {
     })
   }, [])
 
+  // ── الوثائق والتصاريح ────────────────────────────────────────────────────────
+  const addDocument = useCallback(async (file, { title, doc_type = 'أخرى', expiry_date = null, notes = '' }) => {
+    const isPdf = !file.type.startsWith('image/')
+    const url = await uploadProjectFile(ownerId, projectId, file)
+    const { data, error: err } = await supabase.from('project_documents').insert({
+      owner_id: ownerId, project_id: projectId,
+      title: title || file.name.replace(/\.[^.]+$/, ''),
+      doc_type, file_url: url, file_type: isPdf ? 'pdf' : 'image',
+      expiry_date: expiry_date || null, notes,
+    }).select().single()
+    if (err) throw new Error(err.message)
+    setDocuments(p => [...p, data])
+    return data
+  }, [ownerId, projectId])
+
+  const deleteDocument = useCallback(async (doc) => {
+    const { error: err } = await supabase.from('project_documents').delete().eq('id', doc.id)
+    if (err) throw new Error(err.message)
+    if (doc.file_url) deleteStorageFile(doc.file_url).catch(() => {})
+    setDocuments(p => p.filter(x => x.id !== doc.id))
+  }, [])
+
   return {
-    drawings, materials, siteUnits, loading, error, reload: load,
+    drawings, materials, siteUnits, documents, deliveries, loading, error, reload: load,
     addDrawing, deleteDrawing,
     addMaterial, updateMaterial, deleteMaterial,
     addSiteUnit, updateSiteUnit, deleteSiteUnit,
+    addDocument, deleteDocument,
   }
 }
