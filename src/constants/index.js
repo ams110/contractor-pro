@@ -108,10 +108,11 @@ export const NAV = [
 
 // Screens accessible from the settings / more tab
 export const MORE_SCREENS = [
-  { id: 'team',       icon: 'Users2',        label: 'إدارة الفريق' },
-  { id: 'tracker',    icon: 'ClipboardList', label: 'تتبع الوحدات'},
-  { id: 'materials',  icon: 'Package',       label: 'البضاعة'     },
-  { id: 'activity',   icon: 'Activity',      label: 'النشاط'      },
+  { id: 'team',       icon: 'Users2',          label: 'إدارة الفريق' },
+  { id: 'vault',      icon: 'DraftingCompass', label: 'دفتر المشروع'},
+  { id: 'tracker',    icon: 'ClipboardList',   label: 'تتبع الوحدات'},
+  { id: 'materials',  icon: 'Package',         label: 'البضاعة'     },
+  { id: 'activity',   icon: 'Activity',        label: 'النشاط'      },
 ]
 
 // ─── Breakpoints ──────────────────────────────────────────────────────────────

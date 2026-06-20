@@ -7,7 +7,7 @@ import {
   Bell, ClipboardCheck, HardHat, Gift,
   Clock, ShieldOff, Lock, CalendarDays, CreditCard, Banknote,
   ClipboardList, Package, Calculator, Activity, Grid3x3,
-  Search, AlertTriangle, RefreshCw,
+  Search, AlertTriangle, RefreshCw, DraftingCompass,
 } from 'lucide-react'
 
 import { supabase }            from './lib/supabase.js'
@@ -58,6 +58,7 @@ const WorkDaysScreen    = lazy(() => import('./screens/WorkDaysScreen.jsx'))
 const ExpensesScreen    = lazy(() => import('./screens/ExpensesScreen.jsx'))
 const PaymentsScreen    = lazy(() => import('./screens/PaymentsScreen.jsx'))
 const UnitTrackerScreen = lazy(() => import('./screens/UnitTrackerScreen.jsx'))
+const ProjectVaultScreen = lazy(() => import('./screens/projects/ProjectVaultScreen.jsx'))
 const MaterialsScreen   = lazy(() => import('./screens/MaterialsScreen.jsx'))
 const ActivityScreen    = lazy(() => import('./screens/ActivityScreen.jsx'))
 const TeamScreen        = lazy(() => import('./screens/team/TeamScreen.jsx'))
@@ -74,6 +75,7 @@ const NAV_ICONS = {
   expenses:   CreditCard,
   payments:   Banknote,
   tracker:    ClipboardList,
+  vault:      DraftingCompass,
   materials:  Package,
   accounting: Calculator,
   activity:   Activity,
@@ -119,6 +121,7 @@ function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
   const p = permissions || {}
   const filtered = MORE_SCREENS.filter(s => {
     if (s.id === 'activity') return p.viewActivity || p.isOwner
+    if (s.id === 'vault')    return p.isOwner
     return true
   })
 
@@ -192,6 +195,7 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
 
   const filteredMore = MORE_SCREENS.filter(s => {
     if (s.id === 'activity') return p.viewActivity || p.isOwner
+    if (s.id === 'vault')    return p.isOwner
     return true
   })
 
@@ -562,6 +566,7 @@ function OwnerApp() {
       case 'expenses':   content = p?.viewExpenses  ? <ExpensesScreen  expenses={visibleExpenses} projects={visibleProjects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={visibleEmployees} userId={uid} permissions={p} /> : <NoAccess />; break
       case 'payments':   content = p?.viewPayments  ? <PaymentsScreen  payments={visiblePayments} employees={visibleEmployees} workDays={visibleWorkDays} expenses={visibleExpenses} advances={visibleAdvances} projects={visibleProjects} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
       case 'tracker':    content = p?.viewProjects  ? <UnitTrackerScreen projects={visibleProjects} /> : <NoAccess />; break
+      case 'vault':      content = p?.isOwner       ? <ProjectVaultScreen projects={visibleProjects} expenses={visibleExpenses} userId={uid} /> : <NoAccess />; break
       case 'materials':  content = p?.viewProjects  ? <MaterialsScreen userId={eid} employees={visibleEmployees} projects={visibleProjects} /> : <NoAccess />; break
       case 'accounting': setScreen('finance'); content = null; break
       case 'activity':   content = (p?.viewActivity || p?.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />; break
