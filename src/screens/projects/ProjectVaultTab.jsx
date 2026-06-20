@@ -9,6 +9,7 @@ import { fmt } from '../../lib/helpers.js'
 import { openSignedUrl } from '../../lib/storage.js'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { useProjectVault } from '../../hooks/useProjectVault.js'
+import SiteMapTab from './SiteMapTab.jsx'
 
 // ─── الطابع الهندسي: خلفية مخطط أزرق ─────────────────────────────────────────
 const BLUE = C.cyan
@@ -47,11 +48,12 @@ const nextStatus = (s) => {
 // ═══════════════════════════════════════════════════════════════════════════
 export default function ProjectVaultTab({ project, userId, expenses = [] }) {
   const {
-    drawings, materials, loading, error, reload,
+    drawings, materials, siteUnits, loading, error, reload,
     addDrawing, deleteDrawing, addMaterial, updateMaterial, deleteMaterial,
+    addSiteUnit, updateSiteUnit, deleteSiteUnit,
   } = useProjectVault(userId, project.id)
 
-  const [sub, setSub] = useState('drawings') // 'drawings' | 'materials'
+  const [sub, setSub] = useState('drawings') // 'drawings' | 'materials' | 'site'
 
   // ── تكلفة المواد التقديرية مقابل الفعلية (من مصاريف المشروع) ──
   const estTotal = useMemo(
@@ -74,6 +76,7 @@ export default function ProjectVaultTab({ project, userId, expenses = [] }) {
       <div style={{ display: 'flex', gap: 8, margin: '14px 0' }}>
         <SubTab active={sub === 'drawings'} onClick={() => setSub('drawings')} icon={DraftingCompass} label="المخططات" count={drawings.length} />
         <SubTab active={sub === 'materials'} onClick={() => setSub('materials')} icon={Package} label="المواد" count={materials.length} />
+        <SubTab active={sub === 'site'} onClick={() => setSub('site')} icon={Layers} label="الموقع" count={siteUnits.filter(u => u.level === 'building').length} />
       </div>
 
       {loading && (
@@ -97,6 +100,9 @@ export default function ProjectVaultTab({ project, userId, expenses = [] }) {
           materials={materials} addMaterial={addMaterial} updateMaterial={updateMaterial} deleteMaterial={deleteMaterial}
           estTotal={estTotal} actualSpend={actualMaterialSpend}
         />
+      )}
+      {!loading && !error && sub === 'site' && (
+        <SiteMapTab units={siteUnits} addSiteUnit={addSiteUnit} updateSiteUnit={updateSiteUnit} deleteSiteUnit={deleteSiteUnit} />
       )}
     </div>
   )

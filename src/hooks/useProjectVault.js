@@ -9,6 +9,7 @@ import { uploadProjectFile, deleteStorageFile } from '../lib/storage.js'
 export function useProjectVault(ownerId, projectId) {
   const [drawings, setDrawings]   = useState([])
   const [materials, setMaterials] = useState([])
+  const [siteUnits, setSiteUnits] = useState([])
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState('')
 
@@ -16,18 +17,23 @@ export function useProjectVault(ownerId, projectId) {
     if (!ownerId || !projectId) { setLoading(false); return }
     setLoading(true); setError('')
     try {
-      const [dRes, mRes] = await Promise.all([
+      const [dRes, mRes, sRes] = await Promise.all([
         supabase.from('project_drawings')
           .select('*').eq('owner_id', ownerId).eq('project_id', projectId)
           .order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
         supabase.from('project_materials')
           .select('*').eq('owner_id', ownerId).eq('project_id', projectId)
           .order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
+        supabase.from('project_site_units')
+          .select('*').eq('owner_id', ownerId).eq('project_id', projectId)
+          .order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
       ])
       if (dRes.error) throw new Error(dRes.error.message)
       if (mRes.error) throw new Error(mRes.error.message)
+      if (sRes.error) throw new Error(sRes.error.message)
       setDrawings(dRes.data || [])
       setMaterials(mRes.data || [])
+      setSiteUnits(sRes.data || [])
     } catch (e) {
       setError(e.message)
     } finally {
@@ -88,9 +94,47 @@ export function useProjectVault(ownerId, projectId) {
     setMaterials(p => p.filter(x => x.id !== id))
   }, [])
 
+  // ── وحدات الموقع (قطعة/عمارة/طابق) ───────────────────────────────────────────
+  const addSiteUnit = useCallback(async ({ level, name, parent_id = null }) => {
+    const siblings = siteUnits.filter(u => (u.parent_id || null) === (parent_id || null)).length
+    const { data, error: err } = await supabase.from('project_site_units').insert({
+      owner_id: ownerId, project_id: projectId,
+      level, name, parent_id, status: 'planned', sort_order: siblings,
+    }).select().single()
+    if (err) throw new Error(err.message)
+    setSiteUnits(p => [...p, data])
+    return data
+  }, [ownerId, projectId, siteUnits])
+
+  const updateSiteUnit = useCallback(async (id, patch) => {
+    const { data, error: err } = await supabase.from('project_site_units')
+      .update(patch).eq('id', id).select().single()
+    if (err) throw new Error(err.message)
+    setSiteUnits(p => p.map(x => x.id === id ? data : x))
+    return data
+  }, [])
+
+  const deleteSiteUnit = useCallback(async (id) => {
+    // ON DELETE CASCADE يحذف الأبناء في القاعدة؛ ننظّفهم محلياً أيضاً
+    const { error: err } = await supabase.from('project_site_units').delete().eq('id', id)
+    if (err) throw new Error(err.message)
+    setSiteUnits(p => {
+      const toDrop = new Set([id])
+      let changed = true
+      while (changed) {
+        changed = false
+        for (const u of p) {
+          if (u.parent_id && toDrop.has(u.parent_id) && !toDrop.has(u.id)) { toDrop.add(u.id); changed = true }
+        }
+      }
+      return p.filter(x => !toDrop.has(x.id))
+    })
+  }, [])
+
   return {
-    drawings, materials, loading, error, reload: load,
+    drawings, materials, siteUnits, loading, error, reload: load,
     addDrawing, deleteDrawing,
     addMaterial, updateMaterial, deleteMaterial,
+    addSiteUnit, updateSiteUnit, deleteSiteUnit,
   }
 }
