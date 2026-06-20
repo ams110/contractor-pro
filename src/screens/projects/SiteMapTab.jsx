@@ -20,18 +20,18 @@ const blueprintBg = {
   backgroundSize: '14px 14px',
 }
 
-// ─── الإشارة الحيّة النابضة ───────────────────────────────────────────────────
-function LiveSignal({ color, done }) {
+// ─── الإشارة الحيّة — تنبض فقط على العمائر اللي شغل فيها فعلاً (هادئة) ─────────
+function LiveSignal({ color, active = false }) {
   return (
     <div style={{ position: 'relative', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {!done && [0, 0.6].map((d, i) => (
-        <motion.div key={i}
-          initial={{ scale: 0.5, opacity: 0.55 }}
-          animate={{ scale: 2.4, opacity: 0 }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut', delay: d }}
+      {active && (
+        <motion.div
+          initial={{ scale: 0.6, opacity: 0.4 }}
+          animate={{ scale: 2, opacity: 0 }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
           style={{ position: 'absolute', width: 12, height: 12, borderRadius: '50%', background: color }} />
-      ))}
-      <div style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}`, zIndex: 1 }} />
+      )}
+      <div style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}88`, zIndex: 1 }} />
     </div>
   )
 }
@@ -62,7 +62,7 @@ function PhasePill({ status, onClick }) {
   return (
     <motion.button whileTap={{ scale: 0.93 }} onClick={onClick}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 8, background: `${col}18`, border: `1px solid ${col}44`, color: col, fontSize: 10.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-      <LiveSignal color={col} done={status === 'done'} /> {ph.label}
+      <LiveSignal color={col} active={false} /> {ph.label}
     </motion.button>
   )
 }
@@ -229,7 +229,7 @@ function BuildingTile({ building, units, addSiteUnit, cycle, onDelete }) {
     <div style={{ ...blueprintBg, border: `1px solid ${col}3a`, borderRadius: 11, overflow: 'hidden' }}>
       <div style={{ padding: '9px 10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
-          <LiveSignal color={col} done={pct >= 100} />
+          <LiveSignal color={col} active={pct > 0 && pct < 100} />
           <span style={{ flex: 1, fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{building.name}</span>
           <button onClick={() => onDelete(building)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 1, display: 'flex' }}><Trash2 size={12} /></button>
         </div>
@@ -249,33 +249,30 @@ function BuildingTile({ building, units, addSiteUnit, cycle, onDelete }) {
         </div>
       </div>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            style={{ overflow: 'hidden', borderTop: `1px solid ${BLUE}1f`, background: C.bg }}>
-            <div style={{ padding: 8 }}>
-              {floors.map(f => (
-                <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 4px' }}>
-                  <span style={{ flex: 1, fontSize: 11.5, color: C.text, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</span>
-                  <PhasePill status={f.status} onClick={() => cycle(f)} />
-                  <button onClick={() => onDelete(f)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 1, display: 'flex' }}><Trash2 size={11} /></button>
-                </div>
-              ))}
-              {addingFloor ? (
-                <div style={{ marginTop: 4 }}>
-                  <AddRow placeholder="اسم الطابق (مثال: طابق أرضي)" onCancel={() => setAddingFloor(false)}
-                    onAdd={async (name) => { await addSiteUnit({ level: 'floor', name, parent_id: building.id }) }} />
-                </div>
-              ) : (
-                <button onClick={() => setAddingFloor(true)}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', marginTop: 4, background: 'transparent', border: `1px dashed ${BLUE}33`, borderRadius: 9, color: BLUE, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <Plus size={12} strokeWidth={2.5} /> طابق
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {open && (
+        <div style={{ borderTop: `1px solid ${BLUE}1f`, background: C.bg }}>
+          <div style={{ padding: 8 }}>
+            {floors.map(f => (
+              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 4px' }}>
+                <span style={{ flex: 1, fontSize: 11.5, color: C.text, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</span>
+                <PhasePill status={f.status} onClick={() => cycle(f)} />
+                <button onClick={() => onDelete(f)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 1, display: 'flex' }}><Trash2 size={11} /></button>
+              </div>
+            ))}
+            {addingFloor ? (
+              <div style={{ marginTop: 4 }}>
+                <AddRow placeholder="اسم الطابق (مثال: طابق أرضي)" onCancel={() => setAddingFloor(false)}
+                  onAdd={async (name) => { await addSiteUnit({ level: 'floor', name, parent_id: building.id }) }} />
+              </div>
+            ) : (
+              <button onClick={() => setAddingFloor(true)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', marginTop: 4, background: 'transparent', border: `1px dashed ${BLUE}33`, borderRadius: 9, color: BLUE, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <Plus size={12} strokeWidth={2.5} /> طابق
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

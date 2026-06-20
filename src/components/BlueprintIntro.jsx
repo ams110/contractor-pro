@@ -74,12 +74,13 @@ export default function BlueprintIntro({ title = 'دفتر المشروع', subt
             <div style={{ fontSize: 11.5, color: C.textDim, marginTop: 3 }}>{subtitle}</div>
           </motion.div>
 
-          {/* الختم — يهبط مثل ختم مطّاط */}
+          {/* الختم — يطلع بثبات مائل خفيف (بلا دوران/ارتداد) */}
           <motion.div
-            initial={reduce ? false : { scale: 1.8, opacity: 0, rotate: -32 }}
-            animate={{ scale: 1, opacity: 1, rotate: -13 }}
-            transition={reduce ? {} : { delay: 1.9, type: 'spring', stiffness: 420, damping: 12 }}
+            initial={reduce ? false : { scale: 1.18, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={reduce ? {} : { delay: 1.7, duration: 0.34, ease: [0.34, 1.2, 0.64, 1] }}
             style={{
+              rotate: '-9deg',
               display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12,
               padding: '6px 13px', borderRadius: 8,
               border: `2px solid ${C.success}`, color: C.success,
