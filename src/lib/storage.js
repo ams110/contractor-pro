@@ -88,6 +88,38 @@ export async function uploadReceipt(userId, file) {
   return data.signedUrl
 }
 
+/**
+ * رفع ملف مخطط/وثيقة لمشروع إلى bucket project-files.
+ * المسار: {ownerUid}/{projectId}/{timestamp}.ext — يطابق سياسة الـRLS (المجلّد الأول = uid).
+ * الصور تُضغط؛ ملفات PDF تُرفع كما هي. يُرجع signed URL (سنة) أو public fallback.
+ */
+export async function uploadProjectFile(ownerUid, projectId, file) {
+  const isImage = file.type.startsWith('image/')
+  const payload = isImage ? await compressImage(file, 1600, 0.82) : file
+  const ext = isImage ? 'jpg' : (file.name.split('.').pop() || 'bin').toLowerCase()
+  const path = `${ownerUid}/${projectId}/${Date.now()}.${ext}`
+
+  const { error: upErr } = await supabase.storage
+    .from('project-files')
+    .upload(path, payload, { upsert: false, contentType: payload.type || 'application/octet-stream' })
+  if (upErr) throw new Error(upErr.message)
+
+  const { data, error: signErr } = await supabase.storage
+    .from('project-files')
+    .createSignedUrl(path, SIGNED_URL_TTL)
+  if (signErr || !data?.signedUrl) {
+    return supabase.storage.from('project-files').getPublicUrl(path).data.publicUrl
+  }
+  return data.signedUrl
+}
+
+/** احذف ملفاً مخزّناً من أي bucket اعتماداً على رابطه (public أو signed). */
+export async function deleteStorageFile(storedUrl) {
+  const parsed = parseBucketPath(storedUrl)
+  if (!parsed) return
+  await supabase.storage.from(parsed.bucket).remove([parsed.path])
+}
+
 export async function uploadWorkerReceipt(empId, token, file) {
   const compressed = await compressImage(file)
   const ext  = compressed.type === 'image/jpeg' ? 'jpg' : (file.name.split('.').pop() || 'jpg')
