@@ -263,7 +263,7 @@ function BuildingTile({ building, units, addSiteUnit, cycle, onDelete }) {
               ))}
               {addingFloor ? (
                 <div style={{ marginTop: 4 }}>
-                  <AddRow placeholder="اسم الطابق (مثال: طابق أرضي)" color={col} onCancel={() => setAddingFloor(false)}
+                  <AddRow placeholder="اسم الطابق (مثال: طابق أرضي)" onCancel={() => setAddingFloor(false)}
                     onAdd={async (name) => { await addSiteUnit({ level: 'floor', name, parent_id: building.id }) }} />
                 </div>
               ) : (
