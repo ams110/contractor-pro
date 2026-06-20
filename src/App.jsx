@@ -121,7 +121,6 @@ function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
   const p = permissions || {}
   const filtered = MORE_SCREENS.filter(s => {
     if (s.id === 'activity') return p.viewActivity || p.isOwner
-    if (s.id === 'vault')    return p.isOwner
     return true
   })
 
@@ -195,7 +194,6 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
 
   const filteredMore = MORE_SCREENS.filter(s => {
     if (s.id === 'activity') return p.viewActivity || p.isOwner
-    if (s.id === 'vault')    return p.isOwner
     return true
   })
 
@@ -216,7 +214,7 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
       </div>
 
       <div style={{ padding: '12px 10px', flex: 1 }}>
-        {NAV.map(n => {
+        {NAV.filter(n => !n.ownerOnly || p.isOwner).map(n => {
           const active = activeScreen === n.id
           const Icon = NAV_ICONS[n.id]
           return (
@@ -733,7 +731,7 @@ function OwnerApp() {
 
       {/* ─── Bottom Nav (mobile only) ─── */}
       {!isDesktop && <div style={{ position: 'fixed', bottom: 'max(14px, calc(8px + env(safe-area-inset-bottom, 0px)))', left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: '1px solid rgba(245,158,11,0.1)', padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
-        {NAV.map(n => {
+        {NAV.filter(n => !n.ownerOnly || p.isOwner).map(n => {
           const active = activeNav === n.id
           const Icon = NAV_ICONS[n.id]
           const hasBadge = n.id === 'workers' && pendingCount > 0

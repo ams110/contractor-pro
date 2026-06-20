@@ -99,8 +99,9 @@ export const OSEK_PATUR_THRESHOLD = 120000
 
 // ─── Navigation — 5 tabs ─────────────────────────────────────────────────────
 export const NAV = [
-  { id: 'dashboard', icon: 'LayoutDashboard', label: 'الرئيسية' },
-  { id: 'projects',  icon: 'Building2',       label: 'مشاريع'  },
+  { id: 'dashboard', icon: 'LayoutDashboard',  label: 'الرئيسية' },
+  { id: 'projects',  icon: 'Building2',        label: 'مشاريع'  },
+  { id: 'vault',     icon: 'DraftingCompass',  label: 'الدفتر',   ownerOnly: true },
   { id: 'workers',   icon: 'Users',            label: 'عمال'    },
   { id: 'finance',   icon: 'Wallet',           label: 'المالية' },
   { id: 'settings',  icon: 'Settings',         label: 'الإعدادات'},
@@ -108,11 +109,10 @@ export const NAV = [
 
 // Screens accessible from the settings / more tab
 export const MORE_SCREENS = [
-  { id: 'team',       icon: 'Users2',          label: 'إدارة الفريق' },
-  { id: 'vault',      icon: 'DraftingCompass', label: 'دفتر المشروع'},
-  { id: 'tracker',    icon: 'ClipboardList',   label: 'تتبع الوحدات'},
-  { id: 'materials',  icon: 'Package',         label: 'البضاعة'     },
-  { id: 'activity',   icon: 'Activity',        label: 'النشاط'      },
+  { id: 'team',       icon: 'Users2',        label: 'إدارة الفريق' },
+  { id: 'tracker',    icon: 'ClipboardList', label: 'تتبع الوحدات'},
+  { id: 'materials',  icon: 'Package',       label: 'البضاعة'     },
+  { id: 'activity',   icon: 'Activity',      label: 'النشاط'      },
 ]
 
 // ─── Breakpoints ──────────────────────────────────────────────────────────────

@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { DraftingCompass, Building2, FolderKanban } from 'lucide-react'
+import { Building2, FolderKanban } from 'lucide-react'
 import { C } from '../../constants/index.js'
-import { IconChip } from '../../ui/Premium.jsx'
 import ProjectVaultTab from './ProjectVaultTab.jsx'
+import BlueprintIntro from '../../components/BlueprintIntro.jsx'
 
 /**
  * دفتر المشروع كشاشة مستقلة (من قسم «المزيد»): مُنتقي مشروع + الدفتر كاملاً.
@@ -30,15 +30,8 @@ export default function ProjectVaultScreen({ projects = [], expenses = [], userI
 
   return (
     <div style={{ padding: '16px 16px 32px', direction: 'rtl', maxWidth: 900, margin: '0 auto' }}>
-      {/* العنوان */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 14 }}>
-        <IconChip icon={DraftingCompass} tone="cyan" size={40} radius={12} />
-        <div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>دفتر المشروع</div>
-          <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>المخططات · المواد · الموقع · الوثائق</div>
-        </div>
-      </motion.div>
+      {/* الهيرو المتحرّك — بيت يرسم حاله + قياسات + ختم */}
+      <BlueprintIntro />
 
       {list.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '54px 0', color: C.textDim }}>
