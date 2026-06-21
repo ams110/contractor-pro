@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Plus, Layers, Building2, Sparkles, RotateCw, Trash2, Check } from 'lucide-react'
+import { X, Plus, Layers, Building2, Sparkles, RotateCw, Trash2, Check, ChevronLeft, Home } from 'lucide-react'
 import { C } from '../constants/index.js'
 import {
   phaseColor, phaseOf, nextPhase, SITE_PHASES, buildingProgress,
+  floorProgress, phaseFromProgress, unitProgress, nextTradeState, UNIT_TRADES,
 } from '../lib/siteMap.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -116,10 +117,16 @@ export default function Building3D({ building, units, size = 'mini', spin = fals
     () => units.filter(u => u.level === 'floor' && u.parent_id === building.id).sort((a, b) => a.sort_order - b.sort_order),
     [units, building.id],
   )
+  // الحالة الفعلية لطابق: لو عنده شقق نشتقّها من تقدّمها، وإلا حالته المباشرة.
+  const effStatus = (f) => {
+    if (f.id === building.id) return f.status
+    const hasUnits = units.some(u => u.level === 'unit' && u.parent_id === f.id)
+    return hasUnits ? phaseFromProgress(floorProgress(f, units)) : f.status
+  }
   // لو ما في طوابق: كتلة واحدة بحالة العمارة نفسها
   const stack = floors.length ? floors : [{ id: building.id, status: building.status }]
   const total = stack.length * H
-  const topInProgress = stack.some(f => f.status !== 'planned' && f.status !== 'done')
+  const topInProgress = stack.some(f => { const s = effStatus(f); return s !== 'planned' && s !== 'done' })
 
   return (
     <div style={{ perspective: mini ? 460 : 820, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
@@ -135,11 +142,12 @@ export default function Building3D({ building, units, size = 'mini', spin = fals
               color={`${C.cyan}33`} animate={false} />
             {/* الطوابق */}
             {stack.map((f, i) => {
-              const wire = f.status === 'planned'
+              const s = effStatus(f)
+              const wire = s === 'planned'
               const y = -(H / 2 + i * H)
               return (
                 <FloorBox key={f.id} w={W} d={D} h={H} y={y}
-                  color={FACADE[f.status] || '#64748B'} accent={phaseColor(f.status)} status={f.status} wire={wire} nWin={nWin}
+                  color={FACADE[s] || '#64748B'} accent={phaseColor(s)} status={s} wire={wire} nWin={nWin}
                   delay={animate ? i * 0.09 : 0} animate={animate} />
               )
             })}
@@ -173,6 +181,111 @@ function PhaseChip({ status, onClick }) {
   )
 }
 
+// ─── شريحة بند (لسا/ماشي/خلص) — نقرة تدوّر الحالة ───────────────────────────
+function TradeChip({ trade, state, onClick }) {
+  const col = trade.color
+  const isDone = state === 'done'
+  const isDoing = state === 'doing'
+  return (
+    <motion.button whileTap={{ scale: 0.92 }} onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 9,
+        background: isDone ? col : `${col}${isDoing ? '2a' : '12'}`,
+        border: `1px solid ${col}${isDone ? 'ff' : '55'}`,
+        color: isDone ? '#06121f' : col, fontSize: 11, fontWeight: 800, cursor: 'pointer',
+        fontFamily: 'inherit', whiteSpace: 'nowrap', opacity: state === 'todo' ? 0.72 : 1,
+      }}>
+      {isDone
+        ? <Check size={12} strokeWidth={3} />
+        : <span style={{ width: 7, height: 7, borderRadius: '50%', background: col, opacity: isDoing ? 1 : 0.45, boxShadow: isDoing ? `0 0 6px ${col}` : 'none' }} />}
+      {trade.label}
+    </motion.button>
+  )
+}
+
+// ─── صفّ شقّة — يفتح على البنود الخمسة ───────────────────────────────────────
+function UnitRow({ unit, updateSiteUnit, deleteSiteUnit }) {
+  const [open, setOpen] = useState(false)
+  const pct = unitProgress(unit)
+  const col = pct >= 100 ? C.success : (pct > 0 ? C.cyan : C.textDim)
+  const setTrade = (tid) => {
+    const cur = unit.trades || {}
+    updateSiteUnit(unit.id, { trades: { ...cur, [tid]: nextTradeState(cur[tid]) } })
+  }
+  return (
+    <div style={{ borderTop: `1px solid ${C.border}` }}>
+      <div onClick={() => setOpen(o => !o)}
+        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 0', cursor: 'pointer' }}>
+        <ChevronLeft size={13} color={C.textDim} style={{ transform: open ? 'rotate(-90deg)' : 'none', transition: 'transform .2s', flexShrink: 0 }} />
+        <Home size={13} color={col} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{unit.name}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 800, color: col, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
+        <button onClick={e => { e.stopPropagation(); deleteSiteUnit(unit.id) }}
+          style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex', flexShrink: 0 }}><Trash2 size={12} /></button>
+      </div>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }} style={{ overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '2px 0 10px 20px' }}>
+              {UNIT_TRADES.map(t => (
+                <TradeChip key={t.id} trade={t} state={(unit.trades || {})[t.id] || 'todo'} onClick={() => setTrade(t.id)} />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ─── صفّ طابق — يفتح على شققه (أو شريحة مرحلة للطابق بلا شقق) ─────────────────
+function FloorRow({ floor, units, addSiteUnit, updateSiteUnit, deleteSiteUnit }) {
+  const [open, setOpen] = useState(false)
+  const unitsOf = useMemo(
+    () => units.filter(u => u.level === 'unit' && u.parent_id === floor.id).sort((a, b) => a.sort_order - b.sort_order),
+    [units, floor.id],
+  )
+  const hasUnits = unitsOf.length > 0
+  const pct = floorProgress(floor, units)
+  const col = pct >= 100 ? C.success : (hasUnits ? C.cyan : phaseColor(floor.status))
+  const addUnit = () => addSiteUnit({ level: 'unit', name: `شقّة ${unitsOf.length + 1}`, parent_id: floor.id })
+
+  return (
+    <div style={{ borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 0' }}>
+        <button onClick={() => setOpen(o => !o)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexShrink: 0 }}>
+          <ChevronLeft size={15} color={C.cyan} style={{ transform: open ? 'rotate(-90deg)' : 'none', transition: 'transform .2s' }} />
+        </button>
+        <span style={{ flex: 1, fontSize: 12.5, fontWeight: 700, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{floor.name}</span>
+        {hasUnits
+          ? <span style={{ fontSize: 11.5, fontWeight: 800, color: col, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
+          : <PhaseChip status={floor.status} onClick={() => updateSiteUnit(floor.id, { status: nextPhase(floor.status) })} />}
+        {hasUnits && <span style={{ fontSize: 9.5, color: C.textDim }}>{unitsOf.length} شقّة</span>}
+        <button onClick={() => deleteSiteUnit(floor.id)}
+          style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex', flexShrink: 0 }}><Trash2 size={13} /></button>
+      </div>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22 }} style={{ overflow: 'hidden' }}>
+            <div style={{ paddingInlineStart: 16 }}>
+              {unitsOf.map(u => (
+                <UnitRow key={u.id} unit={u} updateSiteUnit={updateSiteUnit} deleteSiteUnit={deleteSiteUnit} />
+              ))}
+              <button onClick={addUnit}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', margin: '6px 0 9px', background: `${C.cyan}10`, border: `1px dashed ${C.cyan}44`, borderRadius: 10, color: C.cyan, fontSize: 11.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <Plus size={13} strokeWidth={2.6} /> أضف شقّة
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export function Building3DViewer({ building, units, celebrate = false, addSiteUnit, updateSiteUnit, deleteSiteUnit, onClose }) {
   const [adding, setAdding] = useState(false)
   const [floorName, setFloorName] = useState('')
@@ -180,7 +293,6 @@ export function Building3DViewer({ building, units, celebrate = false, addSiteUn
   const pct = buildingProgress(building, units)
   const col = pct >= 100 ? C.success : (floors.length ? C.cyan : phaseColor(building.status))
 
-  const cycleFloor = (f) => updateSiteUnit(f.id, { status: nextPhase(f.status) })
   const addFloor = async (name) => {
     // الطابق الجديد ينزل «جاهز» كقاعدة باطون (أساس) بدل هيكل سلكي فاضي
     await addSiteUnit({ level: 'floor', name: name.trim(), parent_id: building.id, status: 'foundation' })
@@ -236,15 +348,12 @@ export function Building3DViewer({ building, units, celebrate = false, addSiteUn
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
           <Layers size={15} color={C.cyan} />
           <span style={{ fontSize: 13, fontWeight: 900, color: C.text }}>الطوابق</span>
-          <span style={{ fontSize: 10.5, color: C.textDim }}>· المس المرحلة لتقديمها</span>
+          <span style={{ fontSize: 10.5, color: C.textDim }}>· افتح الطابق لشققه وبنودها</span>
         </div>
 
         {floors.map(f => (
-          <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: `1px solid ${C.border}` }}>
-            <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</span>
-            <PhaseChip status={f.status} onClick={() => cycleFloor(f)} />
-            <button onClick={() => deleteSiteUnit(f.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}><Trash2 size={13} /></button>
-          </div>
+          <FloorRow key={f.id} floor={f} units={units}
+            addSiteUnit={addSiteUnit} updateSiteUnit={updateSiteUnit} deleteSiteUnit={deleteSiteUnit} />
         ))}
 
         {floors.length === 0 && (
