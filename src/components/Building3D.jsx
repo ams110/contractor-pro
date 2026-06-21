@@ -182,7 +182,8 @@ export function Building3DViewer({ building, units, celebrate = false, addSiteUn
 
   const cycleFloor = (f) => updateSiteUnit(f.id, { status: nextPhase(f.status) })
   const addFloor = async (name) => {
-    await addSiteUnit({ level: 'floor', name: name.trim(), parent_id: building.id })
+    // الطابق الجديد ينزل «جاهز» كقاعدة باطون (أساس) بدل هيكل سلكي فاضي
+    await addSiteUnit({ level: 'floor', name: name.trim(), parent_id: building.id, status: 'foundation' })
     setFloorName('')
   }
 

@@ -108,11 +108,11 @@ export function useProjectVault(ownerId, projectId) {
   }, [])
 
   // ── وحدات الموقع (قطعة/عمارة/طابق) ───────────────────────────────────────────
-  const addSiteUnit = useCallback(async ({ level, name, parent_id = null }) => {
+  const addSiteUnit = useCallback(async ({ level, name, parent_id = null, status = 'planned' }) => {
     const siblings = siteUnits.filter(u => (u.parent_id || null) === (parent_id || null)).length
     const { data, error: err } = await supabase.from('project_site_units').insert({
       owner_id: ownerId, project_id: projectId,
-      level, name, parent_id, status: 'planned', sort_order: siblings,
+      level, name, parent_id, status, sort_order: siblings,
     }).select().single()
     if (err) throw new Error(err.message)
     setSiteUnits(p => [...p, data])
