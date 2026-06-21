@@ -7,7 +7,7 @@ import {
   ClipboardList, Check, Trash2, Edit3, ArrowLeft, Filter,
   DollarSign, Banknote, BarChart3, FileText, AlertTriangle,
   ChevronDown, CheckCircle2, CircleDot, Paperclip, MapPin, Users, MessageCircle,
-  Wallet, Percent, FolderKanban, Archive, RotateCcw,
+  Wallet, Percent, FolderKanban, Archive, RotateCcw, DraftingCompass,
 } from 'lucide-react'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { PremiumCard, IconChip, PremiumStat } from '../../ui/Premium.jsx'
@@ -21,6 +21,7 @@ import { calcProjectStats as _calcStats, calcOwnerCash } from '../../lib/calcula
 import { computeProjectHealth } from '../../lib/insights.js'
 import ProjectHealth from '../../components/ProjectHealth.jsx'
 import ProjectCard from '../../components/ProjectCard.jsx'
+import ProjectVaultTab from './ProjectVaultTab.jsx'
 import WorkDayTicket from '../../components/WorkDayTicket.jsx'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useDataStore } from '../../store/useDataStore.js'
@@ -291,6 +292,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
     { id: 'workers',   icon: Users,        label: language === 'he' ? 'עובדים' : language === 'en' ? 'Workers' : 'عمال' },
     { id: 'expenses',  icon: CreditCard,   label: language === 'he' ? 'הוצאות' : language === 'en' ? 'Expenses' : 'مصاريف' },
     { id: 'receipts',  icon: ReceiptText,  label: language === 'he' ? 'קבלות' : language === 'en' ? 'Receipts' : 'قبضات' },
+    { id: 'vault',     icon: DraftingCompass, label: language === 'he' ? 'תיק' : language === 'en' ? 'Drawings' : 'الدفتر' },
   ]
 
   // ── خيارات إدارة المشروع (أرشفة / حذف فقط / حذف مع البيانات) — كلها بتوقيع ──
@@ -954,6 +956,10 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
               )
             })}
           </div>
+        )}
+
+        {tab === 'vault' && (
+          <ProjectVaultTab project={project} userId={userId} expenses={pExpenses} />
         )}
       </div>
     </div>

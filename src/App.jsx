@@ -7,7 +7,7 @@ import {
   Bell, ClipboardCheck, HardHat, Gift,
   Clock, ShieldOff, Lock, CalendarDays, CreditCard, Banknote,
   ClipboardList, Package, Calculator, Activity, Grid3x3,
-  Search, AlertTriangle, RefreshCw,
+  Search, AlertTriangle, RefreshCw, DraftingCompass,
 } from 'lucide-react'
 
 import { supabase }            from './lib/supabase.js'
@@ -58,6 +58,7 @@ const WorkDaysScreen    = lazy(() => import('./screens/WorkDaysScreen.jsx'))
 const ExpensesScreen    = lazy(() => import('./screens/ExpensesScreen.jsx'))
 const PaymentsScreen    = lazy(() => import('./screens/PaymentsScreen.jsx'))
 const UnitTrackerScreen = lazy(() => import('./screens/UnitTrackerScreen.jsx'))
+const ProjectVaultScreen = lazy(() => import('./screens/projects/ProjectVaultScreen.jsx'))
 const MaterialsScreen   = lazy(() => import('./screens/MaterialsScreen.jsx'))
 const ActivityScreen    = lazy(() => import('./screens/ActivityScreen.jsx'))
 const TeamScreen        = lazy(() => import('./screens/team/TeamScreen.jsx'))
@@ -74,6 +75,7 @@ const NAV_ICONS = {
   expenses:   CreditCard,
   payments:   Banknote,
   tracker:    ClipboardList,
+  vault:      DraftingCompass,
   materials:  Package,
   accounting: Calculator,
   activity:   Activity,
@@ -212,7 +214,7 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
       </div>
 
       <div style={{ padding: '12px 10px', flex: 1 }}>
-        {NAV.map(n => {
+        {NAV.filter(n => !n.ownerOnly || p.isOwner).map(n => {
           const active = activeScreen === n.id
           const Icon = NAV_ICONS[n.id]
           return (
@@ -562,6 +564,7 @@ function OwnerApp() {
       case 'expenses':   content = p?.viewExpenses  ? <ExpensesScreen  expenses={visibleExpenses} projects={visibleProjects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={visibleEmployees} userId={uid} permissions={p} /> : <NoAccess />; break
       case 'payments':   content = p?.viewPayments  ? <PaymentsScreen  payments={visiblePayments} employees={visibleEmployees} workDays={visibleWorkDays} expenses={visibleExpenses} advances={visibleAdvances} projects={visibleProjects} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
       case 'tracker':    content = p?.viewProjects  ? <UnitTrackerScreen projects={visibleProjects} /> : <NoAccess />; break
+      case 'vault':      content = p?.isOwner       ? <ProjectVaultScreen projects={visibleProjects} expenses={visibleExpenses} userId={uid} /> : <NoAccess />; break
       case 'materials':  content = p?.viewProjects  ? <MaterialsScreen userId={eid} employees={visibleEmployees} projects={visibleProjects} /> : <NoAccess />; break
       case 'accounting': setScreen('finance'); content = null; break
       case 'activity':   content = (p?.viewActivity || p?.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />; break
@@ -728,7 +731,7 @@ function OwnerApp() {
 
       {/* ─── Bottom Nav (mobile only) ─── */}
       {!isDesktop && <div style={{ position: 'fixed', bottom: 'max(14px, calc(8px + env(safe-area-inset-bottom, 0px)))', left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: '1px solid rgba(245,158,11,0.1)', padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
-        {NAV.map(n => {
+        {NAV.filter(n => !n.ownerOnly || p.isOwner).map(n => {
           const active = activeNav === n.id
           const Icon = NAV_ICONS[n.id]
           const hasBadge = n.id === 'workers' && pendingCount > 0
