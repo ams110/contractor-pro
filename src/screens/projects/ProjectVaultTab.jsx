@@ -51,7 +51,7 @@ export default function ProjectVaultTab({ project, userId, expenses = [] }) {
   const {
     drawings, materials, siteUnits, documents, deliveries, loading, error, reload,
     addDrawing, deleteDrawing, addMaterial, updateMaterial, deleteMaterial,
-    addSiteUnit, updateSiteUnit, deleteSiteUnit, addDocument, deleteDocument,
+    addSiteUnit, addSiteUnitsBulk, updateSiteUnit, deleteSiteUnit, addDocument, deleteDocument,
   } = useProjectVault(userId, project.id)
 
   const [sub, setSub] = useState('drawings') // drawings | materials | site | docs
@@ -104,7 +104,7 @@ export default function ProjectVaultTab({ project, userId, expenses = [] }) {
         />
       )}
       {!loading && !error && sub === 'site' && (
-        <SiteMapTab units={siteUnits} addSiteUnit={addSiteUnit} updateSiteUnit={updateSiteUnit} deleteSiteUnit={deleteSiteUnit} />
+        <SiteMapTab units={siteUnits} addSiteUnit={addSiteUnit} addSiteUnitsBulk={addSiteUnitsBulk} updateSiteUnit={updateSiteUnit} deleteSiteUnit={deleteSiteUnit} />
       )}
       {!loading && !error && sub === 'docs' && (
         <DocumentsSection documents={documents} addDocument={addDocument} deleteDocument={deleteDocument} />

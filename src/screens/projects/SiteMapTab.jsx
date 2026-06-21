@@ -64,7 +64,7 @@ function Bar({ pct, color }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-export default function SiteMapTab({ units, addSiteUnit, updateSiteUnit, deleteSiteUnit }) {
+export default function SiteMapTab({ units, addSiteUnit, addSiteUnitsBulk, updateSiteUnit, deleteSiteUnit }) {
   const [addingBlock, setAddingBlock] = useState(false)
   const [confirmDel, setConfirmDel] = useState(null)
   // عارض المجسّم 3D: { buildingId, celebrate }
@@ -162,7 +162,7 @@ export default function SiteMapTab({ units, addSiteUnit, updateSiteUnit, deleteS
         {viewerBuilding && (
           <Building3DViewer
             building={viewerBuilding} units={units} celebrate={viewer?.celebrate}
-            addSiteUnit={addSiteUnit} updateSiteUnit={updateSiteUnit} deleteSiteUnit={deleteSiteUnit}
+            addSiteUnit={addSiteUnit} addSiteUnitsBulk={addSiteUnitsBulk} updateSiteUnit={updateSiteUnit} deleteSiteUnit={deleteSiteUnit}
             onClose={() => setViewer(null)} />
         )}
       </AnimatePresence>

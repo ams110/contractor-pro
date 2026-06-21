@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   phaseWeight, nextPhase, buildingProgress, blockProgress, siteProgress, phaseTally,
   unitProgress, floorProgress, nextTradeState, phaseFromProgress, UNIT_TRADES,
+  unitTone, floorUnits, nextUnitNames, buildUnitRows, replicaTargets, buildReplicaRows,
 } from './siteMap.js'
+import { C } from '../constants/index.js'
 
 describe('siteMap pure helpers', () => {
   it('phaseWeight maps statuses to weights', () => {
@@ -106,6 +108,60 @@ describe('siteMap pure helpers', () => {
     expect(phaseFromProgress(60)).toBe('structure')   // >=55
     expect(phaseFromProgress(85)).toBe('finishing')   // >=80
     expect(phaseFromProgress(100)).toBe('done')
+  })
+
+  it('unitTone: grey at 0, cyan in progress, green when done', () => {
+    expect(unitTone(0)).toBe(C.textDim)
+    expect(unitTone(40)).toBe(C.cyan)
+    expect(unitTone(100)).toBe(C.success)
+  })
+
+  it('floorUnits returns only the floor apartments, sorted', () => {
+    const units = [
+      { id: 'u2', level: 'unit', parent_id: 'f1', sort_order: 1 },
+      { id: 'u1', level: 'unit', parent_id: 'f1', sort_order: 0 },
+      { id: 'x', level: 'unit', parent_id: 'f2', sort_order: 0 },
+      { id: 'f1', level: 'floor', parent_id: 'b1', sort_order: 0 },
+    ]
+    expect(floorUnits(units, 'f1').map(u => u.id)).toEqual(['u1', 'u2'])
+  })
+
+  it('nextUnitNames continues from existing count', () => {
+    expect(nextUnitNames(0, 3)).toEqual(['شقّة 1', 'شقّة 2', 'شقّة 3'])
+    expect(nextUnitNames(2, 2)).toEqual(['شقّة 3', 'شقّة 4'])
+    expect(nextUnitNames(5, 0)).toEqual([])
+  })
+
+  it('buildUnitRows builds N empty apartment rows under a floor', () => {
+    const rows = buildUnitRows('f1', 1, 2)
+    expect(rows).toEqual([
+      { level: 'unit', name: 'شقّة 2', parent_id: 'f1', status: 'planned', trades: {} },
+      { level: 'unit', name: 'شقّة 3', parent_id: 'f1', status: 'planned', trades: {} },
+    ])
+  })
+
+  it('replicaTargets returns building floors that have no apartments (excluding source)', () => {
+    const units = [
+      { id: 'b1', level: 'building', parent_id: 'k1' },
+      { id: 'f1', level: 'floor', parent_id: 'b1', sort_order: 0 }, // source (has units)
+      { id: 'f2', level: 'floor', parent_id: 'b1', sort_order: 1 }, // empty → target
+      { id: 'f3', level: 'floor', parent_id: 'b1', sort_order: 2 }, // already has units → skip
+      { id: 'u1', level: 'unit', parent_id: 'f1', sort_order: 0 },
+      { id: 'u3', level: 'unit', parent_id: 'f3', sort_order: 0 },
+    ]
+    expect(replicaTargets(units, 'b1', 'f1')).toEqual(['f2'])
+  })
+
+  it('buildReplicaRows copies source apartment names (reset progress) to each target', () => {
+    const units = [
+      { id: 'f1', level: 'floor', parent_id: 'b1' },
+      { id: 'u1', level: 'unit', parent_id: 'f1', name: 'شقّة 1', sort_order: 0, trades: { structure: 'done' } },
+      { id: 'u2', level: 'unit', parent_id: 'f1', name: 'شقّة 2', sort_order: 1 },
+    ]
+    const rows = buildReplicaRows(units, 'f1', ['f2', 'f3'])
+    expect(rows).toHaveLength(4)
+    expect(rows[0]).toEqual({ level: 'unit', name: 'شقّة 1', parent_id: 'f2', status: 'planned', trades: {} })
+    expect(rows[3]).toEqual({ level: 'unit', name: 'شقّة 2', parent_id: 'f3', status: 'planned', trades: {} })
   })
 
   it('phaseTally counts buildings per phase', () => {

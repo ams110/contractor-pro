@@ -98,6 +98,53 @@ export function siteProgress(units) {
   return 0
 }
 
+/** لون شقّة حسب تقدّمها (مصدر واحد يشاركه صفّ الشقّة وخلايا المجسّم 3D). */
+export function unitTone(pct) {
+  if (pct >= 100) return C.success
+  if (pct > 0) return C.cyan
+  return C.textDim
+}
+
+/** شقق طابق مرتّبة. */
+export function floorUnits(units, floorId) {
+  return childrenOf(units, floorId)
+    .filter(u => u.level === 'unit')
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+}
+
+// ─── الإضافة بالجملة (شقق متكرّرة) — دوال نقيّة تبني صفوف الإدراج ───────────────
+/** أسماء N شقق جديدة تتابع العدد القائم: «شقّة 4»، «شقّة 5»… */
+export function nextUnitNames(existingCount, n, prefix = 'شقّة') {
+  const start = Math.max(0, existingCount | 0)
+  return Array.from({ length: Math.max(0, n | 0) }, (_, i) => `${prefix} ${start + i + 1}`)
+}
+
+/** صفوف إدراج N شقق فارغة تحت طابق. */
+export function buildUnitRows(floorId, existingCount, n, prefix = 'شقّة') {
+  return nextUnitNames(existingCount, n, prefix).map(name => ({
+    level: 'unit', name, parent_id: floorId, status: 'planned', trades: {},
+  }))
+}
+
+/** الطوابق المؤهّلة لاستقبال نسخة شقق طابق المصدر: طوابق العمارة بلا شقق (عدا المصدر). */
+export function replicaTargets(units, buildingId, sourceFloorId) {
+  return childrenOf(units, buildingId)
+    .filter(f => f.level === 'floor' && f.id !== sourceFloorId)
+    .filter(f => floorUnits(units, f.id).length === 0)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    .map(f => f.id)
+}
+
+/** صفوف إدراج تكرّر شقق طابق المصدر (بالأسماء، بتقدّم صفر) على كل طابق هدف. */
+export function buildReplicaRows(units, sourceFloorId, targetFloorIds) {
+  const src = floorUnits(units, sourceFloorId)
+  const rows = []
+  for (const fid of targetFloorIds || []) {
+    for (const u of src) rows.push({ level: 'unit', name: u.name, parent_id: fid, status: 'planned', trades: {} })
+  }
+  return rows
+}
+
 /** توزيع عدد العمارات حسب المرحلة (للأسطورة/الملخّص). */
 export function phaseTally(units) {
   const buildings = units.filter(u => u.level === 'building')

@@ -119,6 +119,30 @@ export function useProjectVault(ownerId, projectId) {
     return data
   }, [ownerId, projectId, siteUnits])
 
+  // إدراج عدّة وحدات دفعة واحدة (شقق بالجملة / تكرار بين الطوابق). يحسب sort_order لكل أب.
+  const addSiteUnitsBulk = useCallback(async (rows) => {
+    if (!rows || !rows.length) return []
+    const counts = {}
+    for (const u of siteUnits) {
+      const k = u.parent_id || 'root'
+      counts[k] = (counts[k] || 0) + 1
+    }
+    const payload = rows.map(r => {
+      const k = r.parent_id || 'root'
+      const so = counts[k] || 0
+      counts[k] = so + 1
+      return {
+        owner_id: ownerId, project_id: projectId,
+        level: r.level, name: r.name, parent_id: r.parent_id ?? null,
+        status: r.status || 'planned', trades: r.trades || {}, sort_order: so,
+      }
+    })
+    const { data, error: err } = await supabase.from('project_site_units').insert(payload).select()
+    if (err) throw new Error(err.message)
+    setSiteUnits(p => [...p, ...(data || [])])
+    return data || []
+  }, [ownerId, projectId, siteUnits])
+
   const updateSiteUnit = useCallback(async (id, patch) => {
     const { data, error: err } = await supabase.from('project_site_units')
       .update(patch).eq('id', id).select().single()
@@ -170,7 +194,7 @@ export function useProjectVault(ownerId, projectId) {
     drawings, materials, siteUnits, documents, deliveries, loading, error, reload: load,
     addDrawing, deleteDrawing,
     addMaterial, updateMaterial, deleteMaterial,
-    addSiteUnit, updateSiteUnit, deleteSiteUnit,
+    addSiteUnit, addSiteUnitsBulk, updateSiteUnit, deleteSiteUnit,
     addDocument, deleteDocument,
   }
 }
