@@ -86,6 +86,7 @@ export function useProjectVault(ownerId, projectId) {
       name: m.name, quantity: m.quantity ?? 1, unit: m.unit || 'قطعة',
       est_price: m.est_price ?? 0, supplier: m.supplier || null,
       status: m.status || 'مطلوب', notes: m.notes || null,
+      per_unit: !!m.per_unit,
       sort_order: materials.length,
     }).select().single()
     if (err) throw new Error(err.message)

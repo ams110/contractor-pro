@@ -4,6 +4,7 @@ import {
   unitProgress, floorProgress, nextTradeState, phaseFromProgress, UNIT_TRADES,
   unitTone, floorUnits, nextUnitNames, buildUnitRows, replicaTargets, buildReplicaRows,
   normalizePlan, planToSiteRows, planTotals,
+  computeScheduleVariance, daysBetween, siteUnitCount, effectiveQty, materialEstTotal,
 } from './siteMap.js'
 import { C } from '../constants/index.js'
 
@@ -221,6 +222,50 @@ describe('siteMap pure helpers', () => {
     expect(planTotals({ buildings: [{ floors: 4, unitsPerFloor: 3 }, { floors: 2, unitsPerFloor: 2 }] }))
       .toEqual({ buildings: 2, floors: 6, units: 16 })
     expect(planTotals(null)).toEqual({ buildings: 0, floors: 0, units: 0 })
+  })
+
+  it('computeScheduleVariance: no dates → state none', () => {
+    const v = computeScheduleVariance({ actualPct: 40 })
+    expect(v).toMatchObject({ has: false, state: 'none', expectedPct: null, actualPct: 40 })
+  })
+
+  it('computeScheduleVariance: behind when actual lags expected', () => {
+    // مرّ نصف المدّة → متوقّع ~50٪، فعلي 20٪ → متأخّر
+    const v = computeScheduleVariance({ startDate: '2026-06-01', targetDate: '2026-07-01', actualPct: 20, today: '2026-06-16' })
+    expect(v.has).toBe(true)
+    expect(v.expectedPct).toBe(50)
+    expect(v.deltaPct).toBe(-30)
+    expect(v.state).toBe('behind')
+    expect(v.daysLeft).toBe(15)
+  })
+
+  it('computeScheduleVariance: ahead / onTrack / done', () => {
+    expect(computeScheduleVariance({ startDate: '2026-06-01', targetDate: '2026-07-01', actualPct: 80, today: '2026-06-16' }).state).toBe('ahead')
+    expect(computeScheduleVariance({ startDate: '2026-06-01', targetDate: '2026-07-01', actualPct: 52, today: '2026-06-16' }).state).toBe('onTrack')
+    expect(computeScheduleVariance({ startDate: '2026-06-01', targetDate: '2026-07-01', actualPct: 100, today: '2026-06-16' }).state).toBe('done')
+  })
+
+  it('computeScheduleVariance: overdue → negative daysLeft', () => {
+    const v = computeScheduleVariance({ startDate: '2026-05-01', targetDate: '2026-06-01', actualPct: 70, today: '2026-06-16' })
+    expect(v.expectedPct).toBe(100)
+    expect(v.daysLeft).toBe(-15)
+    expect(v.state).toBe('behind')
+  })
+
+  it('daysBetween counts whole days', () => {
+    expect(daysBetween('2026-06-01', '2026-06-11')).toBe(10)
+  })
+
+  it('siteUnitCount / effectiveQty / materialEstTotal scale by apartments', () => {
+    const units = [
+      { level: 'building' }, { level: 'floor' },
+      { level: 'unit' }, { level: 'unit' }, { level: 'unit' },
+    ]
+    expect(siteUnitCount(units)).toBe(3)
+    expect(effectiveQty({ quantity: 4, per_unit: true }, 3)).toBe(12)
+    expect(effectiveQty({ quantity: 4, per_unit: false }, 3)).toBe(4)
+    expect(materialEstTotal({ quantity: 4, est_price: 50, per_unit: true }, 3)).toBe(600)
+    expect(materialEstTotal({ quantity: 4, est_price: 50 }, 3)).toBe(200)
   })
 
   it('phaseTally counts buildings per phase', () => {

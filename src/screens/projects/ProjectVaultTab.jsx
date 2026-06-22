@@ -8,6 +8,7 @@ import {
 import { C } from '../../constants/index.js'
 import { fmt, fmtDate } from '../../lib/helpers.js'
 import { openSignedUrl } from '../../lib/storage.js'
+import { siteUnitCount, effectiveQty, materialEstTotal } from '../../lib/siteMap.js'
 import { Modal, Input, Btn } from '../../components/index.jsx'
 import { useProjectVault } from '../../hooks/useProjectVault.js'
 import SiteMapTab from './SiteMapTab.jsx'
@@ -57,9 +58,10 @@ export default function ProjectVaultTab({ project, userId, expenses = [] }) {
   const [sub, setSub] = useState('drawings') // drawings | materials | site | docs
 
   // ── تكلفة المواد التقديرية مقابل الفعلية (من مصاريف المشروع) ──
+  const unitCount = useMemo(() => siteUnitCount(siteUnits), [siteUnits])
   const estTotal = useMemo(
-    () => materials.reduce((s, m) => s + (Number(m.quantity) || 0) * (Number(m.est_price) || 0), 0),
-    [materials],
+    () => materials.reduce((s, m) => s + materialEstTotal(m, unitCount), 0),
+    [materials, unitCount],
   )
   const actualMaterialSpend = useMemo(() => {
     const matCats = ['مواد', 'بضاعة', 'أدوات', 'معدات']
@@ -100,7 +102,7 @@ export default function ProjectVaultTab({ project, userId, expenses = [] }) {
       {!loading && !error && sub === 'materials' && (
         <MaterialsSection
           materials={materials} addMaterial={addMaterial} updateMaterial={updateMaterial} deleteMaterial={deleteMaterial}
-          estTotal={estTotal} actualSpend={actualMaterialSpend} deliveries={deliveries}
+          estTotal={estTotal} actualSpend={actualMaterialSpend} deliveries={deliveries} unitCount={unitCount}
         />
       )}
       {!loading && !error && sub === 'site' && (
@@ -251,10 +253,10 @@ function SheetCard({ d, index, onOpen, onDelete }) {
 }
 
 // ═══ قسم المواد (BOQ) ════════════════════════════════════════════════════════
-function MaterialsSection({ materials, addMaterial, updateMaterial, deleteMaterial, estTotal, actualSpend, deliveries = [] }) {
+function MaterialsSection({ materials, addMaterial, updateMaterial, deleteMaterial, estTotal, actualSpend, deliveries = [], unitCount = 0 }) {
   const [showAdd, setShowAdd] = useState(false)
   const [confirmDel, setConfirmDel] = useState(null)
-  const blank = { name: '', quantity: '1', unit: 'قطعة', est_price: '', supplier: '', status: 'مطلوب', notes: '' }
+  const blank = { name: '', quantity: '1', unit: 'قطعة', est_price: '', supplier: '', status: 'مطلوب', notes: '', per_unit: false }
   const [form, setForm] = useState(blank)
   const [saving, setSaving] = useState(false)
 
@@ -265,6 +267,7 @@ function MaterialsSection({ materials, addMaterial, updateMaterial, deleteMateri
       await addMaterial({
         name: form.name.trim(), quantity: Number(form.quantity) || 1, unit: form.unit || 'قطعة',
         est_price: Number(form.est_price) || 0, supplier: form.supplier.trim(), status: form.status, notes: form.notes.trim(),
+        per_unit: !!form.per_unit,
       })
       setForm(blank); setShowAdd(false)
     } finally { setSaving(false) }
@@ -296,8 +299,9 @@ function MaterialsSection({ materials, addMaterial, updateMaterial, deleteMateri
       ) : (
         <div style={{ border: `1px solid ${BLUE}22`, borderRadius: 12, overflow: 'hidden' }}>
           {materials.map((m, i) => (
-            <MaterialRow key={m.id} m={m} last={i === materials.length - 1}
+            <MaterialRow key={m.id} m={m} last={i === materials.length - 1} unitCount={unitCount}
               onCycle={() => updateMaterial(m.id, { status: nextStatus(m.status) })}
+              onTogglePerUnit={() => updateMaterial(m.id, { per_unit: !m.per_unit })}
               onDelete={() => setConfirmDel(m)} />
           ))}
         </div>
@@ -319,6 +323,20 @@ function MaterialsSection({ materials, addMaterial, updateMaterial, deleteMateri
               <div style={{ flex: 1 }}><Input label="الوحدة" value={form.unit} onChange={v => setForm(p => ({ ...p, unit: v }))} placeholder="قطعة / متر / كيس" /></div>
             </div>
             <Input label="سعر الوحدة التقديري (₪)" type="number" min="0" value={form.est_price} onChange={v => setForm(p => ({ ...p, est_price: v }))} />
+            {/* لكل شقّة: تُضرب الكمّية بعدد الشقق في الموقع */}
+            <button type="button" onClick={() => setForm(p => ({ ...p, per_unit: !p.per_unit }))}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', margin: '2px 0 4px', background: form.per_unit ? `${C.secondary}1a` : C.card, border: `1px solid ${form.per_unit ? C.secondary + '66' : C.border}`, borderRadius: 11, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start' }}>
+              <div style={{ width: 34, height: 20, borderRadius: 10, background: form.per_unit ? C.secondary : C.borderMid, position: 'relative', flexShrink: 0, transition: 'background .2s' }}>
+                <div style={{ position: 'absolute', top: 2, insetInlineStart: form.per_unit ? 16 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'inset-inline-start .2s' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: C.text }}>الكمّية لكل شقّة</div>
+                <div style={{ fontSize: 10, color: C.textDim }}>تُضرب تلقائياً بعدد الشقق في الموقع{unitCount > 0 ? ` (${unitCount} شقّة الآن)` : ''}</div>
+              </div>
+              {form.per_unit && unitCount > 0 && Number(form.quantity) > 0 && (
+                <span style={{ fontSize: 11, fontWeight: 800, color: C.secondary, fontVariantNumeric: 'tabular-nums' }}>= {fmt((Number(form.quantity) || 0) * unitCount)}</span>
+              )}
+            </button>
             <Input label="المورّد" value={form.supplier} onChange={v => setForm(p => ({ ...p, supplier: v }))} placeholder="اختياري" />
             <Input label="الحالة" value={form.status} onChange={v => setForm(p => ({ ...p, status: v }))} options={MAT_STATUS.map(s => s.id)} />
             <Input label="ملاحظات" value={form.notes} onChange={v => setForm(p => ({ ...p, notes: v }))} />
@@ -351,20 +369,28 @@ function SummaryBox({ label, value, color, icon: Icon, hint }) {
   )
 }
 
-function MaterialRow({ m, last, onCycle, onDelete }) {
+function MaterialRow({ m, last, unitCount = 0, onCycle, onTogglePerUnit, onDelete }) {
   const meta = statusMeta(m.status)
   const SIcon = meta.icon
-  const lineTotal = (Number(m.quantity) || 0) * (Number(m.est_price) || 0)
+  const baseQty = Number(m.quantity) || 0
+  const effQty = effectiveQty(m, unitCount)
+  const lineTotal = materialEstTotal(m, unitCount)
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.card, borderBottom: last ? 'none' : `1px solid ${BLUE}1a` }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-          <span style={{ fontSize: 10.5, color: C.textDim, fontFamily: 'monospace' }}>{fmt(Number(m.quantity) || 0)} {m.unit}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 10.5, color: C.textDim, fontFamily: 'monospace' }}>
+            {fmt(effQty)} {m.unit}{m.per_unit && unitCount > 0 ? ` (${fmt(baseQty)}×${unitCount})` : ''}
+          </span>
           {lineTotal > 0 && <span style={{ fontSize: 10.5, color: C.gold, fontWeight: 700 }}>₪{fmt(lineTotal)}</span>}
           {m.supplier && <span style={{ fontSize: 10, color: C.textDim, opacity: 0.8 }}>· {m.supplier}</span>}
         </div>
       </div>
+      <button onClick={onTogglePerUnit} title="الكمّية لكل شقّة"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 8px', borderRadius: 8, background: m.per_unit ? `${C.secondary}1c` : 'transparent', border: `1px solid ${m.per_unit ? C.secondary + '55' : C.border}`, color: m.per_unit ? C.secondary : C.textDim, fontSize: 9.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+        <HardHat size={10} /> /شقّة
+      </button>
       <motion.button whileTap={{ scale: 0.94 }} onClick={onCycle}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 8, background: `${meta.color}18`, border: `1px solid ${meta.color}44`, color: meta.color, fontSize: 10.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
         <SIcon size={11} strokeWidth={2.4} /> {m.status}

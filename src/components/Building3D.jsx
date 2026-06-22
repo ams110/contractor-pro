@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Plus, Minus, Layers, Building2, Sparkles, RotateCw, Trash2, Check, ChevronLeft, Home, Copy, Hand } from 'lucide-react'
+import { X, Plus, Minus, Layers, Building2, Sparkles, RotateCw, Trash2, Check, ChevronLeft, Home, Copy, Hand, CalendarClock, Pencil, TrendingUp, TrendingDown } from 'lucide-react'
 import { C } from '../constants/index.js'
 import {
   phaseColor, phaseOf, nextPhase, SITE_PHASES, buildingProgress,
   floorProgress, phaseFromProgress, unitProgress, nextTradeState, UNIT_TRADES,
   unitTone, floorUnits, buildUnitRows, buildReplicaRows, replicaTargets,
+  computeScheduleVariance,
 } from '../lib/siteMap.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -292,6 +293,99 @@ function UnitRow({ unit, open, onToggle, updateSiteUnit, deleteSiteUnit }) {
   )
 }
 
+// ─── المخطط ضد الواقع — جدول التنفيذ المتوقّع مقابل الفعلي ───────────────────────
+const SCHED_META = {
+  done:    { color: C.success, label: 'مكتمل', Icon: Check },
+  ahead:   { color: C.success, label: 'متقدّم', Icon: TrendingUp },
+  onTrack: { color: C.cyan,    label: 'على المسار', Icon: Check },
+  behind:  { color: C.accent,  label: 'متأخّر', Icon: TrendingDown },
+}
+function SchedulePanel({ building, actualPct, updateSiteUnit }) {
+  const [editing, setEditing] = useState(false)
+  const [start, setStart] = useState(building.start_date || '')
+  const [target, setTarget] = useState(building.target_date || '')
+  const v = computeScheduleVariance({ startDate: building.start_date, targetDate: building.target_date, actualPct })
+  const meta = SCHED_META[v.state]
+
+  const openEdit = () => { setStart(building.start_date || ''); setTarget(building.target_date || ''); setEditing(true) }
+  const save = () => { updateSiteUnit(building.id, { start_date: start || null, target_date: target || null }); setEditing(false) }
+  const clear = () => { updateSiteUnit(building.id, { start_date: null, target_date: null }); setEditing(false) }
+
+  const dateInput = {
+    flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 9, border: `1px solid ${C.cyan}44`,
+    background: C.bg, color: C.text, fontSize: 12, outline: 'none', fontFamily: 'inherit', colorScheme: 'dark',
+  }
+
+  if (editing) {
+    return (
+      <div style={{ background: C.card, border: `1px solid ${C.cyan}33`, borderRadius: 13, padding: '11px 12px', marginBottom: 12 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 800, color: C.text, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <CalendarClock size={14} color={C.cyan} /> جدول تنفيذ العمارة
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <label style={{ flex: 1 }}>
+            <span style={{ fontSize: 9.5, color: C.textDim, display: 'block', marginBottom: 3 }}>البداية</span>
+            <input type="date" value={start} onChange={e => setStart(e.target.value)} style={dateInput} />
+          </label>
+          <label style={{ flex: 1 }}>
+            <span style={{ fontSize: 9.5, color: C.textDim, display: 'block', marginBottom: 3 }}>الهدف</span>
+            <input type="date" value={target} onChange={e => setTarget(e.target.value)} style={dateInput} />
+          </label>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={save} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', background: `${C.cyan}1f`, border: `1px solid ${C.cyan}55`, borderRadius: 10, color: C.cyan, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}><Check size={14} /> حفظ</button>
+          {(building.start_date || building.target_date) && (
+            <button onClick={clear} style={{ padding: '9px 12px', background: 'none', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>مسح</button>
+          )}
+          <button onClick={() => setEditing(false)} style={{ padding: '9px 12px', background: 'none', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>إلغاء</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!v.has) {
+    return (
+      <button onClick={openEdit}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px', marginBottom: 12, background: `${C.cyan}10`, border: `1px dashed ${C.cyan}44`, borderRadius: 12, color: C.cyan, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <CalendarClock size={15} /> حدّد جدول التنفيذ (المخطط ضد الواقع)
+      </button>
+    )
+  }
+
+  const overdue = v.daysLeft < 0
+  const daysTxt = v.state === 'done' ? 'تمّ التسليم'
+    : overdue ? `متأخّر ${Math.abs(v.daysLeft)} يوم عن الهدف`
+    : `باقي ${v.daysLeft} يوم على الهدف`
+  return (
+    <div style={{ background: `linear-gradient(135deg, ${meta.color}12, ${C.card} 75%)`, border: `1px solid ${meta.color}3a`, borderRadius: 13, padding: '11px 12px', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
+        <CalendarClock size={14} color={meta.color} />
+        <span style={{ fontSize: 12, fontWeight: 900, color: C.text }}>المخطط ضد الواقع</span>
+        <span style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, color: meta.color, background: `${meta.color}1a`, border: `1px solid ${meta.color}44`, borderRadius: 8, padding: '3px 9px' }}>
+          <meta.Icon size={11} /> {meta.label}{v.state !== 'done' && v.deltaPct !== 0 ? ` ${v.deltaPct > 0 ? '+' : ''}${v.deltaPct}%` : ''}
+        </span>
+        <button onClick={openEdit} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}><Pencil size={12} /></button>
+      </div>
+      <SchedBar label="متوقّع" pct={v.expectedPct} color={C.textDim} />
+      <div style={{ height: 6 }} />
+      <SchedBar label="فعلي" pct={v.actualPct} color={meta.color} />
+      <div style={{ fontSize: 10, color: overdue ? C.accent : C.textDim, marginTop: 8, fontWeight: 600 }}>{daysTxt}</div>
+    </div>
+  )
+}
+function SchedBar({ label, pct, color }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ fontSize: 9.5, color: C.textDim, width: 34, flexShrink: 0 }}>{label}</span>
+      <div style={{ flex: 1, height: 6, borderRadius: 3, background: `${color}22`, overflow: 'hidden' }}>
+        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6, ease: 'easeOut' }}
+          style={{ height: '100%', background: color, borderRadius: 3 }} />
+      </div>
+      <span style={{ fontSize: 10, fontWeight: 800, color, width: 32, textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
+    </div>
+  )
+}
+
 // ─── عدّاد كمّية صغير (للإضافة بالجملة) ─────────────────────────────────────────
 function Stepper({ value, setValue, min = 1, max = 30 }) {
   const btn = {
@@ -461,6 +555,10 @@ export function Building3DViewer({ building, units, celebrate = false, addSiteUn
       {/* لوحة التحكّم بالطوابق */}
       <div onClick={e => e.stopPropagation()}
         style={{ position: 'relative', background: C.surface, borderTop: `1px solid ${C.cyan}33`, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: '14px 16px', maxHeight: '46vh', overflowY: 'auto' }}>
+
+        {/* المخطط ضد الواقع — جدول التنفيذ */}
+        <SchedulePanel building={building} actualPct={pct} updateSiteUnit={updateSiteUnit} />
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
           <Layers size={15} color={C.cyan} />
           <span style={{ fontSize: 13, fontWeight: 900, color: C.text }}>الطوابق</span>

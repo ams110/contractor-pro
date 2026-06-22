@@ -211,6 +211,54 @@ export function planTotals(plan) {
   }), { buildings: 0, floors: 0, units: 0 })
 }
 
+// ─── المخطط ضد الواقع — تباين الجدول (Plan vs Reality) ────────────────────────
+const dayMs = 86400000
+export function daysBetween(a, b) {
+  return Math.round((new Date(b).getTime() - new Date(a).getTime()) / dayMs)
+}
+
+/**
+ * يقارن التقدّم المتوقّع (بالتاريخ على الجدول) بالتقدّم الفعلي المحسوب.
+ * @returns { has, expectedPct, actualPct, deltaPct, state, daysLeft }
+ *   state: 'none' (بلا جدول) · 'done' · 'ahead' · 'onTrack' · 'behind'
+ */
+export function computeScheduleVariance({ startDate, targetDate, actualPct, today = new Date() } = {}) {
+  const a = actualPct == null ? 0 : Math.max(0, Math.min(100, Math.round(actualPct)))
+  if (!startDate || !targetDate) {
+    return { has: false, expectedPct: null, actualPct: a, deltaPct: null, state: 'none', daysLeft: null }
+  }
+  const start = new Date(startDate).getTime()
+  const end = new Date(targetDate).getTime()
+  const now = new Date(today).getTime()
+  const span = end - start
+  let expectedPct
+  if (span <= 0) expectedPct = now >= end ? 100 : 0
+  else expectedPct = Math.max(0, Math.min(100, Math.round(((now - start) / span) * 100)))
+  const deltaPct = a - expectedPct
+  const daysLeft = Math.round((end - now) / dayMs)
+  let state
+  if (a >= 100) state = 'done'
+  else if (deltaPct <= -5) state = 'behind'
+  else if (deltaPct >= 5) state = 'ahead'
+  else state = 'onTrack'
+  return { has: true, expectedPct, actualPct: a, deltaPct, state, daysLeft }
+}
+
+// ─── BOQ مربوطة بالشقق — كمّيات تتوسّع بعدد الشقق ───────────────────────────────
+/** عدد الشقق (units) في الموقع كلّه. */
+export function siteUnitCount(units) {
+  return (units || []).filter(u => u.level === 'unit').length
+}
+/** الكمّية الفعلية لبند مواد: تُضرب بعدد الشقق إن كان per_unit. */
+export function effectiveQty(material, unitCount) {
+  const base = Number(material?.quantity) || 0
+  return material?.per_unit ? base * Math.max(0, unitCount | 0) : base
+}
+/** التكلفة التقديرية لبند مواد بعد توسيع الكمّية. */
+export function materialEstTotal(material, unitCount) {
+  return effectiveQty(material, unitCount) * (Number(material?.est_price) || 0)
+}
+
 /** توزيع عدد العمارات حسب المرحلة (للأسطورة/الملخّص). */
 export function phaseTally(units) {
   const buildings = units.filter(u => u.level === 'building')
