@@ -64,10 +64,16 @@ export function unitProgress(unit) {
   return Math.round(pct)
 }
 
-/** تقدّم طابق: متوسّط شققه إن وُجدت، وإلا وزن مرحلته (توافق خلفي مع الطوابق بلا شقق). */
+/** هل للوحدة بنود تشطيب مسجّلة (شقّة أو طابق-دار يُتتبّع مباشرةً)؟ */
+export const hasTrades = (u) => !!(u && u.trades && Object.keys(u.trades).length)
+/** طابق «دار مستقلة» = يُتتبّع مباشرةً بالبنود الخمسة بلا شقق. */
+export const isHouseFloor = (floor) => !!(floor && (floor.kind === 'house' || hasTrades(floor)))
+
+/** تقدّم طابق: متوسّط شققه إن وُجدت · وإلا بنوده مباشرةً (دار مستقلة) · وإلا وزن مرحلته. */
 export function floorProgress(floor, units) {
   const uns = childrenOf(units, floor.id).filter(u => u.level === 'unit')
   if (uns.length) return Math.round(avg(uns.map(unitProgress)))
+  if (isHouseFloor(floor)) return unitProgress(floor)
   return phaseWeight(floor.status)
 }
 

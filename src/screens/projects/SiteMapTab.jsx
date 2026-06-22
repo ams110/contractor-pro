@@ -207,6 +207,7 @@ export default function SiteMapTab({ units, addSiteUnit, addSiteUnitsBulk, addSi
 // ─── قسم القطعة ───────────────────────────────────────────────────────────────
 function BlockSection({ block, units, addSiteUnit, onDelete, openViewer }) {
   const [addingBuilding, setAddingBuilding] = useState(false)
+  const [bkind, setBkind] = useState('building') // 'building' عمارة شقق · 'house' دار مستقلة
   const buildings = units.filter(u => u.level === 'building' && u.parent_id === block.id).sort((a, b) => a.sort_order - b.sort_order)
   const pct = blockProgress(block, units)
   const col = pct >= 100 ? C.success : BLUE
@@ -236,17 +237,25 @@ function BlockSection({ block, units, addSiteUnit, onDelete, openViewer }) {
         )}
         {addingBuilding ? (
           <div style={{ padding: '8px', background: C.surface, borderRadius: 11, border: `1px solid ${BLUE}33` }}>
-            <AddRow placeholder="اسم العمارة (مثال: عمارة A)" onCancel={() => setAddingBuilding(false)}
+            {/* اختيار النوع: عمارة شقق ولا دار مستقلة */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              <Chip active={bkind === 'building'} onClick={() => setBkind('building')} icon={Building2} label="عمارة (شقق)" />
+              <Chip active={bkind === 'house'} onClick={() => setBkind('house')} icon={Home} label="دار مستقلة" />
+            </div>
+            <AddRow placeholder={bkind === 'house' ? 'اسم الدار (مثال: בית 10)' : 'اسم العمارة (مثال: عمارة A)'} onCancel={() => setAddingBuilding(false)}
               onAdd={async (name) => {
-                const created = await addSiteUnit({ level: 'building', name, parent_id: block.id })
+                const created = await addSiteUnit({ level: 'building', name, parent_id: block.id, kind: bkind === 'house' ? 'house' : null })
                 setAddingBuilding(false)
                 if (created) openViewer(created, true) // لحظة الـ«wow»: افتح المجسّم 3D
               }} />
+            <div style={{ fontSize: 9.5, color: C.textDim, marginTop: 6 }}>
+              {bkind === 'house' ? 'دار: كل طابق تتبّعه ببنوده الخمسة مباشرةً (بلا شقق).' : 'عمارة: كل طابق تحته شقق، وكل شقّة ببنودها.'}
+            </div>
           </div>
         ) : (
-          <button onClick={() => setAddingBuilding(true)}
+          <button onClick={() => { setBkind('building'); setAddingBuilding(true) }}
             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', background: 'transparent', border: `1px dashed ${BLUE}3a`, borderRadius: 11, color: BLUE, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            <Plus size={14} strokeWidth={2.5} /> عمارة
+            <Plus size={14} strokeWidth={2.5} /> عمارة أو دار
           </button>
         )}
       </div>

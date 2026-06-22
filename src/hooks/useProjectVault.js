@@ -109,11 +109,11 @@ export function useProjectVault(ownerId, projectId) {
   }, [])
 
   // ── وحدات الموقع (قطعة/عمارة/طابق) ───────────────────────────────────────────
-  const addSiteUnit = useCallback(async ({ level, name, parent_id = null, status = 'planned' }) => {
+  const addSiteUnit = useCallback(async ({ level, name, parent_id = null, status = 'planned', kind = null }) => {
     const siblings = siteUnits.filter(u => (u.parent_id || null) === (parent_id || null)).length
     const { data, error: err } = await supabase.from('project_site_units').insert({
       owner_id: ownerId, project_id: projectId,
-      level, name, parent_id, status, sort_order: siblings,
+      level, name, parent_id, status, kind, sort_order: siblings,
     }).select().single()
     if (err) throw new Error(err.message)
     setSiteUnits(p => [...p, data])
@@ -151,7 +151,7 @@ export function useProjectVault(ownerId, projectId) {
     const payload = rows.map(r => ({
       id: r.id, owner_id: ownerId, project_id: projectId,
       level: r.level, name: r.name, parent_id: r.parent_id ?? null,
-      status: r.status || 'planned', trades: r.trades || {}, sort_order: r.sort_order ?? 0,
+      status: r.status || 'planned', kind: r.kind ?? null, trades: r.trades || {}, sort_order: r.sort_order ?? 0,
     }))
     const { data, error: err } = await supabase.from('project_site_units').insert(payload).select()
     if (err) throw new Error(err.message)

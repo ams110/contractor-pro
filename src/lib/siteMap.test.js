@@ -5,6 +5,7 @@ import {
   unitTone, floorUnits, nextUnitNames, buildUnitRows, replicaTargets, buildReplicaRows,
   normalizePlan, planToSiteRows, planTotals,
   computeScheduleVariance, daysBetween, siteUnitCount, effectiveQty, materialEstTotal,
+  hasTrades, isHouseFloor,
 } from './siteMap.js'
 import { C } from '../constants/index.js'
 
@@ -266,6 +267,28 @@ describe('siteMap pure helpers', () => {
     expect(effectiveQty({ quantity: 4, per_unit: false }, 3)).toBe(4)
     expect(materialEstTotal({ quantity: 4, est_price: 50, per_unit: true }, 3)).toBe(600)
     expect(materialEstTotal({ quantity: 4, est_price: 50 }, 3)).toBe(200)
+  })
+
+  it('house floor: tracked directly by its own trades (no apartments)', () => {
+    expect(isHouseFloor({ kind: 'house' })).toBe(true)
+    expect(isHouseFloor({ trades: { structure: 'done' } })).toBe(true)
+    expect(isHouseFloor({ status: 'foundation' })).toBe(false)
+    expect(hasTrades({ trades: {} })).toBe(false)
+
+    // طابق دار kind='house' بلا تقدّم → 0٪ (مش وزن المرحلة)
+    const f0 = { id: 'f1', level: 'floor', parent_id: 'b1', status: 'foundation', kind: 'house', trades: {} }
+    expect(floorProgress(f0, [f0])).toBe(0)
+
+    // طابق دار بتقدّم بنود → يُحسب من بنوده
+    const f1 = { id: 'f2', level: 'floor', parent_id: 'b1', status: 'planned', kind: 'house', trades: { structure: 'done', plumbing: 'done' } }
+    expect(floorProgress(f1, [f1])).toBe(40) // بندان مكتملان × ٢٠٪
+
+    // العمارة-الدار تجمّع طوابقها
+    const units = [
+      { id: 'b1', level: 'building', parent_id: 'k1', kind: 'house' },
+      f0, f1,
+    ]
+    expect(buildingProgress(units[0], units)).toBe(20) // (0+40)/2
   })
 
   it('phaseTally counts buildings per phase', () => {

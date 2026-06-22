@@ -7,7 +7,7 @@ import {
   phaseColor, phaseOf, nextPhase, SITE_PHASES, buildingProgress,
   floorProgress, phaseFromProgress, unitProgress, nextTradeState, UNIT_TRADES,
   unitTone, floorUnits, buildUnitRows, buildReplicaRows, replicaTargets,
-  computeScheduleVariance,
+  computeScheduleVariance, isHouseFloor,
 } from '../lib/siteMap.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -166,11 +166,11 @@ export default function Building3D({
     () => units.filter(u => u.level === 'floor' && u.parent_id === building.id).sort((a, b) => a.sort_order - b.sort_order),
     [units, building.id],
   )
-  // الحالة الفعلية لطابق: لو عنده شقق نشتقّها من تقدّمها، وإلا حالته المباشرة.
+  // الحالة الفعلية لطابق: شقق أو طابق-دار يُشتقّ من تقدّمه، وإلا حالته المباشرة.
   const effStatus = (f) => {
     if (f.id === building.id) return f.status
     const hasUnits = units.some(u => u.level === 'unit' && u.parent_id === f.id)
-    return hasUnits ? phaseFromProgress(floorProgress(f, units)) : f.status
+    return (hasUnits || isHouseFloor(f)) ? phaseFromProgress(floorProgress(f, units)) : f.status
   }
   // لو ما في طوابق: كتلة واحدة بحالة العمارة نفسها
   const stack = floors.length ? floors : [{ id: building.id, status: building.status }]
@@ -402,14 +402,16 @@ function Stepper({ value, setValue, min = 1, max = 30 }) {
   )
 }
 
-// ─── صفّ طابق — يفتح على شققه (مُتحكَّم) + أدوات الإضافة بالجملة ───────────────
-function FloorRow({ floor, units, open, onToggle, selUnitId, onPickUnit, addSiteUnitsBulk, updateSiteUnit, deleteSiteUnit }) {
+// ─── صفّ طابق — شقق (عمارة) أو بنود مباشرة (دار) + أدوات الإضافة بالجملة ───────
+function FloorRow({ floor, units, building, open, onToggle, selUnitId, onPickUnit, addSiteUnitsBulk, updateSiteUnit, deleteSiteUnit }) {
   const rowRef = useRef(null)
   const [count, setCount] = useState(1)
   const unitsOf = useMemo(() => floorUnits(units, floor.id), [units, floor.id])
   const hasUnits = unitsOf.length > 0
+  const house = (building && building.kind === 'house') || isHouseFloor(floor)
+  const tracked = hasUnits || house
   const pct = floorProgress(floor, units)
-  const col = pct >= 100 ? C.success : (hasUnits ? C.cyan : phaseColor(floor.status))
+  const col = pct >= 100 ? C.success : (tracked ? (pct > 0 ? C.cyan : C.textDim) : phaseColor(floor.status))
   const targets = useMemo(() => replicaTargets(units, floor.parent_id, floor.id), [units, floor.parent_id, floor.id])
 
   useEffect(() => {
@@ -418,6 +420,10 @@ function FloorRow({ floor, units, open, onToggle, selUnitId, onPickUnit, addSite
 
   const addUnits = (n) => addSiteUnitsBulk(buildUnitRows(floor.id, unitsOf.length, n))
   const replicate = () => addSiteUnitsBulk(buildReplicaRows(units, floor.id, targets))
+  const setFloorTrade = (tid) => {
+    const cur = floor.trades || {}
+    updateSiteUnit(floor.id, { trades: { ...cur, [tid]: nextTradeState(cur[tid]) } })
+  }
 
   return (
     <div ref={rowRef} style={{ borderBottom: `1px solid ${C.border}` }}>
@@ -427,10 +433,11 @@ function FloorRow({ floor, units, open, onToggle, selUnitId, onPickUnit, addSite
           <ChevronLeft size={15} color={C.cyan} style={{ transform: open ? 'rotate(-90deg)' : 'none', transition: 'transform .2s' }} />
         </button>
         <span onClick={() => onToggle(floor.id)} style={{ flex: 1, fontSize: 12.5, fontWeight: 700, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}>{floor.name}</span>
-        {hasUnits
+        {tracked
           ? <span style={{ fontSize: 11.5, fontWeight: 800, color: col, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
           : <PhaseChip status={floor.status} onClick={() => updateSiteUnit(floor.id, { status: nextPhase(floor.status) })} />}
         {hasUnits && <span style={{ fontSize: 9.5, color: C.textDim }}>{unitsOf.length} شقّة</span>}
+        {house && !hasUnits && <span style={{ fontSize: 9, fontWeight: 800, color: C.secondary, background: `${C.secondary}1a`, border: `1px solid ${C.secondary}40`, borderRadius: 6, padding: '1px 6px' }}>دار</span>}
         <button onClick={() => deleteSiteUnit(floor.id)}
           style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex', flexShrink: 0 }}><Trash2 size={13} /></button>
       </div>
@@ -439,26 +446,37 @@ function FloorRow({ floor, units, open, onToggle, selUnitId, onPickUnit, addSite
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.22 }} style={{ overflow: 'hidden' }}>
             <div style={{ paddingInlineStart: 16 }}>
-              {unitsOf.map(u => (
-                <UnitRow key={u.id} unit={u} open={selUnitId === u.id} onToggle={onPickUnit}
-                  updateSiteUnit={updateSiteUnit} deleteSiteUnit={deleteSiteUnit} />
-              ))}
+              {house && !hasUnits ? (
+                /* دار مستقلة: بنود الطابق الخمسة مباشرةً (بلا شقق) */
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '4px 0 11px' }}>
+                  {UNIT_TRADES.map(t => (
+                    <TradeChip key={t.id} trade={t} state={(floor.trades || {})[t.id] || 'todo'} onClick={() => setFloorTrade(t.id)} />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {unitsOf.map(u => (
+                    <UnitRow key={u.id} unit={u} open={selUnitId === u.id} onToggle={onPickUnit}
+                      updateSiteUnit={updateSiteUnit} deleteSiteUnit={deleteSiteUnit} />
+                  ))}
 
-              {/* أدوات الإضافة بالجملة */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '9px 0 4px' }}>
-                <Stepper value={count} setValue={setCount} />
-                <button onClick={() => addUnits(count)}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', background: `${C.cyan}12`, border: `1px dashed ${C.cyan}55`, borderRadius: 10, color: C.cyan, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <Plus size={14} strokeWidth={2.6} /> {count > 1 ? `أضف ${count} شقق` : 'أضف شقّة'}
-                </button>
-              </div>
+                  {/* أدوات الإضافة بالجملة (عمارة شقق) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '9px 0 4px' }}>
+                    <Stepper value={count} setValue={setCount} />
+                    <button onClick={() => addUnits(count)}
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', background: `${C.cyan}12`, border: `1px dashed ${C.cyan}55`, borderRadius: 10, color: C.cyan, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <Plus size={14} strokeWidth={2.6} /> {count > 1 ? `أضف ${count} شقق` : 'أضف شقّة'}
+                    </button>
+                  </div>
 
-              {/* تكرار شقق هذا الطابق على بقيّة الطوابق الفارغة */}
-              {hasUnits && targets.length > 0 && (
-                <button onClick={replicate}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', margin: '0 0 9px', background: `${C.secondary}12`, border: `1px dashed ${C.secondary}55`, borderRadius: 10, color: C.secondary, fontSize: 11.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <Copy size={13} strokeWidth={2.4} /> كرّر شقق هذا الطابق على {targets.length} {targets.length === 1 ? 'طابق' : 'طوابق'}
-                </button>
+                  {/* تكرار شقق هذا الطابق على بقيّة الطوابق الفارغة */}
+                  {hasUnits && targets.length > 0 && (
+                    <button onClick={replicate}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', margin: '0 0 9px', background: `${C.secondary}12`, border: `1px dashed ${C.secondary}55`, borderRadius: 10, color: C.secondary, fontSize: 11.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <Copy size={13} strokeWidth={2.4} /> كرّر شقق هذا الطابق على {targets.length} {targets.length === 1 ? 'طابق' : 'طوابق'}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </motion.div>
@@ -493,9 +511,13 @@ export function Building3DViewer({ building, units, celebrate = false, addSiteUn
     setSelUnitId(prev => (prev === uid ? null : uid))
   }
 
+  const isHouse = building.kind === 'house'
   const addFloor = async (name) => {
-    // الطابق الجديد ينزل «جاهز» كقاعدة باطون (أساس) بدل هيكل سلكي فاضي
-    await addSiteUnit({ level: 'floor', name: name.trim(), parent_id: building.id, status: 'foundation' })
+    // دار: الطابق يُتتبّع ببنوده (يبدأ ٠٪) · عمارة: ينزل «جاهز» كقاعدة باطون (أساس)
+    await addSiteUnit({
+      level: 'floor', name: name.trim(), parent_id: building.id,
+      status: isHouse ? 'planned' : 'foundation', kind: isHouse ? 'house' : null,
+    })
     setFloorName('')
   }
 
@@ -567,7 +589,7 @@ export function Building3DViewer({ building, units, celebrate = false, addSiteUn
         </div>
 
         {floors.map(f => (
-          <FloorRow key={f.id} floor={f} units={units}
+          <FloorRow key={f.id} floor={f} units={units} building={building}
             open={selFloorId === f.id} onToggle={pickFloor}
             selUnitId={selUnitId} onPickUnit={pickUnit}
             addSiteUnitsBulk={addSiteUnitsBulk} updateSiteUnit={updateSiteUnit} deleteSiteUnit={deleteSiteUnit} />
