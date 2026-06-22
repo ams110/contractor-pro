@@ -1,7 +1,7 @@
 import { supabase } from './supabase.js'
 
 // ضغط الصور قبل الرفع (max 1200px، جودة 80%) — يوفر ~70% من حجم الملف
-async function compressImage(file, maxPx = 1200, quality = 0.8) {
+export async function compressImage(file, maxPx = 1200, quality = 0.8) {
   if (!file.type.startsWith('image/')) return file
   return new Promise(resolve => {
     const img = new Image()

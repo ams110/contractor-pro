@@ -3,6 +3,7 @@ import {
   phaseWeight, nextPhase, buildingProgress, blockProgress, siteProgress, phaseTally,
   unitProgress, floorProgress, nextTradeState, phaseFromProgress, UNIT_TRADES,
   unitTone, floorUnits, nextUnitNames, buildUnitRows, replicaTargets, buildReplicaRows,
+  normalizePlan, planToSiteRows, planTotals,
 } from './siteMap.js'
 import { C } from '../constants/index.js'
 
@@ -162,6 +163,64 @@ describe('siteMap pure helpers', () => {
     expect(rows).toHaveLength(4)
     expect(rows[0]).toEqual({ level: 'unit', name: 'شقّة 1', parent_id: 'f2', status: 'planned', trades: {} })
     expect(rows[3]).toEqual({ level: 'unit', name: 'شقّة 2', parent_id: 'f3', status: 'planned', trades: {} })
+  })
+
+  it('normalizePlan clamps numbers, defaults names, bumps single-floor plans', () => {
+    const p = normalizePlan({
+      buildings: [
+        { name: '', floors: 3, unitsPerFloor: 4 },
+        { name: 'برج', floors: 0, unitsPerFloor: 6 }, // floor plan → floors bumped to 1
+        { floors: 999, unitsPerFloor: -2 },            // clamp 60 / 0
+        { floors: 0, unitsPerFloor: 0 },               // dropped
+      ],
+      confidence: 'high', notes: 'ملاحظة',
+    })
+    expect(p.buildings).toEqual([
+      { name: 'عمارة 1', floors: 3, unitsPerFloor: 4 },
+      { name: 'برج', floors: 1, unitsPerFloor: 6 },
+      { name: 'عمارة 3', floors: 60, unitsPerFloor: 0 },
+    ])
+    expect(p.confidence).toBe('high')
+    expect(p.notes).toBe('ملاحظة')
+  })
+
+  it('normalizePlan tolerates garbage input', () => {
+    expect(normalizePlan(null)).toEqual({ buildings: [], confidence: 'medium', notes: '' })
+    expect(normalizePlan({ buildings: 'x', confidence: 'bogus' }).confidence).toBe('medium')
+  })
+
+  it('planToSiteRows builds an ordered parent-before-child tree', () => {
+    let n = 0
+    const makeId = () => `id${n++}`
+    const rows = planToSiteRows({ buildings: [{ name: 'A', floors: 2, unitsPerFloor: 2 }] }, { makeId, blockName: 'قطعة' })
+    expect(rows).toHaveLength(8) // block + building + 2 floors + 4 units
+    expect(rows[0]).toMatchObject({ level: 'block', name: 'قطعة', parent_id: null })
+    expect(rows[1]).toMatchObject({ level: 'building', name: 'A', parent_id: rows[0].id })
+    expect(rows[2]).toMatchObject({ level: 'floor', name: 'طابق 1', parent_id: rows[1].id })
+    expect(rows[3]).toMatchObject({ level: 'unit', name: 'شقّة 1', parent_id: rows[2].id, trades: {} })
+    // كل أب يظهر قبل أبنائه (سلامة FK للإدراج الدفعي)
+    const seen = new Set()
+    for (const r of rows) {
+      if (r.parent_id) expect(seen.has(r.parent_id)).toBe(true)
+      seen.add(r.id)
+    }
+  })
+
+  it('planToSiteRows attaches to an existing block when blockId is given', () => {
+    let n = 0
+    const rows = planToSiteRows(
+      { buildings: [{ name: 'A', floors: 1, unitsPerFloor: 0 }] },
+      { blockId: 'BLK', buildingStart: 2, makeId: () => `x${n++}` },
+    )
+    expect(rows.find(r => r.level === 'block')).toBeUndefined()
+    expect(rows[0]).toMatchObject({ level: 'building', parent_id: 'BLK', sort_order: 2 })
+    expect(rows).toHaveLength(2) // building + 1 floor (0 units)
+  })
+
+  it('planTotals sums buildings/floors/units', () => {
+    expect(planTotals({ buildings: [{ floors: 4, unitsPerFloor: 3 }, { floors: 2, unitsPerFloor: 2 }] }))
+      .toEqual({ buildings: 2, floors: 6, units: 16 })
+    expect(planTotals(null)).toEqual({ buildings: 0, floors: 0, units: 0 })
   })
 
   it('phaseTally counts buildings per phase', () => {

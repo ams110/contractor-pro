@@ -21,6 +21,7 @@ jobs:
           supabase functions deploy delete-account --project-ref rvhjrzbhugvytvktdhor
           supabase functions deploy admin-stats --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
           supabase functions deploy send-push --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
+          supabase functions deploy scan-plan --project-ref rvhjrzbhugvytvktdhor
           supabase functions deploy send-auth-email --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
           supabase functions deploy paddle-webhook --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
           supabase functions deploy track-tiktok-event --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt

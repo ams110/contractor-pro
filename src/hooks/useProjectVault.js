@@ -143,6 +143,21 @@ export function useProjectVault(ownerId, projectId) {
     return data || []
   }, [ownerId, projectId, siteUnits])
 
+  // إدراج شجرة كاملة بمعرّفات مولّدة مسبقاً (قطعة→عمارات→طوابق→شقق من قراءة مخطط).
+  // الصفوف مرتّبة «الأب قبل الابن» فالإدراج الواحد يحترم مفاتيح FK.
+  const addSiteUnitsTree = useCallback(async (rows) => {
+    if (!rows || !rows.length) return []
+    const payload = rows.map(r => ({
+      id: r.id, owner_id: ownerId, project_id: projectId,
+      level: r.level, name: r.name, parent_id: r.parent_id ?? null,
+      status: r.status || 'planned', trades: r.trades || {}, sort_order: r.sort_order ?? 0,
+    }))
+    const { data, error: err } = await supabase.from('project_site_units').insert(payload).select()
+    if (err) throw new Error(err.message)
+    setSiteUnits(p => [...p, ...(data || [])])
+    return data || []
+  }, [ownerId, projectId])
+
   const updateSiteUnit = useCallback(async (id, patch) => {
     const { data, error: err } = await supabase.from('project_site_units')
       .update(patch).eq('id', id).select().single()
@@ -194,7 +209,7 @@ export function useProjectVault(ownerId, projectId) {
     drawings, materials, siteUnits, documents, deliveries, loading, error, reload: load,
     addDrawing, deleteDrawing,
     addMaterial, updateMaterial, deleteMaterial,
-    addSiteUnit, addSiteUnitsBulk, updateSiteUnit, deleteSiteUnit,
+    addSiteUnit, addSiteUnitsBulk, addSiteUnitsTree, updateSiteUnit, deleteSiteUnit,
     addDocument, deleteDocument,
   }
 }

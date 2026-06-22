@@ -145,6 +145,72 @@ export function buildReplicaRows(units, sourceFloorId, targetFloorIds) {
   return rows
 }
 
+// ─── بناء الموقع من قراءة مخطط بالرؤية (AI) ───────────────────────────────────
+const clampInt = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)))
+
+/** تطبيع اقتراح الـAI لمخطط: قائمة عمارات، كل واحدة طوابق×شقق ضمن حدود معقولة. */
+export function normalizePlan(result) {
+  const raw = Array.isArray(result?.buildings) ? result.buildings : []
+  const buildings = raw.map((b, i) => {
+    let floors = clampInt(b?.floors, 0, 60)
+    const unitsPerFloor = clampInt(b?.unitsPerFloor, 0, 30)
+    if (floors < 1 && unitsPerFloor > 0) floors = 1 // مخطط طابق واحد
+    const name = (b && typeof b.name === 'string' && b.name.trim()) ? b.name.trim() : `عمارة ${i + 1}`
+    return { name, floors, unitsPerFloor }
+  }).filter(b => b.floors > 0 || b.unitsPerFloor > 0)
+  return {
+    buildings,
+    confidence: ['high', 'medium', 'low'].includes(result?.confidence) ? result.confidence : 'medium',
+    notes: typeof result?.notes === 'string' ? result.notes.slice(0, 200) : '',
+  }
+}
+
+const defaultMakeId = () =>
+  (globalThis.crypto && globalThis.crypto.randomUUID)
+    ? globalThis.crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = (Math.random() * 16) | 0
+        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+      })
+
+/**
+ * يبني صفوف إدراج شجرة الموقع (قطعة→عمارات→طوابق→شقق) بمعرّفات مولّدة مسبقاً.
+ * الترتيب «الأب قبل الابن» فالإدراج الدفعي الواحد يحترم مفاتيح FK.
+ */
+export function planToSiteRows(plan, {
+  blockId = null, blockName = 'القطعة 1', buildingStart = 0,
+  floorStatus = 'foundation', buildingStatus = 'planned', makeId = defaultMakeId,
+} = {}) {
+  const rows = []
+  let blkId = blockId
+  if (!blkId) {
+    blkId = makeId()
+    rows.push({ id: blkId, level: 'block', name: blockName, parent_id: null, status: 'planned', trades: {}, sort_order: 0 })
+  }
+  ;(plan?.buildings || []).forEach((b, bi) => {
+    const bId = makeId()
+    rows.push({ id: bId, level: 'building', name: b.name, parent_id: blkId, status: buildingStatus, trades: {}, sort_order: buildingStart + bi })
+    for (let fi = 0; fi < b.floors; fi++) {
+      const fId = makeId()
+      rows.push({ id: fId, level: 'floor', name: `طابق ${fi + 1}`, parent_id: bId, status: floorStatus, trades: {}, sort_order: fi })
+      for (let ui = 0; ui < b.unitsPerFloor; ui++) {
+        rows.push({ id: makeId(), level: 'unit', name: `شقّة ${ui + 1}`, parent_id: fId, status: 'planned', trades: {}, sort_order: ui })
+      }
+    }
+  })
+  return rows
+}
+
+/** ملخّص عددي لاقتراح المخطط (عمارات/طوابق/شقق) — للعرض قبل البناء. */
+export function planTotals(plan) {
+  const buildings = plan?.buildings || []
+  return buildings.reduce((t, b) => ({
+    buildings: t.buildings + 1,
+    floors: t.floors + b.floors,
+    units: t.units + b.floors * b.unitsPerFloor,
+  }), { buildings: 0, floors: 0, units: 0 })
+}
+
 /** توزيع عدد العمارات حسب المرحلة (للأسطورة/الملخّص). */
 export function phaseTally(units) {
   const buildings = units.filter(u => u.level === 'building')
