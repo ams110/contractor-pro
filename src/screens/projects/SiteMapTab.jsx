@@ -347,7 +347,12 @@ function ScanPlanModal({ units, addSiteUnitsTree, onClose, onBuilt }) {
       const { data, error: err } = await supabase.functions.invoke('scan-plan', {
         body: { imageBase64: base64, mimeType: payload.type },
       })
-      if (err) throw new Error(err.message)
+      if (err) {
+        // Supabase يلفّ خطأ الـedge برسالة عامّة — استخرج التفصيل الحقيقي من جسم الرد
+        let detail = err.message
+        try { const body = await err.context?.json?.(); if (body?.error) detail = body.error } catch { /* ignore */ }
+        throw new Error(detail)
+      }
       if (data?.error) throw new Error(data.error)
       const norm = normalizePlan(data?.result)
       if (!norm.buildings.length) { setError('ما قدرت أقرأ هيكلاً واضحاً — جرّب ملفاً أوضح أو أضِف العمارات يدوياً بالأسفل.'); setSuggestion({ buildings: [], confidence: 'low', notes: '' }); return }
