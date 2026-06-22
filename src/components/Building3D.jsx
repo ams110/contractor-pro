@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Minus, Layers, Building2, Sparkles, RotateCw, Trash2, Check, ChevronLeft, Home, Copy, Hand, CalendarClock, Pencil, TrendingUp, TrendingDown } from 'lucide-react'
 import { C } from '../constants/index.js'
@@ -498,7 +499,7 @@ export function Building3DViewer({ building, units, celebrate = false, addSiteUn
     setFloorName('')
   }
 
-  return (
+  return createPortal(
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={onClose}
       style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'radial-gradient(circle at 50% 30%, #0b1530 0%, #05060c 70%)', display: 'flex', flexDirection: 'column', direction: 'rtl' }}>
@@ -600,6 +601,7 @@ export function Building3DViewer({ building, units, celebrate = false, addSiteUn
           </motion.button>
         )}
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   )
 }

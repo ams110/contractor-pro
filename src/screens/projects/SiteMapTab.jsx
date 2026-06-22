@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Minus, Trash2, MapPin, Check, X, Radar, Box, ScanLine, Sparkles,
@@ -162,10 +163,10 @@ export default function SiteMapTab({ units, addSiteUnit, addSiteUnitsBulk, addSi
 
       {/* تأكيد الحذف */}
       <AnimatePresence>
-        {confirmDel && (
+        {confirmDel && createPortal(
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setConfirmDel(null)}
-            style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} onClick={e => e.stopPropagation()}
               style={{ width: '100%', maxWidth: 300, background: C.surface, border: `1px solid ${C.accent}4d`, borderRadius: 20, padding: '22px 20px' }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 6, textAlign: 'center' }}>حذف «{confirmDel.name}»؟</div>
@@ -175,7 +176,8 @@ export default function SiteMapTab({ units, addSiteUnit, addSiteUnitsBulk, addSi
                 <button onClick={async () => { await deleteSiteUnit(confirmDel.id); setConfirmDel(null) }} style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(239,68,68,0.9)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>حذف</button>
               </div>
             </motion.div>
-          </motion.div>
+          </motion.div>,
+          document.body,
         )}
       </AnimatePresence>
 
@@ -375,7 +377,7 @@ function ScanPlanModal({ units, addSiteUnitsTree, onClose, onBuilt }) {
 
   const conf = suggestion ? (CONF[suggestion.confidence] || CONF.medium) : null
 
-  return (
+  return createPortal(
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
       style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(2,4,10,0.82)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', direction: 'rtl' }}>
       <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
@@ -512,7 +514,8 @@ function ScanPlanModal({ units, addSiteUnitsTree, onClose, onBuilt }) {
           </div>
         )}
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   )
 }
 
