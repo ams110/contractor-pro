@@ -5,7 +5,7 @@ import {
   unitTone, floorUnits, nextUnitNames, buildUnitRows, replicaTargets, buildReplicaRows,
   normalizePlan, planToSiteRows, planTotals,
   computeScheduleVariance, daysBetween, siteUnitCount, effectiveQty, materialEstTotal,
-  hasTrades, isHouseFloor,
+  hasTrades, isHouseFloor, normalizeFootprint,
 } from './siteMap.js'
 import { C } from '../constants/index.js'
 
@@ -289,6 +289,15 @@ describe('siteMap pure helpers', () => {
       f0, f1,
     ]
     expect(buildingProgress(units[0], units)).toBe(20) // (0+40)/2
+  })
+
+  it('normalizeFootprint clamps rects and drops junk', () => {
+    expect(normalizeFootprint(null)).toEqual([])
+    expect(normalizeFootprint([{ x: 0, z: 0, w: 1, d: 0.6 }, { x: 0.2, z: 0.6, w: 0.8, d: 0.4 }])).toEqual([
+      { x: 0, z: 0, w: 1, d: 0.6 }, { x: 0.2, z: 0.6, w: 0.8, d: 0.4 },
+    ])
+    // قيم خارج النطاق تُقصّ، والصفرية تُسقَط
+    expect(normalizeFootprint([{ x: -1, z: 2, w: 5, d: 0.5 }, { w: 0, d: 0 }])).toEqual([{ x: 0, z: 1, w: 1, d: 0.5 }])
   })
 
   it('phaseTally counts buildings per phase', () => {

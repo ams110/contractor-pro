@@ -7,7 +7,7 @@ import {
   phaseColor, phaseOf, nextPhase, SITE_PHASES, buildingProgress,
   floorProgress, phaseFromProgress, unitProgress, nextTradeState, UNIT_TRADES,
   unitTone, floorUnits, buildUnitRows, buildReplicaRows, replicaTargets,
-  computeScheduleVariance, isHouseFloor,
+  computeScheduleVariance, isHouseFloor, normalizeFootprint,
 } from '../lib/siteMap.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -93,7 +93,7 @@ function Face({ w, h, transform, bg, wire, glow, ring, children }) {
 
 // صندوق طابق واحد عند ارتفاع y (سالب = أعلى). يهبط من فوق عند الإضافة (متل الرافعة).
 function FloorBox({
-  floorId, w, d, h, y, color, accent, status, wire, glow, nWin = 3, delay = 0, animate = true,
+  floorId, w, d, h, y, ox = 0, oz = 0, color, accent, status, wire, glow, nWin = 3, delay = 0, animate = true,
   apts = [], interactive = false, selected = false, selUnitId = null, onPickFloor, onPickUnit,
 }) {
   const g = wire ? null : glassFor(status)
@@ -123,9 +123,9 @@ function FloorBox({
   const click = interactive && onPickFloor
     ? (e) => { e.stopPropagation(); onPickFloor(floorId) }
     : undefined
-  if (!animate) {
+  if (!animate || ox || oz) {
     return (
-      <div onClick={click} style={{ position: 'absolute', top: '50%', left: '50%', transformStyle: 'preserve-3d', transform: `translateY(${y}px)`, cursor: click ? 'pointer' : 'default' }}>
+      <div onClick={click} style={{ position: 'absolute', top: '50%', left: '50%', transformStyle: 'preserve-3d', transform: `translate3d(${ox}px, ${y}px, ${oz}px)`, cursor: click ? 'pointer' : 'default' }}>
         {inner}
       </div>
     )
@@ -176,6 +176,9 @@ export default function Building3D({
   const stack = floors.length ? floors : [{ id: building.id, status: building.status }]
   const total = stack.length * H
   const topInProgress = stack.some(f => { const s = effStatus(f); return s !== 'planned' && s !== 'done' })
+  // مخطّط أرضية مخصّص (footprint) لرسم الشكل الحقيقي — اتّحاد مستطيلات بدل صندوق واحد
+  const fp = normalizeFootprint(building.footprint)
+  const FW = W * 1.3, FD = D * 0.72 // مستوى الأرضية: ممدود (بيت طولاني)
 
   return (
     <div style={{ perspective: mini ? 460 : 820, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
@@ -187,18 +190,33 @@ export default function Building3D({
         >
           <div style={{ transformStyle: 'preserve-3d', transform: `translateY(${total / 2}px)` }}>
             {/* لوح الأرض / المخطّط */}
-            <FloorBox w={W * 1.5} d={D * 1.5} h={mini ? 5 : 9} y={mini ? 3 : 5}
+            <FloorBox w={fp.length ? FW * 1.16 : W * 1.5} d={fp.length ? FD * 1.3 : D * 1.5} h={mini ? 5 : 9} y={mini ? 3 : 5}
               color={`${C.cyan}33`} animate={false} />
             {/* الطوابق */}
             {stack.map((f, i) => {
               const s = effStatus(f)
               const wire = s === 'planned'
               const y = -(H / 2 + i * H)
+              const sel = interactive && selFloorId === f.id
+              // شكل حقيقي: ارسم كل مستطيل من مخطّط الأرضية كصندوق بإزاحته الخاصة
+              if (fp.length) {
+                return fp.map((r, ri) => {
+                  const bw = Math.max(6, r.w * FW), bd = Math.max(6, r.d * FD)
+                  const ox = (r.x + r.w / 2 - 0.5) * FW
+                  const oz = (r.z + r.d / 2 - 0.5) * FD
+                  return (
+                    <FloorBox key={`${f.id}-${ri}`} floorId={f.id} w={bw} d={bd} h={H} y={y} ox={ox} oz={oz}
+                      color={FACADE[s] || '#64748B'} accent={phaseColor(s)} status={s} wire={wire}
+                      nWin={Math.max(1, Math.round(bw / (mini ? 20 : 30)))}
+                      interactive={interactive} selected={sel} onPickFloor={onPickFloor} animate={false} />
+                  )
+                })
+              }
               const apts = f.id === building.id ? [] : floorUnits(units, f.id)
               return (
                 <FloorBox key={f.id} floorId={f.id} w={W} d={D} h={H} y={y}
                   color={FACADE[s] || '#64748B'} accent={phaseColor(s)} status={s} wire={wire} nWin={nWin}
-                  apts={apts} interactive={interactive} selected={interactive && selFloorId === f.id}
+                  apts={apts} interactive={interactive} selected={sel}
                   selUnitId={selUnitId} onPickFloor={onPickFloor} onPickUnit={onPickUnit}
                   delay={animate ? i * 0.09 : 0} animate={animate} />
               )

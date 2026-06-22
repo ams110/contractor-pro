@@ -69,6 +69,16 @@ export const hasTrades = (u) => !!(u && u.trades && Object.keys(u.trades).length
 /** طابق «دار مستقلة» = يُتتبّع مباشرةً بالبنود الخمسة بلا شقق. */
 export const isHouseFloor = (floor) => !!(floor && (floor.kind === 'house' || hasTrades(floor)))
 
+/** تطبيع مخطّط الأرضية (footprint): مصفوفة مستطيلات منسّقة 0..1 لرسم شكل البيت الحقيقي. */
+export function normalizeFootprint(raw) {
+  if (!Array.isArray(raw)) return []
+  const c01 = (v, d = 0) => { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : d }
+  return raw
+    .map(r => ({ x: c01(r && r.x), z: c01(r && r.z), w: c01(r && r.w, 1), d: c01(r && r.d, 1) }))
+    .filter(r => r.w > 0.01 && r.d > 0.01)
+    .slice(0, 16)
+}
+
 /** تقدّم طابق: متوسّط شققه إن وُجدت · وإلا بنوده مباشرةً (دار مستقلة) · وإلا وزن مرحلته. */
 export function floorProgress(floor, units) {
   const uns = childrenOf(units, floor.id).filter(u => u.level === 'unit')
