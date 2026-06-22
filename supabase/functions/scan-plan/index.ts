@@ -14,8 +14,8 @@ const corsHeaders = {
 
 const RATE_LIMIT_MAX    = 8    // max plan scans per window
 const RATE_LIMIT_WINDOW = 60   // window in minutes
-const MAX_BASE64_BYTES  = 8 * 1024 * 1024
-const ALLOWED_MIME      = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic'])
+const MAX_BASE64_BYTES  = 12 * 1024 * 1024 // ~9 MB raw (يستوعب PDF المخططات)
+const ALLOWED_MIME      = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'])
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -61,10 +61,11 @@ serve(async (req) => {
 
     const { imageBase64, mimeType } = body
     if (!imageBase64 || typeof imageBase64 !== 'string') return json({ error: 'imageBase64 مطلوب' }, 400)
-    if (imageBase64.length > MAX_BASE64_BYTES) return json({ error: 'حجم الصورة أكبر من 6 MB' }, 413)
+    if (imageBase64.length > MAX_BASE64_BYTES) return json({ error: 'حجم الملف أكبر من الحد المسموح' }, 413)
 
     const safeMime = (mimeType || 'image/jpeg').toLowerCase()
     if (!ALLOWED_MIME.has(safeMime)) return json({ error: 'نوع الملف غير مدعوم' }, 415)
+    const isPdf = safeMime === 'application/pdf'
 
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
@@ -98,7 +99,9 @@ serve(async (req) => {
         messages: [{
           role: 'user',
           content: [
-            { type: 'image', source: { type: 'base64', media_type: safeMime, data: imageBase64 } },
+            isPdf
+              ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: imageBase64 } }
+              : { type: 'image', source: { type: 'base64', media_type: safeMime, data: imageBase64 } },
             { type: 'text', text: prompt },
           ],
         }],

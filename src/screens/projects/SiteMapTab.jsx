@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Minus, Trash2, MapPin, Check, X, Radar, Box, ScanLine, Sparkles,
-  Building2, Layers, Home, AlertTriangle, Upload,
+  Building2, Layers, Home, AlertTriangle, Upload, FileText,
 } from 'lucide-react'
 import { C } from '../../constants/index.js'
 import { supabase } from '../../lib/supabase.js'
@@ -323,30 +323,32 @@ function ScanPlanModal({ units, addSiteUnitsTree, onClose, onBuilt }) {
   function pick(e) {
     const f = e.target.files?.[0]
     if (!f) return
-    if (!f.type.startsWith('image/')) { setError('ارفع صورة (jpg/png) للمخطط'); return }
-    if (f.size > 12 * 1024 * 1024) { setError('حجم الصورة أكبر من 12MB'); return }
+    const isImg = f.type.startsWith('image/')
+    const isPdf = f.type === 'application/pdf'
+    if (!isImg && !isPdf) { setError('ارفع صورة أو ملف PDF للمخطط'); return }
+    if (f.size > 12 * 1024 * 1024) { setError('حجم الملف أكبر من 12MB'); return }
     setError(''); setFile(f); setSuggestion(null)
     if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview)
-    setPreview(URL.createObjectURL(f))
+    setPreview(isImg ? URL.createObjectURL(f) : '')
   }
 
   async function scan() {
     if (!file) return
     setScanning(true); setError('')
     try {
-      const compressed = await compressImage(file, 2000, 0.85)
+      const payload = file.type.startsWith('image/') ? await compressImage(file, 2000, 0.85) : file
       const base64 = await new Promise((res, rej) => {
         const r = new FileReader()
         r.onload = () => res(r.result.split(',')[1]); r.onerror = rej
-        r.readAsDataURL(compressed)
+        r.readAsDataURL(payload)
       })
       const { data, error: err } = await supabase.functions.invoke('scan-plan', {
-        body: { imageBase64: base64, mimeType: compressed.type },
+        body: { imageBase64: base64, mimeType: payload.type },
       })
       if (err) throw new Error(err.message)
       if (data?.error) throw new Error(data.error)
       const norm = normalizePlan(data?.result)
-      if (!norm.buildings.length) { setError('ما قدرت أقرأ هيكلاً واضحاً — جرّب صورة أوضح أو أضِف العمارات يدوياً بالأسفل.'); setSuggestion({ buildings: [], confidence: 'low', notes: '' }); return }
+      if (!norm.buildings.length) { setError('ما قدرت أقرأ هيكلاً واضحاً — جرّب ملفاً أوضح أو أضِف العمارات يدوياً بالأسفل.'); setSuggestion({ buildings: [], confidence: 'low', notes: '' }); return }
       setSuggestion(norm)
     } catch (e) { setError(e.message || 'فشل قراءة المخطط') }
     finally { setScanning(false) }
@@ -394,21 +396,28 @@ function ScanPlanModal({ units, addSiteUnitsTree, onClose, onBuilt }) {
 
         {/* جسم */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-          {/* منطقة الصورة */}
-          <input ref={fileRef} type="file" accept="image/*" onChange={pick} style={{ display: 'none' }} />
+          {/* منطقة الملف (صورة أو PDF) */}
+          <input ref={fileRef} type="file" accept="image/*,application/pdf" onChange={pick} style={{ display: 'none' }} />
           <button onClick={() => fileRef.current?.click()}
             style={{ width: '100%', minHeight: preview ? 0 : 130, padding: preview ? 8 : 16, ...blueprintBg, border: `1.5px dashed ${C.secondary}55`, borderRadius: 14, color: C.textDim, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit' }}>
             {preview ? (
               <img src={preview} alt="المخطط" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 9, objectFit: 'contain' }} />
+            ) : file ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 6px' }}>
+                <div style={{ width: 38, height: 38, borderRadius: 9, background: `${C.accent}1a`, border: `1px solid ${C.accent}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <FileText size={19} color={C.accent} />
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.text, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+              </div>
             ) : (
               <>
                 <Upload size={26} color={`${C.secondary}cc`} />
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: C.text }}>صوّر أو ارفع صورة المخطط</span>
-                <span style={{ fontSize: 10.5 }}>مخطط طابق · واجهة · أو مخطط موقع</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: C.text }}>صوّر أو ارفع المخطط</span>
+                <span style={{ fontSize: 10.5 }}>صورة أو PDF · مخطط طابق / واجهة / موقع</span>
               </>
             )}
           </button>
-          {preview && <div style={{ fontSize: 10.5, color: C.secondary, textAlign: 'center', marginTop: 6, cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>تغيير الصورة</div>}
+          {file && <div style={{ fontSize: 10.5, color: C.secondary, textAlign: 'center', marginTop: 6, cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>تغيير الملف</div>}
 
           {/* زر القراءة */}
           {!suggestion && (
