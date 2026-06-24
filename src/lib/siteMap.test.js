@@ -5,7 +5,7 @@ import {
   unitTone, floorUnits, nextUnitNames, buildUnitRows, replicaTargets, buildReplicaRows,
   normalizePlan, planToSiteRows, planTotals,
   computeScheduleVariance, daysBetween, siteUnitCount, effectiveQty, materialEstTotal,
-  hasTrades, isHouseFloor, normalizeFootprint,
+  hasTrades, isHouseFloor, normalizeFootprint, footprintToGrid, gridToFootprint,
 } from './siteMap.js'
 import { C } from '../constants/index.js'
 
@@ -298,6 +298,32 @@ describe('siteMap pure helpers', () => {
     ])
     // قيم خارج النطاق تُقصّ، والصفرية تُسقَط
     expect(normalizeFootprint([{ x: -1, z: 2, w: 5, d: 0.5 }, { w: 0, d: 0 }])).toEqual([{ x: 0, z: 1, w: 1, d: 0.5 }])
+  })
+
+  it('gridToFootprint merges a full grid into one rect', () => {
+    const grid = Array.from({ length: 4 }, () => Array(4).fill(true))
+    expect(gridToFootprint(grid, 4, 4)).toEqual([{ x: 0, z: 0, w: 1, d: 1 }])
+  })
+
+  it('gridToFootprint covers an L-shape with few rects', () => {
+    // شبكة 4×4: الصفّان العلويان ممتلئان كاملاً، السفليان فقط العمودان اليمينان
+    const F = true, _ = false
+    const grid = [
+      [F, F, F, F],
+      [F, F, F, F],
+      [_, _, F, F],
+      [_, _, F, F],
+    ]
+    const rects = gridToFootprint(grid, 4, 4)
+    // اتّحاد المستطيلات يغطّي كل الخلايا المملوءة ولا يغطّي الفارغة
+    const g2 = footprintToGrid(rects, 4, 4)
+    expect(g2).toEqual(grid)
+    expect(rects.length).toBeLessThanOrEqual(2)
+  })
+
+  it('footprintToGrid ↔ gridToFootprint roundtrip on a rectangle', () => {
+    const grid = footprintToGrid([{ x: 0, z: 0, w: 0.5, d: 1 }], 4, 4)
+    expect(gridToFootprint(grid, 4, 4)).toEqual([{ x: 0, z: 0, w: 0.5, d: 1 }])
   })
 
   it('phaseTally counts buildings per phase', () => {

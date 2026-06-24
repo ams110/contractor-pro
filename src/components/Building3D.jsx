@@ -7,7 +7,7 @@ import {
   phaseColor, phaseOf, nextPhase, SITE_PHASES, buildingProgress,
   floorProgress, phaseFromProgress, unitProgress, nextTradeState, UNIT_TRADES,
   unitTone, floorUnits, buildUnitRows, buildReplicaRows, replicaTargets,
-  computeScheduleVariance, isHouseFloor, normalizeFootprint,
+  computeScheduleVariance, isHouseFloor, normalizeFootprint, footprintToGrid, gridToFootprint,
 } from '../lib/siteMap.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -504,12 +504,116 @@ function FloorRow({ floor, units, building, open, onToggle, selUnitId, onPickUni
   )
 }
 
+// ─── محرّر شكل البيت (footprint) — شبكة من فوق تُلوَّن بالإصبع + معاينة 3D حيّة ──
+const FP_COLS = 14, FP_ROWS = 9
+const fullGrid = () => Array.from({ length: FP_ROWS }, () => Array(FP_COLS).fill(true))
+const emptyGrid = () => Array.from({ length: FP_ROWS }, () => Array(FP_COLS).fill(false))
+
+function FootprintEditor({ building, updateSiteUnit, onClose }) {
+  const [grid, setGrid] = useState(() => {
+    const g = footprintToGrid(building.footprint, FP_COLS, FP_ROWS)
+    return g.some(row => row.some(Boolean)) ? g : fullGrid()
+  })
+  const [saving, setSaving] = useState(false)
+  const downRef = useRef(false)
+  const valRef = useRef(true)
+
+  useEffect(() => {
+    const up = () => { downRef.current = false }
+    window.addEventListener('pointerup', up)
+    return () => window.removeEventListener('pointerup', up)
+  }, [])
+
+  const setCell = (r, c, val) => setGrid(g => {
+    if (g[r][c] === val) return g
+    const n = g.map(row => row.slice()); n[r][c] = val; return n
+  })
+  const start = (r, c) => { downRef.current = true; valRef.current = !grid[r][c]; setCell(r, c, valRef.current) }
+  const over = (r, c) => { if (downRef.current) setCell(r, c, valRef.current) }
+
+  const rects = useMemo(() => gridToFootprint(grid, FP_COLS, FP_ROWS), [grid])
+  const filled = grid.some(row => row.some(Boolean))
+  const previewB = { id: 'fp-preview', status: 'structure', footprint: rects }
+  const previewUnits = [
+    { id: 'fp-1', level: 'floor', parent_id: 'fp-preview', sort_order: 0, status: 'finishing' },
+    { id: 'fp-2', level: 'floor', parent_id: 'fp-preview', sort_order: 1, status: 'structure' },
+  ]
+
+  const save = async () => {
+    setSaving(true)
+    try { await updateSiteUnit(building.id, { footprint: filled ? rects : null }); onClose() }
+    finally { setSaving(false) }
+  }
+
+  return createPortal(
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(2,4,10,0.86)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', direction: 'rtl' }}>
+      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 340, damping: 30 }} onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 460, maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: C.surface, border: `1px solid ${C.cyan}3a`, borderTopLeftRadius: 22, borderTopRightRadius: 22, overflow: 'hidden' }}>
+
+        {/* رأس */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 10px', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: `${C.cyan}1f`, border: `1px solid ${C.cyan}55`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Pencil size={16} color={C.cyan} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>شكل البيت — مخطّط الأرضية</div>
+            <div style={{ fontSize: 10, color: C.cyan }}>لوّن الخلايا اللي فيها بناء · اسحب إصبعك</div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={16} /></button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+          {/* معاينة 3D حيّة */}
+          <div style={{ height: 150, marginBottom: 12, borderRadius: 14, background: 'radial-gradient(circle at 50% 35%, #0b1530, #05060c 75%)', border: `1px solid ${C.cyan}22`, overflow: 'hidden' }}>
+            <Building3D building={previewB} units={previewUnits} size="full" spin animate={false} />
+          </div>
+
+          {/* الشبكة */}
+          <div onPointerLeave={() => { downRef.current = false }}
+            style={{ display: 'grid', gridTemplateColumns: `repeat(${FP_COLS}, 1fr)`, gap: 2, padding: 8, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, touchAction: 'none' }}>
+            {grid.map((row, r) => row.map((cell, c) => (
+              <div key={`${r}-${c}`}
+                onPointerDown={() => start(r, c)} onPointerEnter={() => over(r, c)}
+                style={{ aspectRatio: '1', borderRadius: 3, cursor: 'pointer', background: cell ? C.cyan : C.card, border: `1px solid ${cell ? C.cyan : C.border}`, boxShadow: cell ? `inset 0 0 4px ${C.cyan}` : 'none', transition: 'background .08s' }} />
+            )))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5, color: C.textDim, marginTop: 5, padding: '0 4px' }}>
+            <span>◄ خلف البيت</span>
+            <span>الواجهة الأمامية ►</span>
+          </div>
+
+          {/* أدوات */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button onClick={() => setGrid(fullGrid())} style={{ flex: 1, padding: '9px', borderRadius: 10, background: `${C.cyan}12`, border: `1px solid ${C.cyan}44`, color: C.cyan, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>ملء الكل</button>
+            <button onClick={() => setGrid(emptyGrid())} style={{ flex: 1, padding: '9px', borderRadius: 10, background: C.card, border: `1px solid ${C.border}`, color: C.textDim, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>مسح الكل</button>
+          </div>
+        </div>
+
+        {/* تذييل */}
+        <div style={{ display: 'flex', gap: 10, padding: '12px 16px', borderTop: `1px solid ${C.border}` }}>
+          <button onClick={onClose} style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>إلغاء</button>
+          <button onClick={save} disabled={saving}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', borderRadius: 12, background: !saving ? `linear-gradient(135deg, ${C.cyan}, ${C.secondary})` : `${C.cyan}33`, border: 'none', color: '#06121f', fontSize: 13.5, fontWeight: 900, cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+            {saving
+              ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#06121f', borderRadius: '50%', animation: 'spin .8s linear infinite' }} /> يحفظ…</>
+              : <><Check size={16} strokeWidth={2.6} /> احفظ الشكل</>}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>,
+    document.body,
+  )
+}
+
 export function Building3DViewer({ building, units, celebrate = false, addSiteUnit, addSiteUnitsBulk, updateSiteUnit, deleteSiteUnit, onClose }) {
   const [adding, setAdding] = useState(false)
   const [floorName, setFloorName] = useState('')
   const [spin, setSpin] = useState(true)
   const [selFloorId, setSelFloorId] = useState(null)
   const [selUnitId, setSelUnitId] = useState(null)
+  const [fpEdit, setFpEdit] = useState(false)
 
   const floors = units.filter(u => u.level === 'floor' && u.parent_id === building.id).sort((a, b) => a.sort_order - b.sort_order)
   const pct = buildingProgress(building, units)
@@ -597,8 +701,18 @@ export function Building3DViewer({ building, units, celebrate = false, addSiteUn
       <div onClick={e => e.stopPropagation()}
         style={{ position: 'relative', background: C.surface, borderTop: `1px solid ${C.cyan}33`, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: '14px 16px', maxHeight: '46vh', overflowY: 'auto' }}>
 
+        {/* تعديل شكل البيت (مخطّط الأرضية) */}
+        <button onClick={() => setFpEdit(true)}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '9px', marginBottom: 12, background: `${C.cyan}10`, border: `1px dashed ${C.cyan}44`, borderRadius: 12, color: C.cyan, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <Pencil size={14} /> {building.footprint ? 'تعديل شكل البيت' : 'ارسم شكل البيت (مخطّط الأرضية)'}
+        </button>
+
         {/* المخطط ضد الواقع — جدول التنفيذ */}
         <SchedulePanel building={building} actualPct={pct} updateSiteUnit={updateSiteUnit} />
+
+        <AnimatePresence>
+          {fpEdit && <FootprintEditor building={building} updateSiteUnit={updateSiteUnit} onClose={() => setFpEdit(false)} />}
+        </AnimatePresence>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
           <Layers size={15} color={C.cyan} />

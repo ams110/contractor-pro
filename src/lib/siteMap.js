@@ -79,6 +79,39 @@ export function normalizeFootprint(raw) {
     .slice(0, 16)
 }
 
+// ─── محرّر الشكل: تحويل بين شبكة خلايا (paint) ومستطيلات الـfootprint ─────────────
+/** رسترة مستطيلات الـfootprint إلى شبكة بوليانية cols×rows (rows=عمق z، cols=عرض x). */
+export function footprintToGrid(footprint, cols, rows) {
+  const grid = Array.from({ length: rows }, () => Array(cols).fill(false))
+  for (const r of normalizeFootprint(footprint)) {
+    const c0 = Math.max(0, Math.round(r.x * cols)), c1 = Math.min(cols, Math.round((r.x + r.w) * cols))
+    const r0 = Math.max(0, Math.round(r.z * rows)), r1 = Math.min(rows, Math.round((r.z + r.d) * rows))
+    for (let rr = r0; rr < r1; rr++) for (let cc = c0; cc < c1; cc++) grid[rr][cc] = true
+  }
+  return grid
+}
+
+/** دمج شبكة الخلايا المملوءة إلى أقل عدد ممكن من المستطيلات (تغطية جشعة). */
+export function gridToFootprint(grid, cols, rows) {
+  const g = grid.map(row => row.slice())
+  const rects = []
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (!g[r][c]) continue
+      let w = 1
+      while (c + w < cols && g[r][c + w]) w++
+      let h = 1, ok = true
+      while (r + h < rows && ok) {
+        for (let cc = c; cc < c + w; cc++) if (!g[r + h][cc]) { ok = false; break }
+        if (ok) h++
+      }
+      for (let rr = r; rr < r + h; rr++) for (let cc = c; cc < c + w; cc++) g[rr][cc] = false
+      rects.push({ x: c / cols, z: r / rows, w: w / cols, d: h / rows })
+    }
+  }
+  return rects
+}
+
 /** تقدّم طابق: متوسّط شققه إن وُجدت · وإلا بنوده مباشرةً (دار مستقلة) · وإلا وزن مرحلته. */
 export function floorProgress(floor, units) {
   const uns = childrenOf(units, floor.id).filter(u => u.level === 'unit')
