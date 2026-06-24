@@ -80,3 +80,6 @@ dist-android/
 
 # Promo/ad generation artifacts (screens, cards, music, rendered video — sent to chat, not committed)
 promo-frames/
+
+# Temporary promo/media working artifacts (videos, generated images, scripts)
+scratchpad/
