@@ -15,6 +15,7 @@
 
 import { trackEvent, pageview, setAnalyticsUser, trackAdsConversion } from './analytics.js'
 import { ttTrack, ttTrackBoth, ttIdentify } from './tiktok.js'
+import { getAttribution } from './attribution.js'
 
 const CUR = 'ILS' // كل المبالغ بالشيكل — لازم لحساب ROAS بدقّة على المنصّتين
 
@@ -73,8 +74,12 @@ export function trackBeginCheckout({ plan, cycle, value } = {}) {
  * @param {object} [o] { email, userId } لمطابقة أفضل على TikTok (يُجزّأ خادمياً)
  */
 export function trackSignUp({ email, userId } = {}) {
-  trackEvent('sign_up', { method: 'email' })
-  trackEvent('generate_lead', { currency: CUR })
+  // مصدر الإسناد (first-touch) — هيك بتقدر بـGA4 تشوف أي حملة/زاوية بتحوّل فعلاً
+  // (لا بس تجيب نقرات). آمن: {} لو ما في إسناد.
+  const a = getAttribution() || {}
+  const src = { source: a.source, medium: a.medium, campaign: a.campaign, content: a.content }
+  trackEvent('sign_up', { method: 'email', ...src })
+  trackEvent('generate_lead', { currency: CUR, ...src })
   // تحويل Google Ads — إجراء التحويل المُنشأ في حساب الإعلانات (يُحتسب فقط إن
   // ضُبط GADS_ID؛ وإلا يبقى حدثاً عادياً في GA4 بلا كسر).
   trackAdsConversion('conversion_event_signup')

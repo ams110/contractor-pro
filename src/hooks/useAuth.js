@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 import { supabase, SUPABASE_URL } from '../lib/supabase.js'
 import { savePinPayload, readPinPayload, hasPin, clearPin } from '../lib/pinCrypto.js'
+import { attributionForSignup } from '../lib/attribution.js'
 
 const PASSKEY_KEY  = 'cpro_passkey_cred'  // JSON { credentialId, rpId }
 
@@ -45,9 +46,11 @@ export function useAuth() {
   }, [])
 
   async function signUp(email, password, fullName) {
+    // نُرفِق مصدر الإسناد (UTM/ttclid...) بـuser_metadata عشان يظهر بـauth.users
+    // ولوحة الأدمن — هيك بنعرف أي إعلان جاب كل مسجّل (CONVERSION_PLAN §P2).
     const { data, error } = await supabase.auth.signUp({
       email, password,
-      options: { data: { full_name: fullName } },
+      options: { data: { full_name: fullName, ...attributionForSignup() } },
     })
     if (error) throw error
     return data
