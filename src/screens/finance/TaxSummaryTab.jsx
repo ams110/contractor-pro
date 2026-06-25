@@ -11,10 +11,9 @@ import {
 } from 'recharts'
 import {
   C, GRAD,
-  VAT, EXP_CAT_VAT,
   OSEK_PATUR_THRESHOLD,
 } from '../../constants/index.js'
-import { fmt, fmtDate, calcBituachLeumiAnnual } from '../../lib/helpers.js'
+import { fmt, fmtDate, calcBituachLeumiAnnual, calcVATNet } from '../../lib/helpers.js'
 import { supabase } from '../../lib/supabase.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { computeTaxRunway } from '../../lib/insights.js'
@@ -135,7 +134,7 @@ export default function TaxSummaryTab({ pensionMonthly = 0 }) {
         .eq('business_id', bizId),
       supabase
         .from('expenses')
-        .select('amount,vat_amount,date,category')
+        .select('amount,vat_amount,date,category,status')
         .eq('business_id', bizId),
     ])
     setIncome(inc ?? [])
@@ -162,17 +161,14 @@ export default function TaxSummaryTab({ pensionMonthly = 0 }) {
   const grossProfit   = totalIncome - totalExpenses
 
   // ─── VAT calculations ──────────────────────────────────────────────────
-  const vatCollected = showVat ? totalIncome * VAT : 0
-
-  const vatDeductible = useMemo(() => {
-    if (!showVat) return 0
-    return filteredExpenses.reduce((s, e) => {
-      const rate = EXP_CAT_VAT[e.category] ?? 1.0
-      return s + Number(e.vat_amount || 0) * rate
-    }, 0)
-  }, [filteredExpenses, showVat])
-
-  const vatToPay = Math.max(0, vatCollected - vatDeductible)
+  // مصدر واحد: calcVATNet يستخرج الضريبة من المبالغ الشاملة (amount × rate/(1+rate))
+  // — لأنّ المدخولات/المصاريف تُحفظ شاملة מע"מ — مع نسبة حسب التاريخ (17% قبل 2025 ·
+  // 18% من 2025) واسترداد מס תשומות حسب فئة المصروف. (سابقاً: totalIncome×18% = مبالغة.)
+  const { vatCollected, vatDeductible, vatToPay } = useMemo(() => {
+    if (!showVat) return { vatCollected: 0, vatDeductible: 0, vatToPay: 0 }
+    const { vatOut, vatIn, net } = calcVATNet(filteredIncome, filteredExpenses)
+    return { vatCollected: vatOut, vatDeductible: vatIn, vatToPay: Math.max(0, net) }
+  }, [showVat, filteredIncome, filteredExpenses])
 
   // ─── Income tax ────────────────────────────────────────────────────────
   // For annual period use full-year data; for sub-year periods, annualise
@@ -302,7 +298,8 @@ export default function TaxSummaryTab({ pensionMonthly = 0 }) {
             />
             {bizType !== 'hevra' && (
               <TaxRow
-                label="ביטוח לאומי (10.5%)"
+                label={'ביטוח לאומי + בריאות'}
+                sub={yearProfit > 0 ? `~${((bituachLeumi / yearProfit) * 100).toFixed(1)}%` : ''}
                 value={bituachLeumi}
                 color="#3B82F6"
               />
@@ -414,7 +411,7 @@ export default function TaxSummaryTab({ pensionMonthly = 0 }) {
           <div style={{ display: 'flex', gap: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${C.border}`, borderRadius: 12, marginBottom: 8 }}>
             <Info size={13} color={C.textDim} style={{ flexShrink: 0, marginTop: 1 }} />
             <div style={{ fontSize: 10, color: C.textDim, lineHeight: 1.6 }}>
-              الأرقام الضريبية مبنية على شرائح ضريبة الدخل الإسرائيلية لعام 2024 وهي تقديرية.
+              الأرقام الضريبية مبنية على شرائح ضريبة الدخل الإسرائيلية لعام 2025 وهي تقديرية.
               يُنصح بمراجعة محاسب معتمد للحصول على الحساب الرسمي الدقيق.
             </div>
           </div>

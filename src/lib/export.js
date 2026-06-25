@@ -150,7 +150,8 @@ export function exportFullReportToExcel({ projects, employees, workDays, expense
 export function exportTaxSummary({ year, clientReceipts, expenses, projects }) {
   const wb = XLSX.utils.book_new()
   const yearStr = String(year || new Date().getFullYear())
-  const VAT_RATE = 0.17
+  // نسبة מע"מ حسب التاريخ: 17% قبل 2025 · 18% من 1/1/2025 (لا تثبّتها — تقارير 2025 كانت تطلع غلط)
+  const vatRate = (d) => ((d || '') >= '2025-01-01' ? 0.18 : 0.17)
 
   // ورقة 1: الإيرادات
   const incomeRows = clientReceipts
@@ -161,8 +162,8 @@ export function exportTaxSummary({ year, clientReceipts, expenses, projects }) {
       'المشروع':        projects.find(p => p.id === r.project_id)?.name || '',
       'اسم الزبون':     projects.find(p => p.id === r.project_id)?.client_name || '',
       'المبلغ الكلي (₪)': r.amount,
-      'بدون VAT (₪)':   Math.round(r.amount / 1.17),
-      'VAT محصّل (₪)':  Math.round(r.amount * VAT_RATE / (1 + VAT_RATE)),
+      'بدون VAT (₪)':   Math.round(r.amount / (1 + vatRate(r.date))),
+      'VAT محصّل (₪)':  Math.round(r.amount * vatRate(r.date) / (1 + vatRate(r.date))),
       'ملاحظات':        r.notes || '',
     }))
   const totalIncome    = incomeRows.reduce((s, r) => s + r['المبلغ الكلي (₪)'], 0)
@@ -180,8 +181,8 @@ export function exportTaxSummary({ year, clientReceipts, expenses, projects }) {
       'المحل/المورّد':     e.vendor || '',
       'المشروع':          projects.find(p => p.id === e.project_id)?.name || '',
       'المبلغ الكلي (₪)': e.amount,
-      'بدون VAT (₪)':     Math.round(e.amount / 1.17),
-      'VAT مدفوع (₪)':    Math.round(e.amount * VAT_RATE / (1 + VAT_RATE)),
+      'بدون VAT (₪)':     Math.round(e.amount / (1 + vatRate(e.date))),
+      'VAT مدفوع (₪)':    Math.round(e.amount * vatRate(e.date) / (1 + vatRate(e.date))),
     }))
   const totalExpenses = expRows.reduce((s, r) => s + r['المبلغ الكلي (₪)'], 0)
   const totalVATIn    = expRows.reduce((s, r) => s + r['VAT مدفوع (₪)'], 0)
@@ -196,8 +197,9 @@ export function exportTaxSummary({ year, clientReceipts, expenses, projects }) {
     const periodLabel = `${yearStr}-${m1} / ${yearStr}-${m2}`
     const pIncome  = clientReceipts.filter(r => { const mo = (r.date||'').slice(5,7); return (r.date||'').startsWith(yearStr) && (mo === m1 || mo === m2) })
     const pExpense = expenses.filter(e => { const mo = (e.date||'').slice(5,7); return (e.date||'').startsWith(yearStr) && (mo === m1 || mo === m2) && e.status !== 'pending' })
-    const vatOut = Math.round(pIncome.reduce((s,r) => s + r.amount, 0) * VAT_RATE / (1 + VAT_RATE))
-    const vatIn  = Math.round(pExpense.reduce((s,e) => s + e.amount, 0) * VAT_RATE / (1 + VAT_RATE))
+    const pRate  = vatRate(`${yearStr}-${m1}-01`)
+    const vatOut = Math.round(pIncome.reduce((s,r) => s + r.amount, 0) * pRate / (1 + pRate))
+    const vatIn  = Math.round(pExpense.reduce((s,e) => s + e.amount, 0) * pRate / (1 + pRate))
     vatPeriods.push({ 'الفترة': periodLabel, 'VAT محصّل (₪)': vatOut, 'VAT مدفوع (₪)': vatIn, 'صافي للدفع (₪)': Math.max(0, vatOut - vatIn), 'استرداد (₪)': Math.max(0, vatIn - vatOut) })
   }
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(vatPeriods), 'ملخص-מע״מ')
