@@ -329,7 +329,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             </button>
           )}
           {workDays.length > 0 && (
-            <button onClick={async () => { const m = await import('../lib/export.js'); m.exportWorkDaysToExcel(workDays, employees, projects) }}
+            <button onClick={async () => { const { ensureExportAllowed } = await import('../lib/exportGate.js'); if (!ensureExportAllowed('Excel')) return; const m = await import('../lib/export.js'); m.exportWorkDaysToExcel(workDays, employees, projects) }}
               style={{ padding:'9px 12px', borderRadius:12, border:`1px solid ${C.borderMid}`, background:'rgba(255,255,255,0.05)', color:C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5, backdropFilter:'blur(10px)' }}>
               <BarChart2 size={13} strokeWidth={2} /> Excel
             </button>
