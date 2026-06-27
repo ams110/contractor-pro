@@ -59,6 +59,10 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
   const [step,       setStep]       = useState('calc')   // 'calc' | 'name'
   const [workerVals, setWorkerVals] = useState(null)
   const [workerName, setWorkerName] = useState('')
+  // جسر القيمة: قيم الحاسبة المحفوظة من الصفحة العامة قبل التسجيل (تُعبّأ تلقائياً)
+  const [initialCalc] = useState(() => {
+    try { const raw = sessionStorage.getItem('kbl_calc_vals'); return raw ? JSON.parse(raw) : null } catch { return null }
+  })
 
   async function handleAutoCreate() {
     setCreating(true)
@@ -82,6 +86,7 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
       await create({ name: t.default_name, business_type: 'osek_patur' })
       await addEmployee({ name: workerName.trim(), daily_rate: workerVals?.dailyWage || 0 })
       await load()
+      try { sessionStorage.removeItem('kbl_calc_vals') } catch {}
       useAppStore.getState().celebrate('win', { label: tl(language, 'تمام! عاملك جاهز', 'מצוין! העובד שלך מוכן', 'Done! Your worker is ready') })
     } catch (e) {
       console.error(e); setErr(tl(language, 'حدث خطأ — حاول مجدداً', 'אירעה שגיאה — נסה שוב', 'Something went wrong — try again')); setCreating(false)
@@ -151,6 +156,7 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
         {step === 'calc' && (
           <SalaryCalculator
             mode="onboarding"
+            initialValues={initialCalc}
             ctaLabel={tl(language, 'احفظ كعامل حقيقي وابدأ', 'שמור כעובד אמיתי והתחל', 'Save as a real worker and start')}
             busy={creating}
             onCta={(vals) => { setWorkerVals(vals); setStep('name') }}
@@ -183,18 +189,18 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
           style={{
             width: '100%', marginBottom: 12,
             padding: '18px 20px',
-            background: creating ? 'rgba(245,158,11,0.08)' : `${C.primary}12`,
-            border: `1.5px solid ${C.primary}${creating ? '30' : '50'}`,
+            background: 'rgba(255,255,255,0.04)',
+            border: `1.5px solid ${C.border}`,
             borderRadius: 20, cursor: creating ? 'not-allowed' : 'pointer',
             fontFamily: 'inherit', textAlign: 'start',
             transition: 'all .2s',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 6px 20px rgba(245,158,11,0.35)' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.07)', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {creating
-                ? <div style={{ width: 18, height: 18, border: '2.5px solid rgba(0,0,0,0.3)', borderTopColor: '#000', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
-                : <Sparkles size={20} color="#000" strokeWidth={2} />
+                ? <div style={{ width: 18, height: 18, border: '2.5px solid rgba(255,255,255,0.18)', borderTopColor: C.primary, borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+                : <Sparkles size={20} color={C.textDim} strokeWidth={2} />
               }
             </div>
             <div style={{ flex: 1 }}>

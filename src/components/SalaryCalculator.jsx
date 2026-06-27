@@ -10,11 +10,12 @@ import { tl } from '../lib/labels.js'
 //  mode='public'     → صفحة /calculator (اكتساب)؛ CTA يسجّل المستخدم.
 //  mode='onboarding' → الإعداد الأول؛ CTA يحفظ القيم كأول عامل حقيقي.
 // onCta يستلم { dailyWage, hoursPerDay, days } (أرقام) ويقرّر المضيف ما يعمل.
-export default function SalaryCalculator({ mode = 'public', onCta, ctaLabel, busy = false }) {
+export default function SalaryCalculator({ mode = 'public', onCta, ctaLabel, busy = false, initialValues = null }) {
   const language = useAppStore(s => s.language)
-  const [dailyWage, setDailyWage]     = useState('400')
-  const [hoursPerDay, setHoursPerDay] = useState('10')
-  const [days, setDays]               = useState('22')
+  // جسر القيمة: لو إجت قيم من الحاسبة العامة (قبل التسجيل) نعبّيها بدل الافتراضي
+  const [dailyWage, setDailyWage]     = useState(() => initialValues?.dailyWage   ? String(initialValues.dailyWage)   : '400')
+  const [hoursPerDay, setHoursPerDay] = useState(() => initialValues?.hoursPerDay ? String(initialValues.hoursPerDay) : '10')
+  const [days, setDays]               = useState(() => initialValues?.days        ? String(initialValues.days)        : '22')
 
   const r = computeSalaryPreview({ dailyWage, hoursPerDay, days })
 

@@ -826,6 +826,16 @@ export default function WorkersScreen({
       .then(setPortalQr).catch(() => {})
   }, [])
 
+  // نيّة قادمة من اللوحة الفاضية («أضف أول عامل») → افتح فورم الإضافة مباشرةً بدل شاشة فاضية
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('kbl_intent_add_worker') === '1') {
+        sessionStorage.removeItem('kbl_intent_add_worker')
+        if (permissions?.addWorkers !== false) setShowAdd(true)
+      }
+    } catch {}
+  }, [])
+
   async function handleDeleteWorker(worker) {
     const sig = await bioConfirm(`حذف العامل: ${worker.name}`, 'employees')
     if (!sig) return

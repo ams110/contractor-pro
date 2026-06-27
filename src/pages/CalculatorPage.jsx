@@ -46,7 +46,12 @@ export default function CalculatorPage() {
         <SalaryCalculator
           mode="public"
           ctaLabel="سجّل مجاناً واحفظ عمّالك"
-          onCta={() => { trackCtaClick('calculator_register'); navigate('/register') }}
+          onCta={(vals) => {
+            trackCtaClick('calculator_register')
+            // جسر القيمة: احفظ ما أدخله المقاول ليجد عامله جاهزاً بعد التسجيل (بدل لوحة فاضية)
+            try { sessionStorage.setItem('kbl_calc_vals', JSON.stringify(vals)) } catch {}
+            navigate('/register')
+          }}
         />
 
         <button onClick={shareWhatsApp} style={{ marginTop: 14, width: '100%', maxWidth: 440, marginInline: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px', borderRadius: 14, background: `${C.primary}10`, border: `1px solid ${C.primary}40`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>

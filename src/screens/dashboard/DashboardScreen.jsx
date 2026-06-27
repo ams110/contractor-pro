@@ -539,23 +539,33 @@ export default function DashboardScreen({
         </div>
       )}
 
-      {/* ─── Empty state ─── */}
+      {/* ─── Empty state — تفعيل: وجّه لأول عامل (لحظة القيمة الحقيقية، مش لوحة فاضية) ─── */}
       {projects.length === 0 && employees.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <PremiumShell accent={C.primary} radius={22} padding="40px 20px" style={{ textAlign: 'center' }}>
+          <PremiumShell accent={C.primary} radius={22} padding="32px 22px" style={{ textAlign: 'center' }}>
             <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 12px 32px rgba(249,115,22,0.3)' }}>
-              <Trophy size={32} color="#fff" strokeWidth={1.5} />
+              <Users size={32} color="#fff" strokeWidth={1.7} />
             </div>
-            <div style={{ fontSize: 17, fontWeight: 900, color: C.text, marginBottom: 8 }}>
-              {language === 'he' ? 'ברוכים הבאים!' : language === 'en' ? 'Welcome!' : 'أهلاً بك!'}
+            <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>
+              {language === 'he' ? 'בוא נתחיל — הוסף עובד ראשון' : language === 'en' ? "Let's start — add your first worker" : 'يلا نبدأ — أضف أول عامل'}
             </div>
-            <div style={{ fontSize: 12, color: C.textDim, marginBottom: 20, lineHeight: 1.6 }}>
-              {language === 'he' ? 'הוסף את הפרויקט הראשון שלך להתחלה.' : language === 'en' ? 'Add your first project to get started.' : 'أضف مشروعك الأول للبدء.'}
+            <div style={{ fontSize: 12.5, color: C.textDim, marginBottom: 22, lineHeight: 1.7, maxWidth: 300, marginInline: 'auto' }}>
+              {language === 'he'
+                ? 'הוסף עובד וסמן ימי עבודה — האפליקציה תחשב שכר, שעות נוספות וכמה אתה חייב לו, אוטומטית.'
+                : language === 'en'
+                  ? 'Add a worker and log work days — the app calculates salary, overtime and how much you owe, automatically.'
+                  : 'ضيف عامل وسجّل أيام شغله — التطبيق بيحسبلك الراتب والساعات الإضافية وكم باقي إله تلقائياً.'}
             </div>
-            <motion.button whileTap={{ scale: 0.96 }} onClick={() => onNav?.('projects')}
-              style={{ padding: '12px 28px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px rgba(249,115,22,0.35)' }}>
-              {language === 'he' ? 'הוסף פרויקט' : language === 'en' ? 'Add Project' : 'إضافة مشروع'}
+            <motion.button whileTap={{ scale: 0.96 }}
+              onClick={() => { try { sessionStorage.setItem('kbl_intent_add_worker', '1') } catch {}; onNav?.('workers') }}
+              style={{ width: '100%', maxWidth: 320, marginInline: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 28px', borderRadius: 15, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px rgba(249,115,22,0.35)' }}>
+              <Users size={18} strokeWidth={2.2} />
+              {language === 'he' ? 'הוסף עובד ראשון' : language === 'en' ? 'Add first worker' : 'أضف أول عامل'}
             </motion.button>
+            <button onClick={() => onNav?.('projects')}
+              style={{ marginTop: 12, background: 'none', border: 'none', color: C.textDim, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {language === 'he' ? 'או הוסף פרויקט' : language === 'en' ? 'or add a project' : 'أو أضف مشروع'}
+            </button>
           </PremiumShell>
         </motion.div>
       )}
