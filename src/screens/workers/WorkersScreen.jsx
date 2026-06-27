@@ -826,12 +826,16 @@ export default function WorkersScreen({
       .then(setPortalQr).catch(() => {})
   }, [])
 
-  // نيّة قادمة من اللوحة الفاضية («أضف أول عامل») → افتح فورم الإضافة مباشرةً بدل شاشة فاضية
+  // نيّات قادمة من اللوحة → افتح الإجراء المناسب مباشرةً بدل شاشة فاضية
   useEffect(() => {
     try {
       if (sessionStorage.getItem('kbl_intent_add_worker') === '1') {
         sessionStorage.removeItem('kbl_intent_add_worker')
         if (permissions?.addWorkers !== false) setShowAdd(true)
+      }
+      if (sessionStorage.getItem('kbl_intent_log_workday') === '1') {
+        sessionStorage.removeItem('kbl_intent_log_workday')
+        setMainTab('workdays')   // وجّه لتبويب أيام العمل لتسجيل أول يوم
       }
     } catch {}
   }, [])

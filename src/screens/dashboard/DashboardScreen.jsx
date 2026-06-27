@@ -400,6 +400,27 @@ export default function DashboardScreen({
         {permissions?.isOwner && <PlanBadge lang={language} />}
       </motion.div>
 
+      {/* ─── تفعيل المرحلة 2: عنده عامل بلا أيام عمل → وجّهه لتسجيل أول يوم (لحظة «شفت الفلوس») ─── */}
+      {employees.length > 0 && workDays.length === 0 && (
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 14 }}>
+          <PremiumShell accent={C.cyan} radius={20} padding="15px 15px"
+            onClick={() => { try { sessionStorage.setItem('kbl_intent_log_workday', '1') } catch {}; onNav?.('workers') }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <IconChip icon={Clock} accent={C.cyan} size={40} r={13} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 900, color: C.text, marginBottom: 3 }}>
+                  {language === 'he' ? 'שלב הבא — סמן יום עבודה ראשון' : language === 'en' ? 'Next — log your first work day' : 'الخطوة الجاية — سجّل أول يوم شغل'}
+                </div>
+                <div style={{ fontSize: 11.5, color: C.textDim, lineHeight: 1.5 }}>
+                  {language === 'he' ? 'סמן יום עבודה ותראה כמה מגיע לעובד — אוטומטית.' : language === 'en' ? 'Log a day and see exactly what the worker is owed — automatically.' : 'سجّل يوم وشوف كم صار مستحقّ لعاملك — تلقائياً.'}
+                </div>
+              </div>
+              <ChevronLeft size={18} color={C.cyan} style={{ flexShrink: 0 }} />
+            </div>
+          </PremiumShell>
+        </motion.div>
+      )}
+
       {!showAmounts && (
         <div style={{ marginBottom: 12, padding: '12px 14px', borderRadius: 14, background: `${C.secondary}10`, border: `1px solid ${C.secondary}28`, display: 'flex', alignItems: 'center', gap: 10 }}>
           <Lock size={16} color={C.secondary} />
