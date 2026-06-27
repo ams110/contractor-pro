@@ -4,6 +4,8 @@
 //   • scripts/prerender.mjs — توليد HTML ثابت لكل مسار وقت البناء (للزواحف وواتساب)
 // هيك ما يصير تكرار/انحراف بين النسختين.
 
+import { CALC_CITIES } from './calcCities.js'
+
 export const ORIGIN = 'https://app.linko.services'
 // صورة مشاركة مخصّصة 1200×630 (بانر) — أفضل بكثير من الأيقونة المربّعة للمعاينات
 export const OG_IMAGE = `${ORIGIN}/og-image.png`
@@ -60,9 +62,19 @@ export const FAQ_SCHEMA = {
   })),
 }
 
+// صفحات الحاسبة حسب المدينة — تُولَّد تلقائياً من CALC_CITIES (SEO محلّي).
+const CITY_CALC_SEO = Object.fromEntries(
+  Object.entries(CALC_CITIES).map(([slug, c]) => [`/calculator/${slug}`, {
+    title: `حاسبة راتب عامل في ${c.ar} | كبلان — مجاناً`,
+    description: `احسب راتب عاملك في ${c.ar} (${c.he}) بالساعات الإضافية (125%/150%) حسب قانون العمل الإسرائيلي. حاسبة مجانية وبلا تسجيل للمقاول من كبلان.`,
+    crumb: `حاسبة ${c.ar}`,
+  }]),
+)
+
 // مسار → عنوان/وصف/علامات. الصفحات والـprerender يقرؤون من هون.
 // breadcrumb: يُبنى تلقائياً (الرئيسية ← الصفحة) لكل ما عدا '/'.
 export const ROUTE_SEO = {
+  ...CITY_CALC_SEO,
   '/': {
     title: DEFAULT_TITLE,
     description: DEFAULT_DESC,
