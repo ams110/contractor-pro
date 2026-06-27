@@ -4,14 +4,29 @@ import { BarChart2, X, TrendingUp, CalendarDays, Plus, Check, Trash2 } from 'luc
 import { C } from '../constants/index.js'
 import { fmtDate, todayStr } from '../lib/helpers.js'
 import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../lib/calculations.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو',
                    'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
+                   'יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+const MONTHS_EN = ['January','February','March','April','May','June',
+                   'July','August','September','October','November','December']
 const DAYS_AR   = ['أح','إث','ثل','أر','خم','جم','سب']
+const DAYS_HE   = ['א','ב','ג','ד','ה','ו','ש']
+const DAYS_EN   = ['Su','Mo','Tu','We','Th','Fr','Sa']
 
+// القيمة المخزّنة تبقى عربية (canonical)؛ التسمية تُترجَم للعرض فقط.
 const PRESET_HOLIDAYS = [
-  'يوم كيبور','رأس السنة العبرية','عيد الأضحى','عيد الفطر',
-  'المولد النبوي','رأس السنة الميلادية','عيد العمال','يوم الاستقلال',
+  { v: 'يوم كيبور',          he: 'יום כיפור',          en: 'Yom Kippur' },
+  { v: 'رأس السنة العبرية',  he: 'ראש השנה',           en: 'Rosh Hashanah' },
+  { v: 'عيد الأضحى',         he: 'עיד אל-אדחא',        en: 'Eid al-Adha' },
+  { v: 'عيد الفطر',          he: 'עיד אל-פיטר',        en: 'Eid al-Fitr' },
+  { v: 'المولد النبوي',      he: 'אל-מולד א-נבווי',    en: 'Mawlid' },
+  { v: 'رأس السنة الميلادية', he: 'ראש השנה האזרחית',  en: 'New Year' },
+  { v: 'عيد العمال',         he: 'יום העובד',          en: "Workers' Day" },
+  { v: 'يوم الاستقلال',      he: 'יום העצמאות',        en: 'Independence Day' },
 ]
 
 function pad(n) { return String(n).padStart(2, '0') }
@@ -19,6 +34,8 @@ function ym(year, month) { return `${year}-${pad(month + 1)}` }
 function ds(year, month, day) { return `${year}-${pad(month + 1)}-${pad(day)}` }
 
 function MonthCalendar({ year, month, workDays, holidays }) {
+  const language = useAppStore(s => s.language)
+  const DAYS = language === 'he' ? DAYS_HE : language === 'en' ? DAYS_EN : DAYS_AR
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const firstDay    = new Date(year, month, 1).getDay()
 
@@ -47,13 +64,13 @@ function MonthCalendar({ year, month, workDays, holidays }) {
   return (
     <>
       <div style={{ display: 'flex', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, color: C.success, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.success, display: 'inline-block' }} />{worked} يوم عمل</span>
-        {pending  > 0 && <span style={{ fontSize: 11, color: C.primary, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.primary, display: 'inline-block' }} />{pending} معلق</span>}
-        {holCount > 0 && <span style={{ fontSize: 11, color: C.warning, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.warning, display: 'inline-block' }} />{holCount} إجازة</span>}
-        <span style={{ fontSize: 11, color: C.textDim, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.textDim, display: 'inline-block', opacity: 0.5 }} />جمعة-سبت</span>
+        <span style={{ fontSize: 11, color: C.success, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.success, display: 'inline-block' }} />{worked} {tl(language, 'يوم عمل', 'ימי עבודה', 'work days')}</span>
+        {pending  > 0 && <span style={{ fontSize: 11, color: C.primary, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.primary, display: 'inline-block' }} />{pending} {tl(language, 'معلق', 'ממתין', 'pending')}</span>}
+        {holCount > 0 && <span style={{ fontSize: 11, color: C.warning, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.warning, display: 'inline-block' }} />{holCount} {tl(language, 'إجازة', 'חופשה', 'holiday')}</span>}
+        <span style={{ fontSize: 11, color: C.textDim, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: C.textDim, display: 'inline-block', opacity: 0.5 }} />{tl(language, 'جمعة-سبت', 'שישי-שבת', 'Fri-Sat')}</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, marginBottom: 4 }}>
-        {DAYS_AR.map(d => (
+        {DAYS.map(d => (
           <div key={d} style={{ textAlign: 'center', fontSize: 9, color: C.textDim }}>{d}</div>
         ))}
       </div>
@@ -70,6 +87,8 @@ function MonthCalendar({ year, month, workDays, holidays }) {
 }
 
 export default function WorkerStatsPanel({ open, onClose, worker, workDays, payments = [], advances = [], expenses = [], holidays, addHoliday, deleteHoliday }) {
+  const language = useAppStore(s => s.language)
+  const MONTHS = language === 'he' ? MONTHS_HE : language === 'en' ? MONTHS_EN : MONTHS_AR
   const [year,       setYear]       = useState(new Date().getFullYear())
   const [openMonth,  setOpenMonth]  = useState(null)
   const [showAddHol, setShowAddHol] = useState(false)
@@ -94,7 +113,7 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
   const projIds        = new Set(allApproved.map(w => w.project_id).filter(Boolean))
   const totalProjects  = projIds.size
 
-  const monthStats = MONTHS_AR.map((name, mi) => {
+  const monthStats = MONTHS.map((name, mi) => {
     const prefix  = ym(year, mi)
     const worked  = myDays.filter(w => w.status === 'approved' && String(w.date).startsWith(prefix)).length
     const pending = myDays.filter(w => w.status === 'pending'  && String(w.date).startsWith(prefix)).length
@@ -128,7 +147,7 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
         <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: C.text, display: 'flex', alignItems: 'center', gap: 7 }}><BarChart2 size={16} strokeWidth={2} style={{ color: C.primary }} /> {worker.name}</div>
-            <div style={{ fontSize: 11, color: C.textDim }}>{yearTotal} يوم عمل في {year}</div>
+            <div style={{ fontSize: 11, color: C.textDim }}>{yearTotal} {tl(language, `يوم عمل في ${year}`, `ימי עבודה ב-${year}`, `work days in ${year}`)}</div>
           </div>
           <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', background: C.border, border: 'none', cursor: 'pointer', color: C.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}><X size={14} strokeWidth={2.5} /></button>
         </div>
@@ -137,12 +156,12 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
 
           {/* Cumulative Stats */}
           <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '12px 14px', border: `1px solid ${C.border}`, marginBottom: 14 }}>
-            <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 10, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 5 }}><TrendingUp size={12} strokeWidth={2} style={{ color: C.primary }} /> الإحصائيات الإجمالية (منذ البداية)</div>
+            <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 10, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 5 }}><TrendingUp size={12} strokeWidth={2} style={{ color: C.primary }} /> {tl(language, 'الإحصائيات الإجمالية (منذ البداية)', 'סטטיסטיקה כוללת (מההתחלה)', 'Total stats (all time)')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 6 }}>
               {[
-                { l: 'أيام العمل', v: totalDaysEver, suffix: 'يوم', c: C.primary },
-                { l: 'المشاريع',   v: totalProjects, suffix: 'مشروع', c: C.secondary },
-                { l: 'إجمالي مستحق', v: `${totalEarnedEver.toLocaleString()}₪`, c: C.text },
+                { l: tl(language, 'أيام العمل', 'ימי עבודה', 'Work days'), v: totalDaysEver, suffix: tl(language, 'يوم', 'יום', 'd'), c: C.primary },
+                { l: tl(language, 'المشاريع', 'פרויקטים', 'Projects'),   v: totalProjects, suffix: tl(language, 'مشروع', 'פרויקט', ''), c: C.secondary },
+                { l: tl(language, 'إجمالي مستحق', 'סה"כ זכאי', 'Total earned'), v: `${totalEarnedEver.toLocaleString()}₪`, c: C.text },
               ].map(s => (
                 <div key={s.l} style={{ textAlign: 'center', padding: '8px 4px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, border: `1px solid ${C.border}` }}>
                   <div style={{ fontSize: 9, color: C.textDim, fontWeight: 600, marginBottom: 3 }}>{s.l}</div>
@@ -155,8 +174,8 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
               {[
-                { l: 'مجموع المدفوع', v: `${totalPaidEver.toLocaleString()}₪`, c: C.success },
-                { l: 'المتبقي',       v: `${totalOwedEver.toLocaleString()}₪`, c: totalOwedEver > 0 ? C.accent : C.success },
+                { l: tl(language, 'مجموع المدفوع', 'סה"כ שולם', 'Total paid'), v: `${totalPaidEver.toLocaleString()}₪`, c: C.success },
+                { l: tl(language, 'المتبقي', 'יתרה', 'Remaining'),       v: `${totalOwedEver.toLocaleString()}₪`, c: totalOwedEver > 0 ? C.accent : C.success },
               ].map(s => (
                 <div key={s.l} style={{ textAlign: 'center', padding: '7px 4px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, border: `1px solid ${C.border}` }}>
                   <div style={{ fontSize: 9, color: C.textDim, fontWeight: 600, marginBottom: 3 }}>{s.l}</div>
@@ -182,7 +201,7 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
                 style={{ padding: '10px 6px', borderRadius: 12, border: `1.5px solid ${openMonth === mi ? C.primary : m.worked > 0 ? `${C.success}55` : C.border}`, background: openMonth === mi ? `${C.primary}15` : m.worked > 0 ? `${C.success}08` : 'transparent', cursor: 'pointer', textAlign: 'center' }}>
                 <div style={{ fontSize: 10, color: C.textDim, marginBottom: 3 }}>{m.name}</div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: m.worked > 0 ? C.success : C.textDim }}>{m.worked}</div>
-                <div style={{ fontSize: 9, color: C.textDim, marginBottom: 6 }}>يوم</div>
+                <div style={{ fontSize: 9, color: C.textDim, marginBottom: 6 }}>{tl(language, 'يوم', 'יום', 'days')}</div>
                 <div style={{ height: 3, borderRadius: 2, background: `${C.border}44`, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${(m.worked / maxDays) * 100}%`, background: C.success, borderRadius: 2 }} />
                 </div>
@@ -198,7 +217,7 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
           {openMonth !== null && (
             <div style={{ background: C.card, borderRadius: 14, padding: 14, border: `1px solid ${C.border}`, marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-                {MONTHS_AR[openMonth]} {year}
+                {MONTHS[openMonth]} {year}
               </div>
               <MonthCalendar year={year} month={openMonth} workDays={myDays} holidays={yearHolidays} />
             </div>
@@ -207,40 +226,40 @@ export default function WorkerStatsPanel({ open, onClose, worker, workDays, paym
           {/* Holidays Section */}
           <div style={{ marginBottom: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarDays size={14} strokeWidth={2} style={{ color: C.warning }} /> الإجازات ({year})</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 6 }}><CalendarDays size={14} strokeWidth={2} style={{ color: C.warning }} /> {tl(language, 'الإجازات', 'חופשות', 'Holidays')} ({year})</div>
               <button onClick={() => setShowAddHol(v => !v)}
                 style={{ padding: '6px 12px', borderRadius: 8, background: showAddHol ? `${C.accent}22` : `${C.primary}22`, border: `1px solid ${showAddHol ? C.accent : C.primary}55`, color: showAddHol ? C.accent : C.primary, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit' }}>
-                {showAddHol ? <><X size={11} strokeWidth={2.5} /> إلغاء</> : <><Plus size={11} strokeWidth={2.5} /> أضف إجازة</>}
+                {showAddHol ? <><X size={11} strokeWidth={2.5} /> {tl(language, 'إلغاء', 'ביטול', 'Cancel')}</> : <><Plus size={11} strokeWidth={2.5} /> {tl(language, 'أضف إجازة', 'הוסף חופשה', 'Add holiday')}</>}
               </button>
             </div>
 
             {/* Add Form */}
             {showAddHol && (
               <div style={{ background: C.card, borderRadius: 12, padding: 14, border: `1px solid ${C.border}`, marginBottom: 12 }}>
-                <div style={{ fontSize: 11, color: C.textDim, marginBottom: 8 }}>اختر اسماً جاهزاً أو اكتب:</div>
+                <div style={{ fontSize: 11, color: C.textDim, marginBottom: 8 }}>{tl(language, 'اختر اسماً جاهزاً أو اكتب:', 'בחר שם מוכן או כתוב:', 'Pick a preset or type:')}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
                   {PRESET_HOLIDAYS.map(h => (
-                    <button key={h} onClick={() => setHolForm(p => ({ ...p, name: h }))}
-                      style={{ padding: '5px 10px', borderRadius: 16, border: `1px solid ${holForm.name === h ? C.primary : C.border}`, background: holForm.name === h ? `${C.primary}22` : 'transparent', color: holForm.name === h ? C.primary : C.textDim, fontSize: 11, cursor: 'pointer' }}>
-                      {h}
+                    <button key={h.v} onClick={() => setHolForm(p => ({ ...p, name: h.v }))}
+                      style={{ padding: '5px 10px', borderRadius: 16, border: `1px solid ${holForm.name === h.v ? C.primary : C.border}`, background: holForm.name === h.v ? `${C.primary}22` : 'transparent', color: holForm.name === h.v ? C.primary : C.textDim, fontSize: 11, cursor: 'pointer' }}>
+                      {tl(language, h.v, h.he, h.en)}
                     </button>
                   ))}
                 </div>
                 <input value={holForm.name} onChange={e => setHolForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="اسم الإجازة..."
+                  placeholder={tl(language, 'اسم الإجازة...', 'שם החופשה...', 'Holiday name...')}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13, marginBottom: 8, boxSizing: 'border-box', outline: 'none' }} />
                 <input type="date" value={holForm.date} onChange={e => setHolForm(p => ({ ...p, date: e.target.value }))}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13, marginBottom: 10, boxSizing: 'border-box', outline: 'none' }} />
                 <button onClick={handleAddHoliday} disabled={saving || !holForm.name}
                   style={{ width: '100%', padding: '11px 0', borderRadius: 10, background: saving || !holForm.name ? C.border : C.warning, border: 'none', color: '#000', fontSize: 13, fontWeight: 800, cursor: saving || !holForm.name ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit' }}>
-                  <Check size={14} strokeWidth={2.5} /> {saving ? '...' : 'أضف الإجازة'}
+                  <Check size={14} strokeWidth={2.5} /> {saving ? '...' : tl(language, 'أضف الإجازة', 'הוסף חופשה', 'Add holiday')}
                 </button>
               </div>
             )}
 
             {/* Holiday List */}
             {yearHolidays.length === 0
-              ? <div style={{ textAlign: 'center', padding: '16px 0', color: C.textDim, fontSize: 12 }}>ما في إجازات مضافة لسنة {year}</div>
+              ? <div style={{ textAlign: 'center', padding: '16px 0', color: C.textDim, fontSize: 12 }}>{tl(language, `ما في إجازات مضافة لسنة ${year}`, `אין חופשות לשנת ${year}`, `No holidays added for ${year}`)}</div>
               : [...yearHolidays].sort((a, b) => a.date.localeCompare(b.date)).map(h => (
                 <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: `${C.warning}11`, borderRadius: 10, border: `1px solid ${C.warning}33`, marginBottom: 6 }}>
                   <div>

@@ -191,7 +191,7 @@ export function calcBituachLeumiAnnual(annualNetProfit) {
 /**
  * تقدير מס הכנסה السنوي للعمل الحر — شرائح 2025
  * @param annualNetProfit  - صافي الربح السنوي (إيرادات - مصاريف - رواتب عمال)
- * @param pensionDeduction - مساهمات الפנסיה السنوية المدفوعة (تُخصم من الوعاء الضريبي)
+ * @param pensionDeduction - مساهمات ال פנסיה السنوية المدفوعة (تُخصم من الوعاء الضريبي)
  *   الحد الأقصى للخصم: 16% من الدخل (תקרת ניכוי לעצמאי)
  * نقاط زيكوي شخصية: 2.25 × ₪2,904 = ₪6,534 خصم من الضريبة المحسوبة
  */
@@ -211,7 +211,7 @@ export function estimateIncomeTax(annualNetProfit, pensionDeduction = 0) {
 }
 
 /**
- * حساب الوفر الضريبي من مساهمات الפנסיה
+ * حساب الوفر الضريبي من مساهمات ال פנסיה
  */
 export function pensionTaxSaving(annualNetProfit, pensionDeduction) {
   return estimateIncomeTax(annualNetProfit, 0) - estimateIncomeTax(annualNetProfit, pensionDeduction)

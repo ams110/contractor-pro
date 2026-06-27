@@ -35,7 +35,8 @@ const CRF    = Number(env('CRF', 18))
 const SETTLE = Number(env('SETTLE', 4500))     // مهلة استقرار الشاشة داخل الموبايل
 const MODE   = env('MODE', 'seek')
 const BASE   = env('BASE', 'http://localhost:3000')
-const OUT    = resolve(process.cwd(), env('OUT', 'reels'))
+const LANG   = env('LANG', '')            // '' = عربي (افتراضي) · he = ريل عبري (IDEAS_HE + شاشة עברية)
+const OUT    = resolve(process.cwd(), env('OUT', LANG ? `reels-${LANG}` : 'reels'))
 const TMP    = resolve(process.cwd(), '.reel-tmp')
 
 let FFMPEG = 'ffmpeg'
@@ -68,8 +69,9 @@ async function captureSeek(browser, id) {
   await mkdir(fdir, { recursive: true })
 
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 })
+  if (LANG) await ctx.addInitScript((l) => { try { localStorage.setItem('cp_lang', l) } catch (e) {} }, LANG)
   const page = await ctx.newPage()
-  await page.goto(`${BASE}/adreel?idea=${id}&dur=${DUR}&seek=1`, { waitUntil: 'networkidle' })
+  await page.goto(`${BASE}/adreel?idea=${id}&dur=${DUR}&seek=1${LANG ? `&lang=${LANG}` : ''}`, { waitUntil: 'networkidle' })
   await page.waitForFunction(() => window.__seekReady === true, { timeout: 15000 })
   await page.waitForTimeout(SETTLE)   // دع شاشة الموبايل (عدّادات/مخططات/سكرول) تستقرّ
 
@@ -101,8 +103,9 @@ async function captureRecord(browser, id) {
     viewport: { width: W, height: H }, deviceScaleFactor: 1,
     recordVideo: { dir: vdir, size: { width: W, height: H } },
   })
+  if (LANG) await ctx.addInitScript((l) => { try { localStorage.setItem('cp_lang', l) } catch (e) {} }, LANG)
   const page = await ctx.newPage()
-  await page.goto(`${BASE}/adreel?idea=${id}&dur=${DUR}`, { waitUntil: 'domcontentloaded' })
+  await page.goto(`${BASE}/adreel?idea=${id}&dur=${DUR}${LANG ? `&lang=${LANG}` : ''}`, { waitUntil: 'domcontentloaded' })
   try { await page.waitForFunction(() => window.__reelDone === true, { timeout: DUR + 10000 }) } catch {}
   await page.waitForTimeout(400)
   const video = page.video()

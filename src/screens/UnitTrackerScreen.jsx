@@ -4,6 +4,8 @@ import { motion } from 'framer-motion'
 import { C, GRAD } from '../constants/index.js'
 import { fmt, uid } from '../lib/helpers.js'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 function loadTracker(pid) {
@@ -21,24 +23,31 @@ function saveExtras(pid, items) { localStorage.setItem(`extras_${pid}`, JSON.str
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const TASK_STATUS = {
-  pending:     { icon: Square,      label: 'لم يبدأ', color: C.textDim },
-  in_progress: { icon: RotateCw,    label: 'جاري',    color: C.warning },
-  done:        { icon: CheckSquare, label: 'منجز',    color: C.success },
+  pending:     { icon: Square,      label: { ar: 'لم يبدأ', he: 'לא התחיל', en: 'Not started' }, color: C.textDim },
+  in_progress: { icon: RotateCw,    label: { ar: 'جاري',   he: 'בתהליך',   en: 'In progress' }, color: C.warning },
+  done:        { icon: CheckSquare, label: { ar: 'منجز',   he: 'הושלם',    en: 'Done' },         color: C.success },
 }
 const STATUS_ORDER = ['pending', 'in_progress', 'done']
 
-const DEFAULT_TASKS = ['شغل أسود', 'شغل أبيض', 'تركيب أباريز', 'حمالات', 'تركيب ألواح كهرباء']
+const DEFAULT_TASKS = [
+  { ar: 'شغل أسود', he: 'עבודה שחורה', en: 'Rough work' },
+  { ar: 'شغل أبيض', he: 'עבודה לבנה', en: 'Finishing work' },
+  { ar: 'تركيب أباريز', he: 'התקנת שקעים', en: 'Socket installation' },
+  { ar: 'حمالات', he: 'מנשאים', en: 'Brackets' },
+  { ar: 'تركيب ألواح كهرباء', he: 'התקנת לוחות חשמל', en: 'Electrical panel installation' },
+]
 
 const EXTRA_STATUS = {
-  pending:  { label: 'معلق',  color: C.warning },
-  approved: { label: 'موافق', color: C.success },
-  done:     { label: 'منجز',  color: C.primary },
+  pending:  { label: { ar: 'معلق',  he: 'ממתין',  en: 'Pending' },  color: C.warning },
+  approved: { label: { ar: 'موافق', he: 'מאושר',  en: 'Approved' }, color: C.success },
+  done:     { label: { ar: 'منجز',  he: 'הושלם',  en: 'Done' },     color: C.primary },
 }
+const stLabel = (s, language) => tl(language, s.label.ar, s.label.he, s.label.en)
 const EXTRA_STATUS_ORDER = ['pending', 'approved', 'done']
 const UNITS_LIST = ['م', 'م²', 'م³', 'طن', 'كيس', 'قطعة', 'لتر', 'يوم', 'ساعة']
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-function makeTasks() { return DEFAULT_TASKS.map(name => ({ id: uid(), name, status: 'pending' })) }
+function makeTasks(language) { return DEFAULT_TASKS.map(t => ({ id: uid(), name: tl(language, t.ar, t.he, t.en), status: 'pending' })) }
 function pct(tasks) {
   if (!tasks.length) return 0
   return Math.round(tasks.filter(t => t.status === 'done').length / tasks.length * 100)
@@ -76,6 +85,7 @@ function AddRow({ placeholder, onAdd, onCancel }) {
 
 // ─── Tracking Tab ─────────────────────────────────────────────────────────────
 function TrackingTab({ projectId, trackerData, onTrackerSave }) {
+  const language = useAppStore(s => s.language)
   const data = trackerData
 
   const [openPlots,  setOpenPlots]  = useState({})
@@ -103,7 +113,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
     setAddingPlot(false)
   }
   function delPlot(plotId) {
-    if (!window.confirm('حذف هذه القطعة وكل محتوياتها؟')) return
+    if (!window.confirm(tl(language, 'حذف هذه القطعة وكل محتوياتها؟', 'למחוק את המגרש הזה ואת כל תוכנו?', 'Delete this lot and all its contents?'))) return
     save({ ...data, plots: data.plots.filter(p => p.id !== plotId) })
   }
 
@@ -113,13 +123,13 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
     setAddingHouse(null)
   }
   function delHouse(plotId, houseId) {
-    if (!window.confirm('حذف هذا البيت وكل طوابقه؟')) return
+    if (!window.confirm(tl(language, 'حذف هذا البيت وكل طوابقه؟', 'למחוק את הבית הזה ואת כל הקומות שלו?', 'Delete this house and all its floors?'))) return
     save({ ...data, plots: data.plots.map(p => p.id !== plotId ? p : { ...p, houses: p.houses.filter(h => h.id !== houseId) }) })
   }
 
   // ── floor CRUD ──
   function addFloor(plotId, houseId, name) {
-    const floor = { id: uid(), name, tasks: makeTasks() }
+    const floor = { id: uid(), name, tasks: makeTasks(language) }
     save({
       ...data,
       plots: data.plots.map(p => p.id !== plotId ? p : {
@@ -129,7 +139,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
     setAddingFloor(null)
   }
   function delFloor(plotId, houseId, floorId) {
-    if (!window.confirm('حذف هذا الطابق؟')) return
+    if (!window.confirm(tl(language, 'حذف هذا الطابق؟', 'למחוק את הקומה הזו?', 'Delete this floor?'))) return
     save({
       ...data,
       plots: data.plots.map(p => p.id !== plotId ? p : {
@@ -192,10 +202,10 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
       {data.plots.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 7, marginBottom: 14 }}>
           {[
-            { val: data.plots.length, label: 'قطعة',   color: C.primary,   icon: MapPin   },
-            { val: totalHouses,       label: 'بيت',     color: C.secondary, icon: Home     },
-            { val: totalFloors,       label: 'طابق',    color: C.orange,    icon: Layers   },
-            { val: `${totalPct}%`,    label: 'إنجاز',   color: totalPct === 100 ? C.success : C.warning, icon: CheckSquare },
+            { val: data.plots.length, label: tl(language, 'قطعة', 'מגרש', 'Lot'),       color: C.primary,   icon: MapPin   },
+            { val: totalHouses,       label: tl(language, 'بيت', 'בית', 'House'),       color: C.secondary, icon: Home     },
+            { val: totalFloors,       label: tl(language, 'طابق', 'קומה', 'Floor'),     color: C.orange,    icon: Layers   },
+            { val: `${totalPct}%`,    label: tl(language, 'إنجاز', 'התקדמות', 'Progress'), color: totalPct === 100 ? C.success : C.warning, icon: CheckSquare },
           ].map(({ val, label, color, icon }, i) => (
             <PremiumCard key={label} color={color} radius={12} padding="10px 6px" delay={i * 0.04} style={{ textAlign: 'center' }}>
               <IconChip icon={icon} color={color} size={26} radius={8} style={{ margin: '0 auto 6px' }} />
@@ -210,14 +220,14 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
       {total.length > 0 && (
         <PremiumCard tone={totalPct === 100 ? 'excellent' : 'brand'} radius={14} padding="12px 16px" style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: C.textDim }}>التقدم الكلي</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.textDim }}>{tl(language, 'التقدم الكلي', 'התקדמות כוללת', 'Overall progress')}</span>
             <span style={{ fontSize: 18, fontWeight: 900, color: totalPct === 100 ? C.success : C.primary, fontFamily: 'monospace' }}>{totalPct}%</span>
           </div>
           <ProgressBar p={totalPct} height={8} />
           <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-            <span style={{ fontSize: 10, color: C.success, display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckSquare size={11} strokeWidth={2.3} /> {doneTasks} منجز</span>
-            <span style={{ fontSize: 10, color: C.warning, display: 'inline-flex', alignItems: 'center', gap: 4 }}><RotateCw size={11} strokeWidth={2.3} /> {inProgTasks} جاري</span>
-            <span style={{ fontSize: 10, color: C.textDim, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Square size={11} strokeWidth={2.3} /> {total.length - doneTasks - inProgTasks} لم يبدأ</span>
+            <span style={{ fontSize: 10, color: C.success, display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckSquare size={11} strokeWidth={2.3} /> {doneTasks} {tl(language, 'منجز', 'הושלם', 'done')}</span>
+            <span style={{ fontSize: 10, color: C.warning, display: 'inline-flex', alignItems: 'center', gap: 4 }}><RotateCw size={11} strokeWidth={2.3} /> {inProgTasks} {tl(language, 'جاري', 'בתהליך', 'in progress')}</span>
+            <span style={{ fontSize: 10, color: C.textDim, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Square size={11} strokeWidth={2.3} /> {total.length - doneTasks - inProgTasks} {tl(language, 'لم يبدأ', 'לא התחיל', 'not started')}</span>
           </div>
         </PremiumCard>
       )}
@@ -247,7 +257,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{plot.name}</span>
-                  <span style={{ fontSize: 10, background: C.surface, color: C.textDim, padding: '1px 7px', borderRadius: 6 }}>{plot.houses.length} بيت</span>
+                  <span style={{ fontSize: 10, background: C.surface, color: C.textDim, padding: '1px 7px', borderRadius: 6 }}>{plot.houses.length} {tl(language, 'بيت', 'בתים', 'houses')}</span>
                   <span style={{ fontSize: 11, fontWeight: 900, color: pp === 100 ? C.success : C.primary, fontFamily: 'monospace', marginRight: 'auto' }}>{pp}%</span>
                 </div>
                 <ProgressBar p={pp} height={5} />
@@ -288,7 +298,7 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
                             <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{house.name}</span>
-                            <span style={{ fontSize: 10, background: C.bg, color: C.textDim, padding: '1px 6px', borderRadius: 5 }}>{house.floors.length} طابق</span>
+                            <span style={{ fontSize: 10, background: C.bg, color: C.textDim, padding: '1px 6px', borderRadius: 5 }}>{house.floors.length} {tl(language, 'طابق', 'קומות', 'floors')}</span>
                             <span style={{ fontSize: 10, fontWeight: 800, color: hp === 100 ? C.success : C.secondary, fontFamily: 'monospace', marginRight: 'auto' }}>{hp}%</span>
                           </div>
                           <ProgressBar p={hp} height={4} />
@@ -363,11 +373,11 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                                       })}
                                     </div>
                                     {addingTask === floor.id ? (
-                                      <AddRow placeholder="اسم المهمة" onAdd={name => addTask(plot.id, house.id, floor.id, name)} onCancel={() => setAddingTask(null)} />
+                                      <AddRow placeholder={tl(language, 'اسم المهمة', 'שם המשימה', 'Task name')} onAdd={name => addTask(plot.id, house.id, floor.id, name)} onCancel={() => setAddingTask(null)} />
                                     ) : (
                                       <button onClick={() => setAddingTask(floor.id)}
                                         style={{ fontSize: 10, color: C.orange, background: `${C.orange}11`, border: `1px dashed ${C.orange}44`, borderRadius: 7, padding: '4px 10px', cursor: 'pointer', fontWeight: 700, display:'inline-flex', alignItems:'center', gap:4 }}>
-                                        <Plus size={11} strokeWidth={2.5} /> مهمة
+                                        <Plus size={11} strokeWidth={2.5} /> {tl(language, 'مهمة', 'משימה', 'Task')}
                                       </button>
                                     )}
                                   </div>
@@ -379,11 +389,11 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                           {/* + طابق */}
                           <div style={{ marginTop: 4 }}>
                             {addingFloor === house.id ? (
-                              <AddRow placeholder="اسم الطابق (مثال: طابق أرضي)" onAdd={name => addFloor(plot.id, house.id, name)} onCancel={() => setAddingFloor(null)} />
+                              <AddRow placeholder={tl(language, 'اسم الطابق (مثال: طابق أرضي)', 'שם הקומה (לדוגמה: קומת קרקע)', 'Floor name (e.g. Ground floor)')} onAdd={name => addFloor(plot.id, house.id, name)} onCancel={() => setAddingFloor(null)} />
                             ) : (
                               <button onClick={() => setAddingFloor(house.id)}
                                 style={{ width: '100%', padding: '7px 0', borderRadius: 9, border: `1.5px dashed ${C.secondary}44`, background: `${C.secondary}08`, color: C.secondary, fontSize: 11, fontWeight: 700, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
-                                <Plus size={13} strokeWidth={2.5} /> طابق
+                                <Plus size={13} strokeWidth={2.5} /> {tl(language, 'طابق', 'קומה', 'Floor')}
                               </button>
                             )}
                           </div>
@@ -396,11 +406,11 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
                 {/* + بيت */}
                 <div style={{ marginTop: 4 }}>
                   {addingHouse === plot.id ? (
-                    <AddRow placeholder="اسم البيت (مثال: بيت 1)" onAdd={name => addHouse(plot.id, name)} onCancel={() => setAddingHouse(null)} />
+                    <AddRow placeholder={tl(language, 'اسم البيت (مثال: بيت 1)', 'שם הבית (לדוגמה: בית 1)', 'House name (e.g. House 1)')} onAdd={name => addHouse(plot.id, name)} onCancel={() => setAddingHouse(null)} />
                   ) : (
                     <button onClick={() => setAddingHouse(plot.id)}
                       style={{ width: '100%', padding: '8px 0', borderRadius: 11, border: `1.5px dashed ${C.primary}44`, background: `${C.primary}08`, color: C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
-                      <Plus size={14} strokeWidth={2.5} /> بيت
+                      <Plus size={14} strokeWidth={2.5} /> {tl(language, 'بيت', 'בית', 'House')}
                     </button>
                   )}
                 </div>
@@ -413,20 +423,20 @@ function TrackingTab({ projectId, trackerData, onTrackerSave }) {
       {/* + قطعة */}
       {addingPlot ? (
         <div style={{ marginTop: 6 }}>
-          <AddRow placeholder="اسم القطعة (مثال: מגרש 71)" onAdd={addPlot} onCancel={() => setAddingPlot(false)} />
+          <AddRow placeholder={tl(language, 'اسم القطعة (مثال: מגרש 71)', 'שם המגרש (לדוגמה: מגרש 71)', 'Lot name (e.g. Lot 71)')} onAdd={addPlot} onCancel={() => setAddingPlot(false)} />
         </div>
       ) : (
         <button onClick={() => setAddingPlot(true)}
           style={{ width: '100%', marginTop: 6, padding: '12px 0', borderRadius: 13, border: `2px dashed ${C.primary}44`, background: `${C.primary}08`, color: C.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-          <Plus size={15} strokeWidth={2.5} /> {'إضافة قطعة (מגרש)'}
+          <Plus size={15} strokeWidth={2.5} /> {tl(language, 'إضافة قطعة (מגרש)', 'הוספת מגרש', 'Add lot')}
         </button>
       )}
 
       {data.plots.length === 0 && !addingPlot && (
         <div style={{ textAlign: 'center', padding: '36px 0', color: C.textDim }}>
           <IconChip icon={MapPin} tone="brand" size={52} radius={16} iconSize={26} style={{ margin: '0 auto 12px' }} />
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>لا توجد قطع بعد</div>
-          <div style={{ fontSize: 11, marginTop: 4 }}>{'أضف قطعة (מגרש) للبدء بالتتبع'}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'لا توجد قطع بعد', 'אין מגרשים עדיין', 'No lots yet')}</div>
+          <div style={{ fontSize: 11, marginTop: 4 }}>{tl(language, 'أضف قطعة (מגרש) للبدء بالتتبع', 'הוסף מגרש כדי להתחיל במעקב', 'Add a lot to start tracking')}</div>
         </div>
       )}
     </div>
@@ -502,6 +512,7 @@ function removeExtraFromTracker(trackerData, extra) {
 }
 
 function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
+  const language = useAppStore(s => s.language)
   const [extras,       setExtras]       = useState(() => loadExtras(projectId))
   const [showForm,     setShowForm]     = useState(false)
   const [editingExtra, setEditingExtra] = useState(null)
@@ -560,7 +571,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
   }
 
   function deleteExtra(extra) {
-    if (!window.confirm('حذف هذه الزيادة؟')) return
+    if (!window.confirm(tl(language, 'حذف هذه الزيادة؟', 'למחוק את התוספת הזו?', 'Delete this addition?'))) return
     persist(extras.filter(e => e.id !== extra.id))
     persistTracker(removeExtraFromTracker(trackerData, extra))
   }
@@ -574,14 +585,14 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
 
   const ExtraFormEl = (
     <div style={{ background: C.surface, borderRadius: 16, border: `1px solid ${C.borderMid}`, padding: 16, marginBottom: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10 }}>{editingExtra ? 'تعديل الزيادة' : 'زيادة جديدة'}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10 }}>{editingExtra ? tl(language, 'تعديل الزيادة', 'עריכת תוספת', 'Edit addition') : tl(language, 'زيادة جديدة', 'תוספת חדשה', 'New addition')}</div>
 
       {/* مؤشر الخطوات */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 14 }}>
         {[
-          { n: 1, label: 'الموقع',   color: C.primary   },
-          { n: 2, label: 'التفاصيل', color: C.secondary },
-          { n: 3, label: 'الصورة',   color: C.warning   },
+          { n: 1, label: tl(language, 'الموقع', 'מיקום', 'Location'),   color: C.primary   },
+          { n: 2, label: tl(language, 'التفاصيل', 'פרטים', 'Details'), color: C.secondary },
+          { n: 3, label: tl(language, 'الصورة', 'תמונה', 'Photo'),     color: C.warning   },
         ].map(({ n, label, color }, i) => {
           const done = formStep > n
           const active = formStep === n
@@ -599,62 +610,62 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
         })}
       </div>
 
-      <input value={form.title} onChange={e => setF('title', e.target.value)} placeholder="الوصف *"
+      <input value={form.title} onChange={e => setF('title', e.target.value)} placeholder={tl(language, 'الوصف *', 'תיאור *', 'Description *')}
         style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', marginBottom: 8 }} />
 
       {/* ربط بالقطعة والبيت */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
         <div>
-          <div style={{ fontSize: 10, color: !form.plotId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700, display:'flex', alignItems:'center', gap:4 }}><Building2 size={10} strokeWidth={2} /> القطعة *</div>
+          <div style={{ fontSize: 10, color: !form.plotId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700, display:'flex', alignItems:'center', gap:4 }}><Building2 size={10} strokeWidth={2} /> {tl(language, 'القطعة *', 'מגרש *', 'Lot *')}</div>
           <select value={form.plotId}
             onChange={e => setForm(p => ({ ...p, plotId: e.target.value, houseId: '' }))}
             style={{ width: '100%', padding: '9px 8px', borderRadius: 9, border: `1px solid ${form.plotId ? C.border : C.accent + '88'}`, background: C.bg, color: form.plotId ? C.text : C.textDim, fontSize: 12, boxSizing: 'border-box', outline: 'none' }}>
-            <option value="">اختر قطعة</option>
+            <option value="">{tl(language, 'اختر قطعة', 'בחר מגרש', 'Select lot')}</option>
             {plots.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
         <div>
-          <div style={{ fontSize: 10, color: !form.houseId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700, display:'flex', alignItems:'center', gap:4 }}><Home size={10} strokeWidth={2} /> البيت *</div>
+          <div style={{ fontSize: 10, color: !form.houseId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700, display:'flex', alignItems:'center', gap:4 }}><Home size={10} strokeWidth={2} /> {tl(language, 'البيت *', 'בית *', 'House *')}</div>
           <select value={form.houseId}
             onChange={e => setForm(p => ({ ...p, houseId: e.target.value, floorId: '' }))}
             disabled={!form.plotId}
             style={{ width: '100%', padding: '9px 8px', borderRadius: 9, border: `1px solid ${form.houseId ? C.border : C.accent + '88'}`, background: C.bg, color: form.houseId ? C.text : C.textDim, fontSize: 12, boxSizing: 'border-box', outline: 'none', opacity: form.plotId ? 1 : 0.4 }}>
-            <option value="">اختر بيت</option>
+            <option value="">{tl(language, 'اختر بيت', 'בחר בית', 'Select house')}</option>
             {houses.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
           </select>
         </div>
       </div>
 
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 10, color: !form.floorId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700, display:'flex', alignItems:'center', gap:4 }}><Layers size={10} strokeWidth={2} /> الطابق *</div>
+        <div style={{ fontSize: 10, color: !form.floorId ? C.accent : C.textDim, marginBottom: 3, fontWeight: 700, display:'flex', alignItems:'center', gap:4 }}><Layers size={10} strokeWidth={2} /> {tl(language, 'الطابق *', 'קומה *', 'Floor *')}</div>
         <select value={form.floorId} onChange={e => setF('floorId', e.target.value)} disabled={!form.houseId}
           style={{ width: '100%', padding: '9px 8px', borderRadius: 9, border: `1px solid ${form.floorId ? C.border : C.accent + '88'}`, background: C.bg, color: form.floorId ? C.text : C.textDim, fontSize: 12, boxSizing: 'border-box', outline: 'none', opacity: form.houseId ? 1 : 0.4 }}>
-          <option value="">اختر طابق</option>
+          <option value="">{tl(language, 'اختر طابق', 'בחר קומה', 'Select floor')}</option>
           {floors.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
       </div>
 
       {plots.length === 0 && (
         <div style={{ fontSize: 11, color: C.warning, background: `${C.warning}11`, border: `1px solid ${C.warning}33`, borderRadius: 8, padding: '7px 10px', marginBottom: 8, display:'flex', alignItems:'center', gap:6 }}>
-          <AlertTriangle size={13} strokeWidth={2.3} style={{ flexShrink: 0 }} /> لا توجد قطع في هذا المشروع — أضف قطعة من تبويب التتبع أولاً
+          <AlertTriangle size={13} strokeWidth={2.3} style={{ flexShrink: 0 }} /> {tl(language, 'لا توجد قطع في هذا المشروع — أضف قطعة من تبويب التتبع أولاً', 'אין מגרשים בפרויקט זה — הוסף מגרש מלשונית המעקב תחילה', 'No lots in this project — add a lot from the tracking tab first')}
         </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
         <div>
-          <div style={{ fontSize: 10, color: C.textDim, marginBottom: 3, fontWeight: 600 }}>الكمية *</div>
+          <div style={{ fontSize: 10, color: C.textDim, marginBottom: 3, fontWeight: 600 }}>{tl(language, 'الكمية *', 'כמות *', 'Quantity *')}</div>
           <input type="number" min="0" step="any" value={form.qty} onChange={e => setF('qty', e.target.value)} placeholder="0"
             style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }} />
         </div>
         <div>
-          <div style={{ fontSize: 10, color: C.textDim, marginBottom: 3, fontWeight: 600 }}>الوحدة</div>
+          <div style={{ fontSize: 10, color: C.textDim, marginBottom: 3, fontWeight: 600 }}>{tl(language, 'الوحدة', 'יחידה', 'Unit')}</div>
           <select value={form.unit} onChange={e => setF('unit', e.target.value)}
             style={{ width: '100%', padding: '9px 8px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }}>
             {UNITS_LIST.map(u => <option key={u} value={u}>{u}</option>)}
           </select>
         </div>
         <div>
-          <div style={{ fontSize: 10, color: C.textDim, marginBottom: 3, fontWeight: 600 }}>السعر (₪) *</div>
+          <div style={{ fontSize: 10, color: C.textDim, marginBottom: 3, fontWeight: 600 }}>{tl(language, 'السعر (₪) *', 'מחיר (₪) *', 'Price (₪) *')}</div>
           <input type="number" min="0" step="0.01" value={form.unitPrice} onChange={e => setF('unitPrice', e.target.value)} placeholder="0"
             style={{ width: '100%', padding: '9px 10px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }} />
         </div>
@@ -662,7 +673,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
 
       {form.qty && form.unitPrice && (
         <div style={{ fontSize: 11, color: C.primary, fontWeight: 700, marginBottom: 8 }}>
-          الإجمالي: {fmt((parseFloat(form.qty) || 0) * (parseFloat(form.unitPrice) || 0))}₪
+          {tl(language, 'الإجمالي', 'סך הכל', 'Total')}: {fmt((parseFloat(form.qty) || 0) * (parseFloat(form.unitPrice) || 0))}₪
         </div>
       )}
 
@@ -670,18 +681,18 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
         {Object.entries(EXTRA_STATUS).map(([key, s]) => (
           <button key={key} onClick={() => setF('status', key)}
             style={{ flex: 1, padding: '7px 4px', borderRadius: 8, border: `1.5px solid ${form.status === key ? s.color : C.border}`, background: form.status === key ? `${s.color}22` : 'transparent', color: form.status === key ? s.color : C.textDim, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-            {s.label}
+            {stLabel(s, language)}
           </button>
         ))}
       </div>
 
-      <textarea value={form.notes} onChange={e => setF('notes', e.target.value)} placeholder="ملاحظات (اختياري)" rows={2}
+      <textarea value={form.notes} onChange={e => setF('notes', e.target.value)} placeholder={tl(language, 'ملاحظات (اختياري)', 'הערות (אופציונלי)', 'Notes (optional)')} rows={2}
         style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontFamily: 'inherit', marginBottom: 10 }} />
 
       {/* صورة إثبات */}
       <div style={{ marginBottom: 12 }}>
         <div style={{ fontSize: 10, color: !form.photo ? C.accent : C.textDim, marginBottom: 5, fontWeight: 700, display:'flex', alignItems:'center', gap:4 }}>
-          <Camera size={11} strokeWidth={2.3} /> صورة إثبات {!form.photo && <span style={{ color: C.accent }}>*</span>}
+          <Camera size={11} strokeWidth={2.3} /> {tl(language, 'صورة إثبات', 'תמונת הוכחה', 'Proof photo')} {!form.photo && <span style={{ color: C.accent }}>*</span>}
         </div>
         {form.photo ? (
           <div style={{ position: 'relative' }}>
@@ -693,7 +704,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '16px 0', borderRadius: 10, border: `2px dashed ${C.accent}66`, background: `${C.accent}08`, cursor: 'pointer' }}>
               <Camera size={26} style={{ color: C.accent }} strokeWidth={2} />
-              <span style={{ fontSize: 11, color: C.accent, fontWeight: 700 }}>كاميرا</span>
+              <span style={{ fontSize: 11, color: C.accent, fontWeight: 700 }}>{tl(language, 'كاميرا', 'מצלמה', 'Camera')}</span>
               <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
                 onChange={async e => {
                   const file = e.target.files?.[0]
@@ -705,7 +716,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '16px 0', borderRadius: 10, border: `2px dashed ${C.secondary}66`, background: `${C.secondary}08`, cursor: 'pointer' }}>
               <Image size={26} style={{ color: C.textDim }} />
-              <span style={{ fontSize: 11, color: C.secondary, fontWeight: 700 }}>المعرض</span>
+              <span style={{ fontSize: 11, color: C.secondary, fontWeight: 700 }}>{tl(language, 'المعرض', 'גלריה', 'Gallery')}</span>
               <input type="file" accept="image/*" style={{ display: 'none' }}
                 onChange={async e => {
                   const file = e.target.files?.[0]
@@ -722,11 +733,11 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
       <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={() => { setShowForm(false); setEditingExtra(null); setForm(EMPTY_EXTRA) }}
           style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-          إلغاء
+          {tl(language, 'إلغاء', 'ביטול', 'Cancel')}
         </button>
         <button onClick={handleSave} disabled={!isValid}
           style={{ flex: 2, padding: '10px 0', borderRadius: 10, border: 'none', background: isValid ? GRAD.brand : C.border, color: isValid ? '#000' : C.textDim, fontSize: 12, fontWeight: 800, cursor: isValid ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
-          {editingExtra ? 'حفظ التعديل' : <><Plus size={14} strokeWidth={2.7} /> إضافة</>}
+          {editingExtra ? tl(language, 'حفظ التعديل', 'שמירת עריכה', 'Save changes') : <><Plus size={14} strokeWidth={2.7} /> {tl(language, 'إضافة', 'הוספה', 'Add')}</>}
         </button>
       </div>
     </div>
@@ -738,11 +749,11 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
         <PremiumCard tone="brand" radius={14} padding="12px 16px" style={{ marginBottom: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div style={{ textAlign: 'center', padding: '8px 4px', background: `${C.success}12`, borderRadius: 10, border: `1px solid ${C.success}22` }}>
-              <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2, fontWeight: 600 }}>معتمد</div>
+              <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2, fontWeight: 600 }}>{tl(language, 'معتمد', 'מאושר', 'Approved')}</div>
               <div style={{ fontSize: 16, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>{fmt(approvedTotal)}₪</div>
             </div>
             <div style={{ textAlign: 'center', padding: '8px 4px', background: `${C.primary}12`, borderRadius: 10, border: `1px solid ${C.primary}22` }}>
-              <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2, fontWeight: 600 }}>الإجمالي</div>
+              <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2, fontWeight: 600 }}>{tl(language, 'الإجمالي', 'סך הכל', 'Total')}</div>
               <div style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{fmt(grandTotal)}₪</div>
             </div>
           </div>
@@ -755,8 +766,8 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
       {extras.length === 0 && !showForm ? (
         <div style={{ textAlign: 'center', padding: '36px 0', color: C.textDim }}>
           <IconChip icon={ClipboardList} tone="brand" size={52} radius={16} iconSize={26} style={{ margin: '0 auto 12px' }} />
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>لا توجد زيادات بعد</div>
-          <div style={{ fontSize: 11, marginTop: 4 }}>أضف أي أعمال خارج نطاق العقد</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'لا توجد زيادات بعد', 'אין תוספות עדיין', 'No additions yet')}</div>
+          <div style={{ fontSize: 11, marginTop: 4 }}>{tl(language, 'أضف أي أعمال خارج نطاق العقد', 'הוסף עבודות מחוץ להיקף החוזה', 'Add any work outside the contract scope')}</div>
         </div>
       ) : (
         extras.map(extra => {
@@ -789,16 +800,16 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
                 </div>
                 <div style={{ textAlign: 'left', flexShrink: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 900, color: C.primary, fontFamily: 'monospace', marginBottom: 4 }}>{fmt(tot)}₪</div>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: s.color, background: `${s.color}22`, padding: '2px 8px', borderRadius: 6, border: `1px solid ${s.color}33` }}>{s.label}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: s.color, background: `${s.color}22`, padding: '2px 8px', borderRadius: 6, border: `1px solid ${s.color}33` }}>{stLabel(s, language)}</span>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 5, paddingTop: 8, borderTop: `1px solid ${C.border}22` }}>
                 <button onClick={() => cycleStatus(extra.id)}
-                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 10, fontWeight: 600, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><RefreshCw size={10} strokeWidth={2} /> الحالة</button>
+                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, fontSize: 10, fontWeight: 600, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><RefreshCw size={10} strokeWidth={2} /> {tl(language, 'الحالة', 'סטטוס', 'Status')}</button>
                 <button onClick={() => startEdit(extra)}
-                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.primary}44`, background: `${C.primary}11`, color: C.primary, fontSize: 10, fontWeight: 600, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><Pencil size={10} strokeWidth={2} /> تعديل</button>
+                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.primary}44`, background: `${C.primary}11`, color: C.primary, fontSize: 10, fontWeight: 600, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><Pencil size={10} strokeWidth={2} /> {tl(language, 'تعديل', 'עריכה', 'Edit')}</button>
                 <button onClick={() => deleteExtra(extra)}
-                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, fontSize: 10, fontWeight: 600, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><Trash2 size={10} strokeWidth={2} /> حذف</button>
+                  style={{ flex: 1, padding: '5px 0', borderRadius: 7, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, fontSize: 10, fontWeight: 600, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}><Trash2 size={10} strokeWidth={2} /> {tl(language, 'حذف', 'מחיקה', 'Delete')}</button>
               </div>
             </PremiumCard>
           )
@@ -808,7 +819,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
       {!showForm && !editingExtra && (
         <button onClick={() => { setShowForm(true); setForm(EMPTY_EXTRA) }}
           style={{ width: '100%', marginTop: 4, padding: '12px 0', borderRadius: 13, border: `2px dashed ${C.primary}44`, background: `${C.primary}08`, color: C.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-          <Plus size={15} strokeWidth={2.5} /> زيادة جديدة
+          <Plus size={15} strokeWidth={2.5} /> {tl(language, 'زيادة جديدة', 'תוספת חדשה', 'New addition')}
         </button>
       )}
     </div>
@@ -817,6 +828,7 @@ function ExtrasTab({ projectId, trackerData, onTrackerSave }) {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function UnitTrackerScreen({ projects = [] }) {
+  const language = useAppStore(s => s.language)
   const [projectId,   setProjectId]   = useState(projects[0]?.id || '')
   const [tab,         setTab]         = useState('track')
   const [trackerData, setTrackerData] = useState(() => loadTracker(projects[0]?.id || ''))
@@ -827,8 +839,8 @@ export default function UnitTrackerScreen({ projects = [] }) {
   function saveTrackerData(next) { setTrackerData(next); saveTracker(projectId, next) }
 
   const TABS = [
-    { id: 'track',  label: 'تتبع الأعمال' },
-    { id: 'extras', label: 'الزيادات'      },
+    { id: 'track',  label: tl(language, 'تتبع الأعمال', 'מעקב עבודות', 'Work tracking') },
+    { id: 'extras', label: tl(language, 'الزيادات', 'תוספות', 'Additions')      },
   ]
 
   return (
@@ -838,15 +850,15 @@ export default function UnitTrackerScreen({ projects = [] }) {
         style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 16 }}>
         <IconChip icon={Box} tone="brand" size={40} radius={12} />
         <div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>متتبع الأعمال</div>
-          <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>قطعة ← بيت ← طابق ← مهام</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{tl(language, 'متتبع الأعمال', 'מעקב עבודות', 'Work tracker')}</div>
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{tl(language, 'قطعة ← بيت ← طابق ← مهام', 'מגרש ← בית ← קומה ← משימות', 'Lot ← House ← Floor ← Tasks')}</div>
         </div>
       </motion.div>
 
       {projects.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '44px 0', color: C.textDim }}>
           <IconChip icon={HardHat} tone="brand" size={52} radius={16} iconSize={26} style={{ margin: '0 auto 12px' }} />
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>لا توجد مشاريع</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'لا توجد مشاريع', 'אין פרויקטים', 'No projects')}</div>
         </div>
       ) : (
         <>

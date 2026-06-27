@@ -10,12 +10,13 @@ import { todayStr } from '../../lib/helpers.js'
 import { uploadReceipt } from '../../lib/storage.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { tl } from '../../lib/labels.js'
 
 const METHODS = [
-  { id: 'cash',     label: 'كاش',            Icon: Banknote   },
-  { id: 'transfer', label: 'تحويل بنكي',     Icon: Building   },
-  { id: 'check',    label: 'شيك',             Icon: CreditCard },
-  { id: 'app',      label: 'בנקאות סלולרית', Icon: Smartphone },
+  { id: 'cash',     label: 'كاش',            he: 'מזומן',          en: 'Cash',          Icon: Banknote   },
+  { id: 'transfer', label: 'تحويل بنكي',     he: 'העברה בנקאית',   en: 'Bank transfer', Icon: Building   },
+  { id: 'check',    label: 'شيك',             he: "צ'ק",            en: 'Cheque',        Icon: CreditCard },
+  { id: 'app',      label: 'בנקאות סלולרית', he: 'בנקאות סלולרית', en: 'Mobile banking', Icon: Smartphone },
 ]
 
 const inp = (focus, key, error) => ({
@@ -61,6 +62,7 @@ export default function AddReceiptSheet({
   const fileRef = useRef()
   const { confirm: bioConfirm, hasAnyMethod } = useBiometricConfirm()
   const showToast = useAppStore(s => s.showToast)
+  const language = useAppStore(s => s.language)
 
   const lockedProject = !!defaultProjectId
   const noProjects    = projects.length === 0
@@ -91,8 +93,8 @@ export default function AddReceiptSheet({
 
   function validate() {
     const next = {}
-    if (!form.project_id) next.project_id = 'اختر المشروع'
-    if (!form.amount || Number(form.amount) <= 0) next.amount = 'أدخل المبلغ'
+    if (!form.project_id) next.project_id = tl(language, 'اختر المشروع', 'בחר פרויקט', 'Select a project')
+    if (!form.amount || Number(form.amount) <= 0) next.amount = tl(language, 'أدخل المبلغ', 'הזן סכום', 'Enter amount')
     setErr(next)
     return Object.keys(next).length === 0
   }
@@ -100,7 +102,7 @@ export default function AddReceiptSheet({
   async function handleSave() {
     if (!validate()) return
     if (hasAnyMethod()) {
-      const sig = await bioConfirm(`تسجيل قبضة: ₪${form.amount}`, 'client_receipts')
+      const sig = await bioConfirm(`${tl(language, 'تسجيل قبضة', 'רישום הכנסה', 'Record income')}: ₪${form.amount}`, 'client_receipts')
       if (!sig) return
     }
     setSaving(true)
@@ -123,7 +125,7 @@ export default function AddReceiptSheet({
     } catch (e) {
       console.error(e)
       setSaving(false)
-      showToast?.(e?.message || 'تعذّر حفظ القبضة — حاول مرة أخرى', 'error')
+      showToast?.(e?.message || tl(language, 'تعذّر حفظ القبضة — حاول مرة أخرى', 'שמירת ההכנסה נכשלה — נסה שוב', 'Could not save income — try again'), 'error')
     }
   }
 
@@ -142,7 +144,7 @@ export default function AddReceiptSheet({
 
             {/* Header */}
             <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تسجيل قبضة</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{tl(language, 'تسجيل قبضة', 'רישום הכנסה', 'Record income')}</div>
               <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex' }}>
                 <X size={18} />
               </button>
@@ -154,15 +156,14 @@ export default function AddReceiptSheet({
               <div style={{ flex: 1, padding: '40px 24px', textAlign: 'center' }}>
                 <FolderOpen size={40} color={C.warning} style={{ marginBottom: 14, opacity: 0.7 }} />
                 <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 6 }}>
-                  ما في مشاريع في هذه المصلحة
+                  {tl(language, 'ما في مشاريع في هذه المصلحة', 'אין פרויקטים בעסק זה', 'No projects in this business')}
                 </div>
                 <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, marginBottom: 18 }}>
-                  لازم تنشئ مشروع أولاً قبل تسجيل أي قبضة.
-                  كل القبضات لازم تُربط بمشروع.
+                  {tl(language, 'لازم تنشئ مشروع أولاً قبل تسجيل أي قبضة. كل القبضات لازم تُربط بمشروع.', 'צריך ליצור פרויקט תחילה לפני רישום הכנסה. כל ההכנסות חייבות להיות משויכות לפרויקט.', 'You must create a project first before recording any income. All income must be linked to a project.')}
                 </div>
                 <button onClick={() => { onClose(); onGoToProjects?.() }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '11px 18px', background: GRAD.primary, border: 'none', borderRadius: 12, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  + إنشاء مشروع جديد
+                  {tl(language, '+ إنشاء مشروع جديد', '+ יצירת פרויקט חדש', '+ Create new project')}
                 </button>
               </div>
             ) : (
@@ -172,7 +173,7 @@ export default function AddReceiptSheet({
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
                     <FolderOpen size={11} />
-                    المشروع <span style={{ color: C.accent }}>*</span>
+                    {tl(language, 'المشروع', 'פרויקט', 'Project')} <span style={{ color: C.accent }}>*</span>
                     {lockedProject && <Lock size={9} style={{ marginRight: 'auto' }} />}
                   </div>
                   {lockedProject ? (
@@ -190,7 +191,7 @@ export default function AddReceiptSheet({
                     <select value={form.project_id} onChange={e => set('project_id', e.target.value)}
                       onFocus={() => setFocus('proj')} onBlur={() => setFocus('')}
                       style={{ ...inp(focus, 'proj', err.project_id), cursor: 'pointer' }}>
-                      <option value="">— اختر مشروع —</option>
+                      <option value="">{tl(language, '— اختر مشروع —', '— בחר פרויקט —', '— Select project —')}</option>
                       {projects.map(p => (
                         <option key={p.id} value={p.id}>
                           {p.ref_number ? `${p.ref_number} · ` : ''}{p.name}
@@ -208,7 +209,7 @@ export default function AddReceiptSheet({
                 {/* المبلغ */}
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
-                    المبلغ (₪) <span style={{ color: C.accent }}>*</span>
+                    {tl(language, 'المبلغ (₪)', 'סכום (₪)', 'Amount (₪)')} <span style={{ color: C.accent }}>*</span>
                   </div>
                   <input type="number" inputMode="decimal" value={form.amount}
                     onChange={e => set('amount', e.target.value)} placeholder="0.00"
@@ -223,14 +224,14 @@ export default function AddReceiptSheet({
 
                 {/* التاريخ */}
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>التاريخ</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'التاريخ', 'תאריך', 'Date')}</div>
                   <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
                     style={{ ...inp(focus, 'date'), direction: 'ltr' }} />
                 </div>
 
                 {/* طريقة الدفع */}
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>طريقة الدفع</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>{tl(language, 'طريقة الدفع', 'אמצעי תשלום', 'Payment method')}</div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {METHODS.map(m => {
                       const active = form.payment_method === m.id
@@ -238,7 +239,7 @@ export default function AddReceiptSheet({
                         <button key={m.id} onClick={() => set('payment_method', m.id)}
                           style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', background: active ? `${C.success}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${active ? C.success : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
                           <m.Icon size={14} color={active ? C.success : C.textDim} />
-                          <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? C.success : C.textDim }}>{m.label}</span>
+                          <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? C.success : C.textDim }}>{tl(language, m.label, m.he, m.en)}</span>
                         </button>
                       )
                     })}
@@ -247,37 +248,37 @@ export default function AddReceiptSheet({
 
                 {/* اسم الدافع */}
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم الدافع (اختياري)</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'اسم الدافع (اختياري)', 'שם המשלם (אופציונלי)', 'Payer name (optional)')}</div>
                   <input value={form.payer_name} onChange={e => set('payer_name', e.target.value)}
-                    placeholder="اسم العميل / الجهة الدافعة"
+                    placeholder={tl(language, 'اسم العميل / الجهة الدافعة', 'שם הלקוח / הגורם המשלם', 'Client / paying party name')}
                     onFocus={() => setFocus('payer')} onBlur={() => setFocus('')} style={inp(focus, 'payer')} />
                 </div>
 
                 {/* رقم خارجي / شيك */}
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
-                    رقم خارجي / شيك (اختياري)
+                    {tl(language, 'رقم خارجي / شيك (اختياري)', 'מספר חיצוני / צ\'ק (אופציונלי)', 'External / cheque number (optional)')}
                   </div>
                   <input value={form.external_ref} onChange={e => set('external_ref', e.target.value)}
-                    placeholder="رقم الشيك أو مرجع خارجي"
+                    placeholder={tl(language, 'رقم الشيك أو مرجع خارجي', 'מספר צ\'ק או אסמכתא חיצונית', 'Cheque number or external reference')}
                     onFocus={() => setFocus('extref')} onBlur={() => setFocus('')}
                     style={{ ...inp(focus, 'extref'), direction: 'ltr' }} />
                   <div style={{ fontSize: 9, color: C.textDim, marginTop: 3, opacity: 0.75 }}>
-                    التطبيق بيعطي رقم تسلسلي تلقائي (RCP-XXXX) — هذا الحقل لرقم خارجي فقط.
+                    {tl(language, 'التطبيق بيعطي رقم تسلسلي تلقائي (RCP-XXXX) — هذا الحقل لرقم خارجي فقط.', 'האפליקציה מקצה מספר סידורי אוטומטי (RCP-XXXX) — שדה זה למספר חיצוני בלבד.', 'The app assigns an automatic serial number (RCP-XXXX) — this field is for an external number only.')}
                   </div>
                 </div>
 
                 {/* ملاحظة */}
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ملاحظة (اختياري)</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'ملاحظة (اختياري)', 'הערה (אופציונלי)', 'Note (optional)')}</div>
                   <input value={form.notes} onChange={e => set('notes', e.target.value)}
-                    placeholder="أي تفاصيل إضافية..."
+                    placeholder={tl(language, 'أي تفاصيل إضافية...', 'פרטים נוספים...', 'Any additional details...')}
                     onFocus={() => setFocus('notes')} onBlur={() => setFocus('')} style={inp(focus, 'notes')} />
                 </div>
 
                 {/* صورة الإيصال */}
                 <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>صورة الإيصال (اختياري)</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>{tl(language, 'صورة الإيصال (اختياري)', 'תמונת קבלה (אופציונלי)', 'Receipt photo (optional)')}</div>
                   <input ref={fileRef} type="file" accept="image/*" onChange={pickFile} style={{ display: 'none' }} />
                   {proofPreview ? (
                     <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -290,7 +291,7 @@ export default function AddReceiptSheet({
                   ) : (
                     <button onClick={() => fileRef.current?.click()}
                       style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: `1.5px dashed ${C.border}`, borderRadius: 12, color: C.textDim, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                      <Image size={14} /> رفع صورة إيصال
+                      <Image size={14} /> {tl(language, 'رفع صورة إيصال', 'העלאת תמונת קבלה', 'Upload receipt photo')}
                     </button>
                   )}
                 </div>
@@ -302,7 +303,7 @@ export default function AddReceiptSheet({
               <div style={{ padding: '12px 18px calc(16px + env(safe-area-inset-bottom, 0px))', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
                 <button onClick={handleSave} disabled={!canSave}
                   style={{ width: '100%', padding: '13px', background: canSave ? GRAD.success : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 14, color: canSave ? '#fff' : C.textDim, fontSize: 14, fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
-                  {saving ? 'جاري الحفظ...' : '+ تسجيل القبضة'}
+                  {saving ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : tl(language, '+ تسجيل القبضة', '+ רישום הכנסה', '+ Record income')}
                 </button>
               </div>
             )}

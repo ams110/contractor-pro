@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
+import { tl, tEnum } from '../../lib/labels.js'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const inp = (focus, key) => ({
@@ -34,13 +35,15 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
 ))
 
-function printSlip(slip, bizName) {
+function printSlip(slip, bizName, language) {
+  const dir = language === 'en' ? 'ltr' : 'rtl'
+  const locale = language === 'he' ? 'he' : language === 'en' ? 'en' : 'ar'
   const win = window.open('', '_blank')
   win.document.write(`
-    <html dir="rtl">
+    <html dir="${dir}">
     <head>
       <meta charset="utf-8"/>
-      <title>قسيمة راتب — ${esc(slip.worker_name)}</title>
+      <title>${tl(language, 'قسيمة راتب', 'תלוש שכר', 'Pay slip')} — ${esc(slip.worker_name)}</title>
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; padding: 32px; background: #fff; color: #111; }
@@ -57,21 +60,21 @@ function printSlip(slip, bizName) {
       </style>
     </head>
     <body>
-      <h1>قسيمة راتب</h1>
+      <h1>${tl(language, 'قسيمة راتب', 'תלוש שכר', 'Pay slip')}</h1>
       <div class="sub">${esc(bizName)} &nbsp;·&nbsp; ${fmtDate(slip.period_start)} — ${fmtDate(slip.period_end)}</div>
       <div class="card">
-        <div class="row"><span class="label">اسم العامل</span><span class="val">${esc(slip.worker_name)}</span></div>
-        ${slip.worker_spec ? `<div class="row"><span class="label">التخصص</span><span class="val">${esc(slip.worker_spec)}</span></div>` : ''}
-        ${slip.worker_daily_rate > 0 ? `<div class="row"><span class="label">أجر اليوم</span><span class="val">₪${fmt(slip.worker_daily_rate)}</span></div>` : ''}
-        <div class="row"><span class="label">أيام العمل</span><span class="val">${slip.work_days_count}</span></div>
-        <div class="row"><span class="label">الراتب الأساسي</span><span class="val">₪${fmt(slip.base_salary)}</span></div>
-        ${slip.advances_paid > 0 ? `<div class="row"><span class="label">سلف مخصومة</span><span class="val" style="color:#ef4444">−₪${fmt(slip.advances_paid)}</span></div>` : ''}
-        ${slip.deductions > 0 ? `<div class="row"><span class="label">خصومات${slip.deduction_note ? ' (' + esc(slip.deduction_note) + ')' : ''}</span><span class="val" style="color:#ef4444">−₪${fmt(slip.deductions)}</span></div>` : ''}
+        <div class="row"><span class="label">${tl(language, 'اسم العامل', 'שם העובד', 'Worker name')}</span><span class="val">${esc(slip.worker_name)}</span></div>
+        ${slip.worker_spec ? `<div class="row"><span class="label">${tl(language, 'التخصص', 'התמחות', 'Specialty')}</span><span class="val">${esc(tEnum(slip.worker_spec, language))}</span></div>` : ''}
+        ${slip.worker_daily_rate > 0 ? `<div class="row"><span class="label">${tl(language, 'أجر اليوم', 'שכר יומי', 'Daily rate')}</span><span class="val">₪${fmt(slip.worker_daily_rate)}</span></div>` : ''}
+        <div class="row"><span class="label">${tl(language, 'أيام العمل', 'ימי עבודה', 'Work days')}</span><span class="val">${slip.work_days_count}</span></div>
+        <div class="row"><span class="label">${tl(language, 'الراتب الأساسي', 'שכר בסיס', 'Base salary')}</span><span class="val">₪${fmt(slip.base_salary)}</span></div>
+        ${slip.advances_paid > 0 ? `<div class="row"><span class="label">${tl(language, 'سلف مخصومة', 'מקדמות שנוכו', 'Advances deducted')}</span><span class="val" style="color:#ef4444">−₪${fmt(slip.advances_paid)}</span></div>` : ''}
+        ${slip.deductions > 0 ? `<div class="row"><span class="label">${tl(language, 'خصومات', 'ניכויים', 'Deductions')}${slip.deduction_note ? ' (' + esc(slip.deduction_note) + ')' : ''}</span><span class="val" style="color:#ef4444">−₪${fmt(slip.deductions)}</span></div>` : ''}
       </div>
-      <div class="net"><span>صافي الراتب</span><span>₪${fmt(slip.net_pay)}</span></div>
-      ${slip.notes ? `<div style="margin-top:12px;font-size:12px;color:#555;">ملاحظة: ${esc(slip.notes)}</div>` : ''}
-      ${slip.paid_at ? `<div style="margin-top:8px;font-size:12px;color:#22c55e;font-weight:700;">✓ تم الصرف بتاريخ ${fmtDate(slip.paid_at)}</div>` : ''}
-      <div class="footer">تم الإنشاء بواسطة Contractor Pro &nbsp;·&nbsp; ${new Date().toLocaleDateString('ar')}</div>
+      <div class="net"><span>${tl(language, 'صافي الراتب', 'שכר נטו', 'Net pay')}</span><span>₪${fmt(slip.net_pay)}</span></div>
+      ${slip.notes ? `<div style="margin-top:12px;font-size:12px;color:#555;">${tl(language, 'ملاحظة', 'הערה', 'Note')}: ${esc(slip.notes)}</div>` : ''}
+      ${slip.paid_at ? `<div style="margin-top:8px;font-size:12px;color:#22c55e;font-weight:700;">✓ ${tl(language, 'تم الصرف بتاريخ', 'שולם בתאריך', 'Paid on')} ${fmtDate(slip.paid_at)}</div>` : ''}
+      <div class="footer">${tl(language, 'تم الإنشاء بواسطة كبلان', 'נוצר באמצעות כבלאן', 'Generated by Kabblan')} &nbsp;·&nbsp; ${new Date().toLocaleDateString(locale)}</div>
     </body>
     </html>
   `)
@@ -80,7 +83,7 @@ function printSlip(slip, bizName) {
 }
 
 // ─── Slip Card ────────────────────────────────────────────────────────────────
-function SlipCard({ slip, onMarkPaid, onDelete, onPrint }) {
+function SlipCard({ slip, onMarkPaid, onDelete, onPrint, language }) {
   const [delConfirm, setDelConfirm] = useState(false)
   const isPaid = !!slip.paid_at
 
@@ -107,7 +110,7 @@ function SlipCard({ slip, onMarkPaid, onDelete, onPrint }) {
         <div>
           <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{slip.worker_name}</div>
           {slip.worker_spec && (
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{slip.worker_spec}</div>
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{tEnum(slip.worker_spec, language)}</div>
           )}
           <div style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>
             {fmtDate(slip.period_start)} — {fmtDate(slip.period_end)}
@@ -117,31 +120,31 @@ function SlipCard({ slip, onMarkPaid, onDelete, onPrint }) {
           <div style={{ fontSize: 18, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>
             ₪{fmt(slip.net_pay)}
           </div>
-          <div style={{ fontSize: 9, color: C.textDim, textAlign: 'center', marginTop: 2 }}>صافي الراتب</div>
+          <div style={{ fontSize: 9, color: C.textDim, textAlign: 'center', marginTop: 2 }}>{tl(language, 'صافي الراتب', 'שכר נטו', 'Net pay')}</div>
         </div>
       </div>
 
       {/* Details */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
         <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.06)', padding: '3px 8px', borderRadius: 20, color: C.textDim }}>
-          {slip.work_days_count} يوم
+          {slip.work_days_count} {tl(language, 'يوم', 'יום', 'days')}
         </span>
         <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.06)', padding: '3px 8px', borderRadius: 20, color: C.textDim }}>
-          أساسي ₪{fmt(slip.base_salary)}
+          {tl(language, 'أساسي', 'בסיס', 'Base')} ₪{fmt(slip.base_salary)}
         </span>
         {slip.advances_paid > 0 && (
           <span style={{ fontSize: 10, background: '#EF444412', padding: '3px 8px', borderRadius: 20, color: '#EF4444' }}>
-            سلف −₪{fmt(slip.advances_paid)}
+            {tl(language, 'سلف', 'מקדמות', 'Advances')} −₪{fmt(slip.advances_paid)}
           </span>
         )}
         {slip.deductions > 0 && (
           <span style={{ fontSize: 10, background: '#EF444412', padding: '3px 8px', borderRadius: 20, color: '#EF4444' }}>
-            خصم −₪{fmt(slip.deductions)}
+            {tl(language, 'خصم', 'ניכוי', 'Deduction')} −₪{fmt(slip.deductions)}
           </span>
         )}
         {isPaid && (
           <span style={{ fontSize: 10, background: '#22C55E12', padding: '3px 8px', borderRadius: 20, color: '#22C55E', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-            <Check size={11} strokeWidth={2.8} /> صُرف {fmtDate(slip.paid_at)}
+            <Check size={11} strokeWidth={2.8} /> {tl(language, 'صُرف', 'שולם', 'Paid')} {fmtDate(slip.paid_at)}
           </span>
         )}
       </div>
@@ -154,7 +157,7 @@ function SlipCard({ slip, onMarkPaid, onDelete, onPrint }) {
           <button
             onClick={() => onMarkPaid(slip.id)}
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 10px', background: '#22C55E15', border: '1px solid #22C55E40', borderRadius: 10, color: '#22C55E', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            <CheckCircle2 size={13} /> تأكيد الصرف
+            <CheckCircle2 size={13} /> {tl(language, 'تأكيد الصرف', 'אישור תשלום', 'Confirm payment')}
           </button>
         )}
 
@@ -162,7 +165,7 @@ function SlipCard({ slip, onMarkPaid, onDelete, onPrint }) {
         <button
           onClick={() => onPrint(slip)}
           style={{ flex: isPaid ? 2 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 10px', background: `${C.primary}12`, border: `1px solid ${C.primary}30`, borderRadius: 10, color: C.primary, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-          <Printer size={13} /> طباعة
+          <Printer size={13} /> {tl(language, 'طباعة', 'הדפסה', 'Print')}
         </button>
 
         {/* Delete */}
@@ -174,9 +177,9 @@ function SlipCard({ slip, onMarkPaid, onDelete, onPrint }) {
         ) : (
           <div style={{ display: 'flex', gap: 4 }}>
             <button onClick={() => setDelConfirm(false)}
-              style={{ padding: '5px 8px', background: 'none', border: `1px solid ${C.border}`, borderRadius: 8, color: C.textDim, cursor: 'pointer', fontSize: 10, fontFamily: 'inherit' }}>لا</button>
+              style={{ padding: '5px 8px', background: 'none', border: `1px solid ${C.border}`, borderRadius: 8, color: C.textDim, cursor: 'pointer', fontSize: 10, fontFamily: 'inherit' }}>{tl(language, 'لا', 'לא', 'No')}</button>
             <button onClick={() => onDelete(slip.id)}
-              style={{ padding: '5px 8px', background: C.accent, border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 10, fontWeight: 700, fontFamily: 'inherit' }}>احذف</button>
+              style={{ padding: '5px 8px', background: C.accent, border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 10, fontWeight: 700, fontFamily: 'inherit' }}>{tl(language, 'احذف', 'מחיקה', 'Delete')}</button>
           </div>
         )}
       </div>
@@ -185,7 +188,7 @@ function SlipCard({ slip, onMarkPaid, onDelete, onPrint }) {
 }
 
 // ─── Add Slip Sheet ───────────────────────────────────────────────────────────
-function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) {
+function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId, language }) {
   const { confirm: bioConfirm } = useBiometricConfirm()
   const [step,         setStep]         = useState(1) // 1=select worker, 2=fill slip
   const [selectedEmp,  setSelectedEmp]  = useState(null)
@@ -268,7 +271,7 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
     if (!selectedEmp || !form.base_salary) return
     setSaving(true)
     try {
-      const sig = await bioConfirm(`قسيمة راتب: ${selectedEmp.name} — ₪${Number(form.base_salary).toLocaleString()}`, 'payroll')
+      const sig = await bioConfirm(`${tl(language, 'قسيمة راتب', 'תלוש שכר', 'Pay slip')}: ${selectedEmp.name} — ₪${Number(form.base_salary).toLocaleString()}`, 'payroll')
       if (!sig) { setSaving(false); return }
       await onSave({
         business_id:      businessId,
@@ -331,12 +334,12 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px 14px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-                  {step === 1 ? 'اختر العامل' : `قسيمة: ${selectedEmp?.name}`}
+                  {step === 1 ? tl(language, 'اختر العامل', 'בחר עובד', 'Select worker') : `${tl(language, 'قسيمة', 'תלוש', 'Slip')}: ${selectedEmp?.name}`}
                 </div>
                 {step === 2 && (
                   <button onClick={() => setStep(1)}
                     style={{ background: 'none', border: 'none', color: C.primary, fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit', marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <ArrowRight size={12} strokeWidth={2.4} /> تغيير العامل
+                    <ArrowRight size={12} strokeWidth={2.4} /> {tl(language, 'تغيير العامل', 'החלפת עובד', 'Change worker')}
                   </button>
                 )}
               </div>
@@ -352,13 +355,13 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
                 <div style={{ position: 'relative', marginBottom: 12 }}>
                   <Search size={13} color={C.textDim} style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   <input value={search} onChange={e => setSearch(e.target.value)}
-                    placeholder="بحث بالاسم أو التخصص..."
+                    placeholder={tl(language, 'بحث بالاسم أو التخصص...', 'חיפוש לפי שם או התמחות...', 'Search by name or specialty...')}
                     style={{ width: '100%', padding: '10px 36px 10px 12px', background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
 
                 {filteredEmps.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '30px 0', color: C.textDim, fontSize: 12 }}>
-                    لا يوجد عمال مطابقون
+                    {tl(language, 'لا يوجد عمال مطابقون', 'אין עובדים תואמים', 'No matching workers')}
                   </div>
                 ) : (
                   filteredEmps.map(emp => (
@@ -371,8 +374,8 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{emp.name}</div>
                         <div style={{ fontSize: 10, color: C.textDim }}>
-                          {emp.specialization && `${emp.specialization} · `}
-                          {emp.daily_rate > 0 && `₪${fmt(emp.daily_rate)}/يوم`}
+                          {emp.specialization && `${tEnum(emp.specialization, language)} · `}
+                          {emp.daily_rate > 0 && `₪${fmt(emp.daily_rate)}/${tl(language, 'يوم', 'יום', 'day')}`}
                         </div>
                       </div>
                       <ChevronDown size={14} color={C.textDim} style={{ transform: 'rotate(-90deg)' }} />
@@ -390,12 +393,12 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
                   {/* الفترة */}
                   <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>من تاريخ</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'من تاريخ', 'מתאריך', 'From date')}</div>
                       <input type="date" value={form.period_start} onChange={e => set('period_start', e.target.value)}
                         style={{ ...inp(focus, 'ps'), direction: 'ltr' }} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>إلى تاريخ</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'إلى تاريخ', 'עד תאריך', 'To date')}</div>
                       <input type="date" value={form.period_end} onChange={e => set('period_end', e.target.value)}
                         style={{ ...inp(focus, 'pe'), direction: 'ltr' }} />
                     </div>
@@ -404,13 +407,13 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
                   {/* Auto-loaded banner */}
                   {autoLoading && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: `${C.primary}12`, border: `1px solid ${C.primary}30`, borderRadius: 10, marginBottom: 12, fontSize: 11, color: C.primary }}>
-                      <Clock size={12} /> جاري جلب بيانات العامل...
+                      <Clock size={12} /> {tl(language, 'جاري جلب بيانات العامل...', 'מאחזר את נתוני העובד...', 'Fetching worker data...')}
                     </div>
                   )}
 
                   {/* أيام العمل */}
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>عدد أيام العمل</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'عدد أيام العمل', 'מספר ימי עבודה', 'Number of work days')}</div>
                     <input type="number" inputMode="decimal"
                       value={form.work_days_count} onChange={e => set('work_days_count', e.target.value)}
                       onFocus={() => setFocus('days')} onBlur={() => setFocus('')}
@@ -420,7 +423,7 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
                   {/* الراتب الأساسي */}
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
-                      الراتب الأساسي (₪) <span style={{ color: C.accent }}>*</span>
+                      {tl(language, 'الراتب الأساسي (₪)', 'שכר בסיס (₪)', 'Base salary (₪)')} <span style={{ color: C.accent }}>*</span>
                     </div>
                     <input type="number" inputMode="decimal" placeholder="0.00"
                       value={form.base_salary} onChange={e => set('base_salary', e.target.value)}
@@ -430,7 +433,7 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
 
                   {/* السلف */}
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>سلف مخصومة (₪)</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'سلف مخصومة (₪)', 'מקדמות שנוכו (₪)', 'Advances deducted (₪)')}</div>
                     <input type="number" inputMode="decimal" placeholder="0.00"
                       value={form.advances_paid} onChange={e => set('advances_paid', e.target.value)}
                       onFocus={() => setFocus('adv')} onBlur={() => setFocus('')}
@@ -439,13 +442,13 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
 
                   {/* الخصومات */}
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>خصومات أخرى (₪)</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'خصومات أخرى (₪)', 'ניכויים אחרים (₪)', 'Other deductions (₪)')}</div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <input type="number" inputMode="decimal" placeholder="0.00"
                         value={form.deductions} onChange={e => set('deductions', e.target.value)}
                         onFocus={() => setFocus('ded')} onBlur={() => setFocus('')}
                         style={{ ...inp(focus, 'ded'), direction: 'ltr', textAlign: 'left', color: '#EF4444' }} />
-                      <input placeholder="سبب الخصم"
+                      <input placeholder={tl(language, 'سبب الخصم', 'סיבת הניכוי', 'Deduction reason')}
                         value={form.deduction_note} onChange={e => set('deduction_note', e.target.value)}
                         onFocus={() => setFocus('dednote')} onBlur={() => setFocus('')}
                         style={{ ...inp(focus, 'dednote'), flex: 1.5 }} />
@@ -454,16 +457,16 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
 
                   {/* ملاحظة */}
                   <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ملاحظة (اختياري)</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'ملاحظة (اختياري)', 'הערה (אופציונלי)', 'Note (optional)')}</div>
                     <input value={form.notes} onChange={e => set('notes', e.target.value)}
-                      placeholder="أي تفاصيل إضافية..."
+                      placeholder={tl(language, 'أي تفاصيل إضافية...', 'פרטים נוספים...', 'Any additional details...')}
                       onFocus={() => setFocus('notes')} onBlur={() => setFocus('')}
                       style={inp(focus, 'notes')} />
                   </div>
 
                   {/* Net preview */}
                   <div style={{ background: `${C.primary}10`, border: `1px solid ${C.primary}30`, borderRadius: 14, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: 12, color: C.textDim, fontWeight: 600 }}>صافي الراتب</div>
+                    <div style={{ fontSize: 12, color: C.textDim, fontWeight: 600 }}>{tl(language, 'صافي الراتب', 'שכר נטו', 'Net pay')}</div>
                     <div style={{ fontSize: 22, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>
                       ₪{fmt(net)}
                     </div>
@@ -474,7 +477,7 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
                 <div style={{ padding: '12px 18px 16px', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
                   <button onClick={handleSave} disabled={!form.base_salary || saving}
                     style={{ width: '100%', padding: '13px', background: !form.base_salary || saving ? 'rgba(255,255,255,0.06)' : GRAD.warm, border: 'none', borderRadius: 14, color: !form.base_salary || saving ? C.textDim : '#fff', fontSize: 14, fontWeight: 800, cursor: !form.base_salary || saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-                    {saving ? 'جاري الحفظ...' : `حفظ القسيمة — ₪${fmt(net)}`}
+                    {saving ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : `${tl(language, 'حفظ القسيمة', 'שמירת התלוש', 'Save slip')} — ₪${fmt(net)}`}
                   </button>
                 </div>
               </>
@@ -488,6 +491,7 @@ function AddSlipSheet({ open, onClose, onSave, businessId, employees, userId }) 
 
 // ─── MAIN: PayrollTab ─────────────────────────────────────────────────────────
 export default function PayrollTab({ employees = [], userId }) {
+  const language = useAppStore(s => s.language)
   const { activeBusiness } = useBusinessStore()
   const { showToast } = useAppStore()
   const { confirm: bioConfirm } = useBiometricConfirm()
@@ -560,26 +564,26 @@ export default function PayrollTab({ employees = [], userId }) {
       .from('payroll_slips').insert(fields).select().single()
     if (error) throw error
     setSlips(prev => [data, ...prev])
-    showToast('تم حفظ القسيمة')
+    showToast(tl(language, 'تم حفظ القسيمة', 'התלוש נשמר', 'Slip saved'))
   }
 
   async function handleMarkPaid(id) {
     const slip = slips.find(s => s.id === id)
-    const sig  = await bioConfirm(`تأكيد صرف: ${slip?.worker_name || ''} — ₪${slip?.net_pay || 0}`, 'payroll')
+    const sig  = await bioConfirm(`${tl(language, 'تأكيد صرف', 'אישור תשלום', 'Confirm payment')}: ${slip?.worker_name || ''} — ₪${slip?.net_pay || 0}`, 'payroll')
     if (!sig) return
     const paid_at = todayStr()
     await supabase.from('payroll_slips').update({ paid_at }).eq('id', id)
     setSlips(prev => prev.map(s => s.id === id ? { ...s, paid_at } : s))
-    showToast('تم تأكيد الصرف')
+    showToast(tl(language, 'تم تأكيد الصرف', 'התשלום אושר', 'Payment confirmed'))
   }
 
   async function handleDelete(id) {
     const slip = slips.find(s => s.id === id)
-    const sig  = await bioConfirm(`حذف قسيمة راتب: ${slip?.worker_name || ''} — ₪${slip?.net_pay || 0}`, 'payroll')
+    const sig  = await bioConfirm(`${tl(language, 'حذف قسيمة راتب', 'מחיקת תלוש שכר', 'Delete pay slip')}: ${slip?.worker_name || ''} — ₪${slip?.net_pay || 0}`, 'payroll')
     if (!sig) return
     await supabase.from('payroll_slips').delete().eq('id', id)
     setSlips(prev => prev.filter(s => s.id !== id))
-    showToast('تم الحذف')
+    showToast(tl(language, 'تم الحذف', 'נמחק', 'Deleted'))
   }
 
   if (!activeBusiness) return null
@@ -590,16 +594,16 @@ export default function PayrollTab({ employees = [], userId }) {
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <div style={{ flex: 1, background: `${C.primary}0F`, border: `1px solid ${C.primary}22`, borderRadius: 16, padding: '12px 10px', textAlign: 'center' }}>
           <div style={{ fontSize: 15, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>₪{fmt(totalMonth)}</div>
-          <div style={{ fontSize: 9, color: C.textDim, marginTop: 3, fontWeight: 600 }}>رواتب هذا الشهر</div>
+          <div style={{ fontSize: 9, color: C.textDim, marginTop: 3, fontWeight: 600 }}>{tl(language, 'رواتب هذا الشهر', 'משכורות החודש', 'This month salaries')}</div>
         </div>
         <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, borderRadius: 16, padding: '12px 10px', textAlign: 'center' }}>
           <div style={{ fontSize: 15, fontWeight: 900, color: C.text, fontFamily: 'monospace' }}>₪{fmt(totalAll)}</div>
-          <div style={{ fontSize: 9, color: C.textDim, marginTop: 3, fontWeight: 600 }}>إجمالي كل الرواتب</div>
+          <div style={{ fontSize: 9, color: C.textDim, marginTop: 3, fontWeight: 600 }}>{tl(language, 'إجمالي كل الرواتب', 'סך כל המשכורות', 'All salaries total')}</div>
         </div>
         {unpaidCount > 0 && (
           <div style={{ flex: 1, background: `${C.accent}0F`, border: `1px solid ${C.accent}22`, borderRadius: 16, padding: '12px 10px', textAlign: 'center' }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: C.accent }}>{unpaidCount}</div>
-            <div style={{ fontSize: 9, color: C.textDim, marginTop: 3, fontWeight: 600 }}>لم تُصرف بعد</div>
+            <div style={{ fontSize: 9, color: C.textDim, marginTop: 3, fontWeight: 600 }}>{tl(language, 'لم تُصرف بعد', 'טרם שולמו', 'Not yet paid')}</div>
           </div>
         )}
       </div>
@@ -608,7 +612,7 @@ export default function PayrollTab({ employees = [], userId }) {
       <div style={{ position: 'relative', marginBottom: 10 }}>
         <Search size={13} color={C.textDim} style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)', pointerEvents: 'none' }} />
         <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="بحث باسم العامل..."
+          placeholder={tl(language, 'بحث باسم العامل...', 'חיפוש לפי שם העובד...', 'Search by worker name...')}
           style={{ width: '100%', padding: '10px 36px 10px 12px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
       </div>
 
@@ -617,33 +621,33 @@ export default function PayrollTab({ employees = [], userId }) {
         {usedWorkers.length > 1 && (
           <select value={filterWorker} onChange={e => setFilterWorker(e.target.value)}
             style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterWorker ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-            <option value="">كل العمال</option>
+            <option value="">{tl(language, 'كل العمال', 'כל העובדים', 'All workers')}</option>
             {usedWorkers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
           </select>
         )}
         <select value={filterPaid} onChange={e => setFilterPaid(e.target.value)}
           style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterPaid ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-          <option value="">الكل</option>
-          <option value="unpaid">لم تُصرف</option>
-          <option value="paid">مصروفة</option>
+          <option value="">{tl(language, 'الكل', 'הכול', 'All')}</option>
+          <option value="unpaid">{tl(language, 'لم تُصرف', 'טרם שולמו', 'Not paid')}</option>
+          <option value="paid">{tl(language, 'مصروفة', 'שולמו', 'Paid')}</option>
         </select>
         <div style={{ marginRight: 'auto', fontSize: 11, color: C.textDim }}>
-          {filtered.length} قسيمة
+          {filtered.length} {tl(language, 'قسيمة', 'תלושים', 'slips')}
         </div>
       </div>
 
       {/* ─── List ──────────────────────────────────────────────────────── */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>تحميل...</div>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>{tl(language, 'تحميل...', 'טוען...', 'Loading...')}</div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
           <Banknote size={32} color={C.textDim} style={{ marginBottom: 12, opacity: 0.4 }} />
           <div style={{ fontSize: 13, color: C.textDim, fontWeight: 600 }}>
-            {filterWorker || filterPaid || search ? 'لا توجد قسائم لهذا الفلتر' : 'لا توجد قسائم رواتب بعد'}
+            {filterWorker || filterPaid || search ? tl(language, 'لا توجد قسائم لهذا الفلتر', 'אין תלושים לסינון זה', 'No slips for this filter') : tl(language, 'لا توجد قسائم رواتب بعد', 'אין עדיין תלושי שכר', 'No pay slips yet')}
           </div>
           {!filterWorker && !filterPaid && !search && (
             <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, opacity: 0.7 }}>
-              اضغط + لإنشاء أول قسيمة
+              {tl(language, 'اضغط + لإنشاء أول قسيمة', 'לחץ + ליצירת התלוש הראשון', 'Tap + to create your first slip')}
             </div>
           )}
         </div>
@@ -655,7 +659,8 @@ export default function PayrollTab({ employees = [], userId }) {
               slip={slip}
               onMarkPaid={handleMarkPaid}
               onDelete={handleDelete}
-              onPrint={s => printSlip(s, bizName)}
+              onPrint={s => printSlip(s, bizName, language)}
+              language={language}
             />
           ))}
         </AnimatePresence>
@@ -676,7 +681,7 @@ export default function PayrollTab({ employees = [], userId }) {
             boxShadow: `0 4px 20px ${C.primary}44`,
           }}>
           <Plus size={16} strokeWidth={2.5} />
-          قسيمة راتب جديدة
+          {tl(language, 'قسيمة راتب جديدة', 'תלוש שכר חדש', 'New pay slip')}
         </motion.button>
       </div>
 
@@ -688,6 +693,7 @@ export default function PayrollTab({ employees = [], userId }) {
         businessId={bizId}
         employees={employees}
         userId={userId}
+        language={language}
       />
     </div>
   )

@@ -15,6 +15,7 @@ import { uploadReceipt, openSignedUrl } from '../../lib/storage.js'
 import { C, GRAD, PROJECT_STATUS, PROJECT_TYPES, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr, isPaymentOverdue } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
+import { tl, tEnum } from '../../lib/labels.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { calcProjectStats as _calcStats, calcOwnerCash } from '../../lib/calculations.js'
@@ -96,10 +97,10 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
   }
 
   async function handleSave() {
-    if (!form.name.trim()) return setError('اسم المشروع مطلوب')
-    if (businesses.length > 0 && !form.business_id) return setError('يجب اختيار المصلحة التجارية')
+    if (!form.name.trim()) return setError(tl(language, 'اسم المشروع مطلوب', 'שם הפרויקט נדרש', 'Project name is required'))
+    if (businesses.length > 0 && !form.business_id) return setError(tl(language, 'يجب اختيار المصلحة التجارية', 'יש לבחור עסק', 'You must select a business'))
     if (!isEdit) {
-      const sig = await bioConfirm(`إضافة مشروع: ${form.name}`, 'projects')
+      const sig = await bioConfirm(tl(language, `إضافة مشروع: ${form.name}`, `הוספת פרויקט: ${form.name}`, `Add project: ${form.name}`), 'projects')
       if (!sig) return
     }
     setSaving(true)
@@ -123,7 +124,7 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
       }
       await onSave(payload)
       const justCompleted = form.status === 'مكتمل' && initialData?.status !== 'مكتمل'
-      if (justCompleted)    useAppStore.getState().celebrate('win', { label: 'مشروع مكتمل!' })
+      if (justCompleted)    useAppStore.getState().celebrate('win', { label: tl(language, 'مشروع مكتمل!', 'הפרויקט הושלם!', 'Project completed!') })
       else if (!isEdit)     useAppStore.getState().celebrate('success')
       onClose()
     } catch (e) {
@@ -133,34 +134,34 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
     }
   }
 
-  const title = isEdit ? 'تعديل المشروع' : 'مشروع جديد'
-  const saveLabel = saving ? 'جاري الحفظ...' : isEdit ? 'حفظ التعديلات' : 'أضف المشروع'
+  const title = isEdit ? tl(language, 'تعديل المشروع', 'עריכת פרויקט', 'Edit project') : tl(language, 'مشروع جديد', 'פרויקט חדש', 'New project')
+  const saveLabel = saving ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : isEdit ? tl(language, 'حفظ التعديلات', 'שמירת שינויים', 'Save changes') : tl(language, 'أضف المشروع', 'הוספת פרויקט', 'Add project')
 
   return (
     <Modal open={open} onClose={onClose} title={title}
       action={<Btn onClick={handleSave} full disabled={saving}>{saveLabel}</Btn>}>
-      <Input label="اسم المشروع" value={form.name}
+      <Input label={tl(language, 'اسم المشروع', 'שם הפרויקט', 'Project name')} value={form.name}
         onChange={v => setForm(p => ({ ...p, name: v }))} required />
-      <Input label="السعر (₪)" value={form.price} type="number" min="0"
+      <Input label={tl(language, 'السعر (₪)', 'מחיר (₪)', 'Price (₪)')} value={form.price} type="number" min="0"
         onChange={v => setForm(p => ({ ...p, price: v }))} />
-      <Input label="النوع" value={form.type}
+      <Input label={tl(language, 'النوع', 'סוג', 'Type')} value={form.type}
         onChange={v => setForm(p => ({ ...p, type: v, locations: [] }))} options={PROJECT_TYPES} />
-      <Input label="الحالة" value={form.status}
+      <Input label={tl(language, 'الحالة', 'סטטוס', 'Status')} value={form.status}
         onChange={v => setForm(p => ({ ...p, status: v }))} options={PROJECT_STATUS} />
-      <Input label="ملاحظات" value={form.notes}
+      <Input label={tl(language, 'ملاحظات', 'הערות', 'Notes')} value={form.notes}
         onChange={v => setForm(p => ({ ...p, notes: v }))} />
 
       {form.type === 'يومي' && (
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            <MapPin size={11} strokeWidth={2} /> أماكن العمل
+            <MapPin size={11} strokeWidth={2} /> {tl(language, 'أماكن العمل', 'אתרי עבודה', 'Work sites')}
           </label>
           <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
             <input
               value={locInput}
               onChange={e => setLocInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addLocation())}
-              placeholder="اسم المكان..."
+              placeholder={tl(language, 'اسم المكان...', 'שם האתר...', 'Site name...')}
               style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '10px 14px', color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none', direction: 'rtl' }}
             />
             <button onClick={addLocation} style={{ padding: '10px 14px', borderRadius: 12, background: `${C.primary}22`, border: `1.5px solid ${C.primary}55`, color: C.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
@@ -187,14 +188,14 @@ function ProjectFormModal({ open, onClose, onSave, language, initialData = null,
       {businesses.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: C.textDim, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            <Building2 size={11} strokeWidth={2} /> المصلحة التجارية <span style={{ color: C.accent }}>*</span>
+            <Building2 size={11} strokeWidth={2} /> {tl(language, 'المصلحة التجارية', 'העסק', 'Business')} <span style={{ color: C.accent }}>*</span>
           </label>
           <select
             value={form.business_id || ''}
             onChange={e => setForm(p => ({ ...p, business_id: e.target.value }))}
             style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${!form.business_id ? C.accent + '80' : C.border}`, borderRadius: 12, color: form.business_id ? C.text : C.textDim, fontSize: 13, fontFamily: 'inherit', outline: 'none', direction: 'rtl', cursor: 'pointer' }}
           >
-            <option value="" disabled>— اختر المصلحة —</option>
+            <option value="" disabled>{tl(language, '— اختر المصلحة —', '— בחר עסק —', '— Select business —')}</option>
             {businesses.map(biz => (
               <option key={biz.id} value={biz.id}>
                 {biz.name} ({biz.business_type === 'osek_patur' ? 'פטור' : biz.business_type === 'osek_moreh' ? 'מורשה' : 'חברה'})
@@ -283,7 +284,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
     profit:    stats.profit,
     margin:    stats.margin,
     overdue:   isPaymentOverdue(project, clientReceipts),
-  }), [project, stats.revenue, stats.cost, stats.profit, stats.margin, stats.projExpTotal, paidToWorkers, advancesPaid, clientReceipts])
+  }, language), [project, stats.revenue, stats.cost, stats.profit, stats.margin, stats.projExpTotal, paidToWorkers, advancesPaid, clientReceipts, language])
 
   const TABS = [
     { id: 'overview',  icon: BarChart3,    label: language === 'he' ? 'סיכום' : language === 'en' ? 'Overview' : 'نظرة عامة' },
@@ -295,17 +296,17 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
 
   // ── خيارات إدارة المشروع (أرشفة / حذف فقط / حذف مع البيانات) — كلها بتوقيع ──
   async function handleArchive() {
-    const sig = await bioConfirm(`أرشفة المشروع: ${project.name}`, 'projects'); if (!sig) return
+    const sig = await bioConfirm(tl(language, `أرشفة المشروع: ${project.name}`, `העברת הפרויקט לארכיון: ${project.name}`, `Archive project: ${project.name}`), 'projects'); if (!sig) return
     setDeleting(true)
     try { await onArchive?.(project.id); onClose() } catch { setDeleting(false) }
   }
   async function handleDeleteOnly() {
-    const sig = await bioConfirm(`حذف المشروع (مع إبقاء البيانات المالية): ${project.name}`, 'projects'); if (!sig) return
+    const sig = await bioConfirm(tl(language, `حذف المشروع (مع إبقاء البيانات المالية): ${project.name}`, `מחיקת הפרויקט (עם שמירת הנתונים הכספיים): ${project.name}`, `Delete project (keep financial data): ${project.name}`), 'projects'); if (!sig) return
     setDeleting(true)
     try { await onDelete(project.id); onClose() } catch { setDeleting(false) }
   }
   async function handleDeleteAll() {
-    const sig = await bioConfirm(`حذف المشروع وكل بياناته نهائياً: ${project.name}`, 'projects'); if (!sig) return
+    const sig = await bioConfirm(tl(language, `حذف المشروع وكل بياناته نهائياً: ${project.name}`, `מחיקת הפרויקט וכל הנתונים שלו לצמיתות: ${project.name}`, `Permanently delete project and all its data: ${project.name}`), 'projects'); if (!sig) return
     setDeleting(true)
     try { await onDeleteAll?.(project.id); onClose() } catch { setDeleting(false) }
   }
@@ -333,7 +334,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
 
   async function handleAddReceipt() {
     if (!receiptForm.amount || parseFloat(receiptForm.amount) <= 0)
-      return setReceiptError('أدخل المبلغ المقبوض')
+      return setReceiptError(tl(language, 'أدخل المبلغ المقبوض', 'הזן את הסכום שהתקבל', 'Enter the amount received'))
     setReceiptSaving(true)
     setReceiptError('')
     try {
@@ -356,7 +357,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
 
   async function handleDeleteReceipt(id) {
     const receipt = pReceipts.find(r => r.id === id)
-    const sig = await bioConfirm(`حذف القبضة: ₪${fmt(receipt?.amount || 0)} — ${receipt?.payer_name || ''}`, 'receipts')
+    const sig = await bioConfirm(tl(language, `حذف القبضة: ₪${fmt(receipt?.amount || 0)} — ${receipt?.payer_name || ''}`, `מחיקת קבלה: ₪${fmt(receipt?.amount || 0)} — ${receipt?.payer_name || ''}`, `Delete receipt: ₪${fmt(receipt?.amount || 0)} — ${receipt?.payer_name || ''}`), 'receipts')
     if (!sig) return
     try { await deleteReceipt(id) } catch {}
   }
@@ -377,7 +378,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
-            <span style={{ fontSize: 10, color: statusColor(project.status), fontWeight: 700 }}>{project.status}</span>
+            <span style={{ fontSize: 10, color: statusColor(project.status), fontWeight: 700 }}>{tEnum(project.status, language)}</span>
             {project.ref_number && <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.04em' }}>{project.ref_number}</span>}
           </div>
         </div>
@@ -391,7 +392,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
           </button>
         )}
         {project.archived_at && (
-          <button onClick={handleRestore} title="استعادة"
+          <button onClick={handleRestore} title={tl(language, 'استعادة', 'שחזור', 'Restore')}
             style={{ width: 34, height: 34, borderRadius: 10, background: `${C.success}18`, border: `1px solid ${C.success}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
             <RotateCcw size={14} color={C.success} strokeWidth={2} />
           </button>
@@ -421,16 +422,16 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
               transition={{ type: 'spring', stiffness: 340, damping: 30 }} onClick={e => e.stopPropagation()}
               style={{ width: '100%', maxWidth: 460, background: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, border: `1px solid ${C.borderMid}`, padding: '20px 18px 26px' }}>
               <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border, margin: '0 auto 16px' }} />
-              <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 3 }}>إدارة المشروع</div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 3 }}>{tl(language, 'إدارة المشروع', 'ניהול הפרויקט', 'Manage project')}</div>
               <div style={{ fontSize: 12, color: C.textDim, marginBottom: 12 }}>{project.name}</div>
 
               {/* عدّ البيانات المرتبطة */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
                 {[
-                  { n: pWorkDays.length, l: 'أيام عمل' },
-                  { n: pExpenses.length, l: 'مصاريف' },
-                  { n: pReceipts.length, l: 'قبضات' },
-                  { n: pPayments.length, l: 'دفعات' },
+                  { n: pWorkDays.length, l: tl(language, 'أيام عمل', 'ימי עבודה', 'work days') },
+                  { n: pExpenses.length, l: tl(language, 'مصاريف', 'הוצאות', 'expenses') },
+                  { n: pReceipts.length, l: tl(language, 'قبضات', 'קבלות', 'receipts') },
+                  { n: pPayments.length, l: tl(language, 'دفعات', 'תשלומים', 'payments') },
                 ].filter(x => x.n > 0).map(x => (
                   <span key={x.l} style={{ fontSize: 10.5, fontWeight: 700, color: C.textDim, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '4px 9px' }}>
                     {x.n} {x.l}
@@ -443,8 +444,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                 style={{ width: '100%', textAlign: 'start', padding: '13px 14px', borderRadius: 14, marginBottom: 9, background: `${C.secondary}14`, border: `1.5px solid ${C.secondary}44`, color: C.text, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 11 }}>
                 <Archive size={18} color={C.secondary} strokeWidth={2.2} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 800 }}>أرشفة <span style={{ fontSize: 10, color: C.secondary }}>✦ موصى به</span></div>
-                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>يخفي المشروع دون فقدان أي بيانات — قابل للاستعادة</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800 }}>{tl(language, 'أرشفة', 'ארכיון', 'Archive')} <span style={{ fontSize: 10, color: C.secondary }}>✦ {tl(language, 'موصى به', 'מומלץ', 'Recommended')}</span></div>
+                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>{tl(language, 'يخفي المشروع دون فقدان أي بيانات — قابل للاستعادة', 'מסתיר את הפרויקט בלי לאבד נתונים — ניתן לשחזור', 'Hides the project without losing any data — restorable')}</div>
                 </div>
               </button>
 
@@ -453,8 +454,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                 style={{ width: '100%', textAlign: 'start', padding: '13px 14px', borderRadius: 14, marginBottom: 9, background: `${C.warning}12`, border: `1.5px solid ${C.warning}38`, color: C.text, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 11 }}>
                 <Trash2 size={18} color={C.warning} strokeWidth={2.2} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 800 }}>حذف المشروع فقط</div>
-                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>تبقى المقبوضات والمصاريف وأيام العمل (تصبح بلا مشروع)</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800 }}>{tl(language, 'حذف المشروع فقط', 'מחיקת הפרויקט בלבד', 'Delete project only')}</div>
+                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>{tl(language, 'تبقى المقبوضات والمصاريف وأيام العمل (تصبح بلا مشروع)', 'הקבלות, ההוצאות וימי העבודה נשמרים (יישארו ללא פרויקט)', 'Receipts, expenses and work days remain (left without a project)')}</div>
                 </div>
               </button>
 
@@ -463,8 +464,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                 style={{ width: '100%', textAlign: 'start', padding: '13px 14px', borderRadius: 14, marginBottom: 14, background: 'rgba(239,68,68,0.12)', border: '1.5px solid rgba(239,68,68,0.4)', color: C.text, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 11 }}>
                 <AlertTriangle size={18} color={C.accent} strokeWidth={2.2} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: C.accent }}>حذف مع كل البيانات</div>
-                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>يمحو المشروع وكل مقبوضاته/مصاريفه/أيامه نهائياً — لا تراجع</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: C.accent }}>{tl(language, 'حذف مع كل البيانات', 'מחיקה עם כל הנתונים', 'Delete with all data')}</div>
+                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>{tl(language, 'يمحو المشروع وكل مقبوضاته/مصاريفه/أيامه نهائياً — لا تراجع', 'מוחק את הפרויקט וכל הקבלות/ההוצאות/הימים שלו לצמיתות — אין חזרה', 'Permanently erases the project and all its receipts/expenses/days — no undo')}</div>
                 </div>
               </button>
 
@@ -480,8 +481,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
       {/* Quick actions — تسجيل قبضة / مصروف على هذا المشروع */}
       {permissions?.editProjects !== false && (
         <div style={{ display: 'flex', gap: 8, padding: '10px 16px', background: C.surface, borderBottom: `1px solid ${C.border}` }}>
-          <QuickActionBtn icon={TrendingUp}   color={C.success} label="تسجيل قبضة"  onClick={() => goToFinanceAdd('add_receipt')} />
-          <QuickActionBtn icon={TrendingDown} color={C.accent}  label="تسجيل مصروف" onClick={() => goToFinanceAdd('add_expense')} />
+          <QuickActionBtn icon={TrendingUp}   color={C.success} label={tl(language, 'تسجيل قبضة', 'רישום קבלה', 'Record receipt')}  onClick={() => goToFinanceAdd('add_receipt')} />
+          <QuickActionBtn icon={TrendingDown} color={C.accent}  label={tl(language, 'تسجيل مصروف', 'רישום הוצאה', 'Record expense')} onClick={() => goToFinanceAdd('add_expense')} />
         </div>
       )}
 
@@ -519,7 +520,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 14, background: `${C.primary}10`, border: `1px solid ${C.primary}28` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <IconChip icon={Banknote} tone="brand" size={28} radius={9} />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: C.primary }}>قيمة الصفقة</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.primary }}>{tl(language, 'قيمة الصفقة', 'שווי העסקה', 'Deal value')}</span>
                     </div>
                     <span style={{ fontSize: 16, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{showAmounts ? `₪${fmt(project.price)}` : '•••'}</span>
                   </div>
@@ -527,16 +528,16 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 14, background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <IconChip icon={Clock} tone="fair" size={28} radius={9} />
-                        <span style={{ fontSize: 12, fontWeight: 700, color: C.warning }}>متبقي للتحصيل</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: C.warning }}>{tl(language, 'متبقي للتحصيل', 'יתרה לגבייה', 'Left to collect')}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 16, fontWeight: 900, color: C.warning, fontFamily: 'monospace' }}>{showAmounts ? `₪${fmt(remaining)}` : '•••'}</span>
                         <button
                           onClick={() => openWhatsApp(project.client_phone, waMessages.paymentReminder({ clientName: project.client_name, projectName: project.name, amount: remaining }))}
-                          title="تذكير العميل عبر واتساب"
+                          title={tl(language, 'تذكير العميل عبر واتساب', 'תזכורת ללקוח בוואטסאפ', 'Remind client via WhatsApp')}
                           style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 11px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                           <MessageCircle size={12} strokeWidth={2} />
-                          تذكير
+                          {tl(language, 'تذكير', 'תזכורת', 'Remind')}
                         </button>
                       </div>
                     </div>
@@ -544,7 +545,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                   {remaining <= 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 14, background: `${C.success}10`, border: `1px solid ${C.success}28` }}>
                       <IconChip icon={CheckCircle2} tone="excellent" size={28} radius={9} />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: C.success }}>تم تحصيل كامل الصفقة</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.success }}>{tl(language, 'تم تحصيل كامل الصفقة', 'כל העסקה נגבתה', 'Full deal collected')}</span>
                     </div>
                   )}
                 </div>
@@ -564,7 +565,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
             {project.type === 'يومي' && (project.locations || []).length > 0 && (
               <PremiumCard tone="brand" glow={false} radius={14} padding="12px 14px" style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <MapPin size={10} strokeWidth={2} /> أماكن العمل
+                  <MapPin size={10} strokeWidth={2} /> {tl(language, 'أماكن العمل', 'אתרי עבודה', 'Work sites')}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {(project.locations || []).map(loc => (
@@ -585,21 +586,21 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
               return (
                 <PremiumCard tone="premium" glow={false} radius={14} padding="14px" style={{ marginBottom: 10 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <Users size={10} strokeWidth={2} /> توزيع الأجور
+                    <Users size={10} strokeWidth={2} /> {tl(language, 'توزيع الأجور', 'חלוקת שכר', 'Wage breakdown')}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 12, color: C.textDim }}>مستحق للعمال (أجور + مصاريفهم)</span>
+                      <span style={{ fontSize: 12, color: C.textDim }}>{tl(language, 'مستحق للعمال (أجور + مصاريفهم)', 'מגיע לעובדים (שכר + הוצאותיהם)', 'Owed to workers (wages + their expenses)')}</span>
                       <span style={{ fontSize: 13, fontWeight: 800, color: C.secondary, fontFamily: 'monospace' }}>{showAmounts ? `₪${fmt(owedTotal)}` : '•••'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 12, color: C.textDim }}>واصل لهم (مدفوعات + سلف)</span>
+                      <span style={{ fontSize: 12, color: C.textDim }}>{tl(language, 'واصل لهم (مدفوعات + سلف)', 'שולם להם (תשלומים + מקדמות)', 'Paid to them (payments + advances)')}</span>
                       <span style={{ fontSize: 13, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>{showAmounts ? `-₪${fmt(receivedTotal)}` : '•••'}</span>
                     </div>
                     <div style={{ height: 1, background: C.border }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: owedToWorkers > 0 ? C.warning : C.success }}>
-                        {owedToWorkers > 0 ? 'باقي على العمال' : 'عمال مكتفون'}
+                        {owedToWorkers > 0 ? tl(language, 'باقي على العمال', 'יתרה לעובדים', 'Remaining to workers') : tl(language, 'عمال مكتفون', 'העובדים שולמו', 'Workers settled')}
                       </span>
                       <span style={{ fontSize: 14, fontWeight: 900, color: owedToWorkers > 0 ? C.warning : C.success, fontFamily: 'monospace' }}>
                         {showAmounts ? `₪${fmt(Math.abs(owedToWorkers))}` : '•••'}
@@ -620,8 +621,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <IconChip icon={Wallet} color={ownerCash >= 0 ? C.success : C.accent} size={34} radius={11} />
                     <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 3 }}>متبقي بيد المالك</div>
-                      <div style={{ fontSize: 10, color: C.textDim }}>إيرادات − مصاريف المشروع − مدفوعات وسلف العمال</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 3 }}>{tl(language, 'متبقي بيد المالك', 'נותר בידי הבעלים', 'Remaining with owner')}</div>
+                      <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'إيرادات − مصاريف المشروع − مدفوعات وسلف العمال', 'הכנסות − הוצאות הפרויקט − תשלומים ומקדמות לעובדים', 'Revenue − project expenses − worker payments and advances')}</div>
                     </div>
                   </div>
                   <span style={{ fontSize: 20, fontWeight: 900, color: ownerCash >= 0 ? C.success : C.accent, fontFamily: 'monospace' }}>
@@ -679,7 +680,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
 
           if (workerIds.length === 0) return (
             <div style={{ textAlign: 'center', padding: '40px 20px', color: C.textDim, fontSize: 13 }}>
-              لا يوجد عمال مرتبطون بهذا المشروع بعد
+              {tl(language, 'لا يوجد عمال مرتبطون بهذا المشروع بعد', 'אין עדיין עובדים המשויכים לפרויקט הזה', 'No workers linked to this project yet')}
             </div>
           )
 
@@ -708,7 +709,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                       </div>
                       <div style={{ textAlign: 'end' }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: balance > 0 ? C.warning : C.success }}>
-                          {balance > 0 ? 'مستحق' : 'مكتفي'}
+                          {balance > 0 ? tl(language, 'مستحق', 'לתשלום', 'Owed') : tl(language, 'مكتفي', 'שולם', 'Settled')}
                         </div>
                         <div style={{ fontSize: 14, fontWeight: 900, color: balance > 0 ? C.warning : C.success, fontFamily: 'monospace' }}>
                           {showAmounts ? `₪${fmt(Math.abs(balance))}` : '•••'}
@@ -719,9 +720,9 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                     {/* إحصائيات */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, borderTop: `1px solid ${C.border}` }}>
                       {[
-                        { label: 'أيام العمل', value: wds.length, color: C.primary },
-                        { label: 'الأجور', value: showAmounts ? `₪${fmt(earned)}` : '•••', color: C.secondary },
-                        { label: 'المدفوع', value: showAmounts ? `₪${fmt(paid)}` : '•••', color: C.success },
+                        { label: tl(language, 'أيام العمل', 'ימי עבודה', 'Work days'), value: wds.length, color: C.primary },
+                        { label: tl(language, 'الأجور', 'שכר', 'Wages'), value: showAmounts ? `₪${fmt(earned)}` : '•••', color: C.secondary },
+                        { label: tl(language, 'المدفوع', 'שולם', 'Paid'), value: showAmounts ? `₪${fmt(paid)}` : '•••', color: C.success },
                       ].map(s => (
                         <div key={s.label} style={{ padding: '8px', textAlign: 'center', background: 'rgba(255,255,255,0.02)' }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -733,7 +734,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                     {/* أرقام الرواتب المرتبطة */}
                     {payRefs.length > 0 && (
                       <div style={{ borderTop: `1px solid ${C.border}`, padding: '8px 14px', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                        <span style={{ fontSize: 9, color: C.textDim, fontWeight: 700 }}>رواتب:</span>
+                        <span style={{ fontSize: 9, color: C.textDim, fontWeight: 700 }}>{tl(language, 'رواتب:', 'משכורות:', 'Salaries:')}</span>
                         {payRefs.map(p => (
                           <span key={p.id} style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}25`, borderRadius: 5, padding: '2px 7px' }}>
                             {p.ref_number || '—'}{showAmounts ? ` · ₪${fmt(p.amount)}` : ''}
@@ -758,7 +759,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
               <PremiumCard key={exp.id} tone="critical" glow={false} radius={14} padding="10px 12px" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <IconChip icon={CreditCard} color={C.accent} size={32} radius={10} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{exp.category || exp.description || '—'}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{exp.category ? tEnum(exp.category, language) : (exp.description || '—')}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 10, color: C.textDim }}>{fmtDate(exp.date)}</span>
                     {exp.ref_number && (
@@ -778,24 +779,24 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
           <div>
             {/* Header row — تسجيل قبضة جديدة من زر "تسجيل قبضة" بأعلى الشاشة (يوديك للمحاسبة) */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>إجمالي المقبوضات</div>
+              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>{tl(language, 'إجمالي المقبوضات', 'סך הקבלות', 'Total receipts')}</div>
               <div style={{ fontSize: 24, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>{showAmounts ? `₪${fmt(stats.revenue)}` : '•••'}</div>
             </div>
 
             {/* Receipt form modal */}
             <Modal open={showReceiptForm} onClose={closeReceiptForm}
-              title={editingReceiptId ? 'تعديل قبضة' : 'تسجيل قبضة'}
-              action={<Btn onClick={handleAddReceipt} full disabled={receiptSaving}>{receiptSaving ? 'جاري الحفظ...' : editingReceiptId ? 'حفظ التعديلات' : 'حفظ القبضة'}</Btn>}>
-              <Input label="المبلغ المقبوض (₪)" value={receiptForm.amount} type="number" min="0"
+              title={editingReceiptId ? tl(language, 'تعديل قبضة', 'עריכת קבלה', 'Edit receipt') : tl(language, 'تسجيل قبضة', 'רישום קבלה', 'Record receipt')}
+              action={<Btn onClick={handleAddReceipt} full disabled={receiptSaving}>{receiptSaving ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : editingReceiptId ? tl(language, 'حفظ التعديلات', 'שמירת שינויים', 'Save changes') : tl(language, 'حفظ القبضة', 'שמירת הקבלה', 'Save receipt')}</Btn>}>
+              <Input label={tl(language, 'المبلغ المقبوض (₪)', 'הסכום שהתקבל (₪)', 'Amount received (₪)')} value={receiptForm.amount} type="number" min="0"
                 onChange={v => setReceiptForm(p => ({ ...p, amount: v }))} required />
-              <Input label="التاريخ" value={receiptForm.date} type="date"
+              <Input label={tl(language, 'التاريخ', 'תאריך', 'Date')} value={receiptForm.date} type="date"
                 onChange={v => setReceiptForm(p => ({ ...p, date: v }))} />
-              <Input label="طريقة الدفع" value={receiptForm.payment_method}
+              <Input label={tl(language, 'طريقة الدفع', 'אמצעי תשלום', 'Payment method')} value={receiptForm.payment_method}
                 onChange={v => setReceiptForm(p => ({ ...p, payment_method: v }))}
                 options={payMethods?.length ? payMethods : ['كاش', 'حوالة', 'شيك', 'بطاقة']} />
-              <Input label="اسم الدافع" value={receiptForm.payer_name} placeholder="مثال: أبو محمد"
+              <Input label={tl(language, 'اسم الدافع', 'שם המשלם', 'Payer name')} value={receiptForm.payer_name} placeholder={tl(language, 'مثال: أبو محمد', 'לדוגמה: אבו מוחמד', 'e.g. Abu Mohammed')}
                 onChange={v => setReceiptForm(p => ({ ...p, payer_name: v }))} />
-              <Input label="ملاحظات" value={receiptForm.notes}
+              <Input label={tl(language, 'ملاحظات', 'הערות', 'Notes')} value={receiptForm.notes}
                 onChange={v => setReceiptForm(p => ({ ...p, notes: v }))} />
 
               {/* File upload */}
@@ -810,7 +811,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                 }} />
               {receiptPreview && receiptPreview !== 'pdf' ? (
                 <div style={{ position: 'relative', marginBottom: 14 }}>
-                  <img src={receiptPreview} alt="إيصال" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 14, border: `1px solid ${C.success}55` }} />
+                  <img src={receiptPreview} alt={tl(language, 'إيصال', 'קבלה', 'Receipt')} style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 14, border: `1px solid ${C.success}55` }} />
                   <button onClick={() => { setReceiptFile(null); setReceiptPreview('') }}
                     style={{ position: 'absolute', top: 8, left: 8, width: 26, height: 26, borderRadius: '50%', background: 'rgba(239,68,68,0.85)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <X size={12} strokeWidth={2.5} />
@@ -825,7 +826,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                 <button onClick={() => receiptFileRef.current?.click()}
                   style={{ width: '100%', padding: '14px', borderRadius: 14, border: `2px dashed ${C.border}`, background: 'rgba(255,255,255,0.02)', color: C.textDim, fontSize: 13, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 14, fontFamily: 'inherit' }}>
                   <Paperclip size={20} strokeWidth={1.5} style={{ color: C.textDim }} />
-                  <span>إرفاق صورة الإيصال أو PDF (اختياري)</span>
+                  <span>{tl(language, 'إرفاق صورة الإيصال أو PDF (اختياري)', 'צירוף תמונת הקבלה או PDF (אופציונלי)', 'Attach receipt image or PDF (optional)')}</span>
                 </button>
               )}
 
@@ -843,16 +844,16 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                   style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
                   <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
                     style={{ width: '100%', maxWidth: 300, background: C.surface, border: '1px solid rgba(239,68,68,0.3)', borderRadius: 20, padding: '24px 20px' }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 8, textAlign: 'center' }}>حذف القبضة؟</div>
-                    <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>لا يمكن التراجع عن هذا الإجراء.</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 8, textAlign: 'center' }}>{tl(language, 'حذف القبضة؟', 'למחוק את הקבלה?', 'Delete receipt?')}</div>
+                    <div style={{ fontSize: 12, color: C.textDim, textAlign: 'center', marginBottom: 20 }}>{tl(language, 'لا يمكن التراجع عن هذا الإجراء.', 'לא ניתן לבטל פעולה זו.', 'This action cannot be undone.')}</div>
                     <div style={{ display: 'flex', gap: 10 }}>
                       <button onClick={() => setConfirmDelReceipt(null)}
                         style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        إلغاء
+                        {tl(language, 'إلغاء', 'ביטול', 'Cancel')}
                       </button>
                       <button onClick={() => handleDeleteReceiptConfirmed(confirmDelReceipt)}
                         style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(239,68,68,0.9)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        حذف
+                        {tl(language, 'حذف', 'מחיקה', 'Delete')}
                       </button>
                     </div>
                   </motion.div>
@@ -863,7 +864,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
             {/* List */}
             {pReceipts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 20px', color: C.textDim, fontSize: 13, background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: `1px dashed ${C.border}` }}>
-                لم يُقبض شيء بعد
+                {tl(language, 'لم يُقبض شيء بعد', 'עדיין לא התקבל דבר', 'Nothing received yet')}
               </div>
             ) : pReceipts.map(r => {
               const linkedPays = payments.filter(p => p.client_receipt_id === r.id)
@@ -882,7 +883,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                         {r.ref_number && <span style={{ fontSize: 10, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 6, padding: '1px 7px', letterSpacing: '0.04em' }}>{r.ref_number}</span>}
                       </div>
                       <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>
-                        {fmtDate(r.date)}{r.payment_method ? ` · ${r.payment_method}` : ''}{r.payer_name ? ` · ${r.payer_name}` : ''}{r.notes ? ` · ${r.notes}` : ''}
+                        {fmtDate(r.date)}{r.payment_method ? ` · ${tEnum(r.payment_method, language)}` : ''}{r.payer_name ? ` · ${r.payer_name}` : ''}{r.notes ? ` · ${r.notes}` : ''}
                       </div>
                     </div>
                     {/* زر توسيع */}
@@ -918,8 +919,8 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                   {linkedPays.length > 0 && (
                     <div style={{ padding: '0 14px 10px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: C.textDim, marginBottom: 4, fontWeight: 600 }}>
-                        <span>مُصرَّف على رواتب: <span style={{ color: C.secondary }}>{showAmounts ? `₪${fmt(usedAmt)}` : '•••'}</span></span>
-                        <span>متبقي: <span style={{ color: remaining >= 0 ? C.success : C.accent }}>{showAmounts ? `₪${fmt(Math.abs(remaining))}${remaining < 0 ? ' ↑زيادة' : ''}` : '•••'}</span></span>
+                        <span>{tl(language, 'مُصرَّف على رواتب:', 'הוצא על משכורות:', 'Spent on salaries:')} <span style={{ color: C.secondary }}>{showAmounts ? `₪${fmt(usedAmt)}` : '•••'}</span></span>
+                        <span>{tl(language, 'متبقي:', 'נותר:', 'Remaining:')} <span style={{ color: remaining >= 0 ? C.success : C.accent }}>{showAmounts ? `₪${fmt(Math.abs(remaining))}${remaining < 0 ? ` ↑${tl(language, 'زيادة', 'עודף', 'over')}` : ''}` : '•••'}</span></span>
                       </div>
                       <div style={{ height: 5, borderRadius: 3, background: `${C.border}` }}>
                         <div style={{ height: '100%', borderRadius: 3, width: `${pct}%`, background: pct >= 100 ? C.accent : `linear-gradient(90deg,${C.secondary},${C.primary})`, transition: 'width .3s' }} />
@@ -939,7 +940,7 @@ function ProjectDetail({ project, onClose, onUpdate, onDelete, onArchive, onRest
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{emp?.name || '—'}</div>
-                              <div style={{ fontSize: 9, color: C.textDim }}>{fmtDate(p.date)}{p.method ? ` · ${p.method}` : ''}</div>
+                              <div style={{ fontSize: 9, color: C.textDim }}>{fmtDate(p.date)}{p.method ? ` · ${tEnum(p.method, language)}` : ''}</div>
                             </div>
                             <div style={{ textAlign: 'end' }}>
                               <div style={{ fontSize: 12, fontWeight: 800, color: C.secondary }}>{showAmounts ? `₪${fmt(p.amount || 0)}` : '•••'}</div>

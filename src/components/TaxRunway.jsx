@@ -6,6 +6,8 @@ import {
 } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 const TONE = {
   excellent: { main: C.success, soft: 'rgba(34,197,94,0.14)',  glow: 'rgba(34,197,94,0.45)' },
@@ -36,7 +38,7 @@ function useCountUp(target, duration = 1200, start = false) {
 }
 
 // ─── عدّاد السقف ثنائي القوس (محصّل فعلي + توقّع سنوي) ───────────────────────────
-function CapGauge({ capPct, projectedPct, tone, yearIncome, cap, animate }) {
+function CapGauge({ capPct, projectedPct, tone, yearIncome, cap, animate, language }) {
   const t = TONE[tone] || TONE.fair
   const R = 60, SW = 12, SIZE = 150, CX = SIZE / 2
   const actual = Math.min(100, capPct)
@@ -76,7 +78,7 @@ function CapGauge({ capPct, projectedPct, tone, yearIncome, cap, animate }) {
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
         <span style={{ fontSize: 30, fontWeight: 900, color: t.main, letterSpacing: '-0.03em', lineHeight: 1, direction: 'ltr' }}>{displayPct}%</span>
-        <span style={{ fontSize: 9, fontWeight: 700, color: C.textDim }}>من السقف</span>
+        <span style={{ fontSize: 9, fontWeight: 700, color: C.textDim }}>{tl(language, 'من السقف', 'מהתקרה', 'of cap')}</span>
         <span style={{ fontSize: 10, fontWeight: 800, color: C.text, fontFamily: 'monospace', marginTop: 2 }}>₪{fmt(yearIncome)}</span>
       </div>
     </div>
@@ -85,6 +87,7 @@ function CapGauge({ capPct, projectedPct, tone, yearIncome, cap, animate }) {
 
 // ─── البطاقة الكاملة ──────────────────────────────────────────────────────────────
 export default function TaxRunway({ runway }) {
+  const language = useAppStore(s => s.language)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.3 })
   const provision = useCountUp(runway?.monthlyProvision || 0, 1300, inView)
@@ -104,30 +107,30 @@ export default function TaxRunway({ runway }) {
           <Landmark size={16} color={t.main} strokeWidth={2.5} />
         </motion.div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>عدّاد الضريبة</div>
-          <div style={{ fontSize: 10, color: C.textDim }}>توقّع ذكي للسقف السنوي وفاتورتك الضريبية</div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'عدّاد الضريبة', 'מד המס', 'Tax Meter')}</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'توقّع ذكي للسقف السنوي وفاتورتك الضريبية', 'תחזית חכמה לתקרה השנתית ולחשבון המס שלך', 'Smart forecast of your annual cap and tax bill')}</div>
         </div>
       </div>
 
-      {/* العدّاد (لעוסק פטור) + الفاتورة */}
+      {/* العدّاد (ل עוסק פטור) + الفاتورة */}
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
         {runway.isOsekPatur && (
           <CapGauge capPct={runway.capPct} projectedPct={runway.projectedPct} tone={runway.tone}
-            yearIncome={runway.yearIncome} cap={runway.cap} animate={inView} />
+            yearIncome={runway.yearIncome} cap={runway.cap} animate={inView} language={language} />
         )}
 
         <div style={{ flex: 1, minWidth: 170, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {/* التوقّع السنوي */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 13, padding: '11px 13px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 3 }}>الدخل السنوي المتوقّع</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 3 }}>{tl(language, 'الدخل السنوي المتوقّع', 'ההכנסה השנתית הצפויה', 'Projected annual income')}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
               <span style={{ fontSize: 19, fontWeight: 900, color: t.main, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>₪{fmt(runway.projectedAnnual)}</span>
-              {runway.isOsekPatur && <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>{runway.projectedPct}% من السقف</span>}
+              {runway.isOsekPatur && <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>{runway.projectedPct}{tl(language, '% من السقف', '% מהתקרה', '% of cap')}</span>}
             </div>
             {runway.willExceed && runway.capMonth && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 10, fontWeight: 700, color: C.accent }}>
                 <CalendarClock size={11} strokeWidth={2.2} />
-                بلوغ السقف المتوقّع: {runway.capMonth}
+                {tl(language, 'بلوغ السقف المتوقّع: ', 'הגעה צפויה לתקרה: ', 'Cap reached around: ')}{runway.capMonth}
               </div>
             )}
           </div>
@@ -137,10 +140,10 @@ export default function TaxRunway({ runway }) {
             <div style={{ background: `${C.cyan}0E`, border: `1px solid ${C.cyan}33`, borderRadius: 13, padding: '11px 13px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                 <PiggyBank size={12} color={C.cyan} strokeWidth={2.2} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>جنّب شهرياً للضريبة</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>{tl(language, 'جنّب شهرياً للضريبة', 'הפרש מדי חודש למס', 'Set aside monthly for tax')}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, direction: 'ltr', justifyContent: 'flex-end' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>/شهر</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>{tl(language, '/شهر', '/חודש', '/mo')}</span>
                 <span style={{ fontSize: 22, fontWeight: 900, color: C.cyan, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>₪{fmt(provision)}</span>
               </div>
             </div>

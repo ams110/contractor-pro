@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
+import { tEnum } from '../lib/labels.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
 
 // ════════════════════════════════════════════════════════════════════════
@@ -82,7 +83,7 @@ export default function WorkDayTicket({
           </div>
         )}
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 9.5, fontWeight: 800, color: t.color, background: `${t.color}1c`, border: `1px solid ${t.color}38`, borderRadius: 7, padding: '2px 8px' }}>{wd.day_type}</span>
+          <span style={{ fontSize: 9.5, fontWeight: 800, color: t.color, background: `${t.color}1c`, border: `1px solid ${t.color}38`, borderRadius: 7, padding: '2px 8px' }}>{tEnum(wd.day_type, lang)}</span>
           {showHours && <span style={{ fontSize: 9.5, fontWeight: 700, color: C.textDim, background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, borderRadius: 7, padding: '2px 8px' }}>{wd.hours} {L({ ar: 'ساعات', he: 'שעות', en: 'hrs' })}</span>}
           {wd.location && <span style={{ fontSize: 9.5, fontWeight: 700, color: C.primary, background: `${C.primary}15`, border: `1px solid ${C.primary}30`, borderRadius: 7, padding: '2px 7px', display: 'inline-flex', alignItems: 'center', gap: 3 }}><MapPin size={8} strokeWidth={2.2} /> {wd.location}</span>}
           {holidayName && <span style={{ fontSize: 9.5, fontWeight: 700, color: C.warning, background: `${C.warning}18`, border: `1px solid ${C.warning}33`, borderRadius: 7, padding: '2px 7px', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Gift size={8} strokeWidth={2.2} /> {holidayName}</span>}

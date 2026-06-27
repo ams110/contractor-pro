@@ -5,17 +5,21 @@ import { useAppStore } from '../store/useAppStore.js'
 import { runBiometricAuth, verifyPinLocal } from '../hooks/useBiometricConfirm.js'
 import { hasPin } from '../lib/pinCrypto.js'
 import { C } from '../constants/index.js'
+import { tl } from '../lib/labels.js'
 
 const PASSKEY_KEY = 'cpro_passkey_cred'
 
-const ACTION_LABELS = {
-  projects:  'تأكيد عملية مشروع',
-  employees: 'تأكيد عملية عامل',
-  payments:  'تأكيد دفعة',
-  advances:  'تأكيد سلفة',
-  expenses:  'تأكيد مصروف',
-  receipts:  'تأكيد قبضة',
-  confirm:   'تأكيد عملية',
+function actionLabelFor(tbl, language) {
+  const map = {
+    projects:  tl(language, 'تأكيد عملية مشروع', 'אישור פעולת פרויקט', 'Confirm project action'),
+    employees: tl(language, 'تأكيد عملية عامل', 'אישור פעולת עובד', 'Confirm worker action'),
+    payments:  tl(language, 'تأكيد دفعة', 'אישור תשלום', 'Confirm payment'),
+    advances:  tl(language, 'تأكيد سلفة', 'אישור מקדמה', 'Confirm advance'),
+    expenses:  tl(language, 'تأكيد مصروف', 'אישור הוצאה', 'Confirm expense'),
+    receipts:  tl(language, 'تأكيد قبضة', 'אישור קבלה', 'Confirm receipt'),
+    confirm:   tl(language, 'تأكيد عملية', 'אישור פעולה', 'Confirm action'),
+  }
+  return map[tbl] || tl(language, 'تأكيد عملية', 'אישור פעולה', 'Confirm action')
 }
 
 const GRAD = 'linear-gradient(135deg, #F97316, #DC2626)'
@@ -28,6 +32,7 @@ function getInitialMode() {
 
 export default function BiometricConfirmModal() {
   const { bioPending, resolveBioConfirm, rejectBioConfirm, signerName, signerRole } = useAppStore()
+  const language = useAppStore(s => s.language)
 
   const [mode,   setMode]   = useState('fingerprint')
   const [phase,  setPhase]  = useState('idle')
@@ -51,7 +56,7 @@ export default function BiometricConfirmModal() {
   const hasPasskey = !!localStorage.getItem(PASSKEY_KEY)
   const pinSet     = hasPin()
 
-  const actionLabel = ACTION_LABELS[bioPending.tbl] || 'تأكيد عملية'
+  const actionLabel = actionLabelFor(bioPending.tbl, language)
 
   // ─── Fingerprint ────────────────────────────────────────────────────────────
   async function handleFingerprint() {
@@ -72,11 +77,13 @@ export default function BiometricConfirmModal() {
           setPhase('idle')
         } else {
           setPhase('error')
-          setErrMsg('تم إلغاء البصمة')
+          setErrMsg(tl(language, 'تم إلغاء البصمة', 'הטביעה בוטלה', 'Fingerprint cancelled'))
         }
       } else {
         setPhase('error')
-        setErrMsg(e.message === 'NO_PASSKEY' ? 'لا توجد بصمة مسجّلة' : 'فشل التحقق بالبصمة')
+        setErrMsg(e.message === 'NO_PASSKEY'
+          ? tl(language, 'لا توجد بصمة مسجّلة', 'אין טביעה רשומה', 'No passkey registered')
+          : tl(language, 'فشل التحقق بالبصمة', 'אימות הטביעה נכשל', 'Fingerprint verification failed'))
       }
     }
   }
@@ -106,10 +113,10 @@ export default function BiometricConfirmModal() {
       }, 700)
     } catch (e) {
       if (e.message === 'PIN_LOCKED') {
-        setPinErr('محاولات كثيرة — أُلغي الـ PIN، استعمل البصمة أو سجّل الدخول من جديد')
+        setPinErr(tl(language, 'محاولات كثيرة — أُلغي الـ PIN، استعمل البصمة أو سجّل الدخول من جديد', 'יותר מדי ניסיונות — הקוד בוטל, השתמש בטביעה או היכנס מחדש', 'Too many attempts — PIN cancelled, use fingerprint or sign in again'))
         setPin('')
       } else if (e.message === 'WRONG_PIN') {
-        setPinErr('رقم PIN غير صحيح')
+        setPinErr(tl(language, 'رقم PIN غير صحيح', 'קוד PIN שגוי', 'Wrong PIN'))
         setPin('')
       }
       // if length < 4 just keep waiting
@@ -194,9 +201,9 @@ export default function BiometricConfirmModal() {
                 <User size={16} color={C.primary} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 10, color: C.textDim }}>سيُوقَّع باسم</div>
+                <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'سيُوقَّع باسم', 'ייחתם בשם', 'Will be signed as')}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 1 }}>
-                  {signerName || 'المستخدم الحالي'}
+                  {signerName || tl(language, 'المستخدم الحالي', 'המשתמש הנוכחי', 'Current user')}
                 </div>
               </div>
               <span style={{
@@ -206,7 +213,7 @@ export default function BiometricConfirmModal() {
                 border: `1px solid ${signerRole === 'owner' ? C.primary : C.secondary}30`,
                 borderRadius: 6, padding: '3px 8px',
               }}>
-                {signerRole === 'owner' ? 'مالك' : 'عضو'}
+                {signerRole === 'owner' ? tl(language, 'مالك', 'בעלים', 'Owner') : tl(language, 'عضو', 'חבר', 'Member')}
               </span>
             </div>
 
@@ -214,7 +221,7 @@ export default function BiometricConfirmModal() {
             {hasPasskey && pinSet && mode !== 'none' && (
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 {[
-                  { id: 'fingerprint', label: 'بصمة', icon: <Fingerprint size={13} /> },
+                  { id: 'fingerprint', label: tl(language, 'بصمة', 'טביעה', 'Fingerprint'), icon: <Fingerprint size={13} /> },
                   { id: 'pin',         label: 'PIN',   icon: <Lock size={13} /> },
                 ].map(tab => (
                   <button
@@ -255,16 +262,16 @@ export default function BiometricConfirmModal() {
                   }}
                 >
                   {isSuccess ? (
-                    <><ShieldCheck size={20} />تم التوقيع بنجاح</>
+                    <><ShieldCheck size={20} />{tl(language, 'تم التوقيع بنجاح', 'נחתם בהצלחה', 'Signed successfully')}</>
                   ) : isScanning ? (
                     <>
                       <motion.div animate={{ scale: [1, 1.15, 1], opacity: [1, 0.6, 1] }} transition={{ repeat: Infinity, duration: 0.9 }}>
                         <Fingerprint size={20} />
                       </motion.div>
-                      جاري التحقق...
+                      {tl(language, 'جاري التحقق...', 'מאמת...', 'Verifying...')}
                     </>
                   ) : (
-                    <><Fingerprint size={20} />وقّع بالبصمة</>
+                    <><Fingerprint size={20} />{tl(language, 'وقّع بالبصمة', 'חתום עם טביעה', 'Sign with fingerprint')}</>
                   )}
                 </motion.button>
 
@@ -282,7 +289,7 @@ export default function BiometricConfirmModal() {
                           onClick={() => { setMode('pin'); setPhase('idle'); setErrMsg('') }}
                           style={{ width: '100%', padding: '10px', borderRadius: 12, background: `${C.primary}12`, border: `1px solid ${C.primary}30`, color: C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
                         >
-                          استخدم رقم PIN بدلاً
+                          {tl(language, 'استخدم رقم PIN بدلاً', 'השתמש בקוד PIN במקום', 'Use PIN instead')}
                         </button>
                       )}
                     </motion.div>
@@ -291,7 +298,7 @@ export default function BiometricConfirmModal() {
 
                 {!isSuccess && !isError && (
                   <button onClick={handleCancel} style={{ width: '100%', marginTop: 12, padding: '11px', background: 'transparent', border: 'none', color: C.textDim, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    إلغاء العملية
+                    {tl(language, 'إلغاء العملية', 'ביטול הפעולה', 'Cancel action')}
                   </button>
                 )}
               </>
@@ -324,7 +331,7 @@ export default function BiometricConfirmModal() {
 
                 {isSuccess && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.success, fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
-                    <ShieldCheck size={18} />تم التوقيع بنجاح
+                    <ShieldCheck size={18} />{tl(language, 'تم التوقيع بنجاح', 'נחתם בהצלחה', 'Signed successfully')}
                   </div>
                 )}
 
@@ -356,7 +363,7 @@ export default function BiometricConfirmModal() {
                 )}
 
                 <button onClick={handleCancel} style={{ width: '100%', padding: '11px', background: 'transparent', border: 'none', color: C.textDim, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  إلغاء العملية
+                  {tl(language, 'إلغاء العملية', 'ביטול הפעולה', 'Cancel action')}
                 </button>
               </>
             )}
@@ -369,14 +376,14 @@ export default function BiometricConfirmModal() {
                     <AlertCircle size={26} color={C.accent} />
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 8 }}>
-                    لا توجد وسيلة تحقق
+                    {tl(language, 'لا توجد وسيلة تحقق', 'אין אמצעי אימות', 'No verification method')}
                   </div>
                   <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, maxWidth: 280, margin: '0 auto' }}>
-                    يجب تفعيل البصمة أو رقم PIN من الإعدادات لتتمكن من تنفيذ العمليات الحساسة
+                    {tl(language, 'يجب تفعيل البصمة أو رقم PIN من الإعدادات لتتمكن من تنفيذ العمليات الحساسة', 'יש להפעיל טביעה או קוד PIN בהגדרות כדי לבצע פעולות רגישות', 'Enable fingerprint or PIN in settings to perform sensitive actions')}
                   </div>
                 </div>
                 <button onClick={handleCancel} style={{ width: '100%', marginTop: 16, padding: '12px', background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, borderRadius: 14, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  إغلاق
+                  {tl(language, 'إغلاق', 'סגירה', 'Close')}
                 </button>
               </>
             )}

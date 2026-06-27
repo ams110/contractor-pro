@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Trash2, Check, PenLine, ShieldCheck } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { useBiometricConfirm } from '../hooks/useBiometricConfirm.js'
+import { useAppStore } from '../store/useAppStore.js'
+import { tl } from '../lib/labels.js'
 
 // ─── Canvas Signature Pad ─────────────────────────────────────────────────────
-function SignatureCanvas({ onSign, color = C.primary }) {
+function SignatureCanvas({ onSign, color = C.primary, language }) {
   const canvasRef = useRef(null)
   const drawing   = useRef(false)
   const lastPos   = useRef({ x: 0, y: 0 })
@@ -81,7 +83,7 @@ function SignatureCanvas({ onSign, color = C.primary }) {
       {isEmpty && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', gap: 8, color: 'rgba(255,255,255,0.2)' }}>
           <PenLine size={18} />
-          <span style={{ fontSize: 13 }}>ارسم توقيعك هنا</span>
+          <span style={{ fontSize: 13 }}>{tl(language, 'ارسم توقيعك هنا', 'צייר את חתימתך כאן', 'Draw your signature here')}</span>
         </div>
       )}
       {!isEmpty && (
@@ -103,6 +105,7 @@ export default function SignatureModal({ open, onClose, onConfirm, title, subtit
   const [loading, setLoading]   = useState(false)
   const [bioPhase, setBioPhase] = useState('idle') // idle | scanning | success | error
   const { confirm: bioConfirm, isPasskeyRegistered, isPinSet } = useBiometricConfirm()
+  const language = useAppStore(s => s.language)
 
   const hasBio = isPasskeyRegistered() || isPinSet()
 
@@ -120,7 +123,7 @@ export default function SignatureModal({ open, onClose, onConfirm, title, subtit
     setLoading(true)
     try {
       if (method === 'bio' || requireBio) {
-        const result = await bioConfirm(title || 'تأكيد العملية', tbl)
+        const result = await bioConfirm(title || tl(language, 'تأكيد العملية', 'אישור הפעולה', 'Confirm action'), tbl)
         if (!result) { setLoading(false); return }
       }
       onConfirm({ sigData: method === 'draw' ? sigData : null, method })
@@ -133,7 +136,7 @@ export default function SignatureModal({ open, onClose, onConfirm, title, subtit
 
   async function handleBioOnly() {
     setBioPhase('scanning')
-    const result = await bioConfirm(title || 'تأكيد العملية', tbl)
+    const result = await bioConfirm(title || tl(language, 'تأكيد العملية', 'אישור הפעולה', 'Confirm action'), tbl)
     if (result) {
       setBioPhase('success')
       setTimeout(() => {
@@ -174,7 +177,7 @@ export default function SignatureModal({ open, onClose, onConfirm, title, subtit
                 <ShieldCheck size={20} color={C.primary} />
               </div>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{title || 'التوقيع الرقمي'}</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{title || tl(language, 'التوقيع الرقمي', 'חתימה דיגיטלית', 'Digital signature')}</div>
                 {subtitle && <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{subtitle}</div>}
               </div>
             </div>
@@ -183,8 +186,8 @@ export default function SignatureModal({ open, onClose, onConfirm, title, subtit
             {hasBio && (
               <div style={{ display: 'flex', gap: 6, marginBottom: 16, background: C.card, borderRadius: 14, padding: 4, border: `1px solid ${C.border}` }}>
                 {[
-                  { id: 'draw', label: 'توقيع بالرسم', icon: PenLine },
-                  { id: 'bio',  label: 'تأكيد بالبصمة', icon: ShieldCheck },
+                  { id: 'draw', label: tl(language, 'توقيع بالرسم', 'חתימה בציור', 'Draw signature'), icon: PenLine },
+                  { id: 'bio',  label: tl(language, 'تأكيد بالبصمة', 'אישור עם טביעה', 'Confirm with fingerprint'), icon: ShieldCheck },
                 ].map(({ id, label, icon: Icon }) => (
                   <button key={id} onClick={() => setMethod(id)}
                     style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: 'none', background: method === id ? GRAD.primary : 'transparent', color: method === id ? '#fff' : C.textDim, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
@@ -196,7 +199,7 @@ export default function SignatureModal({ open, onClose, onConfirm, title, subtit
 
             {/* Draw method */}
             {method === 'draw' && (
-              <SignatureCanvas onSign={setSigData} />
+              <SignatureCanvas onSign={setSigData} language={language} />
             )}
 
             {/* Bio method */}
@@ -210,7 +213,9 @@ export default function SignatureModal({ open, onClose, onConfirm, title, subtit
                   <ShieldCheck size={32} color={bioPhase === 'success' ? C.success : C.primary} strokeWidth={1.5} />
                 </motion.div>
                 <div style={{ fontSize: 13, color: C.textDim }}>
-                  {bioPhase === 'success' ? 'تم التحقق بنجاح' : 'سيُطلب تأكيد البصمة عند الحفظ'}
+                  {bioPhase === 'success'
+                    ? tl(language, 'تم التحقق بنجاح', 'האימות בוצע בהצלחה', 'Verified successfully')
+                    : tl(language, 'سيُطلب تأكيد البصمة عند الحفظ', 'אישור הטביעה יידרש בעת השמירה', 'Fingerprint confirmation will be required on save')}
                 </div>
               </div>
             )}
@@ -219,7 +224,7 @@ export default function SignatureModal({ open, onClose, onConfirm, title, subtit
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               <button onClick={onClose} disabled={loading}
                 style={{ flex: 1, padding: '12px', borderRadius: 14, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                إلغاء
+                {tl(language, 'إلغاء', 'ביטול', 'Cancel')}
               </button>
               <motion.button
                 whileTap={{ scale: 0.97 }}
@@ -228,7 +233,7 @@ export default function SignatureModal({ open, onClose, onConfirm, title, subtit
                 style={{ flex: 2, padding: '12px', borderRadius: 14, background: (method === 'draw' && !sigData) ? 'rgba(249,115,22,0.3)' : GRAD.primary, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: (method === 'draw' && !sigData) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: (method === 'draw' && !sigData) ? 'none' : '0 6px 20px rgba(249,115,22,0.35)' }}
               >
                 {loading ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}><Check size={16} /></motion.div> : <Check size={16} />}
-                تأكيد وحفظ
+                {tl(language, 'تأكيد وحفظ', 'אישור ושמירה', 'Confirm & save')}
               </motion.button>
             </div>
           </motion.div>

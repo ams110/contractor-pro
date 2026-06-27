@@ -9,12 +9,14 @@ import {
 } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 import { PremiumCard, IconChip, InsightRow, INSIGHT_TONE, TONES, useCountUp, Money } from '../ui/Premium.jsx'
 
 const ICONS = { TrendingUp, TrendingDown, AlertTriangle, Activity, PiggyBank, Wallet }
 
 // تلميح الرسم
-function ChartTip({ active, payload, main }) {
+function ChartTip({ active, payload, main, language }) {
   if (!active || !payload?.length) return null
   const p = payload[0]?.payload
   if (!p) return null
@@ -23,7 +25,7 @@ function ChartTip({ active, payload, main }) {
   return (
     <div style={{ background: C.card, border: `1px solid ${main}44`, borderRadius: 10, padding: '7px 11px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
       <div style={{ fontSize: 9, color: C.textDim, marginBottom: 2 }}>
-        {p.kind === 'future' ? 'توقّع' : 'فعلي'}
+        {p.kind === 'future' ? tl(language, 'توقّع', 'תחזית', 'Forecast') : tl(language, 'فعلي', 'בפועל', 'Actual')}
       </div>
       <div style={{ fontSize: 13, fontWeight: 800, color: main, fontVariantNumeric: 'tabular-nums' }}>
         {val < 0 ? '−' : ''}₪{fmt(Math.abs(val))}
@@ -33,6 +35,7 @@ function ChartTip({ active, payload, main }) {
 }
 
 export default function CashForecast({ forecast, onNav }) {
+  const language = useAppStore(s => s.language)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.25 })
   // الـ hook يُستدعى قبل أي return مبكّر (قاعدة React Hooks)
@@ -41,6 +44,11 @@ export default function CashForecast({ forecast, onNav }) {
 
   const t = TONES[forecast.tone] || TONES.fair
   const { avgFlow, projected, runway, rising, horizon, series, insights } = forecast
+
+  // تسمية المدى الزمنية ثلاثية اللغة (٣ أشهر / 3 חודשים / 3 months)
+  const horizonLabel = horizon === 3
+    ? tl(language, '٣ أشهر', '3 חודשים', '3 months')
+    : tl(language, `${horizon} أشهر`, `${horizon} חודשים`, `${horizon} months`)
 
   // فهرس نقطة الوصل (آخر نقطة تاريخية) لرسم خط «الآن»
   const junctionIdx = series.findIndex(s => s.kind === 'future')
@@ -60,13 +68,13 @@ export default function CashForecast({ forecast, onNav }) {
             <IconChip icon={Telescope} color={t.main} size={30} radius={10} iconSize={16} strokeWidth={2.5} />
           </motion.div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>التوقّع الذكي للسيولة</div>
-            <div style={{ fontSize: 10, color: C.textDim }}>إلى أين يتّجه نقدك خلال {horizon === 3 ? '٣ أشهر' : `${horizon} أشهر`}</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'التوقّع الذكي للسيولة', 'תחזית מזומנים חכמה', 'Smart Cash Forecast')}</div>
+            <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'إلى أين يتّجه نقدك خلال ', 'לאן הולך המזומן שלך תוך ', 'Where your cash is heading over ')}{horizonLabel}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 9, background: rising ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)', border: `1px solid ${rising ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.28)'}` }}>
             {rising ? <TrendingUp size={12} color={C.success} /> : <TrendingDown size={12} color={C.accent} />}
             <span style={{ fontSize: 11, fontWeight: 800, color: rising ? C.success : C.accent, fontVariantNumeric: 'tabular-nums' }}>
-              {avgFlow < 0 ? '−' : '+'}₪{fmt(Math.abs(avgFlow))}<span style={{ fontSize: 9, color: C.textDim, fontWeight: 600 }}>/شهر</span>
+              {avgFlow < 0 ? '−' : '+'}₪{fmt(Math.abs(avgFlow))}<span style={{ fontSize: 9, color: C.textDim, fontWeight: 600 }}>{tl(language, '/شهر', '/חודש', '/mo')}</span>
             </span>
           </div>
         </div>
@@ -75,7 +83,7 @@ export default function CashForecast({ forecast, onNav }) {
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 6, position: 'relative', flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600, marginBottom: 4 }}>
-              سيولتك المتوقّعة بعد {horizon === 3 ? '٣ أشهر' : `${horizon} أشهر`}
+              {tl(language, 'سيولتك المتوقّعة بعد ', 'הנזילות הצפויה שלך בעוד ', 'Your projected liquidity in ')}{horizonLabel}
             </div>
             <Money v={projDisplay} color={t.main} size={32} />
           </div>
@@ -84,16 +92,16 @@ export default function CashForecast({ forecast, onNav }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 13, background: `${t.main}14`, border: `1px solid ${t.main}3a` }}>
               <AlertTriangle size={16} color={t.main} strokeWidth={2.3} />
               <div>
-                <div style={{ fontSize: 9, color: C.textDim, fontWeight: 600 }}>السيولة تكفي لـ</div>
-                <div style={{ fontSize: 13, fontWeight: 900, color: t.main }}>{fmtRunway(runway)}</div>
+                <div style={{ fontSize: 9, color: C.textDim, fontWeight: 600 }}>{tl(language, 'السيولة تكفي لـ', 'הנזילות מספיקה ל', 'Liquidity lasts')}</div>
+                <div style={{ fontSize: 13, fontWeight: 900, color: t.main }}>{fmtRunway(runway, language)}</div>
               </div>
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 13, background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.30)' }}>
               <ShieldCheck size={16} color={C.success} strokeWidth={2.3} />
               <div>
-                <div style={{ fontSize: 9, color: C.textDim, fontWeight: 600 }}>الوضع النقدي</div>
-                <div style={{ fontSize: 13, fontWeight: 900, color: C.success }}>مستقرّ ونامٍ</div>
+                <div style={{ fontSize: 9, color: C.textDim, fontWeight: 600 }}>{tl(language, 'الوضع النقدي', 'מצב המזומנים', 'Cash position')}</div>
+                <div style={{ fontSize: 13, fontWeight: 900, color: C.success }}>{tl(language, 'مستقرّ ونامٍ', 'יציב וצומח', 'Stable & growing')}</div>
               </div>
             </div>
           )}
@@ -115,7 +123,7 @@ export default function CashForecast({ forecast, onNav }) {
                 axisLine={false} tickLine={false} interval={0} height={16}
               />
               <YAxis hide domain={['auto', 'auto']} />
-              <Tooltip content={<ChartTip main={t.main} />} cursor={{ stroke: t.main, strokeOpacity: 0.25, strokeWidth: 1 }} />
+              <Tooltip content={<ChartTip main={t.main} language={language} />} cursor={{ stroke: t.main, strokeOpacity: 0.25, strokeWidth: 1 }} />
 
               {/* نطاق الثقة (cone) — يتّسع مع البُعد */}
               <Area
@@ -128,7 +136,7 @@ export default function CashForecast({ forecast, onNav }) {
               {nowLabel && (
                 <ReferenceLine
                   x={nowLabel} stroke={C.textDim} strokeOpacity={0.5} strokeDasharray="3 3"
-                  label={{ value: 'الآن', position: 'top', fontSize: 9, fill: C.textDim }}
+                  label={{ value: tl(language, 'الآن', 'עכשיו', 'Now'), position: 'top', fontSize: 9, fill: C.textDim }}
                 />
               )}
 
@@ -174,11 +182,11 @@ export default function CashForecast({ forecast, onNav }) {
 }
 
 // مدّة قصيرة للشارة (نسخة مختصرة من fmtMonths)
-function fmtRunway(m) {
-  if (m >= 12) return '+سنة'
+function fmtRunway(m, language) {
+  if (m >= 12) return tl(language, '+سنة', '+שנה', '+1 year')
   const r = Math.max(1, Math.round(m))
-  if (r === 1) return 'شهر'
-  if (r === 2) return 'شهرين'
-  if (r <= 10) return `${r} أشهر`
-  return `${r} شهر`
+  if (r === 1) return tl(language, 'شهر', 'חודש', '1 month')
+  if (r === 2) return tl(language, 'شهرين', 'חודשיים', '2 months')
+  if (r <= 10) return tl(language, `${r} أشهر`, `${r} חודשים`, `${r} months`)
+  return tl(language, `${r} شهر`, `${r} חודשים`, `${r} months`)
 }

@@ -1,9 +1,14 @@
 // ─── نبض المصلحة — Business Pulse ────────────────────────────────────────────────
 // محرّك ذكاء مالي: يحوّل كل أرقام المصلحة إلى مؤشّر صحّة واحد (0–100)،
-// مع تفصيل العوامل ورؤى ذكية تلقائية بالعربي. دوال نقيّة بالكامل — لا DOM، قابلة للاختبار.
+// مع تفصيل العوامل ورؤى ذكية تلقائية. دوال نقيّة بالكامل — لا DOM، قابلة للاختبار.
+// كل الدوال التي تُنتج نصاً تقبل وسيط لغة `lang` (افتراضي 'ar') لإخراج عربي/عبري/إنجليزي.
 
 import { fmt, isPaymentOverdue } from './helpers.js'
 import { calcProjectStats, calcOwnerCash, calcEarned, calcMustahaq } from './calculations.js'
+import { tEnum } from './labels.js'
+
+// مساعد ترجمة محلي للنصوص المولّدة (نفس منطق lib/labels.tl).
+const T = (lang, ar, he, en) => (lang === 'he' ? he : lang === 'en' ? (en ?? ar) : ar)
 
 // NaN لا يُقصَر بـ Math.max/min (يبقى NaN ويكسر الواجهة) — نعيده للحدّ الأدنى.
 // أمّا ±Infinity فيُقصَر صحيحاً عبر Math، فلا نحتاج معالجته.
@@ -69,28 +74,29 @@ function momentumPct(monthlyData) {
 const WEIGHTS = { liquidity: 0.25, profitability: 0.30, collection: 0.20, workerBalance: 0.15, momentum: 0.10 }
 
 const LABELS = {
-  liquidity:     'السيولة',
-  profitability: 'الربحية',
-  collection:    'التحصيل',
-  workerBalance: 'تسوية العمّال',
-  momentum:      'الاتجاه',
+  liquidity:     { ar: 'السيولة',       he: 'נזילות',           en: 'Liquidity' },
+  profitability: { ar: 'الربحية',       he: 'רווחיות',          en: 'Profitability' },
+  collection:    { ar: 'التحصيل',       he: 'גבייה',            en: 'Collection' },
+  workerBalance: { ar: 'تسوية العمّال', he: 'התחשבנות עובדים',  en: 'Worker balance' },
+  momentum:      { ar: 'الاتجاه',       he: 'מגמה',             en: 'Momentum' },
 }
 
 /** درجة تقدير + نبرة لونية حسب النتيجة. */
-export function gradeFor(score) {
-  if (score >= 85) return { tone: 'excellent', grade: 'ممتازة' }
-  if (score >= 70) return { tone: 'good',      grade: 'جيّدة'  }
-  if (score >= 50) return { tone: 'fair',      grade: 'مقبولة' }
-  if (score >= 30) return { tone: 'weak',      grade: 'ضعيفة'  }
-  return                  { tone: 'critical',  grade: 'حرجة'   }
+export function gradeFor(score, lang = 'ar') {
+  if (score >= 85) return { tone: 'excellent', grade: T(lang, 'ممتازة', 'מצוינת', 'Excellent') }
+  if (score >= 70) return { tone: 'good',      grade: T(lang, 'جيّدة',  'טובה',   'Good') }
+  if (score >= 50) return { tone: 'fair',      grade: T(lang, 'مقبولة', 'סבירה',  'Fair') }
+  if (score >= 30) return { tone: 'weak',      grade: T(lang, 'ضعيفة',  'חלשה',   'Weak') }
+  return                  { tone: 'critical',  grade: T(lang, 'حرجة',   'קריטית', 'Critical') }
 }
 
 /**
  * المحرّك الرئيسي — يحسب مؤشّر النبض الكامل.
  * @param {object} a - أرقام مجمّعة من الداشبورد
+ * @param {string} [lang='ar']
  * @returns {{ score, grade, tone, factors, insights, momentum }}
  */
-export function computeBusinessPulse(a = {}) {
+export function computeBusinessPulse(a = {}, lang = 'ar') {
   const {
     cashOnHand = 0, netProfit = 0, totalRevenue = 0,
     owedToWorkers = 0, owedByClients = 0, overdueCount = 0,
@@ -110,52 +116,79 @@ export function computeBusinessPulse(a = {}) {
   )
 
   const factors = Object.keys(WEIGHTS).map(k => ({
-    key: k, label: LABELS[k], score: scores[k], weight: WEIGHTS[k],
+    key: k, label: T(lang, LABELS[k].ar, LABELS[k].he, LABELS[k].en), score: scores[k], weight: WEIGHTS[k],
   }))
 
   return {
     score,
-    ...gradeFor(score),
+    ...gradeFor(score, lang),
     factors,
     momentum: momentumPct(monthlyData),
-    insights: buildInsights({ cashOnHand, netProfit, totalRevenue, owedToWorkers, owedByClients, overdueCount, monthlyData }),
+    insights: buildInsights({ cashOnHand, netProfit, totalRevenue, owedToWorkers, owedByClients, overdueCount, monthlyData }, lang),
   }
 }
 
 // ─── الرؤى الذكية ────────────────────────────────────────────────────────────────
 // تُرتَّب: تحذيرات → نصائح → إيجابيات. أعلى 4. الأيقونات أسماء Lucide يُحوّلها المكوّن.
-function buildInsights(a) {
+function buildInsights(a, lang = 'ar') {
   const { cashOnHand, netProfit, totalRevenue, owedToWorkers, owedByClients, overdueCount, monthlyData } = a
   const margin = totalRevenue > 0 ? netProfit / totalRevenue : 0
   const mom    = momentumPct(monthlyData)
   const out    = []
 
   if (cashOnHand < 0)
-    out.push({ tone: 'warn', icon: 'Wallet', text: `السيولة سالبة بـ ₪${fmt(-cashOnHand)} — المدفوع تجاوز المقبوض. ركّز على التحصيل.` })
+    out.push({ tone: 'warn', icon: 'Wallet', text: T(lang,
+      `السيولة سالبة بـ ₪${fmt(-cashOnHand)} — المدفوع تجاوز المقبوض. ركّز على التحصيل.`,
+      `הנזילות שלילית ב-₪${fmt(-cashOnHand)} — התשלומים עלו על התקבולים. התמקד בגבייה.`,
+      `Cash is negative by ₪${fmt(-cashOnHand)} — payouts exceeded receipts. Focus on collection.`) })
 
   if (overdueCount > 0)
-    out.push({ tone: 'warn', icon: 'Clock', text: `${overdueCount} ${overdueCount === 1 ? 'مشروع متأخّر' : 'مشاريع متأخّرة'} بالتحصيل — تابع باقي لك عند العملاء.` })
+    out.push({ tone: 'warn', icon: 'Clock', text: T(lang,
+      `${overdueCount} ${overdueCount === 1 ? 'مشروع متأخّر' : 'مشاريع متأخّرة'} بالتحصيل — تابع باقي لك عند العملاء.`,
+      `${overdueCount} ${overdueCount === 1 ? 'פרויקט באיחור' : 'פרויקטים באיחור'} בגבייה — עקוב אחר החובות מהלקוחות.`,
+      `${overdueCount} ${overdueCount === 1 ? 'project' : 'projects'} overdue — follow up on what clients owe you.`) })
 
   if (owedToWorkers > 0 && cashOnHand >= 0 && owedToWorkers > cashOnHand)
-    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `مستحقات العمّال ₪${fmt(owedToWorkers)} أكبر من سيولتك ₪${fmt(cashOnHand)} — انتبه للتدفّق النقدي.` })
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: T(lang,
+      `مستحقات العمّال ₪${fmt(owedToWorkers)} أكبر من سيولتك ₪${fmt(cashOnHand)} — انتبه للتدفّق النقدي.`,
+      `חוב לעובדים ₪${fmt(owedToWorkers)} גדול מהנזילות שלך ₪${fmt(cashOnHand)} — שים לב לתזרים המזומנים.`,
+      `Worker dues ₪${fmt(owedToWorkers)} exceed your cash ₪${fmt(cashOnHand)} — watch your cash flow.`) })
 
   if (totalRevenue > 0 && margin < 0)
-    out.push({ tone: 'warn', icon: 'TrendingDown', text: `هامش الربح سالب (${Math.round(margin * 100)}%) — راجع المصاريف أو سعّر أعلى.` })
+    out.push({ tone: 'warn', icon: 'TrendingDown', text: T(lang,
+      `هامش الربح سالب (${Math.round(margin * 100)}%) — راجع المصاريف أو سعّر أعلى.`,
+      `שולי הרווח שליליים (${Math.round(margin * 100)}%) — בדוק את ההוצאות או תמחר גבוה יותר.`,
+      `Profit margin is negative (${Math.round(margin * 100)}%) — review expenses or price higher.`) })
 
   if (owedByClients > 0)
-    out.push({ tone: 'tip', icon: 'MessageCircle', text: `عندك ₪${fmt(owedByClients)} غير محصّلة — أرسل تذكير للعملاء عبر واتساب بضغطة.` })
+    out.push({ tone: 'tip', icon: 'MessageCircle', text: T(lang,
+      `عندك ₪${fmt(owedByClients)} غير محصّلة — أرسل تذكير للعملاء عبر واتساب بضغطة.`,
+      `יש לך ₪${fmt(owedByClients)} שלא נגבו — שלח תזכורת ללקוחות בוואטסאפ בלחיצה.`,
+      `You have ₪${fmt(owedByClients)} uncollected — send clients a WhatsApp reminder in one tap.`) })
 
   if (totalRevenue > 0 && margin >= 0.3)
-    out.push({ tone: 'good', icon: 'TrendingUp', text: `هامش ربح ممتاز ${Math.round(margin * 100)}% — استمر على نفس النهج.` })
+    out.push({ tone: 'good', icon: 'TrendingUp', text: T(lang,
+      `هامش ربح ممتاز ${Math.round(margin * 100)}% — استمر على نفس النهج.`,
+      `שולי רווח מצוינים ${Math.round(margin * 100)}% — המשך באותו הקו.`,
+      `Excellent profit margin ${Math.round(margin * 100)}% — keep it up.`) })
 
   if (mom >= 10)
-    out.push({ tone: 'good', icon: 'Activity', text: `أداؤك بتحسّن — صافي آخر 3 أشهر أعلى بـ ${mom}% عن السابق.` })
+    out.push({ tone: 'good', icon: 'Activity', text: T(lang,
+      `أداؤك بتحسّن — صافي آخر 3 أشهر أعلى بـ ${mom}% عن السابق.`,
+      `הביצועים שלך משתפרים — הרווח הנקי ב-3 החודשים האחרונים גבוה ב-${mom}% מהקודם.`,
+      `You're improving — net of the last 3 months is up ${mom}% vs. before.`) })
 
   if (cashOnHand > 0 && owedToWorkers === 0 && owedByClients === 0 && totalRevenue > 0)
-    out.push({ tone: 'good', icon: 'CheckCircle2', text: 'وضعك نظيف — لا ديون مفتوحة وسيولتك موجبة.' })
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: T(lang,
+      'وضعك نظيف — لا ديون مفتوحة وسيولتك موجبة.',
+      'המצב שלך נקי — אין חובות פתוחים והנזילות חיובית.',
+      "You're all clear — no open debts and positive cash.") })
 
   if (out.length === 0)
-    out.push({ tone: 'tip', icon: 'Sparkles', text: 'ابدأ بتسجيل مشاريعك ومدخولاتك ليتفعّل التحليل الذكي.' })
+    out.push({ tone: 'tip', icon: 'Sparkles', text: T(lang,
+      'ابدأ بتسجيل مشاريعك ومدخولاتك ليتفعّل التحليل الذكي.',
+      'התחל לרשום פרויקטים והכנסות כדי להפעיל את הניתוח החכם.',
+      'Start logging projects and income to activate smart analysis.') })
 
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 4)
@@ -181,26 +214,23 @@ export function stdDev(values) {
   return Math.sqrt(variance)
 }
 
-/** صياغة مدّة بالأشهر بصيغة عربية سليمة. */
-export function fmtMonths(m) {
-  if (m >= 12) return 'أكثر من سنة'
+/** صياغة مدّة بالأشهر بصيغة سليمة حسب اللغة. */
+export function fmtMonths(m, lang = 'ar') {
+  if (m >= 12) return T(lang, 'أكثر من سنة', 'יותר משנה', 'More than a year')
   const r = Math.max(1, Math.round(m))
-  if (r === 1) return 'شهر واحد'
-  if (r === 2) return 'شهرين'
-  if (r <= 10) return `${r} أشهر`
-  return `${r} شهر`
+  if (r === 1) return T(lang, 'شهر واحد', 'חודש', '1 month')
+  if (r === 2) return T(lang, 'شهرين', 'חודשיים', '2 months')
+  if (r <= 10) return T(lang, `${r} أشهر`, `${r} חודשים`, `${r} months`)
+  return T(lang, `${r} شهر`, `${r} חודשים`, `${r} months`)
 }
 
 /**
  * يحسب توقّع التدفّق النقدي للأشهر القادمة.
  * @param {object} a
- * @param {number} a.cashOnHand   - النقد الحالي بالجيب
- * @param {number} a.totalRevenue - إجمالي الإيراد (مرجع للحجم)
- * @param {Array}  a.monthlyData  - [{ month, v }] صافي شهري (v)، الأقدم أولاً
- * @param {number} [a.horizon=3]  - عدد الأشهر للتنبّؤ
+ * @param {string} [lang='ar']
  * @returns {object|null} null إذا لم يتوفّر تاريخ كافٍ للتنبّؤ
  */
-export function computeCashForecast(a = {}) {
+export function computeCashForecast(a = {}, lang = 'ar') {
   const { cashOnHand = 0, totalRevenue = 0, monthlyData = [], horizon = 3 } = a
 
   const flows  = monthlyData.map(m => m.v || 0)
@@ -211,7 +241,6 @@ export function computeCashForecast(a = {}) {
   const vol     = stdDev(flows)
 
   // المسار التاريخي: نعيد بناء موضع السيولة بنهاية كل شهر بحيث ينتهي عند النقد الحالي
-  // (يربط الرسم بالواقع). نمشي للخلف: pos[i] = pos[i+1] − v[i+1]
   const history = monthlyData.map(m => ({ label: m.month, actual: 0, forecast: null, kind: 'past' }))
   let pos = cashOnHand
   for (let i = monthlyData.length - 1; i >= 0; i--) {
@@ -219,7 +248,7 @@ export function computeCashForecast(a = {}) {
     pos -= flows[i]
   }
 
-  // نقطة الوصل = الحاضر (لها actual + forecast لتتّصل الخطوط، ونطاق صفري للبداية)
+  // نقطة الوصل = الحاضر
   const last = history.length - 1
   if (last >= 0) {
     history[last].forecast = Math.round(cashOnHand)
@@ -243,7 +272,7 @@ export function computeCashForecast(a = {}) {
   const series    = [...history, ...future]
   const projected = cashOnHand + avgFlow * horizon
 
-  // «عدّاد الأمان»: كم شهر تكفي السيولة لو استمر النزيف بنفس المعدّل
+  // «عدّاد الأمان»
   let runway = null
   if (avgFlow < 0 && cashOnHand > 0) runway = cashOnHand / -avgFlow
 
@@ -255,67 +284,86 @@ export function computeCashForecast(a = {}) {
 
   return {
     avgFlow, projected: Math.round(projected), runway, rising: avgFlow > 0, tone, horizon, series,
-    insights: buildForecastInsights({ avgFlow, projected, cashOnHand, runway, horizon }),
+    insights: buildForecastInsights({ avgFlow, projected, cashOnHand, runway, horizon }, lang),
   }
 }
 
 // رؤى التوقّع — جملة أو جملتان تختصران المسار والإجراء المقترح.
-function buildForecastInsights({ avgFlow, projected, cashOnHand, runway, horizon }) {
-  const span = horizon === 3 ? '٣ أشهر' : `${horizon} أشهر`
+function buildForecastInsights({ avgFlow, projected, cashOnHand, runway, horizon }, lang = 'ar') {
+  const span = T(lang,
+    horizon === 3 ? '٣ أشهر' : `${horizon} أشهر`,
+    `${horizon} חודשים`,
+    `${horizon} months`)
   const out  = []
 
   if (avgFlow < 0 && runway != null)
-    out.push({ tone: 'warn', icon: 'TrendingDown', text: `تدفّقك النقدي سالب بمعدّل ₪${fmt(-avgFlow)}/شهر — بهذا المعدّل سيولتك تكفي ${fmtMonths(runway)} فقط.` })
+    out.push({ tone: 'warn', icon: 'TrendingDown', text: T(lang,
+      `تدفّقك النقدي سالب بمعدّل ₪${fmt(-avgFlow)}/شهر — بهذا المعدّل سيولتك تكفي ${fmtMonths(runway, 'ar')} فقط.`,
+      `תזרים המזומנים שלך שלילי בקצב ₪${fmt(-avgFlow)}/חודש — בקצב הזה הנזילות תספיק ל${fmtMonths(runway, 'he')} בלבד.`,
+      `Your cash flow is negative at ₪${fmt(-avgFlow)}/mo — at this rate your cash lasts only ${fmtMonths(runway, 'en')}.`) })
   else if (avgFlow < 0)
-    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `تنزف نقداً بمعدّل ₪${fmt(-avgFlow)}/شهر وسيولتك سالبة — تحرّك بسرعة على التحصيل.` })
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: T(lang,
+      `تنزف نقداً بمعدّل ₪${fmt(-avgFlow)}/شهر وسيولتك سالبة — تحرّك بسرعة على التحصيل.`,
+      `אתה מאבד מזומן בקצב ₪${fmt(-avgFlow)}/חודש והנזילות שלילית — פעל מהר על הגבייה.`,
+      `You're bleeding cash at ₪${fmt(-avgFlow)}/mo and cash is negative — act fast on collection.`) })
   else if (avgFlow > 0)
-    out.push({ tone: 'good', icon: 'TrendingUp', text: `تدفّقك النقدي موجب بمعدّل ₪${fmt(avgFlow)}/شهر — مسارك تصاعدي.` })
+    out.push({ tone: 'good', icon: 'TrendingUp', text: T(lang,
+      `تدفّقك النقدي موجب بمعدّل ₪${fmt(avgFlow)}/شهر — مسارك تصاعدي.`,
+      `תזרים המזומנים שלך חיובי בקצב ₪${fmt(avgFlow)}/חודש — אתה במגמת עלייה.`,
+      `Your cash flow is positive at ₪${fmt(avgFlow)}/mo — you're trending up.`) })
   else
-    out.push({ tone: 'tip', icon: 'Activity', text: 'تدفّقك النقدي شبه ثابت — لا نموّ ولا نزيف يُذكر.' })
+    out.push({ tone: 'tip', icon: 'Activity', text: T(lang,
+      'تدفّقك النقدي شبه ثابت — لا نموّ ولا نزيف يُذكر.',
+      'תזרים המזומנים שלך כמעט יציב — אין צמיחה ואין דימום משמעותי.',
+      'Your cash flow is nearly flat — no growth and no real bleed.') })
 
   if (avgFlow > 0 && projected > cashOnHand)
-    out.push({ tone: 'tip', icon: 'PiggyBank', text: `لو استمر الأداء، رح تضيف ~₪${fmt(Math.round(projected - cashOnHand))} لسيولتك خلال ${span}.` })
+    out.push({ tone: 'tip', icon: 'PiggyBank', text: T(lang,
+      `لو استمر الأداء، رح تضيف ~₪${fmt(Math.round(projected - cashOnHand))} لسيولتك خلال ${span}.`,
+      `אם הביצועים יימשכו, תוסיף ~₪${fmt(Math.round(projected - cashOnHand))} לנזילות שלך תוך ${span}.`,
+      `If this keeps up, you'll add ~₪${fmt(Math.round(projected - cashOnHand))} to your cash within ${span}.`) })
   else if (projected < 0 && cashOnHand >= 0)
-    out.push({ tone: 'warn', icon: 'Wallet', text: `التوقّع يشير لعجز نقدي (₪${fmt(-Math.round(projected))}) قبل نهاية المدى — جدول مقبوضاتك مبكّراً.` })
+    out.push({ tone: 'warn', icon: 'Wallet', text: T(lang,
+      `التوقّع يشير لعجز نقدي (₪${fmt(-Math.round(projected))}) قبل نهاية المدى — جدول مقبوضاتك مبكّراً.`,
+      `התחזית מצביעה על גירעון מזומנים (₪${fmt(-Math.round(projected))}) לפני סוף התקופה — תזמן את התקבולים מוקדם.`,
+      `Forecast shows a cash shortfall (₪${fmt(-Math.round(projected))}) before the horizon ends — schedule receipts early.`) })
 
   return out.slice(0, 2)
 }
 
 // ─── بصمة العامل — Worker DNA ─────────────────────────────────────────────────────
-// يحوّل تاريخ العامل (أيام، إنتاجية، سلف، استمرارية، انضباط) إلى مؤشّر موثوقية واحد
-// (0–100) + رادار 5 محاور + رؤى ذكية تقارنه بمتوسّط فريقك. دوال نقيّة قابلة للاختبار.
 
-/** الإنتاجية: أجر العامل اليومي مقابل متوسّط فريقك (مؤشّر قيمة/مهارة). */
+/** الإنتاجية: أجر العامل اليومي مقابل متوسّط فريقك. */
 function productivityScore({ avgPerDay, fleetAvgPerDay }) {
   if (!fleetAvgPerDay || fleetAvgPerDay <= 0 || !avgPerDay) return 60
   const ratio = avgPerDay / fleetAvgPerDay
-  return clamp(65 + (ratio - 1) * 70, 0, 100)   // مساوٍ للمتوسّط = 65، أعلى 50% = 100
+  return clamp(65 + (ratio - 1) * 70, 0, 100)
 }
 
-/** الانتظام: ثبات الحضور شهرياً — تذبذب أقل = درجة أعلى. */
+/** الانتظام: ثبات الحضور شهرياً. */
 function regularityScore({ daysPerMonth }) {
   const active = (daysPerMonth || []).filter(d => d > 0)
   if (active.length < 2) return 55
   const mean = active.reduce((s, d) => s + d, 0) / active.length
   if (mean <= 0) return 55
-  const cv = stdDev(active) / mean                 // معامل الاختلاف
+  const cv = stdDev(active) / mean
   return clamp(100 - cv * 90, 0, 100)
 }
 
-/** الانضباط المالي: نسبة السلف من المستحق — كلّما قلّت كان أفضل. */
+/** الانضباط المالي: نسبة السلف من المستحق. */
 function disciplineScore({ advances, earned }) {
   if (earned <= 0) return advances > 0 ? 30 : 70
   const ratio = advances / earned
-  return clamp(100 - ratio * 150, 0, 100)          // سلف = 66% من المستحق → 0
+  return clamp(100 - ratio * 150, 0, 100)
 }
 
-/** الاستمرارية: طول المدّة مع المصلحة (ولاء). */
+/** الاستمرارية: طول المدّة مع المصلحة. */
 function tenureScore({ tenureMonths }) {
   if (!tenureMonths || tenureMonths <= 0) return 45
-  return clamp(40 + tenureMonths * 10, 40, 100)    // 6 أشهر فأكثر → 100
+  return clamp(40 + tenureMonths * 10, 40, 100)
 }
 
-/** الموثوقية: نسبة الأيام المعتمدة من إجمالي المُقدّمة − خصم على المرفوضة. */
+/** الموثوقية: نسبة الأيام المعتمدة من إجمالي المُقدّمة. */
 function approvalScore({ approvedDays, pendingDays, rejectedDays }) {
   const total = approvedDays + pendingDays + rejectedDays
   if (total <= 0) return 50
@@ -326,28 +374,28 @@ function approvalScore({ approvedDays, pendingDays, rejectedDays }) {
 const DNA_WEIGHTS = { productivity: 0.25, regularity: 0.25, approval: 0.20, discipline: 0.15, tenure: 0.15 }
 
 const DNA_LABELS = {
-  productivity: 'الإنتاجية',
-  regularity:   'الانتظام',
-  approval:     'الموثوقية',
-  discipline:   'الانضباط',
-  tenure:       'الاستمرارية',
+  productivity: { ar: 'الإنتاجية',    he: 'פריון',   en: 'Productivity' },
+  regularity:   { ar: 'الانتظام',     he: 'סדירות',  en: 'Regularity' },
+  approval:     { ar: 'الموثوقية',    he: 'אמינות',  en: 'Reliability' },
+  discipline:   { ar: 'الانضباط',     he: 'משמעת',   en: 'Discipline' },
+  tenure:       { ar: 'الاستمرارية',  he: 'ותק',     en: 'Tenure' },
 }
 
 /** تصنيف العامل حسب بصمته. */
-export function workerTier(score) {
-  if (score >= 80) return { tone: 'excellent', tier: 'نخبة',          star: true  }
-  if (score >= 65) return { tone: 'good',      tier: 'موثوق',         star: true  }
-  if (score >= 50) return { tone: 'fair',      tier: 'مقبول',         star: false }
-  if (score >= 35) return { tone: 'weak',      tier: 'يحتاج متابعة',  star: false }
-  return                  { tone: 'critical',  tier: 'تحت المراقبة',  star: false }
+export function workerTier(score, lang = 'ar') {
+  if (score >= 80) return { tone: 'excellent', tier: T(lang, 'نخبة',          'מצטיין',     'Elite'),           star: true  }
+  if (score >= 65) return { tone: 'good',      tier: T(lang, 'موثوق',         'אמין',       'Reliable'),        star: true  }
+  if (score >= 50) return { tone: 'fair',      tier: T(lang, 'مقبول',         'סביר',       'Fair'),            star: false }
+  if (score >= 35) return { tone: 'weak',      tier: T(lang, 'يحتاج متابعة',  'דורש מעקב',  'Needs follow-up'), star: false }
+  return                  { tone: 'critical',  tier: T(lang, 'تحت المراقبة',  'במעקב',      'Under watch'),     star: false }
 }
 
 /**
  * المحرّك الرئيسي — يحسب بصمة العامل الكاملة.
- * @param {object} a - أرقام مجمّعة لعامل واحد + مرجع الفريق
- * @returns {{ score, tier, tone, star, factors, insights, productivityPct }}
+ * @param {object} a
+ * @param {string} [lang='ar']
  */
-export function computeWorkerDNA(a = {}) {
+export function computeWorkerDNA(a = {}, lang = 'ar') {
   const {
     name = '', earned = 0, advances = 0,
     avgPerDay = 0, fleetAvgPerDay = 0,
@@ -368,7 +416,7 @@ export function computeWorkerDNA(a = {}) {
   )
 
   const factors = Object.keys(DNA_WEIGHTS).map(k => ({
-    key: k, label: DNA_LABELS[k], score: scores[k], weight: DNA_WEIGHTS[k],
+    key: k, label: T(lang, DNA_LABELS[k].ar, DNA_LABELS[k].he, DNA_LABELS[k].en), score: scores[k], weight: DNA_WEIGHTS[k],
   }))
 
   const productivityPct = fleetAvgPerDay > 0 && avgPerDay > 0
@@ -377,71 +425,92 @@ export function computeWorkerDNA(a = {}) {
 
   return {
     score,
-    ...workerTier(score),
+    ...workerTier(score, lang),
     factors,
     productivityPct,
-    insights: buildWorkerInsights({ name, earned, advances, productivityPct, pendingDays, tenureMonths, scores }),
+    insights: buildWorkerInsights({ name, earned, advances, productivityPct, pendingDays, tenureMonths, scores }, lang),
   }
 }
 
 // رؤى بصمة العامل — تحذيرات → نصائح → إيجابيات. أعلى 3.
-function buildWorkerInsights(a) {
+function buildWorkerInsights(a, lang = 'ar') {
   const { name, earned, advances, productivityPct, pendingDays, tenureMonths, scores } = a
   const advRatio = earned > 0 ? advances / earned : 0
-  const who = name ? name.split(' ')[0] : 'العامل'
+  const who = name ? name.split(' ')[0] : T(lang, 'العامل', 'העובד', 'the worker')
   const out = []
 
   if (advRatio >= 0.5)
-    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `${who} سحب ${Math.round(advRatio * 100)}% من مستحقه سلفاً (₪${fmt(advances)}) — انتبه للتصفية النهائية.` })
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: T(lang,
+      `${who} سحب ${Math.round(advRatio * 100)}% من مستحقه سلفاً (₪${fmt(advances)}) — انتبه للتصفية النهائية.`,
+      `${who} משך ${Math.round(advRatio * 100)}% מהזכאות שלו כמקדמה (₪${fmt(advances)}) — שים לב להתחשבנות הסופית.`,
+      `${who} drew ${Math.round(advRatio * 100)}% of their dues as advances (₪${fmt(advances)}) — watch the final settlement.`) })
 
   if (scores.approval < 60 && pendingDays > 0)
-    out.push({ tone: 'warn', icon: 'Clock', text: `${pendingDays} يوم لـ${who} بانتظار موافقتك — راجِعها لتثبيت مستحقّه.` })
+    out.push({ tone: 'warn', icon: 'Clock', text: T(lang,
+      `${pendingDays} يوم لـ${who} بانتظار موافقتك — راجِعها لتثبيت مستحقّه.`,
+      `${pendingDays} ימים של ${who} ממתינים לאישורך — בדוק אותם כדי לקבע את זכאותו.`,
+      `${pendingDays} of ${who}'s days await your approval — review them to lock their dues.`) })
   else if (pendingDays > 0)
-    out.push({ tone: 'tip', icon: 'Clock', text: `عند ${who} ${pendingDays} يوم بانتظار الموافقة.` })
+    out.push({ tone: 'tip', icon: 'Clock', text: T(lang,
+      `عند ${who} ${pendingDays} يوم بانتظار الموافقة.`,
+      `ל${who} יש ${pendingDays} ימים הממתינים לאישור.`,
+      `${who} has ${pendingDays} days awaiting approval.`) })
 
   if (productivityPct >= 25)
-    out.push({ tone: 'good', icon: 'TrendingUp', text: `${who} من نخبة عمّالك — أجره اليومي أعلى من متوسّط الفريق بـ ${productivityPct}%.` })
+    out.push({ tone: 'good', icon: 'TrendingUp', text: T(lang,
+      `${who} من نخبة عمّالك — أجره اليومي أعلى من متوسّط الفريق بـ ${productivityPct}%.`,
+      `${who} מהעובדים המצטיינים שלך — שכרו היומי גבוה מממוצע הצוות ב-${productivityPct}%.`,
+      `${who} is among your top workers — daily rate ${productivityPct}% above team average.`) })
   else if (productivityPct <= -25)
-    out.push({ tone: 'tip', icon: 'TrendingDown', text: `أجر ${who} اليومي أقل من متوسّط فريقك بـ ${Math.abs(productivityPct)}% — عامل اقتصادي.` })
+    out.push({ tone: 'tip', icon: 'TrendingDown', text: T(lang,
+      `أجر ${who} اليومي أقل من متوسّط فريقك بـ ${Math.abs(productivityPct)}% — عامل اقتصادي.`,
+      `שכרו היומי של ${who} נמוך מממוצע הצוות ב-${Math.abs(productivityPct)}% — עובד חסכוני.`,
+      `${who}'s daily rate is ${Math.abs(productivityPct)}% below team average — an economical worker.`) })
 
   if (scores.regularity >= 75 && tenureMonths >= 3)
-    out.push({ tone: 'good', icon: 'CheckCircle2', text: `${who} ثابت ومنتظم — ${fmtMonths(tenureMonths)} معك بحضور متّسق.` })
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: T(lang,
+      `${who} ثابت ومنتظم — ${fmtMonths(tenureMonths, 'ar')} معك بحضور متّسق.`,
+      `${who} יציב וסדיר — ${fmtMonths(tenureMonths, 'he')} איתך בנוכחות עקבית.`,
+      `${who} is steady and regular — ${fmtMonths(tenureMonths, 'en')} with you, consistent attendance.`) })
 
   if (advRatio === 0 && earned > 0 && out.every(i => i.tone !== 'good'))
-    out.push({ tone: 'good', icon: 'Sparkles', text: `${who} ما سحب أي سلفة — انضباط مالي ممتاز.` })
+    out.push({ tone: 'good', icon: 'Sparkles', text: T(lang,
+      `${who} ما سحب أي سلفة — انضباط مالي ممتاز.`,
+      `${who} לא משך אף מקדמה — משמעת פיננסית מצוינת.`,
+      `${who} took no advances — excellent financial discipline.`) })
 
   if (out.length === 0)
-    out.push({ tone: 'tip', icon: 'Activity', text: `سجّل أيام عمل ودفعات لـ${who} ليكتمل تحليل بصمته.` })
+    out.push({ tone: 'tip', icon: 'Activity', text: T(lang,
+      `سجّل أيام عمل ودفعات لـ${who} ليكتمل تحليل بصمته.`,
+      `רשום ימי עבודה ותשלומים ל${who} כדי להשלים את ניתוח הפרופיל שלו.`,
+      `Log work days and payments for ${who} to complete their profile analysis.`) })
 
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
 }
 
 // ─── صحّة المشروع — Project Health Score ──────────────────────────────────────────
-// «الصندوق الأسود» للمشروع: يحوّل أرقامه (ربحية/تحصيل/ميزانية/سيولة) إلى مؤشّر صحّة
-// (0–100) + إنذار مبكّر بالهامش النهائي المتوقّع لو استمرّت التكلفة بنفس المعدّل.
-// دوال نقيّة قابلة للاختبار.
 
 /** الربحية: هامش ربح المشروع الفعلي. */
 function pjMarginScore({ margin, hasData }) {
   if (!hasData) return 50
-  return clamp(45 + margin * 2.2, 0, 100)   // هامش 25% → 100، صفر → 45، سالب ينزل
+  return clamp(45 + margin * 2.2, 0, 100)
 }
 
-/** التحصيل: نسبة المحصّل من قيمة العقد − خصم على التأخّر. */
+/** التحصيل: نسبة المحصّل من قيمة العقد. */
 function pjCollectionScore({ price, revenue, overdue }) {
   let base
   if (price > 0) base = clamp((revenue / price) * 100, 0, 100)
-  else           base = revenue > 0 ? 65 : 45        // مشروع يومي/مفتوح بلا عقد محدّد
+  else           base = revenue > 0 ? 65 : 45
   return clamp(base - (overdue ? 25 : 0), 0, 100)
 }
 
-/** الميزانية: التكلفة مقابل قيمة العقد (أو الإيراد إن لم يوجد عقد). */
+/** الميزانية: التكلفة مقابل قيمة العقد. */
 function pjBudgetScore({ price, revenue, cost }) {
   const ref = price > 0 ? price : revenue
   if (ref <= 0) return cost > 0 ? 25 : 55
   const ratio = cost / ref
-  return clamp((1 - ratio) * 200, 0, 100)            // تكلفة 50% → 100، 100% → 0
+  return clamp((1 - ratio) * 200, 0, 100)
 }
 
 /** السيولة: نقد المالك المتبقّي نسبةً لإيراد المشروع. */
@@ -451,13 +520,19 @@ function pjCashScore({ ownerCash, revenue }) {
 }
 
 const PJ_WEIGHTS = { margin: 0.30, collection: 0.25, budget: 0.25, cash: 0.20 }
-const PJ_LABELS  = { margin: 'الربحية', collection: 'التحصيل', budget: 'الميزانية', cash: 'السيولة' }
+const PJ_LABELS  = {
+  margin:     { ar: 'الربحية',   he: 'רווחיות', en: 'Profitability' },
+  collection: { ar: 'التحصيل',   he: 'גבייה',   en: 'Collection' },
+  budget:     { ar: 'الميزانية', he: 'תקציב',   en: 'Budget' },
+  cash:       { ar: 'السيولة',   he: 'נזילות',  en: 'Liquidity' },
+}
 
 /**
  * المحرّك الرئيسي — صحّة المشروع الكاملة.
- * @returns {{ score, grade, tone, factors, insights, projectedMargin }}
+ * @param {object} a
+ * @param {string} [lang='ar']
  */
-export function computeProjectHealth(a = {}) {
+export function computeProjectHealth(a = {}, lang = 'ar') {
   const {
     name = '', price = 0, revenue = 0, cost = 0,
     ownerCash = 0, profit = 0, margin = null, overdue = false,
@@ -478,11 +553,10 @@ export function computeProjectHealth(a = {}) {
   )
 
   const factors = Object.keys(PJ_WEIGHTS).map(k => ({
-    key: k, label: PJ_LABELS[k], score: scores[k], weight: PJ_WEIGHTS[k],
+    key: k, label: T(lang, PJ_LABELS[k].ar, PJ_LABELS[k].he, PJ_LABELS[k].en), score: scores[k], weight: PJ_WEIGHTS[k],
   }))
 
-  // ── الإنذار المبكّر: الهامش النهائي المتوقّع ──
-  // نعتبر نسبة التحصيل من العقد تقديراً لنسبة الإنجاز، ونمدّ التكلفة على هذا الأساس.
+  // ── الإنذار المبكّر ──
   let projectedMargin = null
   if (price > 0 && revenue > 0 && revenue < price) {
     const progress = revenue / price
@@ -494,62 +568,85 @@ export function computeProjectHealth(a = {}) {
 
   return {
     score,
-    ...gradeFor(score),
+    ...gradeFor(score, lang),
     factors,
     projectedMargin,
-    insights: buildProjectInsights({ name, price, revenue, cost, ownerCash, margin: effMargin, profit, overdue, projectedMargin }),
+    insights: buildProjectInsights({ name, price, revenue, cost, ownerCash, margin: effMargin, profit, overdue, projectedMargin }, lang),
   }
 }
 
 // رؤى صحّة المشروع — تحذيرات → نصائح → إيجابيات. أعلى 3.
-function buildProjectInsights(a) {
+function buildProjectInsights(a, lang = 'ar') {
   const { name, price, revenue, cost, ownerCash, margin, profit, overdue, projectedMargin } = a
   const out = []
 
   if (profit < 0)
-    out.push({ tone: 'warn', icon: 'TrendingDown', text: `المشروع يخسر حالياً — الهامش ${Math.round(margin)}%. راجع المصاريف أو سعّر الإضافات.` })
+    out.push({ tone: 'warn', icon: 'TrendingDown', text: T(lang,
+      `المشروع يخسر حالياً — الهامش ${Math.round(margin)}%. راجع المصاريف أو سعّر الإضافات.`,
+      `הפרויקט מפסיד כרגע — השוליים ${Math.round(margin)}%. בדוק הוצאות או תמחר תוספות.`,
+      `The project is losing now — margin ${Math.round(margin)}%. Review expenses or price extras.`) })
 
   if (price > 0 && cost > price)
-    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `التكلفة (₪${fmt(cost)}) تجاوزت قيمة العقد (₪${fmt(price)}) بـ ₪${fmt(cost - price)} — المشروع بالسالب.` })
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: T(lang,
+      `التكلفة (₪${fmt(cost)}) تجاوزت قيمة العقد (₪${fmt(price)}) بـ ₪${fmt(cost - price)} — المشروع بالسالب.`,
+      `העלות (₪${fmt(cost)}) עברה את שווי החוזה (₪${fmt(price)}) ב-₪${fmt(cost - price)} — הפרויקט במינוס.`,
+      `Cost (₪${fmt(cost)}) exceeded contract value (₪${fmt(price)}) by ₪${fmt(cost - price)} — the project is in the red.`) })
 
   if (overdue)
-    out.push({ tone: 'warn', icon: 'Clock', text: 'في مقبوضات متأخّرة على هذا المشروع — تابع التحصيل مع العميل.' })
+    out.push({ tone: 'warn', icon: 'Clock', text: T(lang,
+      'في مقبوضات متأخّرة على هذا المشروع — تابع التحصيل مع العميل.',
+      'יש תקבולים באיחור בפרויקט הזה — עקוב אחר הגבייה מול הלקוח.',
+      'There are overdue receipts on this project — follow up collection with the client.') })
 
   if (projectedMargin != null && projectedMargin < 10 && profit >= 0)
-    out.push({ tone: 'warn', icon: 'Activity', text: `إنذار مبكّر: لو استمرّت التكلفة بنفس المعدّل، الهامش النهائي المتوقّع ~${projectedMargin}% فقط.` })
+    out.push({ tone: 'warn', icon: 'Activity', text: T(lang,
+      `إنذار مبكّر: لو استمرّت التكلفة بنفس المعدّل، الهامش النهائي المتوقّع ~${projectedMargin}% فقط.`,
+      `אזהרה מוקדמת: אם העלות תימשך באותו קצב, שולי הרווח הסופיים הצפויים ~${projectedMargin}% בלבד.`,
+      `Early warning: if cost continues at this rate, projected final margin is only ~${projectedMargin}%.`) })
 
   if (price > 0 && revenue > 0 && revenue / price < 0.5)
-    out.push({ tone: 'tip', icon: 'MessageCircle', text: `حصّلت ${Math.round((revenue / price) * 100)}% فقط من قيمة العقد — تابع باقي المستحقّ.` })
+    out.push({ tone: 'tip', icon: 'MessageCircle', text: T(lang,
+      `حصّلت ${Math.round((revenue / price) * 100)}% فقط من قيمة العقد — تابع باقي المستحقّ.`,
+      `גבית רק ${Math.round((revenue / price) * 100)}% משווי החוזה — עקוב אחר היתרה לתשלום.`,
+      `You've collected only ${Math.round((revenue / price) * 100)}% of the contract — follow up the remaining balance.`) })
 
   if (margin >= 25 && profit > 0)
-    out.push({ tone: 'good', icon: 'TrendingUp', text: `هامش ربح ممتاز ${Math.round(margin)}% — مشروع رابح بقوّة.` })
+    out.push({ tone: 'good', icon: 'TrendingUp', text: T(lang,
+      `هامش ربح ممتاز ${Math.round(margin)}% — مشروع رابح بقوّة.`,
+      `שולי רווח מצוינים ${Math.round(margin)}% — פרויקט רווחי מאוד.`,
+      `Excellent profit margin ${Math.round(margin)}% — a strongly profitable project.`) })
 
   if (ownerCash > 0 && margin >= 12 && out.every(i => i.tone !== 'good'))
-    out.push({ tone: 'good', icon: 'CheckCircle2', text: `مشروع صحّي — سيولة موجبة (₪${fmt(ownerCash)}) وربح جيّد.` })
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: T(lang,
+      `مشروع صحّي — سيولة موجبة (₪${fmt(ownerCash)}) وربح جيّد.`,
+      `פרויקט בריא — נזילות חיובית (₪${fmt(ownerCash)}) ורווח טוב.`,
+      `Healthy project — positive cash (₪${fmt(ownerCash)}) and good profit.`) })
 
   if (out.length === 0)
-    out.push({ tone: 'tip', icon: 'Sparkles', text: 'سجّل المقبوضات والمصاريف ليتفعّل تحليل صحّة المشروع.' })
+    out.push({ tone: 'tip', icon: 'Sparkles', text: T(lang,
+      'سجّل المقبوضات والمصاريف ليتفعّل تحليل صحّة المشروع.',
+      'רשום תקבולים והוצאות כדי להפעיל את ניתוח בריאות הפרויקט.',
+      'Log receipts and expenses to activate project-health analysis.') })
 
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
 }
 
 // ─── عدّاد الضريبة الحيّ — Tax Runway ──────────────────────────────────────────────
-// يتوقّع متى يتجاوز עוסק פטור سقفه السنوي (بمعدّل دخله الحالي)، ويقدّر الفاتورة
-// الضريبية القادمة + كم يحتاج أن يجنّب شهرياً ليكون جاهزاً. دوال نقيّة قابلة للاختبار.
 
-const MONTH_NAMES = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+const MONTH_NAMES = {
+  ar: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'],
+  he: ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'],
+  en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+}
+const monthName = (idx, lang = 'ar') => (MONTH_NAMES[lang] || MONTH_NAMES.ar)[idx]
 
 /**
  * @param {object} a
- * @param {boolean} a.isOsekPatur
- * @param {number} [a.cap=120000]      - سقف עוסק פטור السنوي
- * @param {number} a.yearIncome        - المدخول المحصّل هذه السنة حتى الآن
- * @param {number} a.monthsElapsed     - عدد الأشهر المنقضية من السنة (1–12)
- * @param {number} [a.annualTax=0]     - الضريبة السنوية المقدّرة (دخل + ביטוח לאומי)
+ * @param {string} [lang='ar']
  * @returns {object|null} null إذا لا يوجد دخل لحساب معدّل
  */
-export function computeTaxRunway(a = {}) {
+export function computeTaxRunway(a = {}, lang = 'ar') {
   const {
     isOsekPatur = false, cap = 120000,
     yearIncome = 0, monthsElapsed = 1, annualTax = 0,
@@ -568,16 +665,15 @@ export function computeTaxRunway(a = {}) {
   if (isOsekPatur) {
     if (yearIncome >= cap) {
       alreadyExceeded = willExceed = true
-      capMonth = MONTH_NAMES[Math.min(11, months - 1)]
+      capMonth = monthName(Math.min(11, months - 1), lang)
     } else if (monthly > 0 && projectedAnnual > cap) {
       willExceed = true
-      const monthsToCap = (cap - yearIncome) / monthly      // من الآن
-      const idx = (months - 1) + monthsToCap                 // فهرس الشهر داخل السنة (0-based)
-      if (idx < 12) capMonth = MONTH_NAMES[Math.floor(idx)]
+      const monthsToCap = (cap - yearIncome) / monthly
+      const idx = (months - 1) + monthsToCap
+      if (idx < 12) capMonth = monthName(Math.floor(idx), lang)
     }
   }
 
-  // الفاتورة الضريبية + التجنيب الشهري المقترح
   const monthlyProvision = annualTax > 0 ? Math.round(annualTax / 12) : 0
 
   // النبرة اللونية
@@ -593,48 +689,65 @@ export function computeTaxRunway(a = {}) {
     capPct, projectedAnnual, projectedPct,
     capMonth, willExceed, alreadyExceeded,
     annualTax, monthlyProvision, tone,
-    insights: buildTaxRunwayInsights({ isOsekPatur, cap, yearIncome, projectedAnnual, projectedPct, capMonth, willExceed, alreadyExceeded, annualTax, monthlyProvision }),
+    insights: buildTaxRunwayInsights({ isOsekPatur, cap, yearIncome, projectedAnnual, projectedPct, capMonth, willExceed, alreadyExceeded, annualTax, monthlyProvision }, lang),
   }
 }
 
 // رؤى عدّاد الضريبة — تحذيرات → نصائح → إيجابيات. أعلى 3.
-function buildTaxRunwayInsights(a) {
+function buildTaxRunwayInsights(a, lang = 'ar') {
   const { isOsekPatur, cap, yearIncome, projectedAnnual, projectedPct, capMonth, willExceed, alreadyExceeded, annualTax, monthlyProvision } = a
   const out = []
 
   if (isOsekPatur && alreadyExceeded)
-    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `تجاوزت سقف עוסק פטור (₪${fmt(yearIncome)} من ₪${fmt(cap)}) — يجب الترقية لـעוסק מורשה فوراً وإصدار فواتير ضريبية.` })
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: T(lang,
+      `تجاوزت سقف עוסק פטור (₪${fmt(yearIncome)} من ₪${fmt(cap)}) — يجب الترقية إلى עוסק מורשה فوراً وإصدار فواتير ضريبية.`,
+      `חרגת מתקרת עוסק פטור (₪${fmt(yearIncome)} מתוך ₪${fmt(cap)}) — יש לשדרג לעוסק מורשה מיד ולהפיק חשבוניות מס.`,
+      `You exceeded the עוסק פטור cap (₪${fmt(yearIncome)} of ₪${fmt(cap)}) — upgrade to עוסק מורשה now and issue tax invoices.`) })
   else if (isOsekPatur && willExceed && capMonth)
-    out.push({ tone: 'warn', icon: 'CalendarClock', text: `بمعدّل دخلك الحالي رح توصل سقف الـ₪${fmt(cap)} في ${capMonth} — جهّز ترقية مصلحتك من الآن.` })
+    out.push({ tone: 'warn', icon: 'CalendarClock', text: T(lang,
+      `بمعدّل دخلك الحالي رح توصل سقف الـ₪${fmt(cap)} في ${capMonth} — جهّز ترقية مصلحتك من الآن.`,
+      `בקצב ההכנסה הנוכחי שלך תגיע לתקרה של ₪${fmt(cap)} ב${capMonth} — הכן את שדרוג העסק שלך כבר עכשיו.`,
+      `At your current income rate you'll hit the ₪${fmt(cap)} cap in ${capMonth} — prepare your business upgrade now.`) })
   else if (isOsekPatur && projectedPct >= 70)
-    out.push({ tone: 'tip', icon: 'Activity', text: `توقّعك السنوي ${projectedPct}% من السقف — راقب دخلك في الأشهر القادمة.` })
+    out.push({ tone: 'tip', icon: 'Activity', text: T(lang,
+      `توقّعك السنوي ${projectedPct}% من السقف — راقب دخلك في الأشهر القادمة.`,
+      `התחזית השנתית שלך ${projectedPct}% מהתקרה — עקוב אחר ההכנסה בחודשים הקרובים.`,
+      `Your annual projection is ${projectedPct}% of the cap — watch your income in the coming months.`) })
   else if (isOsekPatur)
-    out.push({ tone: 'good', icon: 'CheckCircle2', text: `ضمن حدّ עוסק פטור بأريحية — التوقّع السنوي ${projectedPct}% فقط من السقف.` })
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: T(lang,
+      `ضمن حدّ עוסק פטור بأريحية — التوقّع السنوي ${projectedPct}% فقط من السقف.`,
+      `בתוך מגבלת עוסק פטור בנוחות — התחזית השנתית ${projectedPct}% בלבד מהתקרה.`,
+      `Comfortably within the עוסק פטור limit — annual projection only ${projectedPct}% of the cap.`) })
 
   if (annualTax > 0 && monthlyProvision > 0)
-    out.push({ tone: 'tip', icon: 'PiggyBank', text: `فاتورتك الضريبية المتوقّعة ₪${fmt(annualTax)} — جنّب ₪${fmt(monthlyProvision)} شهرياً لتكون جاهزاً نهاية السنة.` })
+    out.push({ tone: 'tip', icon: 'PiggyBank', text: T(lang,
+      `فاتورتك الضريبية المتوقّعة ₪${fmt(annualTax)} — جنّب ₪${fmt(monthlyProvision)} شهرياً لتكون جاهزاً نهاية السنة.`,
+      `חשבון המס הצפוי שלך ₪${fmt(annualTax)} — הפרש ₪${fmt(monthlyProvision)} בחודש כדי להיות מוכן בסוף השנה.`,
+      `Your projected tax bill is ₪${fmt(annualTax)} — set aside ₪${fmt(monthlyProvision)} monthly to be ready by year-end.`) })
   else if (annualTax === 0 && yearIncome > 0)
-    out.push({ tone: 'good', icon: 'Sparkles', text: 'لا ضريبة دخل مقدّرة على أرباحك الحالية — وضعك مريح ضريبياً.' })
+    out.push({ tone: 'good', icon: 'Sparkles', text: T(lang,
+      'لا ضريبة دخل مقدّرة على أرباحك الحالية — وضعك مريح ضريبياً.',
+      'אין מס הכנסה משוער על הרווחים הנוכחיים שלך — מצבך נוח מבחינת מס.',
+      'No estimated income tax on your current profits — comfortable tax position.') })
 
   if (out.length === 0)
-    out.push({ tone: 'tip', icon: 'Activity', text: 'سجّل مدخولاتك ليتفعّل توقّع الضريبة والسقف السنوي.' })
+    out.push({ tone: 'tip', icon: 'Activity', text: T(lang,
+      'سجّل مدخولاتك ليتفعّل توقّع الضريبة والسقف السنوي.',
+      'רשום את ההכנסות שלך כדי להפעיל את תחזית המס והתקרה השנתית.',
+      'Log your income to activate tax and annual-cap forecasting.') })
 
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
 }
 
 // ─── كاشف التسريب — Expense Anomaly Radar ─────────────────────────────────────────
-// يرصد المصاريف الشاذّة تلقائياً: قفزات الفئات مقابل المعدّل، المصاريف غير المنسوبة
-// لمشاريع (تسريب من تحليل الربحية)، والقيم المتطرّفة. دوال نقيّة قابلة للاختبار.
 
 /**
  * @param {object} a
- * @param {Array}  a.entries   - [{ amount, category, date 'YYYY-MM-DD', project_id }]
- * @param {string} a.monthKey  - الشهر الحالي 'YYYY-MM'
- * @param {number} [a.lookback=3] - عدد الأشهر السابقة لحساب المعدّل
+ * @param {string} [lang='ar']
  * @returns {{ anomalies, leakTotal, leakCount, spikeCount, tone, hasData }}
  */
-export function detectExpenseAnomalies(a = {}) {
+export function detectExpenseAnomalies(a = {}, lang = 'ar') {
   const { entries = [], monthKey = '', lookback = 3 } = a
 
   const cur = entries.filter(e => (e.date || '').startsWith(monthKey))
@@ -642,11 +755,9 @@ export function detectExpenseAnomalies(a = {}) {
     return { anomalies: [], leakTotal: 0, leakCount: 0, spikeCount: 0, tone: 'fair', hasData: false }
   }
 
-  // الأشهر السابقة الموجودة فعلاً في البيانات (أحدث lookback)
   const prevMonths = [...new Set(entries.map(e => (e.date || '').slice(0, 7)).filter(m => m && m < monthKey))]
     .sort().slice(-lookback)
 
-  // مجموع كل فئة لكل شهر
   const byCatMonth = {}
   for (const e of entries) {
     const m = (e.date || '').slice(0, 7)
@@ -658,7 +769,7 @@ export function detectExpenseAnomalies(a = {}) {
   const anomalies = []
   let spikeCount = 0
 
-  // ① قفزات الفئات: الشهر الحالي مقابل معدّل الأشهر السابقة
+  // ① قفزات الفئات
   for (const [cat, months] of Object.entries(byCatMonth)) {
     const curTotal = months[monthKey] || 0
     if (curTotal <= 0 || prevMonths.length === 0) continue
@@ -667,22 +778,27 @@ export function detectExpenseAnomalies(a = {}) {
     const baseline = prevVals.reduce((s, v) => s + v, 0) / prevVals.length
     if (curTotal >= baseline * 1.4 && curTotal - baseline >= 300) {
       const pct = Math.round((curTotal / baseline - 1) * 100)
-      anomalies.push({ tone: 'warn', icon: 'TrendingUp', amount: Math.round(curTotal),
-        text: `مصروف «${cat}» هذا الشهر ₪${fmt(Math.round(curTotal))} — أعلى ${pct}% من معدّلك (₪${fmt(Math.round(baseline))}).` })
+      const catL = tEnum(cat, lang)
+      anomalies.push({ tone: 'warn', icon: 'TrendingUp', amount: Math.round(curTotal), text: T(lang,
+        `مصروف «${catL}» هذا الشهر ₪${fmt(Math.round(curTotal))} — أعلى ${pct}% من معدّلك (₪${fmt(Math.round(baseline))}).`,
+        `הוצאת «${catL}» החודש ₪${fmt(Math.round(curTotal))} — גבוהה ב-${pct}% מהממוצע שלך (₪${fmt(Math.round(baseline))}).`,
+        `«${catL}» expense this month ₪${fmt(Math.round(curTotal))} — ${pct}% above your average (₪${fmt(Math.round(baseline))}).`) })
       spikeCount++
     }
   }
 
-  // ② تسريب: مصاريف غير منسوبة لأي مشروع هذا الشهر
+  // ② تسريب: مصاريف غير منسوبة لأي مشروع
   const leakRows  = cur.filter(e => !e.project_id && !e.is_general)
   const leakTotal = Math.round(leakRows.reduce((s, e) => s + Number(e.amount || 0), 0))
   const leakCount = leakRows.length
   if (leakCount > 0 && leakTotal >= 300) {
-    anomalies.push({ tone: 'tip', icon: 'FolderInput', amount: leakTotal,
-      text: `${leakCount} ${leakCount === 1 ? 'مصروف' : 'مصاريف'} بدون مشروع — ₪${fmt(leakTotal)} غير محسوبة في ربحية مشاريعك.` })
+    anomalies.push({ tone: 'tip', icon: 'FolderInput', amount: leakTotal, text: T(lang,
+      `${leakCount} ${leakCount === 1 ? 'مصروف' : 'مصاريف'} بدون مشروع — ₪${fmt(leakTotal)} غير محسوبة في ربحية مشاريعك.`,
+      `${leakCount} ${leakCount === 1 ? 'הוצאה' : 'הוצאות'} ללא פרויקט — ₪${fmt(leakTotal)} לא נכללות ברווחיות הפרויקטים שלך.`,
+      `${leakCount} ${leakCount === 1 ? 'expense' : 'expenses'} without a project — ₪${fmt(leakTotal)} not counted in your project profitability.`) })
   }
 
-  // ③ قيمة متطرّفة: أكبر مصروف مفرد هذا الشهر أعلى بكثير من المعتاد
+  // ③ قيمة متطرّفة
   if (cur.length >= 4) {
     const vals = cur.map(e => Number(e.amount || 0))
     const mean = vals.reduce((s, v) => s + v, 0) / vals.length
@@ -690,8 +806,11 @@ export function detectExpenseAnomalies(a = {}) {
     const top  = cur.reduce((mx, e) => (Number(e.amount || 0) > Number(mx.amount || 0) ? e : mx), cur[0])
     const topAmt = Number(top.amount || 0)
     if (sd > 0 && topAmt >= mean + 2 * sd && topAmt >= 1000) {
-      anomalies.push({ tone: 'tip', icon: 'AlertTriangle', amount: Math.round(topAmt),
-        text: `أكبر مصروف هذا الشهر ₪${fmt(Math.round(topAmt))}${top.category ? ` (${top.category})` : ''} — أعلى بكثير من معتاد مصاريفك.` })
+      const topCat = top.category ? tEnum(top.category, lang) : ''
+      anomalies.push({ tone: 'tip', icon: 'AlertTriangle', amount: Math.round(topAmt), text: T(lang,
+        `أكبر مصروف هذا الشهر ₪${fmt(Math.round(topAmt))}${topCat ? ` (${topCat})` : ''} — أعلى بكثير من معتاد مصاريفك.`,
+        `ההוצאה הגדולה ביותר החודש ₪${fmt(Math.round(topAmt))}${topCat ? ` (${topCat})` : ''} — גבוהה בהרבה מהרגיל אצלך.`,
+        `Largest expense this month ₪${fmt(Math.round(topAmt))}${topCat ? ` (${topCat})` : ''} — far above your usual spending.`) })
     }
   }
 
@@ -701,7 +820,10 @@ export function detectExpenseAnomalies(a = {}) {
 
   // الحالة النظيفة
   if (anomalies.length === 0)
-    anomalies.push({ tone: 'good', icon: 'ShieldCheck', amount: 0, text: 'ما في تسريب أو مصاريف شاذّة — صرفك منتظم هذا الشهر.' })
+    anomalies.push({ tone: 'good', icon: 'ShieldCheck', amount: 0, text: T(lang,
+      'ما في تسريب أو مصاريف شاذّة — صرفك منتظم هذا الشهر.',
+      'אין דליפה או הוצאות חריגות — ההוצאות שלך מסודרות החודש.',
+      'No leaks or unusual expenses — your spending is in order this month.') })
 
   const tone = spikeCount >= 2 ? 'critical' : spikeCount === 1 ? 'weak'
              : anomalies.some(an => an.tone === 'tip') ? 'fair' : 'excellent'
@@ -710,24 +832,19 @@ export function detectExpenseAnomalies(a = {}) {
 }
 
 // ─── رادار التحصيل — Collection Aging ──────────────────────────────────────────────
-// يرتّب ذمم العملاء حسب العمر (0–30 / 31–60 / 61–90 / 90+) ويقترح أولوية الاتصال.
-// دوال نقيّة قابلة للاختبار.
 
 const AGING_BUCKETS = [
-  { key: 'current', label: 'جاري (0–30 يوم)', max: 30 },
-  { key: 'd30',     label: '31–60 يوم',       max: 60 },
-  { key: 'd60',     label: '61–90 يوم',       max: 90 },
-  { key: 'd90',     label: 'أكثر من 90 يوم',  max: Infinity },
+  { key: 'current', label: { ar: 'جاري (0–30 يوم)',    he: 'שוטף (0–30 ימים)', en: 'Current (0–30 days)' }, max: 30 },
+  { key: 'd30',     label: { ar: '31–60 يوم',          he: '31–60 ימים',       en: '31–60 days' },          max: 60 },
+  { key: 'd60',     label: { ar: '61–90 يوم',          he: '61–90 ימים',       en: '61–90 days' },          max: 90 },
+  { key: 'd90',     label: { ar: 'أكثر من 90 يوم',     he: 'מעל 90 ימים',      en: '90+ days' },            max: Infinity },
 ]
 
 /**
  * @param {object} a
- * @param {Array}  a.projects - [{ id, name, price, client_name, client_phone, created_at }]
- * @param {Array}  a.receipts - [{ project_id, amount, date }]
- * @param {number} [a.now=Date.now()]
- * @returns {{ totalOutstanding, overdueTotal, buckets, items, worst, tone, insights, hasData }}
+ * @param {string} [lang='ar']
  */
-export function computeCollectionAging(a = {}) {
+export function computeCollectionAging(a = {}, lang = 'ar') {
   const { projects = [], receipts = [], now = Date.now() } = a
 
   const items = []
@@ -745,7 +862,7 @@ export function computeCollectionAging(a = {}) {
     const bucket = AGING_BUCKETS.find(b => daysSince <= b.max).key
 
     items.push({
-      id: p.id, name: p.name || 'مشروع', client: p.client_name || '', phone: p.client_phone || '',
+      id: p.id, name: p.name || T(lang, 'مشروع', 'פרויקט', 'Project'), client: p.client_name || '', phone: p.client_phone || '',
       outstanding, daysSince, bucket,
     })
   }
@@ -754,7 +871,7 @@ export function computeCollectionAging(a = {}) {
 
   const buckets = AGING_BUCKETS.map(b => {
     const rows = items.filter(it => it.bucket === b.key)
-    return { key: b.key, label: b.label, amount: rows.reduce((s, it) => s + it.outstanding, 0), count: rows.length }
+    return { key: b.key, label: T(lang, b.label.ar, b.label.he, b.label.en), amount: rows.reduce((s, it) => s + it.outstanding, 0), count: rows.length }
   })
 
   const totalOutstanding = items.reduce((s, it) => s + it.outstanding, 0)
@@ -770,34 +887,47 @@ export function computeCollectionAging(a = {}) {
   return {
     totalOutstanding, overdueTotal, overdueCount, d90Total,
     buckets, items, worst, tone, hasData,
-    insights: buildAgingInsights({ totalOutstanding, overdueTotal, overdueCount, d90Total, worst }),
+    insights: buildAgingInsights({ totalOutstanding, overdueTotal, overdueCount, d90Total, worst }, lang),
   }
 }
 
-function buildAgingInsights({ totalOutstanding, overdueTotal, overdueCount, d90Total, worst }) {
+function buildAgingInsights({ totalOutstanding, overdueTotal, overdueCount, d90Total, worst }, lang = 'ar') {
   const out = []
 
   if (worst && worst.daysSince > 30)
-    out.push({ tone: 'warn', icon: 'PhoneCall', text: `اتّصل بـ${worst.client || worst.name} أولاً — ₪${fmt(worst.outstanding)} متأخّرة ${worst.daysSince} يوم.` })
+    out.push({ tone: 'warn', icon: 'PhoneCall', text: T(lang,
+      `اتّصل بـ${worst.client || worst.name} أولاً — ₪${fmt(worst.outstanding)} متأخّرة ${worst.daysSince} يوم.`,
+      `התקשר ל${worst.client || worst.name} קודם — ₪${fmt(worst.outstanding)} באיחור של ${worst.daysSince} ימים.`,
+      `Call ${worst.client || worst.name} first — ₪${fmt(worst.outstanding)} overdue by ${worst.daysSince} days.`) })
 
   if (d90Total > 0)
-    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `₪${fmt(d90Total)} متأخّرة أكثر من 90 يوم — ديون متعثّرة، تابعها بجدّية.` })
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: T(lang,
+      `₪${fmt(d90Total)} متأخّرة أكثر من 90 يوم — ديون متعثّرة، تابعها بجدّية.`,
+      `₪${fmt(d90Total)} באיחור של מעל 90 ימים — חובות בעייתיים, טפל בהם ברצינות.`,
+      `₪${fmt(d90Total)} overdue more than 90 days — bad debt, pursue seriously.`) })
 
   if (overdueTotal > 0 && overdueCount > 1)
-    out.push({ tone: 'tip', icon: 'Clock', text: `${overdueCount} مستحقّات متأخّرة بمجموع ₪${fmt(overdueTotal)} — رتّب جولة تحصيل.` })
+    out.push({ tone: 'tip', icon: 'Clock', text: T(lang,
+      `${overdueCount} مستحقّات متأخّرة بمجموع ₪${fmt(overdueTotal)} — رتّب جولة تحصيل.`,
+      `${overdueCount} חובות באיחור בסך ₪${fmt(overdueTotal)} — ארגן סבב גבייה.`,
+      `${overdueCount} overdue receivables totaling ₪${fmt(overdueTotal)} — organize a collection round.`) })
   else if (totalOutstanding > 0 && overdueTotal === 0)
-    out.push({ tone: 'tip', icon: 'CalendarClock', text: `₪${fmt(totalOutstanding)} مستحقّة لكن كلها ضمن المهلة الطبيعية (أقل من شهر).` })
+    out.push({ tone: 'tip', icon: 'CalendarClock', text: T(lang,
+      `₪${fmt(totalOutstanding)} مستحقّة لكن كلها ضمن المهلة الطبيعية (أقل من شهر).`,
+      `₪${fmt(totalOutstanding)} לתשלום אך כולן בתוך הזמן הסביר (פחות מחודש).`,
+      `₪${fmt(totalOutstanding)} outstanding but all within the normal window (under a month).`) })
 
   if (totalOutstanding === 0)
-    out.push({ tone: 'good', icon: 'CheckCircle2', text: 'ما في ذمم مفتوحة — كل عملائك سدّدوا. ممتاز!' })
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: T(lang,
+      'ما في ذمم مفتوحة — كل عملائك سدّدوا. ممتاز!',
+      'אין חובות פתוחים — כל הלקוחות שילמו. מצוין!',
+      'No open receivables — all your clients have paid. Excellent!') })
 
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
 }
 
 // ─── نبض الفريق — Team Productivity Pulse ──────────────────────────────────────────
-// يحوّل سجلّ نشاط الفريق (audit_log) إلى مؤشّر تفاعل (0–100) + ترتيب الأعضاء حسب
-// النشاط والحداثة + تنبيهات الخمول. للمالك فقط. دوال نقيّة قابلة للاختبار.
 
 function teamRecencyScore(d) {
   if (d == null) return 10
@@ -810,13 +940,9 @@ function teamRecencyScore(d) {
 
 /**
  * @param {object} a
- * @param {Array}  a.members  - [{ id, display_name, username, auth_email, is_blocked }]
- * @param {Array}  a.activity - [{ actor_email, action, tbl, created_at }]
- * @param {number} [a.now=Date.now()]
- * @param {number} [a.idleDays=12]
- * @returns {{ score, grade, tone, rows, mostActive, totalActions, activeMembers, memberCount, insights, hasData }}
+ * @param {string} [lang='ar']
  */
-export function computeTeamPulse(a = {}) {
+export function computeTeamPulse(a = {}, lang = 'ar') {
   const { members = [], activity = [], now = Date.now(), idleDays = 12 } = a
   const active = members.filter(m => !m.is_blocked)
 
@@ -833,7 +959,7 @@ export function computeTeamPulse(a = {}) {
   const rows = active.map(m => {
     const rec = byEmail[m.auth_email] || { count: 0, last: null, actions: {} }
     const daysSince = rec.last != null ? Math.max(0, Math.floor((now - rec.last) / 86400000)) : null
-    return { id: m.id, name: m.display_name || m.username || 'عضو', count: rec.count, daysSince, actions: rec.actions }
+    return { id: m.id, name: m.display_name || m.username || T(lang, 'عضو', 'חבר', 'Member'), count: rec.count, daysSince, actions: rec.actions }
   })
 
   const maxCount = Math.max(1, ...rows.map(r => r.count))
@@ -841,7 +967,10 @@ export function computeTeamPulse(a = {}) {
     const rec = teamRecencyScore(r.daysSince)
     const vol = (r.count / maxCount) * 100
     r.score = Math.round(0.55 * rec + 0.45 * vol)
-    r.tier  = r.score >= 75 ? 'نشط جداً' : r.score >= 55 ? 'نشط' : r.score >= 35 ? 'معتدل' : 'خامل'
+    r.tier  = r.score >= 75 ? T(lang, 'نشط جداً', 'פעיל מאוד', 'Very active')
+            : r.score >= 55 ? T(lang, 'نشط', 'פעיל', 'Active')
+            : r.score >= 35 ? T(lang, 'معتدل', 'בינוני', 'Moderate')
+            :                 T(lang, 'خامل', 'רדום', 'Idle')
     r.tone  = r.score >= 75 ? 'excellent' : r.score >= 55 ? 'good' : r.score >= 35 ? 'fair' : 'weak'
   }
   rows.sort((x, y) => y.count - x.count || (x.daysSince ?? 9999) - (y.daysSince ?? 9999))
@@ -856,47 +985,59 @@ export function computeTeamPulse(a = {}) {
   const idle       = rows.filter(r => r.daysSince == null || r.daysSince >= idleDays)
 
   return {
-    score, ...gradeFor(score),
+    score, ...gradeFor(score, lang),
     rows, mostActive, totalActions, activeMembers, memberCount: active.length,
     hasData: active.length > 0,
-    insights: buildTeamInsights({ rows, mostActive, idle, totalActions, idleDays }),
+    insights: buildTeamInsights({ rows, mostActive, idle, totalActions, idleDays }, lang),
   }
 }
 
-function buildTeamInsights({ rows, mostActive, idle, totalActions }) {
+function buildTeamInsights({ rows, mostActive, idle, totalActions }, lang = 'ar') {
   const out = []
 
-  const worstIdle = idle.find(r => r.daysSince != null) // خامل سجّل سابقاً ثم توقّف
+  const worstIdle = idle.find(r => r.daysSince != null)
   if (worstIdle)
-    out.push({ tone: 'warn', icon: 'UserX', text: `${worstIdle.name} ما سجّل أي نشاط من ${worstIdle.daysSince} يوم — تأكّد إنه شغّال.` })
+    out.push({ tone: 'warn', icon: 'UserX', text: T(lang,
+      `${worstIdle.name} ما سجّل أي نشاط من ${worstIdle.daysSince} يوم — تأكّد إنه شغّال.`,
+      `${worstIdle.name} לא רשם פעילות כבר ${worstIdle.daysSince} ימים — ודא שהוא פעיל.`,
+      `${worstIdle.name} hasn't logged any activity for ${worstIdle.daysSince} days — make sure they're working.`) })
 
   const neverActive = idle.find(r => r.daysSince == null)
   if (neverActive && totalActions > 0)
-    out.push({ tone: 'tip', icon: 'UserMinus', text: `${neverActive.name} ما سجّل أي عملية بعد — لسّا ما بدأ يستخدم حسابه.` })
+    out.push({ tone: 'tip', icon: 'UserMinus', text: T(lang,
+      `${neverActive.name} ما سجّل أي عملية بعد — لسّا ما بدأ يستخدم حسابه.`,
+      `${neverActive.name} עדיין לא ביצע אף פעולה — טרם התחיל להשתמש בחשבון שלו.`,
+      `${neverActive.name} hasn't performed any action yet — hasn't started using their account.`) })
 
   const deleter = rows.find(r => (r.actions?.delete || r.actions?.DELETE || 0) >= 5)
   if (deleter) {
     const dc = deleter.actions.delete || deleter.actions.DELETE
-    out.push({ tone: 'tip', icon: 'Trash2', text: `${deleter.name} نفّذ ${dc} عملية حذف — راجع سجلّ نشاطه للاطمئنان.` })
+    out.push({ tone: 'tip', icon: 'Trash2', text: T(lang,
+      `${deleter.name} نفّذ ${dc} عملية حذف — راجع سجلّ نشاطه للاطمئنان.`,
+      `${deleter.name} ביצע ${dc} פעולות מחיקה — בדוק את יומן הפעילות שלו לוודא.`,
+      `${deleter.name} performed ${dc} deletions — review their activity log to be safe.`) })
   }
 
   if (mostActive && mostActive.count > 0)
-    out.push({ tone: 'good', icon: 'Zap', text: `${mostActive.name} أنشط عضو في فريقك — ${mostActive.count} عملية مسجّلة.` })
+    out.push({ tone: 'good', icon: 'Zap', text: T(lang,
+      `${mostActive.name} أنشط عضو في فريقك — ${mostActive.count} عملية مسجّلة.`,
+      `${mostActive.name} החבר הפעיל ביותר בצוות — ${mostActive.count} פעולות מתועדות.`,
+      `${mostActive.name} is your most active member — ${mostActive.count} actions logged.`) })
 
   if (totalActions === 0)
-    out.push({ tone: 'tip', icon: 'Activity', text: 'ما في نشاط مسجّل بعد — يظهر التحليل لما يبدأ فريقك العمل.' })
+    out.push({ tone: 'tip', icon: 'Activity', text: T(lang,
+      'ما في نشاط مسجّل بعد — يظهر التحليل لما يبدأ فريقك العمل.',
+      'אין פעילות מתועדת עדיין — הניתוח יופיע כשהצוות יתחיל לעבוד.',
+      'No activity logged yet — analysis appears once your team starts working.') })
 
   const order = { warn: 0, tip: 1, good: 2 }
   return out.sort((x, y) => order[x.tone] - order[y.tone]).slice(0, 3)
 }
 
 // ─── مركز القيادة الذكي — Smart Command Center ─────────────────────────────────────
-// يركّب كل المحرّكات الذكية (صحّة المشاريع، بصمة العمّال، رادار التحصيل، كاشف
-// التسريب، نبض الفريق) في لوحة واحدة: بطاقات مؤشّرات + موجز موحّد لأهم التنبيهات
-// عبر التطبيق، كلٌّ مع وجهة تنقّل. دالة نقيّة تعيد استخدام المحرّكات أعلاه.
 
 /** يبني مدخلات بصمة العامل من البيانات الخام (مشترك بين الداشبورد وشاشة العمّال). */
-function workerDNAFromRaw(emp, { workDays, expenses, advances, fleetAvgPerDay }) {
+function workerDNAFromRaw(emp, { workDays, expenses, advances, fleetAvgPerDay }, lang = 'ar') {
   const wds    = workDays.filter(w => w.employee_id === emp.id)
   const wdsApp = wds.filter(w => w.status === 'approved')
   const expApp = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved')
@@ -925,13 +1066,23 @@ function workerDNAFromRaw(emp, { workDays, expenses, advances, fleetAvgPerDay })
     pendingDays:  wds.filter(w => w.status === 'pending').length,
     rejectedDays: wds.filter(w => w.status === 'rejected').length,
     daysPerMonth: Object.values(byMonth), tenureMonths: tenure,
-  })
+  }, lang)
+}
+
+const CC_LABELS = {
+  projects:   { ar: 'مشاريع بخطر',   he: 'פרויקטים בסיכון', en: 'At-risk projects' },
+  collection: { ar: 'متأخّر تحصيله', he: 'באיחור בגבייה',   en: 'Overdue' },
+  expenses:   { ar: 'تنبيهات صرف',   he: 'התראות הוצאה',    en: 'Expense alerts' },
+  workers:    { ar: 'عمّال للمتابعة', he: 'עובדים למעקב',   en: 'Workers to watch' },
+  team:       { ar: 'نبض الفريق',    he: 'דופק הצוות',      en: 'Team pulse' },
 }
 
 /**
+ * @param {object} a
+ * @param {string} [lang='ar']
  * @returns {{ scorecards, feed, alertCount, hasData }}
  */
-export function computeCommandCenter(a = {}) {
+export function computeCommandCenter(a = {}, lang = 'ar') {
   const {
     projects = [], employees = [], workDays = [], expenses = [],
     payments = [], advances = [], clientReceipts = [],
@@ -939,7 +1090,7 @@ export function computeCommandCenter(a = {}) {
     now = Date.now(),
   } = a
 
-  // ① صحّة المشاريع — أسوأ مشروع + عدد المشاريع بخطر
+  // ① صحّة المشاريع
   const activeProjects = projects.filter(p => p.status === 'نشط' || p.status === 'مكتمل')
   let worstProject = null, atRiskProjects = 0
   for (const p of activeProjects) {
@@ -951,39 +1102,40 @@ export function computeCommandCenter(a = {}) {
     const health = computeProjectHealth({
       name: p.name, price: parseFloat(p.price) || 0, revenue: stats.revenue, cost: stats.cost,
       ownerCash, profit: stats.profit, margin: stats.margin, overdue: !!isPaymentOverdue(p, clientReceipts),
-    })
+    }, lang)
     if (health.score < 50) atRiskProjects++
     if (!worstProject || health.score < worstProject.score)
       worstProject = { name: p.name, score: health.score, insight: health.insights[0] }
   }
 
-  // ② بصمة العمّال — أسوأ عامل + عدد العمّال للمتابعة
+  // ② بصمة العمّال
   const approvedWDs = workDays.filter(w => w.status === 'approved')
   const fleetAvgPerDay = approvedWDs.length ? calcEarned(approvedWDs) / approvedWDs.length : 0
   let worstWorker = null, watchWorkers = 0
   for (const e of employees) {
-    if (workDays.every(w => w.employee_id !== e.id)) continue   // لا تاريخ بعد
-    const dna = workerDNAFromRaw(e, { workDays, expenses, advances, fleetAvgPerDay })
+    if (workDays.every(w => w.employee_id !== e.id)) continue
+    const dna = workerDNAFromRaw(e, { workDays, expenses, advances, fleetAvgPerDay }, lang)
     if (dna.score < 50) watchWorkers++
     if (!worstWorker || dna.score < worstWorker.score)
       worstWorker = { name: e.name, score: dna.score, insight: dna.insights[0] }
   }
 
   // ③④⑤ التحصيل + المصاريف + الفريق
-  const aging = computeCollectionAging({ projects, receipts: clientReceipts, now })
-  const radar = detectExpenseAnomalies({ entries: expenses, monthKey })
-  const team  = (isOwner && teamMembers.length) ? computeTeamPulse({ members: teamMembers, activity: teamActivity, now }) : null
+  const aging = computeCollectionAging({ projects, receipts: clientReceipts, now }, lang)
+  const radar = detectExpenseAnomalies({ entries: expenses, monthKey }, lang)
+  const team  = (isOwner && teamMembers.length) ? computeTeamPulse({ members: teamMembers, activity: teamActivity, now }, lang) : null
 
-  // بطاقات المؤشّرات (قابلة للنقر)
+  // بطاقات المؤشّرات
+  const L = (k) => T(lang, CC_LABELS[k].ar, CC_LABELS[k].he, CC_LABELS[k].en)
   const scorecards = [
-    { key: 'projects',   label: 'مشاريع بخطر',   value: atRiskProjects, tone: atRiskProjects > 0 ? 'weak' : 'excellent', screen: 'projects', icon: 'ShieldCheck' },
-    { key: 'collection', label: 'متأخّر تحصيله', value: aging.overdueTotal, money: true, tone: aging.tone, screen: 'finance', icon: 'Hourglass' },
-    { key: 'expenses',   label: 'تنبيهات صرف',   value: radar.anomalies.filter(x => x.tone !== 'good').length, tone: radar.tone, screen: 'finance', icon: 'Radar' },
-    { key: 'workers',    label: 'عمّال للمتابعة', value: watchWorkers, tone: watchWorkers > 0 ? 'fair' : 'excellent', screen: 'workers', icon: 'Fingerprint' },
+    { key: 'projects',   label: L('projects'),   value: atRiskProjects, tone: atRiskProjects > 0 ? 'weak' : 'excellent', screen: 'projects', icon: 'ShieldCheck' },
+    { key: 'collection', label: L('collection'), value: aging.overdueTotal, money: true, tone: aging.tone, screen: 'finance', icon: 'Hourglass' },
+    { key: 'expenses',   label: L('expenses'),   value: radar.anomalies.filter(x => x.tone !== 'good').length, tone: radar.tone, screen: 'finance', icon: 'Radar' },
+    { key: 'workers',    label: L('workers'),    value: watchWorkers, tone: watchWorkers > 0 ? 'fair' : 'excellent', screen: 'workers', icon: 'Fingerprint' },
   ]
-  if (team) scorecards.push({ key: 'team', label: 'نبض الفريق', value: team.score, score: true, tone: team.tone, screen: 'team', icon: 'Users' })
+  if (team) scorecards.push({ key: 'team', label: L('team'), value: team.score, score: true, tone: team.tone, screen: 'team', icon: 'Users' })
 
-  // الموجز الموحّد — أهم إشارة من كل محرّك (نتجاهل الإيجابيات)
+  // الموجز الموحّد
   const feed = []
   const push = (ins, screen) => { if (ins && ins.tone !== 'good') feed.push({ tone: ins.tone, icon: ins.icon, text: ins.text, screen }) }
   if (worstProject && worstProject.score < 60) push(worstProject.insight, 'projects')
@@ -1004,33 +1156,32 @@ export function computeCommandCenter(a = {}) {
 }
 
 // ─── الذمّة الصافية — Net Worth / Equity Bridge ────────────────────────────────────
-// عدسة «الميزانية» المفقودة: كل المحرّكات الأخرى تنظر للربح/التدفّق/الصحّة، وهذا يجمع
-// كل المراكز المفتوحة في رقم مركزي واحد يجاوب السؤال الجوهري:
-//   «لو صفّيت كل حساباتي اليوم — قبضت كل مستحقاتي ودفعت كل ديوني — كم بضل ملكي فعلاً؟»
-//   صافي مركزك = نقد بالجيب + ذمم العملاء − مستحق العمّال − مصاريف معلّقة
-// يُخرِج شلالاً (waterfall) يبني الرقم خطوة بخطوة، كلٌّ بوجهة تنقّل. دوال نقيّة قابلة للاختبار.
 
 const NW_TONE_ORDER = { warn: 0, tip: 1, good: 2 }
 
 /** نبرة لونية لمركزك حسب الصافي والسيولة وتغطية الالتزامات. */
 function netWorthTone({ netWorth, cashOnHand, liabilities }) {
-  if (netWorth < 0)            return 'critical'   // مكشوف: التزاماتك أكبر من موجوداتك
-  if (cashOnHand < 0)          return 'weak'       // ذمّة موجبة لكن نقدك سالب — تعتمد على التحصيل
-  if (liabilities > cashOnHand) return 'fair'      // نقدك وحده لا يغطّي ديونك — تحتاج تحصيل
-  if (liabilities > 0)         return 'good'       // نقدك يغطّي كل ديونك
-  return 'excellent'                               // لا ديون مفتوحة — كل ذمّتك سائلة
+  if (netWorth < 0)            return 'critical'
+  if (cashOnHand < 0)          return 'weak'
+  if (liabilities > cashOnHand) return 'fair'
+  if (liabilities > 0)         return 'good'
+  return 'excellent'
+}
+
+const NW_LABELS = {
+  cash:        { ar: 'نقد بالجيب',     he: 'מזומן ביד',      en: 'Cash on hand' },
+  receivables: { ar: 'ذمم العملاء',    he: 'חייבים (לקוחות)', en: 'Receivables' },
+  workers:     { ar: 'مستحق العمّال',  he: 'חוב לעובדים',    en: 'Worker dues' },
+  pending:     { ar: 'مصاريف معلّقة',  he: 'הוצאות ממתינות', en: 'Pending expenses' },
+  net:         { ar: 'صافي مركزك',     he: 'השווי הנקי שלך', en: 'Your net worth' },
 }
 
 /**
  * المحرّك الرئيسي — يحسب الذمّة الصافية وشلالها.
- * @param {object} a - أرقام مجمّعة من الداشبورد (نفس مدخلات «نبض المصلحة»)
- * @param {number} a.cashOnHand      - النقد بالجيب الآن (قد يكون سالباً)
- * @param {number} a.owedByClients   - باقي لك عند العملاء (ذمم مدينة)
- * @param {number} a.owedToWorkers   - مستحق للعمّال (ذمم دائنة)
- * @param {number} [a.pendingExpenses=0] - مصاريف معلّقة بانتظار الاعتماد (التزام مؤجّل)
- * @returns {{ netWorth, assets, liabilities, cashOnHand, coverage, tone, segments, insights, hasData }}
+ * @param {object} a
+ * @param {string} [lang='ar']
  */
-export function computeNetWorth(a = {}) {
+export function computeNetWorth(a = {}, lang = 'ar') {
   const {
     cashOnHand = 0, owedByClients = 0,
     owedToWorkers = 0, pendingExpenses = 0,
@@ -1044,11 +1195,11 @@ export function computeNetWorth(a = {}) {
   const assets      = Math.max(0, cash) + recv
   const liabilities = workers + pending
   const netWorth    = cash + recv - workers - pending
-  // تغطية: كم مرّة تغطّي موجوداتك (نقد + ذمم) التزاماتك
   const coverage    = liabilities > 0 ? (Math.max(0, cash) + recv) / liabilities : null
 
-  // ── شلال البناء: نمشي بالرصيد التراكمي من صفر ──
-  // نقد → +ذمم العملاء → −مستحق العمّال → −مصاريف معلّقة → صافي مركزك
+  const NWL = (k) => T(lang, NW_LABELS[k].ar, NW_LABELS[k].he, NW_LABELS[k].en)
+
+  // ── شلال البناء ──
   const segments = []
   let run = 0
   const step = (key, label, delta, kind, screen, icon) => {
@@ -1057,12 +1208,11 @@ export function computeNetWorth(a = {}) {
     segments.push({ key, label, delta, start, end: run, kind, screen, icon })
   }
 
-  step('cash', 'نقد بالجيب', cash, 'base', 'finance', 'Wallet')
-  if (recv > 0)    step('receivables', 'ذمم العملاء', recv,     'asset',     'projects', 'DollarSign')
-  if (workers > 0) step('workers',     'مستحق العمّال', -workers, 'liability', 'workers',  'Users')
-  if (pending > 0) step('pending',     'مصاريف معلّقة', -pending, 'liability', 'finance',  'Clock')
-  // البند الختامي — يُرسَم من صفر لإجمالي الصافي
-  segments.push({ key: 'net', label: 'صافي مركزك', delta: netWorth, start: 0, end: netWorth, kind: 'net', screen: null, icon: 'Landmark' })
+  step('cash', NWL('cash'), cash, 'base', 'finance', 'Wallet')
+  if (recv > 0)    step('receivables', NWL('receivables'), recv,     'asset',     'projects', 'DollarSign')
+  if (workers > 0) step('workers',     NWL('workers'),     -workers, 'liability', 'workers',  'Users')
+  if (pending > 0) step('pending',     NWL('pending'),     -pending, 'liability', 'finance',  'Clock')
+  segments.push({ key: 'net', label: NWL('net'), delta: netWorth, start: 0, end: netWorth, kind: 'net', screen: null, icon: 'Landmark' })
 
   const tone     = netWorthTone({ netWorth, cashOnHand: cash, liabilities })
   const hasData  = !!(cash || recv || workers || pending)
@@ -1070,34 +1220,58 @@ export function computeNetWorth(a = {}) {
   return {
     netWorth, assets, liabilities, cashOnHand: cash, coverage,
     tone, segments, hasData,
-    insights: buildNetWorthInsights({ netWorth, cash, recv, workers, pending, liabilities, coverage }),
+    insights: buildNetWorthInsights({ netWorth, cash, recv, workers, pending, liabilities, coverage }, lang),
   }
 }
 
-// رؤى الذمّة الصافية — تحذيرات → نصائح → إيجابيات. أعلى 3. (الأيقونات أسماء Lucide)
-function buildNetWorthInsights({ netWorth, cash, recv, workers, pending, liabilities, coverage }) {
+// رؤى الذمّة الصافية — تحذيرات → نصائح → إيجابيات. أعلى 3.
+function buildNetWorthInsights({ netWorth, cash, recv, workers, pending, liabilities, coverage }, lang = 'ar') {
   const out = []
 
   if (netWorth < 0)
-    out.push({ tone: 'warn', icon: 'AlertTriangle', text: `مركزك سالب بـ ₪${fmt(-netWorth)} — التزاماتك أكبر من موجوداتك. ركّز على التحصيل وقلّل الصرف.` })
+    out.push({ tone: 'warn', icon: 'AlertTriangle', text: T(lang,
+      `مركزك سالب بـ ₪${fmt(-netWorth)} — التزاماتك أكبر من موجوداتك. ركّز على التحصيل وقلّل الصرف.`,
+      `השווי שלך שלילי ב-₪${fmt(-netWorth)} — ההתחייבויות גדולות מהנכסים. התמקד בגבייה והפחת הוצאות.`,
+      `Your net worth is negative by ₪${fmt(-netWorth)} — liabilities exceed assets. Focus on collection and cut spending.`) })
   else if (cash < 0)
-    out.push({ tone: 'warn', icon: 'Wallet', text: `ذمّتك موجبة (₪${fmt(netWorth)}) لكن نقدك سالب — أنت مكشوف على تحصيل ₪${fmt(recv)}. سرّع القبض.` })
+    out.push({ tone: 'warn', icon: 'Wallet', text: T(lang,
+      `ذمّتك موجبة (₪${fmt(netWorth)}) لكن نقدك سالب — أنت مكشوف على تحصيل ₪${fmt(recv)}. سرّع القبض.`,
+      `השווי שלך חיובי (₪${fmt(netWorth)}) אך המזומן שלילי — אתה תלוי בגביית ₪${fmt(recv)}. זרז את הגבייה.`,
+      `Your net worth is positive (₪${fmt(netWorth)}) but cash is negative — you're exposed to collecting ₪${fmt(recv)}. Speed up receipts.`) })
   else if (workers > 0 && workers > cash)
-    out.push({ tone: 'warn', icon: 'Users', text: `مستحقّات العمّال ₪${fmt(workers)} أكبر من نقدك ₪${fmt(cash)} — حصّل قبل دورة الرواتب القادمة.` })
+    out.push({ tone: 'warn', icon: 'Users', text: T(lang,
+      `مستحقّات العمّال ₪${fmt(workers)} أكبر من نقدك ₪${fmt(cash)} — حصّل قبل دورة الرواتب القادمة.`,
+      `חוב לעובדים ₪${fmt(workers)} גדול מהמזומן שלך ₪${fmt(cash)} — גבה לפני מחזור המשכורות הבא.`,
+      `Worker dues ₪${fmt(workers)} exceed your cash ₪${fmt(cash)} — collect before the next payroll cycle.`) })
 
   if (recv > 0)
-    out.push({ tone: 'tip', icon: 'DollarSign', text: `₪${fmt(recv)} محتجزة عند عملائك — تحصيلها يرفع نقدك مباشرة. ذكّرهم من رادار التحصيل.` })
+    out.push({ tone: 'tip', icon: 'DollarSign', text: T(lang,
+      `₪${fmt(recv)} محتجزة عند عملائك — تحصيلها يرفع نقدك مباشرة. ذكّرهم من رادار التحصيل.`,
+      `₪${fmt(recv)} מוחזקים אצל הלקוחות שלך — גבייתם מעלה את המזומן ישירות. הזכר להם דרך רדאר הגבייה.`,
+      `₪${fmt(recv)} held by your clients — collecting it raises your cash directly. Remind them from the collection radar.`) })
 
   if (pending > 0)
-    out.push({ tone: 'tip', icon: 'Clock', text: `₪${fmt(pending)} مصاريف معلّقة بانتظار اعتمادك — ستخصم من مركزك عند إقرارها.` })
+    out.push({ tone: 'tip', icon: 'Clock', text: T(lang,
+      `₪${fmt(pending)} مصاريف معلّقة بانتظار اعتمادك — ستخصم من مركزك عند إقرارها.`,
+      `₪${fmt(pending)} הוצאות ממתינות לאישורך — ינוכו מהשווי שלך עם אישורן.`,
+      `₪${fmt(pending)} in pending expenses await your approval — they'll deduct from your net worth once approved.`) })
 
   if (netWorth > 0 && liabilities === 0)
-    out.push({ tone: 'good', icon: 'CheckCircle2', text: `لا التزامات مفتوحة — كل ذمّتك (₪${fmt(netWorth)}) سائلة ومتاحة. وضع ممتاز.` })
+    out.push({ tone: 'good', icon: 'CheckCircle2', text: T(lang,
+      `لا التزامات مفتوحة — كل ذمّتك (₪${fmt(netWorth)}) سائلة ومتاحة. وضع ممتاز.`,
+      `אין התחייבויות פתוחות — כל השווי שלך (₪${fmt(netWorth)}) נזיל וזמין. מצב מצוין.`,
+      `No open liabilities — all your net worth (₪${fmt(netWorth)}) is liquid and available. Excellent.`) })
   else if (netWorth > 0 && coverage != null && coverage >= 1.5)
-    out.push({ tone: 'good', icon: 'ShieldCheck', text: `مركزك متين — موجوداتك تغطّي التزاماتك ${coverage >= 9.5 ? '+9' : coverage.toFixed(1)} مرّة، وصافي ذمّتك ₪${fmt(netWorth)}.` })
+    out.push({ tone: 'good', icon: 'ShieldCheck', text: T(lang,
+      `مركزك متين — موجوداتك تغطّي التزاماتك ${coverage >= 9.5 ? '+9' : coverage.toFixed(1)} مرّة، وصافي ذمّتك ₪${fmt(netWorth)}.`,
+      `המצב שלך איתן — הנכסים מכסים את ההתחייבויות ${coverage >= 9.5 ? '+9' : coverage.toFixed(1)} פעמים, והשווי הנקי ₪${fmt(netWorth)}.`,
+      `Your position is solid — assets cover liabilities ${coverage >= 9.5 ? '+9' : coverage.toFixed(1)}×, and net worth is ₪${fmt(netWorth)}.`) })
 
   if (out.length === 0)
-    out.push({ tone: 'tip', icon: 'Landmark', text: 'سجّل مقبوضاتك ومصاريفك ليتفعّل حساب ذمّتك الصافية.' })
+    out.push({ tone: 'tip', icon: 'Landmark', text: T(lang,
+      'سجّل مقبوضاتك ومصاريفك ليتفعّل حساب ذمّتك الصافية.',
+      'רשום תקבולים והוצאות כדי להפעיל את חישוב השווי הנקי.',
+      'Log your receipts and expenses to activate net-worth calculation.') })
 
   return out.sort((x, y) => NW_TONE_ORDER[x.tone] - NW_TONE_ORDER[y.tone]).slice(0, 3)
 }

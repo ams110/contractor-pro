@@ -17,15 +17,19 @@ import ReceiptCard from '../../components/ReceiptCard.jsx'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { detectExpenseAnomalies } from '../../lib/insights.js'
 import ExpenseRadar from '../../components/ExpenseRadar.jsx'
+import { tl, tEnum } from '../../lib/labels.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const METHODS = [
-  { id: 'cash',     label: 'كاش',            Icon: Banknote   },
-  { id: 'transfer', label: 'تحويل بنكي',     Icon: Building   },
-  { id: 'check',    label: 'شيك',             Icon: CreditCard },
-  { id: 'app',      label: 'בנקאות סלולרית', Icon: Smartphone },
+  { id: 'cash',     ar: 'كاش',        he: 'מזומן',            en: 'Cash',          Icon: Banknote   },
+  { id: 'transfer', ar: 'تحويل بنكي', he: 'העברה בנקאית',     en: 'Bank transfer', Icon: Building   },
+  { id: 'check',    ar: 'شيك',        he: "צ'ק",              en: 'Cheque',        Icon: CreditCard },
+  { id: 'app',      ar: 'تطبيق',      he: 'בנקאות סלולרית',   en: 'Mobile banking', Icon: Smartphone },
 ]
-function methodLabel(m) { return METHODS.find(x => x.id === m)?.label ?? m }
+function methodLabel(m, language) {
+  const x = METHODS.find(x => x.id === m)
+  return x ? tl(language, x.ar, x.he, x.en) : m
+}
 
 const CAT_COLORS = [
   '#F59E0B','#22C55E','#3B82F6','#8B5CF6','#EC4899',
@@ -62,20 +66,21 @@ function StatCard({ label, value, color, sub, icon: Icon }) {
 
 // ─── VAT Hint Badge ───────────────────────────────────────────────────────────
 function VatHint({ category }) {
+  const language = useAppStore(s => s.language)
   const rate = vatDeductRate(category)
   if (rate >= 1.0) return (
     <span style={{ fontSize: 9, background: '#22C55E18', color: '#22C55E', border: '1px solid #22C55E30', borderRadius: 8, padding: '2px 7px', fontWeight: 700 }}>
-      {'מע"מ'} قابل للخصم 100%
+      {tl(language, 'מע"מ قابل للخصم 100%', 'מע"מ מוכר לניכוי 100%', 'מע"מ deductible 100%')}
     </span>
   )
   if (rate >= 0.6) return (
     <span style={{ fontSize: 9, background: '#F59E0B18', color: '#F59E0B', border: '1px solid #F59E0B30', borderRadius: 8, padding: '2px 7px', fontWeight: 700 }}>
-      {'מע"מ'} قابل للخصم 67%
+      {tl(language, 'מע"מ قابل للخصم 67%', 'מע"מ מוכר לניכוי 67%', 'מע"מ deductible 67%')}
     </span>
   )
   return (
     <span style={{ fontSize: 9, background: '#EF444418', color: '#EF4444', border: '1px solid #EF444430', borderRadius: 8, padding: '2px 7px', fontWeight: 700 }}>
-      {'מע"מ'} غير قابل للخصم
+      {tl(language, 'מע"מ غير قابل للخصم', 'מע"מ לא מוכר לניכוי', 'מע"מ not deductible')}
     </span>
   )
 }
@@ -83,32 +88,34 @@ function VatHint({ category }) {
 // ─── Entry Row ────────────────────────────────────────────────────────────────
 function EntryRow({ entry, showVat, projectName, onDelete }) {
   const [delConfirm, setDelConfirm] = useState(false)
+  const language = useAppStore(s => s.language)
   const color = catColor(entry.category)
   const deductible = Number(entry.vat_amount ?? 0) * vatDeductRate(entry.category)
   const method = entry.payment_method || entry.method
   const note = entry.note || entry.notes
 
   const title = entry.vendor || entry.category || 'مصروف'
+  const displayTitle = entry.vendor || tEnum(entry.category, language) || tl(language, 'مصروف', 'הוצאה', 'Expense')
   const chips = []
-  if (entry.category && entry.category !== title) chips.push({ label: entry.category, color })
-  if (method) chips.push({ label: methodLabel(method), color: C.cyan })
+  if (entry.category && entry.category !== title) chips.push({ label: tEnum(entry.category, language), color })
+  if (method) chips.push({ label: methodLabel(method, language), color: C.cyan })
   if (projectName) chips.push({ label: projectName, color: C.primary })
 
   const actions = !delConfirm
     ? <button onClick={() => setDelConfirm(true)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}><Trash2 size={13} /></button>
     : <span style={{ display: 'flex', gap: 4 }}>
-        <button onClick={() => setDelConfirm(false)} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textDim, cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontFamily: 'inherit' }}>لا</button>
-        <button onClick={() => onDelete(entry.id)} style={{ background: C.accent, border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontWeight: 700, fontFamily: 'inherit' }}>احذف</button>
+        <button onClick={() => setDelConfirm(false)} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textDim, cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontFamily: 'inherit' }}>{tl(language, 'لا', 'לא', 'No')}</button>
+        <button onClick={() => onDelete(entry.id)} style={{ background: C.accent, border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontWeight: 700, fontFamily: 'inherit' }}>{tl(language, 'احذف', 'מחק', 'Delete')}</button>
       </span>
 
   return (
     <ReceiptCard
       accent={C.accent}
       direction="out"
-      amountLabel="صُرف"
+      amountLabel={tl(language, 'صُرف', 'הוצא', 'Spent')}
       refNumber={entry.ref_number}
       date={fmtDate(entry.date)}
-      title={title}
+      title={displayTitle}
       subtitle={note}
       amount={entry.amount}
       chips={chips}
@@ -118,7 +125,7 @@ function EntryRow({ entry, showVat, projectName, onDelete }) {
       {showVat && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 7 }}>
           <VatHint category={entry.category} />
-          {deductible > 0 && <span style={{ fontSize: 10, color: C.success, fontWeight: 700 }}>خصم {'מע"מ'} ₪{fmt(deductible)}</span>}
+          {deductible > 0 && <span style={{ fontSize: 10, color: C.success, fontWeight: 700 }}>{tl(language, 'خصم מע"מ', 'ניכוי מע"מ', 'מע"מ deduction')} ₪{fmt(deductible)}</span>}
         </div>
       )}
     </ReceiptCard>
@@ -145,6 +152,7 @@ export default function ExpenseTab({
     [businesses, activeBizId]
   )
   const { showToast } = useAppStore()
+  const language = useAppStore(s => s.language)
   const { confirm: bioConfirm } = useBiometricConfirm()
 
   const [entries,     setEntries]     = useState([])
@@ -215,8 +223,8 @@ export default function ExpenseTab({
 
   // كاشف التسريب — مسح ذكي للمصاريف الشاذّة هذا الشهر
   const expenseRadar = useMemo(() =>
-    detectExpenseAnomalies({ entries, monthKey: thisMonthKey })
-  , [entries, thisMonthKey])
+    detectExpenseAnomalies({ entries, monthKey: thisMonthKey }, language)
+  , [entries, thisMonthKey, language])
 
   // رسم بياني بالفئات (الشهر الحالي)
   const catChartData = useMemo(() => {
@@ -263,17 +271,21 @@ export default function ExpenseTab({
     if (error) throw error
     setEntries(prev => [data, ...prev])
     onMutate?.()
-    showToast('تم تسجيل المصروف')
+    showToast(tl(language, 'تم تسجيل المصروف', 'ההוצאה נרשמה', 'Expense recorded'))
   }
 
   async function handleDelete(id) {
     const entry = entries.find(e => e.id === id)
-    const sig = await bioConfirm(`حذف مصروف: ₪${Number(entry?.amount || 0).toLocaleString()} — ${entry?.category || ''}`, 'expenses')
+    const catLabel = tEnum(entry?.category, language) || ''
+    const sig = await bioConfirm(tl(language,
+      `حذف مصروف: ₪${Number(entry?.amount || 0).toLocaleString()} — ${catLabel}`,
+      `מחיקת הוצאה: ₪${Number(entry?.amount || 0).toLocaleString()} — ${catLabel}`,
+      `Delete expense: ₪${Number(entry?.amount || 0).toLocaleString()} — ${catLabel}`), 'expenses')
     if (!sig) return
     await supabase.from('expenses').delete().eq('id', id)
     setEntries(prev => prev.filter(e => e.id !== id))
     onMutate?.()
-    showToast('تم الحذف')
+    showToast(tl(language, 'تم الحذف', 'נמחק', 'Deleted'))
   }
 
   const anyFilter = filterMonth || filterCat || filterProj
@@ -285,16 +297,16 @@ export default function ExpenseTab({
         <button onClick={() => setFilterProj(f => f === '__orphan__' ? '' : '__orphan__')}
           style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', marginBottom: 12, borderRadius: 12, background: `${C.secondary}14`, border: `1px solid ${C.secondary}3a`, color: C.text, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start' }}>
           <AlertTriangle size={15} color={C.secondary} strokeWidth={2.2} />
-          <span style={{ flex: 1, fontSize: 12, fontWeight: 700 }}>{orphanCount} مصروف بلا مشروع مرتبط</span>
-          <span style={{ fontSize: 11, fontWeight: 800, color: C.secondary }}>{filterProj === '__orphan__' ? 'إخفاء' : 'عرضها'}</span>
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 700 }}>{tl(language, `${orphanCount} مصروف بلا مشروع مرتبط`, `${orphanCount} הוצאות ללא פרויקט משויך`, `${orphanCount} expenses without a linked project`)}</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: C.secondary }}>{filterProj === '__orphan__' ? tl(language, 'إخفاء', 'הסתר', 'Hide') : tl(language, 'عرضها', 'הצג', 'Show')}</span>
         </button>
       )}
       {/* ─── Stats ──────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-        <StatCard label="هذا الشهر" value={totalMonth} color={C.accent} icon={TrendingDown} />
-        <StatCard label={`سنة ${thisYear}`} value={totalYear} color="#8B5CF6" />
+        <StatCard label={tl(language, 'هذا الشهر', 'החודש', 'This month')} value={totalMonth} color={C.accent} icon={TrendingDown} />
+        <StatCard label={tl(language, `سنة ${thisYear}`, `שנת ${thisYear}`, `Year ${thisYear}`)} value={totalYear} color="#8B5CF6" />
         {showVat && (
-          <StatCard label={'מע"מ مخصوم'} value={totalVatDeductible} color="#22C55E" sub="هذا الشهر" />
+          <StatCard label={tl(language, 'מע"מ مخصوم', 'מע"מ מנוכה', 'מע"מ deducted')} value={totalVatDeductible} color="#22C55E" sub={tl(language, 'هذا الشهر', 'החודש', 'This month')} />
         )}
       </div>
 
@@ -305,7 +317,7 @@ export default function ExpenseTab({
       {catChartData.length > 0 && (
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '12px 8px 4px', marginBottom: 14 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 8, paddingRight: 8 }}>
-            توزيع المصاريف — {thisMonthKey}
+            {tl(language, 'توزيع المصاريف', 'התפלגות ההוצאות', 'Expense breakdown')} — {thisMonthKey}
           </div>
           <ResponsiveContainer width="100%" height={80}>
             <BarChart data={catChartData} barSize={20}>
@@ -331,15 +343,15 @@ export default function ExpenseTab({
           <Calendar size={11} color={C.textDim} />
           <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
             style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterMonth ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-            <option value="">كل الفترات</option>
+            <option value="">{tl(language, 'كل الفترات', 'כל התקופות', 'All periods')}</option>
             {months.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
 
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
           style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterCat ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-          <option value="">كل الفئات</option>
-          {usedCats.map(c => <option key={c} value={c}>{c}</option>)}
+          <option value="">{tl(language, 'كل الفئات', 'כל הקטגוריות', 'All categories')}</option>
+          {usedCats.map(c => <option key={c} value={c}>{tEnum(c, language)}</option>)}
         </select>
 
         {linkedProjects.length > 0 && (
@@ -347,14 +359,14 @@ export default function ExpenseTab({
             <FolderOpen size={11} color={C.textDim} />
             <select value={filterProj} onChange={e => setFilterProj(e.target.value)}
               style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: filterProj ? C.text : C.textDim, fontSize: 11, padding: '5px 8px', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', maxWidth: 140 }}>
-              <option value="">كل المشاريع</option>
+              <option value="">{tl(language, 'كل المشاريع', 'כל הפרויקטים', 'All projects')}</option>
               {linkedProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
         )}
 
         <div style={{ marginRight: 'auto', fontSize: 11, color: C.textDim }}>
-          {filtered.length} سجل
+          {tl(language, `${filtered.length} سجل`, `${filtered.length} רשומות`, `${filtered.length} records`)}
           {anyFilter && (
             <span style={{ marginRight: 6, color: C.accent }}>
               · ₪{fmt(filtered.reduce((s, e) => s + Number(e.amount), 0))}
@@ -365,15 +377,17 @@ export default function ExpenseTab({
 
       {/* ─── List ───────────────────────────────────────────────────────────── */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>تحميل...</div>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>{tl(language, 'تحميل...', 'טוען...', 'Loading...')}</div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
           <TrendingDown size={32} color={C.textDim} style={{ marginBottom: 12, opacity: 0.4 }} />
           <div style={{ fontSize: 13, color: C.textDim, fontWeight: 600 }}>
-            {anyFilter ? 'لا توجد مصاريف لهذا الفلتر' : 'لا توجد مصاريف بعد'}
+            {anyFilter
+              ? tl(language, 'لا توجد مصاريف لهذا الفلتر', 'אין הוצאות לסינון זה', 'No expenses for this filter')
+              : tl(language, 'لا توجد مصاريف بعد', 'אין הוצאות עדיין', 'No expenses yet')}
           </div>
           {!anyFilter && (
-            <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, opacity: 0.7 }}>اضغط + لتسجيل أول مصروف</div>
+            <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, opacity: 0.7 }}>{tl(language, 'اضغط + لتسجيل أول مصروف', 'לחץ + לרישום ההוצאה הראשונה', 'Tap + to add your first expense')}</div>
           )}
         </div>
       ) : (
@@ -405,7 +419,7 @@ export default function ExpenseTab({
             boxShadow: `0 4px 20px ${C.accent}44`,
           }}>
           <Plus size={16} strokeWidth={2.5} />
-          تسجيل مصروف
+          {tl(language, 'تسجيل مصروف', 'רישום הוצאה', 'Add expense')}
         </motion.button>
       </div>
 

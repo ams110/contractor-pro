@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, Check, X } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
+import { tl, tEnum } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 /* ─── AnimatedNumber ─── */
 export function AnimatedNumber({ value, prefix = '', suffix = '', duration = 900 }) {
@@ -145,6 +147,7 @@ export function Modal({ open, onClose, title, children, action }) {
 /* ─── Input ─── */
 export function Input({ label, value, onChange, type = 'text', placeholder = '', options, required, error, min, max }) {
   const [focused, setFocused] = useState(false)
+  const language = useAppStore(s => s.language)
   const base = {
     width: '100%',
     padding: '13px 14px',
@@ -166,8 +169,9 @@ export function Input({ label, value, onChange, type = 'text', placeholder = '',
       </label>
       {options
         ? <select value={value} onChange={e => onChange(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={{ ...base, appearance: 'auto' }}>
-            <option value="">اختر...</option>
-            {options.map(o => <option key={o} value={o}>{o}</option>)}
+            <option value="">{tl(language, 'اختر...', 'בחר...', 'Select...')}</option>
+            {/* القيمة المخزّنة تبقى كما هي (value=o)؛ النصّ المعروض يُترجَم للقيم المعروفة عبر tEnum */}
+            {options.map(o => <option key={o} value={o}>{tEnum(o, language)}</option>)}
           </select>
         : <input type={type} value={value} onChange={e => onChange(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder={placeholder} min={min} max={max} style={base} />
       }
@@ -280,6 +284,7 @@ export function EmptyState({ icon, text, action, onAction }) {
 
 /* ─── ConfirmDialog ─── */
 export function ConfirmDialog({ open, onClose, onConfirm, message }) {
+  const language = useAppStore(s => s.language)
   if (!open) return null
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
@@ -287,8 +292,8 @@ export function ConfirmDialog({ open, onClose, onConfirm, message }) {
       <div className="fade-in" style={{ position: 'relative', background: C.surface, borderRadius: 24, padding: 28, maxWidth: 310, width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.6)', border: `1px solid ${C.border}` }}>
         <div style={{ fontSize: 15, color: C.text, marginBottom: 24, textAlign: 'center', lineHeight: 1.7 }}>{message}</div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Btn onClick={onClose} variant="outline" color={C.textDim} full>إلغاء</Btn>
-          <Btn onClick={onConfirm} color={C.accent} full>حذف</Btn>
+          <Btn onClick={onClose} variant="outline" color={C.textDim} full>{tl(language, 'إلغاء', 'ביטול', 'Cancel')}</Btn>
+          <Btn onClick={onConfirm} color={C.accent} full>{tl(language, 'حذف', 'מחיקה', 'Delete')}</Btn>
         </div>
       </div>
     </div>,
@@ -328,6 +333,7 @@ export function SuccessToast({ message, onClose }) {
 // الإيموجي غليف نظام (ما يتلوّن بالهوية ويختلف بين الأجهزة)، والتوهّج/النقاط البرتقالية
 // حواليه يربطوه بالهوية. CSS نقيّ مستقلّ (يعمل كـ Suspense fallback) + يحترم reduced-motion.
 export function LoadingSpinner({ size = 60, label }) {
+  const language = useAppStore(s => s.language)
   const dot = Math.max(5, Math.round(size * 0.1))
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32 }}>
@@ -344,7 +350,7 @@ export function LoadingSpinner({ size = 60, label }) {
 
         {/* إيموجي الشاكوش يدقّ */}
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div role="img" aria-label="جاري التحميل" style={{ fontSize: size * 0.6, lineHeight: 1, transformOrigin: '50% 82%', animation: 'cpHmrTap 1.05s cubic-bezier(.45,0,.25,1) infinite', filter: `drop-shadow(0 3px 8px ${C.primary}70)`, fontFamily: '"Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif' }}>{'🔨'}</div>
+          <div role="img" aria-label={tl(language, 'جاري التحميل', 'טוען...', 'Loading...')} style={{ fontSize: size * 0.6, lineHeight: 1, transformOrigin: '50% 82%', animation: 'cpHmrTap 1.05s cubic-bezier(.45,0,.25,1) infinite', filter: `drop-shadow(0 3px 8px ${C.primary}70)`, fontFamily: '"Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif' }}>{'🔨'}</div>
         </div>
       </div>
 

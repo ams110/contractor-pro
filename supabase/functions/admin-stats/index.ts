@@ -205,7 +205,7 @@ serve(async (req) => {
       const uname = await currentUsername()
       const { data: existing } = await admin.from('admin_passkeys').select('credential_id')
       const options = await generateRegistrationOptions({
-        rpName: 'Contractor Pro Admin',
+        rpName: 'Kabblan Admin',
         rpID,
         userID: enc.encode('contractor-admin'),
         userName: uname,

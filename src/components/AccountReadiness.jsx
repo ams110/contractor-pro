@@ -5,6 +5,8 @@ import {
   Check, ChevronLeft, Sparkles,
 } from 'lucide-react'
 import { C } from '../constants/index.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 const TONE = {
   excellent: { main: C.success, soft: 'rgba(34,197,94,0.14)',  glow: 'rgba(34,197,94,0.45)' },
@@ -74,6 +76,7 @@ function Ring({ score, tone, label, animate }) {
 }
 
 export default function AccountReadiness({ readiness, onFix }) {
+  const language = useAppStore(s => s.language)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.3 })
   if (!readiness) return null
@@ -100,8 +103,8 @@ export default function AccountReadiness({ readiness, onFix }) {
           <ShieldCheck size={15} color={t.main} strokeWidth={2.5} />
         </div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>جاهزية الحساب</div>
-          <div style={{ fontSize: 10, color: C.textDim }}>اكتمل {readiness.doneCount} من {readiness.total} — أمّن وأكمل إعدادك</div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'جاهزية الحساب', 'מוכנות החשבון', 'Account Readiness')}</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, `اكتمل ${readiness.doneCount} من ${readiness.total} — أمّن وأكمل إعدادك`, `הושלמו ${readiness.doneCount} מתוך ${readiness.total} — אבטח והשלם את ההגדרה`, `${readiness.doneCount} of ${readiness.total} done — secure and complete your setup`)}</div>
         </div>
       </div>
 
@@ -114,7 +117,7 @@ export default function AccountReadiness({ readiness, onFix }) {
               <div style={{ width: 30, height: 30, borderRadius: 9, background: `${C.success}1c`, border: `1px solid ${C.success}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Check size={15} color={C.success} strokeWidth={2.5} />
               </div>
-              <span style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>حسابك مُعدّ ومؤمّن بالكامل — ما في إشي ناقص</span>
+              <span style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>{tl(language, 'حسابك مُعدّ ومؤمّن بالكامل — ما في إشي ناقص', 'החשבון שלך מוגדר ומאובטח במלואו — לא חסר כלום', 'Your account is fully set up and secured — nothing missing')}</span>
             </div>
           ) : (
             readiness.missing.slice(0, 3).map((m, i) => {
@@ -141,7 +144,7 @@ export default function AccountReadiness({ readiness, onFix }) {
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{m.label}</div>
                     <div style={{ fontSize: 10, color: C.textDim, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.hint}</div>
                   </div>
-                  {m.critical && <span style={{ fontSize: 8, fontWeight: 800, color: C.accent, background: `${C.accent}18`, border: `1px solid ${C.accent}33`, borderRadius: 5, padding: '2px 5px', flexShrink: 0 }}>مهم</span>}
+                  {m.critical && <span style={{ fontSize: 8, fontWeight: 800, color: C.accent, background: `${C.accent}18`, border: `1px solid ${C.accent}33`, borderRadius: 5, padding: '2px 5px', flexShrink: 0 }}>{tl(language, 'مهم', 'חשוב', 'Important')}</span>}
                   <ChevronLeft size={14} color={C.textDim} style={{ flexShrink: 0 }} />
                 </motion.button>
               )

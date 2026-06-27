@@ -24,14 +24,14 @@ describe('calcIncomeTaxAnnual', () => {
     expect(calcIncomeTaxAnnual(200_000)).toBe(23_540)
   })
 
-  it('خصم الפנסיה يخفّض الضريبة (حتى سقف 16% من الدخل)', () => {
+  it('خصم ال פנסיה يخفّض الضريبة (حتى سقف 16% من الدخل)', () => {
     const noPension   = calcIncomeTaxAnnual(200_000)
     const withPension = calcIncomeTaxAnnual(200_000, 2.25, 30_000)
     expect(withPension).toBeLessThan(noPension)
     expect(withPension).toBe(16_858)
   })
 
-  it('سقف خصم الפנסיה 16% من الدخل — ما يتجاوزه', () => {
+  it('سقف خصم ال פנסיה 16% من الدخل — ما يتجاوزه', () => {
     // پنسيه ضخمة تُقصّ عند 16% من 200,000 = 32,000
     const capped   = calcIncomeTaxAnnual(200_000, 2.25, 32_000)
     const overCap  = calcIncomeTaxAnnual(200_000, 2.25, 999_999)
@@ -50,7 +50,7 @@ describe('calcWorkerDeductions', () => {
     expect(d.net).toBe(10_000)
   })
 
-  it('فلسطيني: 20% ضريبة دخل وביטוח לאומי على صاحب العمل (صفر على العامل)', () => {
+  it('فلسطيني: 20% ضريبة دخل و ביטוח לאומי على صاحب العمل (صفر على العامل)', () => {
     const d = calcWorkerDeductions(10_000, 'palestinian')
     expect(d.incomeTax).toBe(2_000)
     expect(d.bituachLeumi).toBe(0)

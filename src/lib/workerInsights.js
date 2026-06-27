@@ -9,6 +9,10 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { calcMustahaq } from './calculations.js'
+import { tEnum } from './labels.js'
+
+// مساعد ترجمة محلي (افتراضي عربي) — يبقي مخرجات الاختبارات كما هي.
+const T = (lang, ar, he, en) => (lang === 'he' ? he : lang === 'en' ? (en ?? ar) : ar)
 
 // ── أدوات داخلية ──────────────────────────────────────────────────────────────
 const pad = n => String(n).padStart(2, '0')
@@ -113,7 +117,7 @@ export function buildRadarData(dna, fleetDna) {
 // ════════════════════════════════════════════════════════════════════════════
 //  3. كشف الشذوذ الذكي
 // ════════════════════════════════════════════════════════════════════════════
-export function detectWorkerAnomalies(worker, { workDays = [], advances = [], expenses = [], today = new Date() } = {}) {
+export function detectWorkerAnomalies(worker, { workDays = [], advances = [], expenses = [], today = new Date() } = {}, lang = 'ar') {
   if (!worker) return []
   const eid = worker.id
   const wds = workDays.filter(w => w.employee_id === eid)
@@ -128,47 +132,61 @@ export function detectWorkerAnomalies(worker, { workDays = [], advances = [], ex
     seen[k] = (seen[k] || 0) + 1
   }
   const dups = Object.values(seen).filter(n => n > 1).length
-  if (dups) out.push({ severity: 'high', type: 'duplicate', icon: 'Copy', count: dups,
-    text: `${dups} يوم مكرّر بنفس التاريخ والمشروع — تأكّد من عدم ازدواج الإدخال.` })
+  if (dups) out.push({ severity: 'high', type: 'duplicate', icon: 'Copy', count: dups, text: T(lang,
+    `${dups} يوم مكرّر بنفس التاريخ والمشروع — تأكّد من عدم ازدواج الإدخال.`,
+    `${dups} ימים כפולים באותו תאריך ופרויקט — ודא שאין כפילות בהזנה.`,
+    `${dups} duplicate days on the same date and project — make sure there's no double entry.`) })
 
   // (ب) مبلغ يومي شاذّ (> 2.5× الوسيط)
   const amounts = wdsApp.map(wdAmount).filter(a => a > 0).sort((a, b) => a - b)
   if (amounts.length >= 4) {
     const med = amounts[Math.floor(amounts.length / 2)]
     const outliers = wdsApp.filter(w => med > 0 && wdAmount(w) > med * 2.5).length
-    if (outliers) out.push({ severity: 'medium', type: 'amount_outlier', icon: 'TrendingUp', count: outliers,
-      text: `${outliers} يوم بمبلغ أعلى بكثير من المعتاد (>2.5× الوسيط ₪${Math.round(med)}).` })
+    if (outliers) out.push({ severity: 'medium', type: 'amount_outlier', icon: 'TrendingUp', count: outliers, text: T(lang,
+      `${outliers} يوم بمبلغ أعلى بكثير من المعتاد (>2.5× الوسيط ₪${Math.round(med)}).`,
+      `${outliers} ימים בסכום גבוה בהרבה מהרגיל (מעל פי 2.5 מהחציון ₪${Math.round(med)}).`,
+      `${outliers} days with an amount far above usual (>2.5× the median ₪${Math.round(med)}).`) })
   }
 
   // (ج) ساعات طويلة غير منطقية
   const longDays = wdsApp.filter(w => (w.hours || 0) >= 16).length
-  if (longDays) out.push({ severity: 'medium', type: 'long_hours', icon: 'Clock', count: longDays,
-    text: `${longDays} يوم مسجّل بـ16 ساعة أو أكثر — راجِع الإدخال.` })
+  if (longDays) out.push({ severity: 'medium', type: 'long_hours', icon: 'Clock', count: longDays, text: T(lang,
+    `${longDays} يوم مسجّل بـ16 ساعة أو أكثر — راجِع الإدخال.`,
+    `${longDays} ימים נרשמו עם 16 שעות או יותר — בדוק את ההזנה.`,
+    `${longDays} days logged with 16 hours or more — review the entry.`) })
 
   // (د) السلف مقابل المستحق
   const expApp = expenses.filter(e => e.employee_id === eid && e.status === 'approved')
   const earned = calcMustahaq(wdsApp, expApp)
   const advTotal = advances.filter(a => a.employee_id === eid).reduce((s, a) => s + (a.amount || 0), 0)
   if (advTotal > 0 && advTotal > earned)
-    out.push({ severity: 'high', type: 'over_advance', icon: 'AlertTriangle',
-      text: `السلف (₪${Math.round(advTotal)}) تجاوزت المستحق (₪${Math.round(earned)}) — خطر عند التصفية.` })
+    out.push({ severity: 'high', type: 'over_advance', icon: 'AlertTriangle', text: T(lang,
+      `السلف (₪${Math.round(advTotal)}) تجاوزت المستحق (₪${Math.round(earned)}) — خطر عند التصفية.`,
+      `המקדמות (₪${Math.round(advTotal)}) עברו את הזכאות (₪${Math.round(earned)}) — סיכון בהתחשבנות.`,
+      `Advances (₪${Math.round(advTotal)}) exceeded dues (₪${Math.round(earned)}) — risk at settlement.`) })
   else if (earned > 0 && advTotal / earned >= 0.7)
-    out.push({ severity: 'medium', type: 'high_advance', icon: 'CreditCard',
-      text: `السلف تشكّل ${Math.round((advTotal / earned) * 100)}% من المستحق — راقب التصفية.` })
+    out.push({ severity: 'medium', type: 'high_advance', icon: 'CreditCard', text: T(lang,
+      `السلف تشكّل ${Math.round((advTotal / earned) * 100)}% من المستحق — راقب التصفية.`,
+      `המקדמות מהוות ${Math.round((advTotal / earned) * 100)}% מהזכאות — עקוב אחר ההתחשבנות.`,
+      `Advances are ${Math.round((advTotal / earned) * 100)}% of dues — watch the settlement.`) })
 
   // (هـ) خمول طويل
   const dates = wds.map(w => w.date).filter(Boolean).sort()
   if (dates.length) {
     const last = dates[dates.length - 1]
     const days = Math.floor((stripTime(today) - new Date(last)) / 86400000)
-    if (days >= 14) out.push({ severity: 'low', type: 'inactive', icon: 'CalendarOff', days,
-      text: `ما في تسجيل من ${days} يوم — آخر يوم عمل ${last}.` })
+    if (days >= 14) out.push({ severity: 'low', type: 'inactive', icon: 'CalendarOff', days, text: T(lang,
+      `ما في تسجيل من ${days} يوم — آخر يوم عمل ${last}.`,
+      `אין רישום כבר ${days} ימים — יום העבודה האחרון ${last}.`,
+      `No entries for ${days} days — last work day ${last}.`) })
   }
 
   // (و) تكدّس أيام معلّقة
   const pend = wds.filter(w => w.status === 'pending').length
-  if (pend >= 5) out.push({ severity: 'medium', type: 'pending', icon: 'Clock', count: pend,
-    text: `${pend} يوم بانتظار موافقتك — راجِعها لتثبيت المستحق.` })
+  if (pend >= 5) out.push({ severity: 'medium', type: 'pending', icon: 'Clock', count: pend, text: T(lang,
+    `${pend} يوم بانتظار موافقتك — راجِعها لتثبيت المستحق.`,
+    `${pend} ימים ממתינים לאישורך — בדוק אותם כדי לקבע את הזכאות.`,
+    `${pend} days awaiting your approval — review them to lock the dues.`) })
 
   const rank = { high: 0, medium: 1, low: 2 }
   return out.sort((a, b) => rank[a.severity] - rank[b.severity])
@@ -177,7 +195,7 @@ export function detectWorkerAnomalies(worker, { workDays = [], advances = [], ex
 // ════════════════════════════════════════════════════════════════════════════
 //  4. الخطّ الزمني الموحّد
 // ════════════════════════════════════════════════════════════════════════════
-export function buildWorkerTimeline(worker, { workDays = [], payments = [], advances = [], expenses = [], projects = [] } = {}, { limit = 80 } = {}) {
+export function buildWorkerTimeline(worker, { workDays = [], payments = [], advances = [], expenses = [], projects = [] } = {}, { limit = 80 } = {}, lang = 'ar') {
   if (!worker) return []
   const eid = worker.id
   const projName = id => projects.find(p => p.id === id)?.name || ''
@@ -185,19 +203,19 @@ export function buildWorkerTimeline(worker, { workDays = [], payments = [], adva
 
   for (const w of workDays.filter(w => w.employee_id === eid))
     ev.push({ id: `wd-${w.id}`, kind: 'workday', date: (w.date || '').slice(0, 10), amount: wdAmount(w), sign: +1,
-      title: projName(w.project_id) || 'يوم عمل', sub: w.day_type || '', status: w.status })
+      title: projName(w.project_id) || T(lang, 'يوم عمل', 'יום עבודה', 'Work day'), sub: w.day_type ? tEnum(w.day_type, lang) : '', status: w.status })
 
   for (const p of payments.filter(p => p.employee_id === eid))
     ev.push({ id: `pay-${p.id}`, kind: 'payment', date: (p.date || '').slice(0, 10), amount: p.amount || 0, sign: -1,
-      title: 'دفعة راتب', sub: p.method || '', ref: p.ref_number })
+      title: T(lang, 'دفعة راتب', 'תשלום משכורת', 'Salary payment'), sub: p.method ? tEnum(p.method, lang) : '', ref: p.ref_number })
 
   for (const a of advances.filter(a => a.employee_id === eid))
     ev.push({ id: `adv-${a.id}`, kind: 'advance', date: (a.date || a.requested_date || '').slice(0, 10), amount: a.amount || 0, sign: -1,
-      title: 'سلفة', sub: a.notes || '', status: a.status })
+      title: T(lang, 'سلفة', 'מקדמה', 'Advance'), sub: a.notes || '', status: a.status })
 
   for (const e of expenses.filter(e => e.employee_id === eid))
     ev.push({ id: `exp-${e.id}`, kind: 'expense', date: (e.date || '').slice(0, 10), amount: e.amount || 0, sign: +1,
-      title: e.category || 'مصروف', sub: projName(e.project_id) || '', status: e.status })
+      title: e.category ? tEnum(e.category, lang) : T(lang, 'مصروف', 'הוצאה', 'Expense'), sub: projName(e.project_id) || '', status: e.status })
 
   ev.sort((a, b) => (b.date || '').localeCompare(a.date || ''))
   return ev.slice(0, limit)

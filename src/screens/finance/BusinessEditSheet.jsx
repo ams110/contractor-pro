@@ -3,8 +3,10 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Trash2 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
-import { useBusinessStore, BUSINESS_TYPES } from '../../store/useBusinessStore.js'
+import { useBusinessStore, BUSINESS_TYPES, bizTypeDesc } from '../../store/useBusinessStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
+import { tl } from '../../lib/labels.js'
+import { useAppStore } from '../../store/useAppStore.js'
 
 const inp = {
   width: '100%',
@@ -23,6 +25,7 @@ const inp = {
 export default function BusinessEditSheet({ business, onClose }) {
   const { update, remove } = useBusinessStore()
   const { confirm: bioConfirm, hasAnyMethod } = useBiometricConfirm()
+  const language = useAppStore(s => s.language)
 
   const [form, setForm] = useState({
     name:          business.name,
@@ -43,7 +46,7 @@ export default function BusinessEditSheet({ business, onClose }) {
   async function handleSave() {
     if (!form.name.trim()) return
     if (hasAnyMethod()) {
-      const sig = await bioConfirm(`تعديل مصلحة: ${business.name}`, 'businesses')
+      const sig = await bioConfirm(`${tl(language, 'تعديل مصلحة', 'עריכת עסק', 'Edit business')}: ${business.name}`, 'businesses')
       if (!sig) return
     }
     setSaving(true)
@@ -67,7 +70,7 @@ export default function BusinessEditSheet({ business, onClose }) {
 
   async function handleDelete() {
     if (hasAnyMethod()) {
-      const sig = await bioConfirm(`حذف مصلحة: ${business.name}`, 'businesses')
+      const sig = await bioConfirm(`${tl(language, 'حذف مصلحة', 'מחיקת עסק', 'Delete business')}: ${business.name}`, 'businesses')
       if (!sig) return
     }
     setDeleting(true)
@@ -108,7 +111,7 @@ export default function BusinessEditSheet({ business, onClose }) {
 
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px 14px', borderBottom: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تعديل المصلحة</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{tl(language, 'تعديل المصلحة', 'עריכת העסק', 'Edit business')}</div>
             <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
               <X size={18} />
             </button>
@@ -119,7 +122,7 @@ export default function BusinessEditSheet({ business, onClose }) {
 
             {/* الاسم */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم المصلحة *</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'اسم المصلحة', 'שם העסק', 'Business name')} *</div>
               <input value={form.name} onChange={e => set('name', e.target.value)}
                 onFocus={() => setFocus('name')} onBlur={() => setFocus('')}
                 style={{ ...inp, borderColor: focus === 'name' ? C.primary : C.border }} />
@@ -127,7 +130,7 @@ export default function BusinessEditSheet({ business, onClose }) {
 
             {/* النوع */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>نوع المصلحة *</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>{tl(language, 'نوع المصلحة', 'סוג העסק', 'Business type')} *</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {BUSINESS_TYPES.map(bt => {
                   const active = form.business_type === bt.id
@@ -139,7 +142,7 @@ export default function BusinessEditSheet({ business, onClose }) {
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: active ? C.primary : C.text, direction: 'rtl' }}>{bt.label}</div>
-                        <div style={{ fontSize: 9, color: C.textDim }}>{bt.desc}</div>
+                        <div style={{ fontSize: 9, color: C.textDim }}>{bizTypeDesc(bt, language)}</div>
                       </div>
                     </button>
                   )
@@ -150,7 +153,9 @@ export default function BusinessEditSheet({ business, onClose }) {
             {/* رقم ע.מ / ח.פ */}
             <div style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
-                {form.business_type === 'hevra' ? 'رقم ח.פ' : 'رقم ע.מ'}
+                {form.business_type === 'hevra'
+                  ? tl(language, 'رقم ח.פ', 'מספר ח.פ', 'Company no. (ח.פ)')
+                  : tl(language, 'رقم ע.מ', 'מספר ע.מ', 'Business no. (ע.מ)')}
               </div>
               <input value={form.reg_number} onChange={e => set('reg_number', e.target.value)}
                 onFocus={() => setFocus('reg')} onBlur={() => setFocus('')}
@@ -160,7 +165,7 @@ export default function BusinessEditSheet({ business, onClose }) {
 
             {/* الهاتف */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>رقم الهاتف</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'رقم الهاتف', 'מספר טלפון', 'Phone number')}</div>
               <input value={form.phone} onChange={e => set('phone', e.target.value)}
                 onFocus={() => setFocus('phone')} onBlur={() => setFocus('')}
                 inputMode="tel"
@@ -169,7 +174,7 @@ export default function BusinessEditSheet({ business, onClose }) {
 
             {/* العنوان */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>العنوان</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'العنوان', 'כתובת', 'Address')}</div>
               <input value={form.address} onChange={e => set('address', e.target.value)}
                 onFocus={() => setFocus('address')} onBlur={() => setFocus('')}
                 style={{ ...inp, borderColor: focus === 'address' ? C.primary : C.border }} />
@@ -177,14 +182,14 @@ export default function BusinessEditSheet({ business, onClose }) {
 
             {/* البنك */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم البنك</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'اسم البنك', 'שם הבנק', 'Bank name')}</div>
               <input value={form.bank_name} onChange={e => set('bank_name', e.target.value)}
                 onFocus={() => setFocus('bank')} onBlur={() => setFocus('')}
                 style={{ ...inp, borderColor: focus === 'bank' ? C.primary : C.border }} />
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>رقم الحساب</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'رقم الحساب', 'מספר חשבון', 'Account number')}</div>
               <input value={form.bank_account} onChange={e => set('bank_account', e.target.value)}
                 onFocus={() => setFocus('acc')} onBlur={() => setFocus('')}
                 inputMode="numeric"
@@ -195,17 +200,17 @@ export default function BusinessEditSheet({ business, onClose }) {
             {!confirm ? (
               <button onClick={() => setConfirm(true)}
                 style={{ width: '100%', padding: '10px', background: `${C.accent}10`, border: `1px solid ${C.accent}30`, borderRadius: 12, color: C.accent, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
-                <Trash2 size={13} /> حذف هذه المصلحة
+                <Trash2 size={13} /> {tl(language, 'حذف هذه المصلحة', 'מחק עסק זה', 'Delete this business')}
               </button>
             ) : (
               <div style={{ background: `${C.accent}12`, border: `1px solid ${C.accent}30`, borderRadius: 12, padding: '12px 14px', marginBottom: 8 }}>
                 <div style={{ fontSize: 12, color: C.accent, fontWeight: 700, marginBottom: 10, textAlign: 'center' }}>
-                  هل أنت متأكد من حذف "{business.name}"؟
+                  {tl(language, `هل أنت متأكد من حذف "${business.name}"؟`, `האם אתה בטוח שברצונך למחוק את "${business.name}"?`, `Are you sure you want to delete "${business.name}"?`)}
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => setConfirm(false)} style={{ flex: 1, padding: 9, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>إلغاء</button>
+                  <button onClick={() => setConfirm(false)} style={{ flex: 1, padding: 9, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{tl(language, 'إلغاء', 'ביטול', 'Cancel')}</button>
                   <button onClick={handleDelete} disabled={deleting} style={{ flex: 1, padding: 9, background: C.accent, border: 'none', borderRadius: 10, color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {deleting ? 'جاري الحذف...' : 'نعم، احذف'}
+                    {deleting ? tl(language, 'جاري الحذف...', 'מוחק...', 'Deleting...') : tl(language, 'نعم، احذف', 'כן, מחק', 'Yes, delete')}
                   </button>
                 </div>
               </div>
@@ -216,7 +221,7 @@ export default function BusinessEditSheet({ business, onClose }) {
           <div style={{ padding: '12px 18px calc(20px + env(safe-area-inset-bottom, 0px))', borderTop: `1px solid ${C.border}` }}>
             <button onClick={handleSave} disabled={saving || !form.name.trim()}
               style={{ width: '100%', padding: '13px', background: saving || !form.name.trim() ? 'rgba(255,255,255,0.06)' : GRAD.warm, border: 'none', borderRadius: 14, color: saving || !form.name.trim() ? C.textDim : '#fff', fontSize: 14, fontWeight: 800, cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-              {saving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+              {saving ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : tl(language, 'حفظ التعديلات', 'שמור שינויים', 'Save changes')}
             </button>
           </div>
         </motion.div>

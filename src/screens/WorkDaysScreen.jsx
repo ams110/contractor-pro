@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { CalendarDays, BarChart2, Search, ClipboardList, Clock, Gift, Pencil, Trash2, AlertTriangle, Users, MapPin, X, CheckSquare, Square, Sun, CloudSun, DollarSign, Star, Zap, BedDouble, HardHat, Check, ChevronDown, Plus, CheckCircle2, XCircle, FolderInput, Loader2, Building2 } from 'lucide-react'
 import { C, GRAD, DAY_TYPES } from '../constants/index.js'
 import { fmt, fmtDate, fmtDateFull, todayStr, calcSalary, validateWorkDay } from '../lib/helpers.js'
+import { tl, tEnum } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 import { GlassCard, Modal, Input, Btn, Badge, SectionLabel, EmptyState, ConfirmDialog } from '../components/index.jsx'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import WorkDayTicket from '../components/WorkDayTicket.jsx'
@@ -26,6 +28,7 @@ function MetaTag({ icon: Icon, label, color }) {
 }
 
 export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [] }) {
+  const language = useAppStore(s => s.language)
   const holidayDates = new Set((holidays || []).map(h => String(h.date).slice(0, 10)))
   const [showForm,    setShowForm]    = useState(false)
   const [editingDay,  setEditingDay]  = useState(null)
@@ -158,13 +161,13 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     // ── وضع النطاق الزمني ─────────────────────────────────────────────────────
     if (rangeMode) {
       const workers = multiMode ? [...multiEmps] : (form.employee_id ? [form.employee_id] : [])
-      if (workers.length === 0) return setFormError('اختر عامل واحد على الأقل')
-      if (!form.project_id && !isHolidayOff) return setFormError('اختر المشروع')
-      if (!dateFrom || !dateTo) return setFormError('حدد نطاق التاريخ')
-      if (dateTo < dateFrom) return setFormError('تاريخ النهاية يجب أن يكون بعد تاريخ البداية')
+      if (workers.length === 0) return setFormError(tl(language, 'اختر عامل واحد على الأقل', 'בחר עובד אחד לפחות', 'Select at least one worker'))
+      if (!form.project_id && !isHolidayOff) return setFormError(tl(language, 'اختر المشروع', 'בחר פרויקט', 'Select a project'))
+      if (!dateFrom || !dateTo) return setFormError(tl(language, 'حدد نطاق التاريخ', 'הגדר טווח תאריכים', 'Set the date range'))
+      if (dateTo < dateFrom) return setFormError(tl(language, 'تاريخ النهاية يجب أن يكون بعد تاريخ البداية', 'תאריך הסיום חייב להיות אחרי תאריך ההתחלה', 'End date must be after start date'))
       if (effectiveType === 'مبلغ مسكر') {
         const a = parseFloat(form.customAmount)
-        if (!a || a <= 0) return setFormError('أدخل المبلغ المسكر')
+        if (!a || a <= 0) return setFormError(tl(language, 'أدخل المبلغ المسكر', 'הזן את הסכום הקבוע', 'Enter the fixed amount'))
       }
       const dates = getDatesInRange(dateFrom, dateTo)
       const entries = []
@@ -177,7 +180,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
           entries.push({ date, employee_id: empId, project_id: form.project_id || null, location: form.location || undefined, day_type: effectiveType, hours: parseFloat(form.hours) || 8, amount })
         }
       }
-      if (entries.length === 0) return setFormError('كل السجلات موجودة مسبقاً — لا يوجد جديد للحفظ')
+      if (entries.length === 0) return setFormError(tl(language, 'كل السجلات موجودة مسبقاً — لا يوجد جديد للحفظ', 'כל הרשומות כבר קיימות — אין חדש לשמירה', 'All records already exist — nothing new to save'))
       setSaving(true)
       try {
         await bulkAddWorkDays(entries)
@@ -188,17 +191,17 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     }
 
     if (multiMode) {
-      if (multiEmps.size === 0) return setFormError('اختر عامل واحد على الأقل')
-      if (!form.project_id && !isHolidayOff) return setFormError('اختر المشروع')
+      if (multiEmps.size === 0) return setFormError(tl(language, 'اختر عامل واحد على الأقل', 'בחר עובד אחד לפחות', 'Select at least one worker'))
+      if (!form.project_id && !isHolidayOff) return setFormError(tl(language, 'اختر المشروع', 'בחר פרויקט', 'Select a project'))
       if (effectiveType === 'مبلغ مسكر') {
         const a = parseFloat(form.customAmount)
-        if (!a || a <= 0) return setFormError('أدخل المبلغ المسكر')
+        if (!a || a <= 0) return setFormError(tl(language, 'أدخل المبلغ المسكر', 'הזן את הסכום הקבוע', 'Enter the fixed amount'))
       }
       const dupName = [...multiEmps].map(id => {
         const dup = workDays.find(w => w.employee_id === id && String(w.date).slice(0,10) === form.date && w.day_type === form.day_type && w.id !== editingDay)
         return dup ? employees.find(e => e.id === id)?.name : null
       }).filter(Boolean)
-      if (dupName.length > 0) return setFormError(`${dupName.join('، ')} — عندهم ${form.day_type} بهاد التاريخ مسبقاً`)
+      if (dupName.length > 0) return setFormError(tl(language, `${dupName.join('، ')} — عندهم ${tEnum(form.day_type, language)} بهاد التاريخ مسبقاً`, `${dupName.join(', ')} — כבר יש להם ${tEnum(form.day_type, language)} בתאריך זה`, `${dupName.join(', ')} — already have ${tEnum(form.day_type, language)} on this date`))
       setSaving(true)
       try {
         await Promise.all([...multiEmps].map(empId => {
@@ -216,11 +219,11 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       if (err) return setFormError(err)
       if (effectiveType === 'مبلغ مسكر' && form.day_type === 'عطلة') {
         const a = parseFloat(form.customAmount)
-        if (!a || a <= 0) return setFormError('أدخل المبلغ المسكر')
+        if (!a || a <= 0) return setFormError(tl(language, 'أدخل المبلغ المسكر', 'הזן את הסכום הקבוע', 'Enter the fixed amount'))
       }
-      if (!selectedEmp) return setFormError('العامل غير موجود')
+      if (!selectedEmp) return setFormError(tl(language, 'العامل غير موجود', 'העובד לא נמצא', 'Worker not found'))
       const duplicate = workDays.find(w => w.employee_id === form.employee_id && String(w.date).slice(0,10) === form.date && w.day_type === form.day_type && w.id !== editingDay)
-      if (duplicate) return setFormError(`${selectedEmp.name} عنده ${form.day_type} بتاريخ ${form.date} مسبقاً`)
+      if (duplicate) return setFormError(tl(language, `${selectedEmp.name} عنده ${tEnum(form.day_type, language)} بتاريخ ${form.date} مسبقاً`, `ל${selectedEmp.name} כבר יש ${tEnum(form.day_type, language)} בתאריך ${form.date}`, `${selectedEmp.name} already has ${tEnum(form.day_type, language)} on ${form.date}`))
       setSaving(true)
       try {
         const amount = effectiveType === 'مبلغ مسكر' ? parseFloat(form.customAmount) : calcSalary(selectedEmp.daily_rate, effectiveType, form.hours)
@@ -261,7 +264,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   }
 
   async function applyBulkProject() {
-    if (!bulkProjId) return setBulkError('اختر مشروعاً')
+    if (!bulkProjId) return setBulkError(tl(language, 'اختر مشروعاً', 'בחר פרויקט', 'Select a project'))
     setBulkSaving(true)
     setBulkError('')
     try {
@@ -300,12 +303,12 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <IconChip icon={CalendarDays} tone="brand" size={46} radius={14} iconSize={23} />
           <div>
-            <div style={{ fontSize:20, fontWeight:900, color:C.text, letterSpacing:'-0.5px' }}>أيام العمل</div>
-            <div style={{ fontSize:12, color:C.textDim, marginTop:2 }}>{workDays.length} يوم مسجل</div>
+            <div style={{ fontSize:20, fontWeight:900, color:C.text, letterSpacing:'-0.5px' }}>{tl(language, 'أيام العمل', 'ימי עבודה', 'Work days')}</div>
+            <div style={{ fontSize:12, color:C.textDim, marginTop:2 }}>{workDays.length} {tl(language, 'يوم مسجل', 'ימים רשומים', 'days logged')}</div>
           </div>
           {pendingDays.length > 0 && (
             <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:`${C.warning}18`, borderRadius:24, padding:'5px 13px', fontSize:12, fontWeight:900, color:C.warning, border:`1px solid ${C.warning}40` }}>
-              <Clock size={12} strokeWidth={2.5} /> {pendingDays.length} معلق
+              <Clock size={12} strokeWidth={2.5} /> {pendingDays.length} {tl(language, 'معلق', 'ממתין', 'pending')}
             </div>
           )}
         </div>
@@ -313,19 +316,19 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
           {!bulkSelectMode && (
             <button onClick={openForm}
               style={{ padding:'9px 16px', borderRadius:12, border:'none', background:GRAD.brand, color:'#000', fontSize:12, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
-              <Plus size={13} strokeWidth={2.5} /> سجّل يوم
+              <Plus size={13} strokeWidth={2.5} /> {tl(language, 'سجّل يوم', 'רשום יום', 'Log day')}
             </button>
           )}
           {approvedDays.length > 0 && (
             <button onClick={() => bulkSelectMode ? exitBulkMode() : setBulkSelectMode(true)}
               style={{ padding:'9px 12px', borderRadius:12, border:`1.5px solid ${bulkSelectMode ? C.primary : C.border}`, background: bulkSelectMode ? `${C.primary}15` : 'rgba(255,255,255,0.04)', color: bulkSelectMode ? C.primary : C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
-              <CheckSquare size={13} strokeWidth={2} /> {bulkSelectMode ? (selectedDayIds.size > 0 ? `${selectedDayIds.size} محدد` : 'تحديد') : 'تحديد'}
+              <CheckSquare size={13} strokeWidth={2} /> {bulkSelectMode ? (selectedDayIds.size > 0 ? `${selectedDayIds.size} ${tl(language, 'محدد', 'נבחרו', 'selected')}` : tl(language, 'تحديد', 'בחירה', 'Select')) : tl(language, 'تحديد', 'בחירה', 'Select')}
             </button>
           )}
           {approvedDays.length > 0 && (
             <button onClick={() => setShowFilters(v => !v)}
               style={{ padding:'9px 12px', borderRadius:12, border:`1.5px solid ${hasFilter ? C.secondary : C.border}`, background: hasFilter ? `${C.secondary}15` : 'rgba(255,255,255,0.04)', color: hasFilter ? C.secondary : C.textDim, fontSize:12, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
-              <Search size={13} strokeWidth={2} /> {hasFilter ? 'فلتر نشط' : 'فلتر'}
+              <Search size={13} strokeWidth={2} /> {hasFilter ? tl(language, 'فلتر نشط', 'סינון פעיל', 'Filter on') : tl(language, 'فلتر', 'סינון', 'Filter')}
             </button>
           )}
           {workDays.length > 0 && (
@@ -350,14 +353,14 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
         return (
           <PremiumCard tone="brand" glow={false} radius={14} padding="12px 14px" style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: C.text, display:'flex', alignItems:'center', gap:7 }}><IconChip icon={ClipboardList} tone="brand" size={24} radius={8} iconSize={13} /> الحضور اليوم</span>
-              <span style={{ fontSize: 10, color: C.textDim }}>{new Date().toLocaleDateString('ar-EG', { weekday:'long', day:'numeric', month:'long' })}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: C.text, display:'flex', alignItems:'center', gap:7 }}><IconChip icon={ClipboardList} tone="brand" size={24} radius={8} iconSize={13} /> {tl(language, 'الحضور اليوم', 'נוכחות היום', 'Today\'s attendance')}</span>
+              <span style={{ fontSize: 10, color: C.textDim }}>{new Date().toLocaleDateString(language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'ar-EG', { weekday:'long', day:'numeric', month:'long' })}</span>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: todayDays.length > 0 ? 10 : 0 }}>
               {[
-                { label: 'موافق عليه', count: approvedToday, color: C.success },
-                { label: 'معلق',       count: pendingToday,  color: C.warning },
-                { label: 'غائب',       count: absentCount,   color: C.accent  },
+                { label: tl(language, 'موافق عليه', 'מאושר', 'Approved'), count: approvedToday, color: C.success },
+                { label: tl(language, 'معلق',       'ממתין', 'Pending'),  count: pendingToday,  color: C.warning },
+                { label: tl(language, 'غائب',       'נעדר',  'Absent'),   count: absentCount,   color: C.accent  },
               ].map(s => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: `${s.color}15`, border: `1px solid ${s.color}33` }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, display: 'inline-block' }} />
@@ -388,22 +391,22 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       {showFilters && (
         <GlassCard style={{ marginBottom:20, padding:'16px 18px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-            <span style={{ fontSize:12, fontWeight:800, color:C.secondary, display:'flex', alignItems:'center', gap:6 }}><Search size={13} strokeWidth={2} /> فلترة الأيام</span>
+            <span style={{ fontSize:12, fontWeight:800, color:C.secondary, display:'flex', alignItems:'center', gap:6 }}><Search size={13} strokeWidth={2} /> {tl(language, 'فلترة الأيام', 'סינון ימים', 'Filter days')}</span>
             {hasFilter && (
               <button onClick={() => { setFilterEmp(''); setFilterProj(''); setFilterMonth('') }}
                 style={{ fontSize:11, color:C.accent, background:`${C.accent}15`, border:`1px solid ${C.accent}33`, borderRadius:8, padding:'4px 10px', cursor:'pointer', fontWeight:700, display:'inline-flex', alignItems:'center', gap:4 }}>
-                <X size={12} strokeWidth={2.5} /> مسح الفلاتر
+                <X size={12} strokeWidth={2.5} /> {tl(language, 'مسح الفلاتر', 'נקה סינון', 'Clear filters')}
               </button>
             )}
           </div>
 
           {/* Employee chips */}
           <div style={{ marginBottom:10 }}>
-            <div style={{ fontSize:10, color:C.textDim, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.05em' }}>العامل</div>
+            <div style={{ fontSize:10, color:C.textDim, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.05em' }}>{tl(language, 'العامل', 'עובד', 'Worker')}</div>
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
               <button onClick={() => setFilterEmp('')}
                 style={{ padding:'6px 14px', borderRadius:10, border:`1.5px solid ${!filterEmp ? C.primary : C.border}`, background: !filterEmp ? `${C.primary}18` : 'transparent', color: !filterEmp ? C.primary : C.textDim, fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                الكل
+                {tl(language, 'الكل', 'הכל', 'All')}
               </button>
               {employees.map(e => (
                 <div key={e.id} style={{ display:'flex', gap:3 }}>
@@ -411,7 +414,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                     style={{ padding:'6px 14px', borderRadius:10, border:`1.5px solid ${filterEmp === e.id ? C.primary : C.border}`, background: filterEmp === e.id ? `${C.primary}18` : 'transparent', color: filterEmp === e.id ? C.primary : C.textDim, fontSize:11, fontWeight:700, cursor:'pointer' }}>
                     {e.name}
                   </button>
-                  <button onClick={() => setWorkerDetail(e.id)} title="إحصائيات العامل"
+                  <button onClick={() => setWorkerDetail(e.id)} title={tl(language, 'إحصائيات العامل', 'סטטיסטיקת עובד', 'Worker stats')}
                     style={{ padding:'6px 10px', borderRadius:10, border:`1px solid ${C.border}`, background:'transparent', color:C.textDim, fontSize:11, cursor:'pointer', display:'flex', alignItems:'center' }}>
                     <BarChart2 size={12} strokeWidth={2} />
                   </button>
@@ -422,11 +425,11 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
           {/* Project chips */}
           <div style={{ marginBottom:10 }}>
-            <div style={{ fontSize:10, color:C.textDim, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.05em' }}>المشروع</div>
+            <div style={{ fontSize:10, color:C.textDim, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.05em' }}>{tl(language, 'المشروع', 'פרויקט', 'Project')}</div>
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
               <button onClick={() => setFilterProj('')}
                 style={{ padding:'6px 14px', borderRadius:10, border:`1.5px solid ${!filterProj ? C.secondary : C.border}`, background: !filterProj ? `${C.secondary}18` : 'transparent', color: !filterProj ? C.secondary : C.textDim, fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                الكل
+                {tl(language, 'الكل', 'הכל', 'All')}
               </button>
               {projects.map(p => (
                 <button key={p.id} onClick={() => setFilterProj(filterProj === p.id ? '' : p.id)}
@@ -439,7 +442,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
           {/* Month picker */}
           <div>
-            <div style={{ fontSize:10, color:C.textDim, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.05em' }}>الشهر</div>
+            <div style={{ fontSize:10, color:C.textDim, fontWeight:700, marginBottom:7, textTransform:'uppercase', letterSpacing:'0.05em' }}>{tl(language, 'الشهر', 'חודש', 'Month')}</div>
             <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
               style={{ padding:'8px 14px', borderRadius:10, border:`1.5px solid ${filterMonth ? C.warning : C.border}`, background:'rgba(255,255,255,0.05)', color: filterMonth ? C.warning : C.textDim, fontSize:13, fontWeight:700, outline:'none', cursor:'pointer' }} />
           </div>
@@ -449,7 +452,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       {/* ─── Pending Section ─── */}
       {pendingDays.length > 0 && (
         <div style={{ marginBottom:28 }}>
-          <SectionLabel color={C.warning} action={`${pendingDays.length} طلب`}><Clock size={13} strokeWidth={2} style={{ display:'inline', marginLeft:4 }} /> بانتظار موافقتك</SectionLabel>
+          <SectionLabel color={C.warning} action={`${pendingDays.length} ${tl(language, 'طلب', 'בקשות', 'requests')}`}><Clock size={13} strokeWidth={2} style={{ display:'inline', marginLeft:4 }} /> {tl(language, 'بانتظار موافقتك', 'ממתין לאישורך', 'Awaiting your approval')}</SectionLabel>
           {pendingDays.map(wd => {
             const emp     = employees.find(x => x.id === wd.employee_id)
             const proj    = projects.find(x => x.id === wd.project_id)
@@ -459,6 +462,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               <div key={wd.id} style={{ marginBottom:12 }}>
                 <WorkDayTicket
                   wd={wd}
+                  lang={language}
                   name={emp?.name}
                   projectName={proj?.name}
                   holidayName={holiday?.name}
@@ -467,11 +471,11 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 <div style={{ display:'flex', gap:10, marginTop:8 }}>
                   <button onClick={() => handleApprove(wd.id)} disabled={busy}
                     style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? C.border : GRAD.success, border:'none', color: busy ? C.textDim : '#fff', fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', boxShadow: busy ? 'none' : `0 4px 18px ${C.success}44`, transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-                    {busy ? '...' : <><CheckCircle2 size={16} strokeWidth={2.5} /> موافقة</>}
+                    {busy ? '...' : <><CheckCircle2 size={16} strokeWidth={2.5} /> {tl(language, 'موافقة', 'אישור', 'Approve')}</>}
                   </button>
                   <button onClick={() => { setRejectTarget(wd.id); setRejectReason('') }} disabled={busy}
                     style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? 'transparent' : `${C.accent}12`, border:`1.5px solid ${busy ? C.border : C.accent + '55'}`, color: busy ? C.textDim : C.accent, fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-                    {busy ? '...' : <><XCircle size={16} strokeWidth={2.5} /> رفض</>}
+                    {busy ? '...' : <><XCircle size={16} strokeWidth={2.5} /> {tl(language, 'رفض', 'דחייה', 'Reject')}</>}
                   </button>
                 </div>
               </div>
@@ -484,14 +488,14 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       {sorted.length === 0 && pendingDays.length === 0
         ? <div style={{ textAlign:'center', padding:'52px 20px' }}>
             <IconChip icon={CalendarDays} tone="brand" size={56} radius={17} iconSize={28} style={{ margin:'0 auto 16px' }} />
-            <div style={{ fontSize:14, color:C.textDim, marginBottom:22, lineHeight:1.7 }}>ما في أيام عمل مسجلة</div>
-            <Btn onClick={openForm}>سجّل أول يوم</Btn>
+            <div style={{ fontSize:14, color:C.textDim, marginBottom:22, lineHeight:1.7 }}>{tl(language, 'ما في أيام عمل مسجلة', 'אין ימי עבודה רשומים', 'No work days logged')}</div>
+            <Btn onClick={openForm}>{tl(language, 'سجّل أول يوم', 'רשום יום ראשון', 'Log first day')}</Btn>
           </div>
         : (() => {
             if (sorted.length === 0) return (
               <>
-                {pendingDays.length > 0 && <SectionLabel color={C.primary}>الأيام الموافق عليها</SectionLabel>}
-                <div style={{ textAlign:'center', padding:'32px 0', color:C.textDim, fontSize:13 }}>ما في نتائج للفلتر الحالي</div>
+                {pendingDays.length > 0 && <SectionLabel color={C.primary}>{tl(language, 'الأيام الموافق عليها', 'הימים המאושרים', 'Approved days')}</SectionLabel>}
+                <div style={{ textAlign:'center', padding:'32px 0', color:C.textDim, fontSize:13 }}>{tl(language, 'ما في نتائج للفلتر الحالي', 'אין תוצאות לסינון הנוכחי', 'No results for the current filter')}</div>
               </>
             )
 
@@ -508,19 +512,19 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
             return (
               <>
-                {pendingDays.length > 0 && <SectionLabel color={C.primary}>الأيام الموافق عليها</SectionLabel>}
+                {pendingDays.length > 0 && <SectionLabel color={C.primary}>{tl(language, 'الأيام الموافق عليها', 'הימים המאושרים', 'Approved days')}</SectionLabel>}
                 {bulkSelectMode && (
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, padding:'10px 14px', background:`${C.primary}10`, borderRadius:12, border:`1px solid ${C.primary}33` }}>
-                    <span style={{ fontSize:12, color:C.primary, fontWeight:700, display:'flex', alignItems:'center', gap:5 }}><CheckSquare size={13} strokeWidth={2} /> وضع التحديد — اضغط على الأيام لتحديدها</span>
+                    <span style={{ fontSize:12, color:C.primary, fontWeight:700, display:'flex', alignItems:'center', gap:5 }}><CheckSquare size={13} strokeWidth={2} /> {tl(language, 'وضع التحديد — اضغط على الأيام لتحديدها', 'מצב בחירה — לחץ על הימים לבחירתם', 'Selection mode — tap days to select them')}</span>
                     <div style={{ display:'flex', gap:6 }}>
                       <button onClick={() => setSelectedDayIds(new Set(sorted.map(d => d.id)))}
                         style={{ fontSize:11, fontWeight:700, color:C.primary, background:`${C.primary}18`, border:`1px solid ${C.primary}44`, borderRadius:8, padding:'4px 10px', cursor:'pointer' }}>
-                        الكل
+                        {tl(language, 'الكل', 'הכל', 'All')}
                       </button>
                       {selectedDayIds.size > 0 && (
                         <button onClick={() => setSelectedDayIds(new Set())}
                           style={{ fontSize:11, fontWeight:700, color:C.textDim, background:'transparent', border:`1px solid ${C.border}`, borderRadius:8, padding:'4px 10px', cursor:'pointer' }}>
-                          إلغاء الكل
+                          {tl(language, 'إلغاء الكل', 'בטל הכל', 'Clear all')}
                         </button>
                       )}
                     </div>
@@ -528,7 +532,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 )}
                 {hasFilter && (
                   <div style={{ fontSize:12, color:C.textDim, marginBottom:12, padding:'8px 14px', background:`${C.secondary}10`, borderRadius:10, border:`1px solid ${C.secondary}22` }}>
-                    عرض {sorted.length} من {approvedDays.length} يوم
+                    {tl(language, `عرض ${sorted.length} من ${approvedDays.length} يوم`, `מציג ${sorted.length} מתוך ${approvedDays.length} ימים`, `Showing ${sorted.length} of ${approvedDays.length} days`)}
                   </div>
                 )}
                 {monthEntries.map(([month, days]) => {
@@ -539,7 +543,9 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   const isCurrent = month === currentMonth
                   const [y, m]    = month.split('-')
                   const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
-                  const monthLabel = `${MONTHS_AR[parseInt(m,10)-1]} ${y}`
+                  const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+                  const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December']
+                  const monthLabel = `${tl(language, MONTHS_AR[parseInt(m,10)-1], MONTHS_HE[parseInt(m,10)-1], MONTHS_EN[parseInt(m,10)-1])} ${y}`
                   const workerCount = new Set(days.map(d => d.employee_id)).size
                   // مخطّط النشاط: مجموع الصرف لكل يوم من أيام الشهر
                   const daysInMonth = new Date(parseInt(y,10), parseInt(m,10), 0).getDate()
@@ -554,6 +560,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                     <div key={month} style={{ marginBottom:10 }}>
                       {/* Month header */}
                       <WorkMonthHeader
+                        language={language}
                         label={monthLabel}
                         monthNum={parseInt(m,10)}
                         year={y}
@@ -605,6 +612,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                 <div key={empId} style={{ borderBottom: wi < workerEntries.length - 1 ? `1px solid ${C.border}` : 'none' }}>
                                   {/* Worker month strip */}
                                   <WorkerMonthStrip
+                                    language={language}
                                     name={emp?.name || '؟'}
                                     rank={wi + 1}
                                     workDays={wkWorkDays}
@@ -636,6 +644,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                                         return (
                                           <WorkDayTicket key={wd.id}
                                             wd={wd}
+                                            lang={language}
                                             hideName
                                             projectName={proj?.name || '؟'}
                                             holidayName={holiday?.name}
@@ -664,13 +673,13 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       }
 
       {/* ─── Add Modal ─── */}
-      <Modal open={showForm} onClose={closeForm} title={editingDay ? 'تعديل يوم عمل' : 'تسجيل يوم عمل'}
+      <Modal open={showForm} onClose={closeForm} title={editingDay ? tl(language, 'تعديل يوم عمل', 'עריכת יום עבודה', 'Edit work day') : tl(language, 'تسجيل يوم عمل', 'רישום יום עבודה', 'Log work day')}
         action={activeEmps.length > 0 && activeProjs.length > 0
           ? <Btn onClick={save} full disabled={saving || (!rangeMode && !multiMode && (!form.employee_id || (!form.project_id && form.day_type !== 'عطلة'))) || (!rangeMode && multiMode && (multiEmps.size === 0 || (!form.project_id && form.day_type !== 'عطلة'))) || (rangeMode && !form.project_id && form.day_type !== 'عطلة')}>
               <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-                {saving ? <><Loader2 size={15} strokeWidth={2.5} style={{ animation:'spin .8s linear infinite' }} /> جاري الحفظ...</> : rangeMode
-                  ? <><Check size={15} strokeWidth={2.8} /> {`سجّل ${(multiMode ? multiEmps.size : (form.employee_id ? 1 : 0)) * (dateFrom && dateTo && dateTo >= dateFrom ? getDatesInRange(dateFrom, dateTo).length : 0)} سجل`}</>
-                  : multiMode ? <><Check size={15} strokeWidth={2.8} /> {`سجّل لـ ${multiEmps.size || '...'} عمال`}</> : <><Check size={15} strokeWidth={2.8} /> سجّل اليوم</>}
+                {saving ? <><Loader2 size={15} strokeWidth={2.5} style={{ animation:'spin .8s linear infinite' }} /> {tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...')}</> : rangeMode
+                  ? <><Check size={15} strokeWidth={2.8} /> {(() => { const n = (multiMode ? multiEmps.size : (form.employee_id ? 1 : 0)) * (dateFrom && dateTo && dateTo >= dateFrom ? getDatesInRange(dateFrom, dateTo).length : 0); return tl(language, `سجّل ${n} سجل`, `רשום ${n} רשומות`, `Log ${n} records`) })()}</>
+                  : multiMode ? <><Check size={15} strokeWidth={2.8} /> {tl(language, `سجّل لـ ${multiEmps.size || '...'} عمال`, `רשום ל-${multiEmps.size || '...'} עובדים`, `Log for ${multiEmps.size || '...'} workers`)}</> : <><Check size={15} strokeWidth={2.8} /> {tl(language, 'سجّل اليوم', 'רשום יום', 'Log day')}</>}
               </span>
             </Btn>
           : null}
@@ -678,7 +687,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
         {activeEmps.length === 0 || activeProjs.length === 0
           ? <div style={{ textAlign:'center', padding:32 }}>
               <AlertTriangle size={44} style={{ color:C.warning, margin:'0 auto 14px', display:'block' }} />
-              <div style={{ fontSize:14, color:C.textDim, lineHeight:1.8 }}>لازم تضيف عمال ومشاريع أول!</div>
+              <div style={{ fontSize:14, color:C.textDim, lineHeight:1.8 }}>{tl(language, 'لازم تضيف عمال ومشاريع أول!', 'צריך להוסיף עובדים ופרויקטים קודם!', 'You need to add workers and projects first!')}</div>
             </div>
           : <>
               {/* Toggles — hidden in edit mode */}
@@ -687,8 +696,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   {/* Multi-worker toggle */}
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:`1px solid ${multiMode ? C.secondary + '55' : C.border}` }}>
                     <div>
-                      <div style={{ fontSize:13, fontWeight:700, color: multiMode ? C.secondary : C.text, display:'flex', alignItems:'center', gap:6 }}><Users size={14} strokeWidth={2} /> عدة عمال</div>
-                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>نفس المشروع لأكثر من عامل</div>
+                      <div style={{ fontSize:13, fontWeight:700, color: multiMode ? C.secondary : C.text, display:'flex', alignItems:'center', gap:6 }}><Users size={14} strokeWidth={2} /> {tl(language, 'عدة عمال', 'מספר עובדים', 'Multiple workers')}</div>
+                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{tl(language, 'نفس المشروع لأكثر من عامل', 'אותו פרויקט ליותר מעובד אחד', 'Same project for several workers')}</div>
                     </div>
                     <button onClick={() => { setMultiMode(v => !v); setMultiEmps(new Set()); setForm(prev => ({ ...prev, employee_id: '' })) }}
                       style={{ width:48, height:26, borderRadius:13, background: multiMode ? C.secondary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
@@ -698,8 +707,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   {/* Date range toggle */}
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:`1px solid ${rangeMode ? C.primary + '55' : C.border}` }}>
                     <div>
-                      <div style={{ fontSize:13, fontWeight:700, color: rangeMode ? C.primary : C.text, display:'flex', alignItems:'center', gap:6 }}><CalendarDays size={14} strokeWidth={2} /> نطاق تواريخ</div>
-                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>من تاريخ إلى تاريخ دفعة واحدة</div>
+                      <div style={{ fontSize:13, fontWeight:700, color: rangeMode ? C.primary : C.text, display:'flex', alignItems:'center', gap:6 }}><CalendarDays size={14} strokeWidth={2} /> {tl(language, 'نطاق تواريخ', 'טווח תאריכים', 'Date range')}</div>
+                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{tl(language, 'من تاريخ إلى تاريخ دفعة واحدة', 'מתאריך עד תאריך בבת אחת', 'From date to date in one batch')}</div>
                     </div>
                     <button onClick={() => setRangeMode(v => !v)}
                       style={{ width:48, height:26, borderRadius:13, background: rangeMode ? C.primary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
@@ -713,18 +722,18 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               {rangeMode && !editingDay ? (
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:18 }}>
                   <div>
-                    <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:6, letterSpacing:'0.04em', textTransform:'uppercase' }}>من تاريخ</label>
+                    <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:6, letterSpacing:'0.04em', textTransform:'uppercase' }}>{tl(language, 'من تاريخ', 'מתאריך', 'From date')}</label>
                     <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
                       style={{ width:'100%', padding:'11px 12px', borderRadius:12, border:`1.5px solid ${C.primary}55`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:13, boxSizing:'border-box', outline:'none' }} />
                   </div>
                   <div>
-                    <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:6, letterSpacing:'0.04em', textTransform:'uppercase' }}>إلى تاريخ</label>
+                    <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:6, letterSpacing:'0.04em', textTransform:'uppercase' }}>{tl(language, 'إلى تاريخ', 'עד תאריך', 'To date')}</label>
                     <input type="date" value={dateTo} min={dateFrom} onChange={e => setDateTo(e.target.value)}
                       style={{ width:'100%', padding:'11px 12px', borderRadius:12, border:`1.5px solid ${C.primary}55`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:13, boxSizing:'border-box', outline:'none' }} />
                   </div>
                 </div>
               ) : (
-                <Input label="التاريخ" value={form.date} onChange={f('date')} type="date" required />
+                <Input label={tl(language, 'التاريخ', 'תאריך', 'Date')} value={form.date} onChange={f('date')} type="date" required />
               )}
 
               {/* Holiday indicator */}
@@ -736,7 +745,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                     <Gift size={26} style={{ color:C.warning, flexShrink:0 }} />
                     <div>
                       <div style={{ fontSize:14, fontWeight:800, color:C.warning }}>{holiday.name}</div>
-                      <div style={{ fontSize:11, color:C.textDim }}>يوم عطلة رسمية</div>
+                      <div style={{ fontSize:11, color:C.textDim }}>{tl(language, 'يوم عطلة رسمية', 'יום חג רשמי', 'Official holiday')}</div>
                     </div>
                   </div>
                 )
@@ -745,7 +754,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               {/* Employee selector */}
               <div style={{ marginBottom:18 }}>
                 <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>
-                  {multiMode ? 'العمال (اختر أكثر من واحد)' : 'العامل'} <span style={{ color:C.accent }}>*</span>
+                  {multiMode ? tl(language, 'العمال (اختر أكثر من واحد)', 'עובדים (בחר יותר מאחד)', 'Workers (select more than one)') : tl(language, 'العامل', 'עובד', 'Worker')} <span style={{ color:C.accent }}>*</span>
                 </label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                   {activeEmps.map(e => {
@@ -765,7 +774,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
               {/* Project selector — مخفي لأيام العطلة بدون شغل */}
               {!(form.day_type === 'عطلة' && !holidayWorked) && <div style={{ marginBottom:18 }}>
-                <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>المشروع <span style={{ color:C.accent }}>*</span></label>
+                <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>{tl(language, 'المشروع', 'פרויקט', 'Project')} <span style={{ color:C.accent }}>*</span></label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                   {activeProjs.map(p => {
                     const sel = form.project_id === p.id
@@ -787,7 +796,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 if (selProj?.type !== 'يومي' || locs.length === 0) return null
                 return (
                   <div style={{ marginBottom:18 }}>
-                    <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'flex', alignItems:'center', gap:5, marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}><MapPin size={11} strokeWidth={2} /> مكان العمل</label>
+                    <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'flex', alignItems:'center', gap:5, marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}><MapPin size={11} strokeWidth={2} /> {tl(language, 'مكان العمل', 'מקום העבודה', 'Work site')}</label>
                     <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                       {locs.map(loc => {
                         const sel = form.location === loc
@@ -805,7 +814,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
               {/* Day type */}
               <div style={{ marginBottom:18 }}>
-                <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>نوع اليوم</label>
+                <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>{tl(language, 'نوع اليوم', 'סוג היום', 'Day type')}</label>
                 <div style={{ display:'flex', gap:10 }}>
                   {DAY_TYPES.map(t => {
                     const sel   = form.day_type === t
@@ -814,7 +823,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                       <button key={t} onClick={() => setDayType(t)}
                         style={{ flex:1, padding:'14px 8px', borderRadius:16, border:`2px solid ${sel ? color : C.border}`, background: sel ? `${color}18` : 'rgba(255,255,255,0.03)', backdropFilter:'blur(10px)', color: sel ? color : C.textDim, fontSize:13, fontWeight:800, cursor:'pointer', transition:'all .25s', boxShadow: sel ? `0 6px 22px ${color}33` : 'none', display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
                         <DayIcon type={t} size={20} />
-                        <span>{t}</span>
+                        <span>{tEnum(t, language)}</span>
                       </button>
                     )
                   })}
@@ -822,15 +831,15 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               </div>
 
               {(form.day_type === 'ساعات' || (form.day_type === 'عطلة' && holidayWorked && holidaySubType === 'ساعات')) && (
-                <Input label="عدد الساعات" value={form.hours} onChange={f('hours')} type="number" min="0.5" max="24" />
+                <Input label={tl(language, 'عدد الساعات', 'מספר שעות', 'Number of hours')} value={form.hours} onChange={f('hours')} type="number" min="0.5" max="24" />
               )}
 
               {form.day_type === 'عطلة' && (
                 <div style={{ marginBottom:18 }}>
                   {/* خيار: اشتغل أو ما اشتغل */}
-                  <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>العامل بالعيد</label>
+                  <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>{tl(language, 'العامل بالعيد', 'העובד בחג', 'Worker on holiday')}</label>
                   <div style={{ display:'flex', gap:10, marginBottom: holidayWorked ? 14 : 0 }}>
-                    {[{ v:false, label:'ما اشتغل', Icon:BedDouble, desc:'0₪' }, { v:true, label:'اشتغل', Icon:Zap, desc:'يُحسب المبلغ' }].map(opt => (
+                    {[{ v:false, label:tl(language, 'ما اشتغل', 'לא עבד', 'Did not work'), Icon:BedDouble, desc:'0₪' }, { v:true, label:tl(language, 'اشتغل', 'עבד', 'Worked'), Icon:Zap, desc:tl(language, 'يُحسب المبلغ', 'הסכום מחושב', 'Amount is calculated') }].map(opt => (
                       <button key={String(opt.v)} onClick={() => setHolidayWorked(opt.v)}
                         style={{ flex:1, padding:'14px 8px', borderRadius:14, border:`2px solid ${holidayWorked === opt.v ? C.warning : C.border}`, background: holidayWorked === opt.v ? `${C.warning}18` : 'rgba(255,255,255,0.03)', color: holidayWorked === opt.v ? C.warning : C.textDim, cursor:'pointer', transition:'all .2s', display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
                         <opt.Icon size={22} strokeWidth={1.8} />
@@ -843,7 +852,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   {/* sub-selector للنوع لما اشتغل */}
                   {holidayWorked && (
                     <>
-                      <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>نوع اليوم</label>
+                      <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>{tl(language, 'نوع اليوم', 'סוג היום', 'Day type')}</label>
                       <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                         {['كامل','نص يوم','ساعات','مبلغ مسكر'].map(t => {
                           const sel = holidaySubType === t
@@ -852,7 +861,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                             <button key={t} onClick={() => { setHolidaySubType(t); setForm(prev => ({ ...prev, hours: t==='كامل'?'8':t==='نص يوم'?'4':prev.hours })) }}
                               style={{ flex:1, padding:'12px 6px', borderRadius:14, border:`2px solid ${sel ? color : C.border}`, background: sel ? `${color}18` : 'rgba(255,255,255,0.03)', color: sel ? color : C.textDim, fontSize:12, fontWeight:800, cursor:'pointer', transition:'all .2s', display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
                               <DayIcon type={t} size={16} />
-                              <span>{t}</span>
+                              <span>{tEnum(t, language)}</span>
                             </button>
                           )
                         })}
@@ -864,7 +873,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
               {(form.day_type === 'مبلغ مسكر' || (form.day_type === 'عطلة' && holidayWorked && holidaySubType === 'مبلغ مسكر')) && (
                 <div style={{ marginBottom:18 }}>
-                  <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:8, letterSpacing:'0.04em', textTransform:'uppercase' }}>المبلغ المسكر (₪) *</label>
+                  <label style={{ fontSize:11, fontWeight:700, color:C.textDim, display:'block', marginBottom:8, letterSpacing:'0.04em', textTransform:'uppercase' }}>{tl(language, 'المبلغ المسكر (₪) *', 'הסכום הקבוע (₪) *', 'Fixed amount (₪) *')}</label>
                   <input type="number" value={form.customAmount} min="1" step="1" placeholder="0"
                     onChange={e => setForm(prev => ({ ...prev, customAmount: e.target.value }))}
                     style={{ width:'100%', padding:'14px 16px', borderRadius:14, border:`1.5px solid ${C.orange}77`, background:'rgba(255,255,255,0.05)', color:C.text, fontSize:22, fontWeight:900, boxSizing:'border-box', outline:'none', fontFamily:'monospace' }} />
@@ -875,7 +884,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               {multiMode ? (
                 multiEmps.size > 0 && form.project_id && (
                   <div style={{ padding:'16px 18px', borderRadius:16, marginBottom:18, background:`${C.secondary}0d`, border:`1.5px solid ${C.secondary}33` }}>
-                    <div style={{ fontSize:11, color:C.textDim, marginBottom:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em' }}>المعاينة</div>
+                    <div style={{ fontSize:11, color:C.textDim, marginBottom:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em' }}>{tl(language, 'المعاينة', 'תצוגה מקדימה', 'Preview')}</div>
                     {multiPreviews.map(x => (
                       <div key={x.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:8, marginBottom:8, borderBottom:`1px solid ${C.border}` }}>
                         <span style={{ fontSize:13, color:C.text, fontWeight:600 }}>{x.name}</span>
@@ -883,7 +892,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                       </div>
                     ))}
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:4 }}>
-                      <span style={{ fontSize:12, color:C.textDim, fontWeight:700 }}>المجموع ({multiEmps.size} عمال)</span>
+                      <span style={{ fontSize:12, color:C.textDim, fontWeight:700 }}>{tl(language, `المجموع (${multiEmps.size} عمال)`, `סך הכל (${multiEmps.size} עובדים)`, `Total (${multiEmps.size} workers)`)}</span>
                       <span style={{ fontSize:18, fontWeight:900, color:C.primary, fontFamily:'monospace' }}>{fmt(multiTotal)}₪</span>
                     </div>
                   </div>
@@ -892,8 +901,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 selectedEmp && (
                   <div style={{ padding:'16px 20px', borderRadius:16, marginBottom:18, background:`${C.primary}0d`, border:`1.5px solid ${C.primary}33`, display:'flex', justifyContent:'space-between', alignItems:'center', boxShadow:`0 4px 20px ${C.primary}18` }}>
                     <div>
-                      <div style={{ fontSize:11, color:C.textDim, marginBottom:3 }}>المبلغ المحسوب</div>
-                      <div style={{ fontSize:12, color:C.textDim }}>{selectedEmp.name} × {form.day_type}</div>
+                      <div style={{ fontSize:11, color:C.textDim, marginBottom:3 }}>{tl(language, 'المبلغ المحسوب', 'הסכום המחושב', 'Calculated amount')}</div>
+                      <div style={{ fontSize:12, color:C.textDim }}>{selectedEmp.name} × {tEnum(form.day_type, language)}</div>
                     </div>
                     <div style={{ fontSize:26, fontWeight:900, color:C.primary, fontFamily:'monospace', letterSpacing:'-1px' }}>{fmt(singlePreview)}₪</div>
                   </div>
@@ -909,13 +918,13 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   if (total === 0) return null
                   return (
                     <div style={{ padding:'14px 16px', borderRadius:14, marginBottom:16, background:`${C.primary}0d`, border:`1.5px solid ${C.primary}33` }}>
-                      <div style={{ fontSize:11, color:C.textDim, fontWeight:700, marginBottom:6, textTransform:'uppercase', letterSpacing:'0.04em' }}>ملخص التسجيل</div>
+                      <div style={{ fontSize:11, color:C.textDim, fontWeight:700, marginBottom:6, textTransform:'uppercase', letterSpacing:'0.04em' }}>{tl(language, 'ملخص التسجيل', 'סיכום הרישום', 'Logging summary')}</div>
                       <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
-                        <span style={{ fontSize:13, color:C.text, display:'flex', alignItems:'center', gap:4 }}><CalendarDays size={13} strokeWidth={2} style={{ color:C.primary }} /> <b style={{ color:C.primary }}>{days}</b> يوم</span>
-                        <span style={{ fontSize:13, color:C.text, display:'flex', alignItems:'center', gap:4 }}><HardHat size={13} strokeWidth={2} style={{ color:C.secondary }} /> <b style={{ color:C.secondary }}>{workers.length}</b> عامل</span>
-                        <span style={{ fontSize:13, color:C.text, display:'flex', alignItems:'center', gap:4 }}><ClipboardList size={13} strokeWidth={2} style={{ color:C.success }} /> <b style={{ color:C.success }}>{total}</b> سجل سيُنشأ</span>
+                        <span style={{ fontSize:13, color:C.text, display:'flex', alignItems:'center', gap:4 }}><CalendarDays size={13} strokeWidth={2} style={{ color:C.primary }} /> <b style={{ color:C.primary }}>{days}</b> {tl(language, 'يوم', 'ימים', 'days')}</span>
+                        <span style={{ fontSize:13, color:C.text, display:'flex', alignItems:'center', gap:4 }}><HardHat size={13} strokeWidth={2} style={{ color:C.secondary }} /> <b style={{ color:C.secondary }}>{workers.length}</b> {tl(language, 'عامل', 'עובדים', 'workers')}</span>
+                        <span style={{ fontSize:13, color:C.text, display:'flex', alignItems:'center', gap:4 }}><ClipboardList size={13} strokeWidth={2} style={{ color:C.success }} /> <b style={{ color:C.success }}>{total}</b> {tl(language, 'سجل سيُنشأ', 'רשומות ייווצרו', 'records to create')}</span>
                       </div>
-                      <div style={{ fontSize:10, color:C.textDim, marginTop:6 }}>السجلات المكررة ستُتجاهل تلقائياً</div>
+                      <div style={{ fontSize:10, color:C.textDim, marginTop:6 }}>{tl(language, 'السجلات المكررة ستُتجاهل تلقائياً', 'רשומות כפולות יתעלמו אוטומטית', 'Duplicate records are skipped automatically')}</div>
                     </div>
                   )
                 })()
@@ -929,14 +938,14 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
         }
       </Modal>
 
-      <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={async () => { await deleteWorkDay(confirmDel); setConfirmDel(null) }} message="حذف هذا اليوم؟" />
+      <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)} onConfirm={async () => { await deleteWorkDay(confirmDel); setConfirmDel(null) }} message={tl(language, 'حذف هذا اليوم؟', 'למחוק את היום הזה?', 'Delete this day?')} />
 
       {/* ─── Reject with reason modal ─── */}
-      <Modal open={!!rejectTarget} onClose={() => { setRejectTarget(null); setRejectReason('') }} title="رفض يوم العمل"
-        action={<Btn onClick={confirmReject} full style={{ background:`${C.accent}cc` }}><span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}><XCircle size={15} strokeWidth={2.5} /> تأكيد الرفض</span></Btn>}
+      <Modal open={!!rejectTarget} onClose={() => { setRejectTarget(null); setRejectReason('') }} title={tl(language, 'رفض يوم العمل', 'דחיית יום עבודה', 'Reject work day')}
+        action={<Btn onClick={confirmReject} full style={{ background:`${C.accent}cc` }}><span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}><XCircle size={15} strokeWidth={2.5} /> {tl(language, 'تأكيد الرفض', 'אישור הדחייה', 'Confirm rejection')}</span></Btn>}
       >
-        <div style={{ fontSize:13, color:C.textDim, marginBottom:14 }}>سيصل سبب الرفض للعامل في بوابته</div>
-        <Input label="سبب الرفض (اختياري)" value={rejectReason} onChange={v => setRejectReason(v)} />
+        <div style={{ fontSize:13, color:C.textDim, marginBottom:14 }}>{tl(language, 'سيصل سبب الرفض للعامل في بوابته', 'סיבת הדחייה תגיע לעובד בפורטל שלו', 'The rejection reason will reach the worker in their portal')}</div>
+        <Input label={tl(language, 'سبب الرفض (اختياري)', 'סיבת הדחייה (אופציונלי)', 'Rejection reason (optional)')} value={rejectReason} onChange={v => setRejectReason(v)} />
       </Modal>
 
       {/* ─── Worker detail panel ─── */}
@@ -970,7 +979,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   <div>
                     <div style={{ fontSize:16, fontWeight:900, color:C.text }}>{emp.name}</div>
                     <div style={{ fontSize:11, color:C.textDim, marginTop:3 }}>
-                      {totalDays} يوم عمل • {fmt(totalAmt)}₪ إجمالي
+                      {totalDays} {tl(language, 'يوم عمل', 'ימי עבודה', 'work days')} • {fmt(totalAmt)}₪ {tl(language, 'إجمالي', 'סך הכל', 'total')}
                     </div>
                   </div>
                 </div>
@@ -982,9 +991,9 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 {/* Summary stats */}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:16 }}>
                   {[
-                    { label:'أيام معتمدة', value: totalDays, color: C.primary },
-                    { label:'إجمالي مكتسب', value: fmt(totalAmt)+'₪', color: C.success },
-                    { label:'معدل اليوم', value: fmt(emp.daily_rate)+'₪', color: C.warning },
+                    { label:tl(language, 'أيام معتمدة', 'ימים מאושרים', 'Approved days'), value: totalDays, color: C.primary },
+                    { label:tl(language, 'إجمالي مكتسب', 'סך נצבר', 'Total earned'), value: fmt(totalAmt)+'₪', color: C.success },
+                    { label:tl(language, 'معدل اليوم', 'תעריף יומי', 'Daily rate'), value: fmt(emp.daily_rate)+'₪', color: C.warning },
                   ].map((s, i) => (
                     <div key={i} style={{ padding:'12px 10px', background:`${s.color}10`, border:`1px solid ${s.color}25`, borderRadius:14, textAlign:'center' }}>
                       <div style={{ fontSize:15, fontWeight:900, color:s.color, fontFamily:'monospace' }}>{s.value}</div>
@@ -996,12 +1005,12 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 {/* Monthly breakdown */}
                 {months.length > 0 && (
                   <>
-                    <div style={{ fontSize:12, fontWeight:800, color:C.textDim, marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>ملخص شهري</div>
+                    <div style={{ fontSize:12, fontWeight:800, color:C.textDim, marginBottom:10, letterSpacing:'0.04em', textTransform:'uppercase' }}>{tl(language, 'ملخص شهري', 'סיכום חודשי', 'Monthly summary')}</div>
                     {months.map(([m, stat]) => (
                       <div key={m} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', background:'rgba(255,255,255,0.03)', border:`1px solid ${C.border}`, borderRadius:12, marginBottom:6 }}>
                         <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{m}</div>
                         <div style={{ display:'flex', gap:14, alignItems:'center' }}>
-                          <span style={{ fontSize:12, color:C.textDim }}>{stat.days} يوم</span>
+                          <span style={{ fontSize:12, color:C.textDim }}>{stat.days} {tl(language, 'يوم', 'ימים', 'days')}</span>
                           <span style={{ fontSize:13, fontWeight:800, color:C.success, fontFamily:'monospace' }}>{fmt(stat.amount)}₪</span>
                         </div>
                       </div>
@@ -1012,7 +1021,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 {/* Recent days */}
                 {empDays.length > 0 && (
                   <>
-                    <div style={{ fontSize:12, fontWeight:800, color:C.textDim, margin:'16px 0 10px', letterSpacing:'0.04em', textTransform:'uppercase' }}>آخر الأيام</div>
+                    <div style={{ fontSize:12, fontWeight:800, color:C.textDim, margin:'16px 0 10px', letterSpacing:'0.04em', textTransform:'uppercase' }}>{tl(language, 'آخر الأيام', 'הימים האחרונים', 'Recent days')}</div>
                     {empDays.slice(0, 30).map(d => {
                       const proj = projects.find(p => p.id === d.project_id)
                       const tc = DAY_TYPE_COLOR[d.day_type] || C.primary
@@ -1020,7 +1029,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                         <div key={d.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'9px 12px', background:'rgba(255,255,255,0.03)', border:`1px solid ${C.border}`, borderRadius:12, marginBottom:5 }}>
                           <div>
                             <div style={{ fontSize:12, fontWeight:700, color:C.text }}>{fmtDateFull(d.date)}</div>
-                            <div style={{ fontSize:11, color:C.textDim }}>{proj?.name || '؟'} • <span style={{ color:tc }}>{d.day_type}</span></div>
+                            <div style={{ fontSize:11, color:C.textDim }}>{proj?.name || '؟'} • <span style={{ color:tc }}>{tEnum(d.day_type, language)}</span></div>
                           </div>
                           <span style={{ fontSize:13, fontWeight:800, color:tc, fontFamily:'monospace' }}>{fmt(d.amount)}₪</span>
                         </div>
@@ -1030,7 +1039,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                 )}
 
                 {empDays.length === 0 && (
-                  <div style={{ textAlign:'center', padding:'32px 0', color:C.textDim, fontSize:13 }}>ما في أيام مسجلة لهذا العامل</div>
+                  <div style={{ textAlign:'center', padding:'32px 0', color:C.textDim, fontSize:13 }}>{tl(language, 'ما في أيام مسجلة لهذا العامل', 'אין ימים רשומים לעובד זה', 'No days logged for this worker')}</div>
                 )}
               </div>
             </div>
@@ -1042,18 +1051,18 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
       {bulkSelectMode && (
         <div style={{ position:'fixed', bottom:100, left:0, right:0, margin:'0 auto', width:'calc(100% - 32px)', maxWidth:398, background:C.surface, borderRadius:20, border:`1.5px solid ${selectedDayIds.size > 0 ? C.primary + '66' : C.border}`, padding:'14px 18px', display:'flex', alignItems:'center', justifyContent:'space-between', zIndex:60, boxShadow:`0 8px 32px rgba(0,0,0,0.5)`, transition:'border-color .2s' }}>
           <div style={{ fontSize:13, fontWeight:700, color: selectedDayIds.size > 0 ? C.primary : C.textDim }}>
-            {selectedDayIds.size > 0 ? `${selectedDayIds.size} يوم محدد` : 'اضغط على أيام للتحديد'}
+            {selectedDayIds.size > 0 ? tl(language, `${selectedDayIds.size} يوم محدد`, `${selectedDayIds.size} ימים נבחרו`, `${selectedDayIds.size} days selected`) : tl(language, 'اضغط على أيام للتحديد', 'לחץ על ימים לבחירה', 'Tap days to select')}
           </div>
           <div style={{ display:'flex', gap:6 }}>
             {selectedDayIds.size > 0 && (
               <>
                 <button onClick={bulkApproveSelected} disabled={bulkSaving}
                   style={{ padding:'10px 14px', borderRadius:12, background:`${C.success}22`, border:`1px solid ${C.success}55`, color:C.success, fontSize:12, fontWeight:800, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:5 }}>
-                  <CheckCircle2 size={14} strokeWidth={2.5} /> موافقة
+                  <CheckCircle2 size={14} strokeWidth={2.5} /> {tl(language, 'موافقة', 'אישור', 'Approve')}
                 </button>
                 <button onClick={() => setShowBulkProj(true)}
                   style={{ padding:'10px 14px', borderRadius:12, background:GRAD.brand, border:'none', color:'#000', fontSize:12, fontWeight:800, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:5 }}>
-                  <FolderInput size={14} strokeWidth={2.5} /> مشروع
+                  <FolderInput size={14} strokeWidth={2.5} /> {tl(language, 'مشروع', 'פרויקט', 'Project')}
                 </button>
               </>
             )}
@@ -1074,8 +1083,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <IconChip icon={FolderInput} tone="brand" size={34} radius={10} />
                 <div>
-                  <div style={{ fontSize:15, fontWeight:800, color:C.text }}>تعديل المشروع</div>
-                  <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>تطبيق على {selectedDayIds.size} يوم محدد</div>
+                  <div style={{ fontSize:15, fontWeight:800, color:C.text }}>{tl(language, 'تعديل المشروع', 'עריכת פרויקט', 'Edit project')}</div>
+                  <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{tl(language, `تطبيق على ${selectedDayIds.size} يوم محدد`, `החל על ${selectedDayIds.size} ימים נבחרים`, `Apply to ${selectedDayIds.size} selected days`)}</div>
                 </div>
               </div>
               <button onClick={() => { setShowBulkProj(false); setBulkProjId(''); setBulkError('') }}
@@ -1104,11 +1113,11 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
             <div style={{ display:'flex', gap:8 }}>
               <button onClick={applyBulkProject} disabled={!bulkProjId || bulkSaving}
                 style={{ flex:1, padding:'14px', borderRadius:14, background: !bulkProjId || bulkSaving ? C.border : GRAD.brand, border:'none', color: !bulkProjId || bulkSaving ? C.textDim : '#000', fontSize:14, fontWeight:800, cursor: !bulkProjId || bulkSaving ? 'default' : 'pointer', transition:'all .2s', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-                {bulkSaving ? <><Loader2 size={15} strokeWidth={2.5} style={{ animation:'spin .8s linear infinite' }} /> جاري الحفظ...</> : <><Check size={15} strokeWidth={2.8} /> تطبيق</>}
+                {bulkSaving ? <><Loader2 size={15} strokeWidth={2.5} style={{ animation:'spin .8s linear infinite' }} /> {tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...')}</> : <><Check size={15} strokeWidth={2.8} /> {tl(language, 'تطبيق', 'החל', 'Apply')}</>}
               </button>
               <button onClick={() => { setShowBulkProj(false); setBulkProjId(''); setBulkError('') }}
                 style={{ padding:'14px 20px', borderRadius:14, background:'transparent', border:`1px solid ${C.border}`, color:C.textDim, fontSize:14, fontWeight:700, cursor:'pointer' }}>
-                إلغاء
+                {tl(language, 'إلغاء', 'ביטול', 'Cancel')}
               </button>
             </div>
           </div>

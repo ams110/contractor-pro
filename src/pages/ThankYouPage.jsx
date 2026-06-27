@@ -72,7 +72,7 @@ export default function ThankYouPage() {
         تم تفعيل اشتراكك! 🎉
       </h1>
       <p style={{ fontSize: 15, color: C.textDim, lineHeight: 1.7, maxWidth: 380, marginBottom: 8, animation: 'tyUp 0.5s ease-out 0.2s both' }}>
-        شكراً لانضمامك إلى <strong style={{ color: C.text }}>Contractor Pro</strong>
+        شكراً لانضمامك إلى <strong style={{ color: C.text }}>كبلان</strong>
         {plan ? <> — باقة <strong style={{ color: C.primary }}>{plan}</strong></> : null}.
         كل مزايا خطتك صارت مفعّلة الآن.
       </p>

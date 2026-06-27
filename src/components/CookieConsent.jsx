@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Cookie, X } from 'lucide-react'
 import { navigate } from '../Router.jsx'
 import { isGranted, initAnalytics, grantConsent } from '../lib/analytics.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 // مفتاح إصدار v2: يُعيد سؤال كل المستخدمين بعد إضافة تحليلات Google Analytics
 // (المفتاح القديم cp_cookie_consent كان لوعد «بلا تتبّع» فلا يُستعمل للموافقة هنا).
@@ -20,6 +22,7 @@ const C = {
  */
 export default function CookieConsent() {
   const [show, setShow] = useState(false)
+  const language = useAppStore(s => s.language)
 
   useEffect(() => {
     // لا تحليلات داخل بوّابة العامل
@@ -57,22 +60,24 @@ export default function CookieConsent() {
         </div>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>
-            نستخدم تخزيناً ضرورياً لتشغيل الجلسة، وأدوات تحليل (Google Analytics) لفهم
-            استخدام الموقع وتحسينه — بلا تتبّع إعلاني. يمكنك الرفض دون التأثير على عمل التطبيق.{' '}
+            {tl(language,
+              'نستخدم تخزيناً ضرورياً لتشغيل الجلسة، وأدوات تحليل (Google Analytics) لفهم استخدام الموقع وتحسينه — بلا تتبّع إعلاني. يمكنك الرفض دون التأثير على عمل التطبيق.',
+              'אנו משתמשים באחסון חיוני להפעלת ההפעלה ובכלי ניתוח (Google Analytics) כדי להבין את השימוש באתר ולשפר אותו — ללא מעקב פרסומי. ניתן לסרב מבלי לפגוע בפעולת האפליקציה.',
+              'We use essential storage to run your session, and analytics tools (Google Analytics) to understand site usage and improve it — no ad tracking. You can decline without affecting the app.')}{' '}
             <span onClick={() => navigate('/privacy')} style={{ color: C.primary, cursor: 'pointer', fontWeight: 700 }}>
-              سياسة الخصوصية
+              {tl(language, 'سياسة الخصوصية', 'מדיניות הפרטיות', 'Privacy Policy')}
             </span>
           </div>
         </div>
         <button onClick={() => decide('denied')}
           style={{ background: 'transparent', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 13, fontWeight: 800, cursor: 'pointer', padding: '10px 18px', borderRadius: 12, whiteSpace: 'nowrap' }}>
-          رفض
+          {tl(language, 'رفض', 'דחה', 'Decline')}
         </button>
         <button onClick={() => decide('granted')}
           style={{ background: C.primary, border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', padding: '10px 22px', borderRadius: 12, whiteSpace: 'nowrap' }}>
-          موافق
+          {tl(language, 'موافق', 'אישור', 'Accept')}
         </button>
-        <button onClick={() => decide('denied')} aria-label="إغلاق (رفض)"
+        <button onClick={() => decide('denied')} aria-label={tl(language, 'إغلاق (رفض)', 'סגירה (דחייה)', 'Close (decline)')}
           style={{ background: 'transparent', border: 'none', color: C.textDim, cursor: 'pointer', padding: 4, display: 'flex' }}>
           <X size={18} />
         </button>

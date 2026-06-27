@@ -8,9 +8,12 @@ import { GlassCard, Modal, Input, Btn, SectionLabel, EmptyState, ConfirmDialog }
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import { uploadReceipt, openSignedUrl } from '../lib/storage.js'
 import { openWhatsApp, waMessages } from '../lib/whatsapp.js'
+import { tl, tEnum } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
-function fmtMonth(ym) {
-  return new Date(ym + '-01').toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' })
+function fmtMonth(ym, language) {
+  const loc = language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'ar-SA'
+  return new Date(ym + '-01').toLocaleDateString(loc, { month: 'long', year: 'numeric' })
 }
 
 // ─── شريحة وسم صغيرة ──────────────────────────────────────────────────────────
@@ -29,6 +32,7 @@ function sendWhatsApp(phone, name, amount, date) {
 }
 
 export default function PaymentsScreen({ payments, employees, workDays, expenses = [], advances = [], projects = [], addPayment, updatePayment, deletePayment, approvePaymentRequest, rejectPaymentRequest, userId, permissions, payMethods }) {
+  const language = useAppStore(s => s.language)
   const methods = payMethods?.length ? payMethods : PAY_METHODS
 
   const currentMonth = todayStr().slice(0, 7)
@@ -79,7 +83,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
   function pickFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 10 * 1024 * 1024) { setFormError('حجم الملف يجب أن يكون أقل من 10MB'); return }
+    if (file.size > 10 * 1024 * 1024) { setFormError(tl(language, 'حجم الملف يجب أن يكون أقل من 10MB', 'גודל הקובץ חייב להיות פחות מ-10MB', 'File size must be under 10MB')); return }
     if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview)
     setReceiptFile(file)
     setPreview(URL.createObjectURL(file))
@@ -128,8 +132,8 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
           style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
           <IconChip icon={Wallet} tone="excellent" size={40} radius={12} />
           <div>
-            <div style={{ fontSize:18, fontWeight:900, color:C.text, letterSpacing:'-0.02em' }}>الدفعات</div>
-            <div style={{ fontSize:11, color:C.textDim, marginTop:1 }}>{payments.length} دفعة</div>
+            <div style={{ fontSize:18, fontWeight:900, color:C.text, letterSpacing:'-0.02em' }}>{tl(language, 'الدفعات', 'תשלומים', 'Payments')}</div>
+            <div style={{ fontSize:11, color:C.textDim, marginTop:1 }}>{payments.length} {tl(language, 'دفعة', 'תשלום', 'payments')}</div>
           </div>
         </motion.div>
         <div style={{ display:'flex', gap:8 }}>
@@ -142,7 +146,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
           {permissions?.addPayments !== false && (
             <motion.button whileTap={{ scale: 0.93 }} onClick={() => { setFormError(''); setEditingId(null); setForm(emptyForm); setPreview(''); setShowForm(true) }}
               style={{ padding:'10px 18px', borderRadius:14, background:GRAD.brand, color:'#000', border:'none', cursor:'pointer', fontWeight:800, fontSize:13, boxShadow:'0 4px 16px rgba(245,158,11,0.3)', display:'flex', alignItems:'center', gap:5, fontFamily:'inherit' }}>
-              <Plus size={14} strokeWidth={2.5} /> دفعة
+              <Plus size={14} strokeWidth={2.5} /> {tl(language, 'دفعة', 'תשלום', 'Payment')}
             </motion.button>
           )}
         </div>
@@ -153,12 +157,12 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
         <PremiumCard tone="excellent" radius={18} padding="14px 16px" style={{ marginBottom:16 }}>
           <div style={{ display:'flex', justifyContent:'space-around' }}>
             <div style={{ textAlign:'center' }}>
-              <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>مدفوع للعمال</div>
+              <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>{tl(language, 'مدفوع للعمال', 'שולם לעובדים', 'Paid to workers')}</div>
               <div style={{ fontSize:22, fontWeight:900, color:C.success, fontFamily:'monospace' }}>{fmtA(totalPaid)}</div>
             </div>
             <div style={{ width:1, background:C.border }} />
             <div style={{ textAlign:'center' }}>
-              <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>رواتب معلقة</div>
+              <div style={{ fontSize:10, color:C.textDim, fontWeight:600, marginBottom:4 }}>{tl(language, 'رواتب معلقة', 'משכורות ממתינות', 'Pending salaries')}</div>
               <div style={{ fontSize:22, fontWeight:900, color: totalOwed > 0 ? C.accent : C.success, fontFamily:'monospace' }}>{fmtA(totalOwed)}</div>
             </div>
           </div>
@@ -170,13 +174,13 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
         ? (
           <div style={{ textAlign:'center', padding:'44px 0', color:C.textDim }}>
             <IconChip icon={Coins} tone="excellent" size={52} radius={16} iconSize={26} style={{ margin:'0 auto 12px' }} />
-            <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:18 }}>ما في دفعات بعد</div>
-            <Btn onClick={() => setShowForm(true)}>+ أضف دفعة</Btn>
+            <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:18 }}>{tl(language, 'ما في دفعات بعد', 'אין תשלומים עדיין', 'No payments yet')}</div>
+            <Btn onClick={() => setShowForm(true)}>{tl(language, '+ أضف دفعة', '+ הוסף תשלום', '+ Add payment')}</Btn>
           </div>
         )
         : (
           <>
-            <SectionLabel color={C.primary} style={{ marginBottom:12 }}>العمال</SectionLabel>
+            <SectionLabel color={C.primary} style={{ marginBottom:12 }}>{tl(language, 'العمال', 'עובדים', 'Workers')}</SectionLabel>
             {activeEmployees.map((emp, ei) => {
               const earned = workDays.filter(w => w.employee_id === emp.id && w.status === 'approved').reduce((s, w) => s + w.amount, 0)
               const wExp   = expenses.filter(e => e.employee_id === emp.id && e.status === 'approved').reduce((s, e) => s + e.amount, 0)
@@ -206,18 +210,18 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                       {/* owed badge */}
                       <div style={{ textAlign:'center', padding:'6px 12px', borderRadius:12, background:`${owedColor}20`, border:`1px solid ${owedColor}44` }}>
                         <div style={{ fontSize:14, fontWeight:900, color:owedColor, fontFamily:'monospace', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}>
-                          {owed > 0 ? fmtA(owed) : <><Check size={13} strokeWidth={3} /> مسدد</>}
+                          {owed > 0 ? fmtA(owed) : <><Check size={13} strokeWidth={3} /> {tl(language, 'مسدد', 'שולם', 'Paid')}</>}
                         </div>
-                        <div style={{ fontSize:9, color:C.textDim }}>{owed > 0 ? 'متبقي' : ''}</div>
+                        <div style={{ fontSize:9, color:C.textDim }}>{owed > 0 ? tl(language, 'متبقي', 'נותר', 'Remaining') : ''}</div>
                       </div>
                     </div>
 
                     {/* تفاصيل صغيرة */}
                     <div style={{ display:'flex', justifyContent:'space-around', marginBottom:10 }}>
                       {[
-                        { l:'مستحق', v: fmtA(earned + wExp), c:C.text },
-                        { l:'مدفوع', v: fmtA(paid),         c:C.success },
-                        { l:'الراتب اليومي', v:`${fmt(emp.daily_rate || 0)}₪`, c:C.textDim },
+                        { l:tl(language, 'مستحق', 'זכאי', 'Earned'), v: fmtA(earned + wExp), c:C.text },
+                        { l:tl(language, 'مدفوع', 'שולם', 'Paid'), v: fmtA(paid),         c:C.success },
+                        { l:tl(language, 'الراتب اليومي', 'שכר יומי', 'Daily rate'), v:`${fmt(emp.daily_rate || 0)}₪`, c:C.textDim },
                       ].map(s => (
                         <div key={s.l} style={{ textAlign:'center' }}>
                           <div style={{ fontSize:9, color:C.textDim, fontWeight:600 }}>{s.l}</div>
@@ -230,7 +234,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                     <div style={{ height:6, background:`${C.border}66`, borderRadius:3, overflow:'hidden' }}>
                       <div style={{ height:'100%', width:`${pct}%`, background:grad, borderRadius:3, transition:'width .5s' }} />
                     </div>
-                    <div style={{ fontSize:9, color:C.textDim, marginTop:4, textAlign:'center' }}>{pct}% مدفوع</div>
+                    <div style={{ fontSize:9, color:C.textDim, marginTop:4, textAlign:'center' }}>{pct}% {tl(language, 'مدفوع', 'שולם', 'paid')}</div>
                 </PremiumCard>
               )
             })}
@@ -242,7 +246,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
       {payments.length > 0 && (
         <div style={{ marginTop:8 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-            <SectionLabel color={C.success}>سجل الدفعات</SectionLabel>
+            <SectionLabel color={C.success}>{tl(language, 'سجل الدفعات', 'יומן תשלומים', 'Payments log')}</SectionLabel>
             <div style={{ display:'flex', gap:6, alignItems:'center' }}>
               <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
                 style={{ padding:'5px 8px', borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.text, fontSize:11, outline:'none', width:120 }} />
@@ -277,7 +281,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                           <div style={{ fontSize:14, fontWeight:800, color:C.text }}>{emp?.name || '?'}</div>
                           <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:4 }}>
                             <MetaTag icon={Calendar} label={fmtDate(p.date)} color="#94A3B8" />
-                            {p.method && <MetaTag icon={CreditCard} label={p.method} color={C.cyan} />}
+                            {p.method && <MetaTag icon={CreditCard} label={tEnum(p.method, language)} color={C.cyan} />}
                             {projName && <MetaTag icon={Building2} label={projName} color={C.secondary} />}
                           </div>
                         </div>
@@ -316,12 +320,12 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
       )}
 
       {/* ── Modal دفعة جديدة / تعديل ── */}
-      <Modal open={showForm} onClose={() => { setShowForm(false); setEditingId(null) }} title={editingId ? 'تعديل الدفعة' : 'دفعة جديدة'}>
-        <Input label="التاريخ" value={form.date} onChange={f('date')} type="date" />
+      <Modal open={showForm} onClose={() => { setShowForm(false); setEditingId(null) }} title={editingId ? tl(language, 'تعديل الدفعة', 'עריכת תשלום', 'Edit payment') : tl(language, 'دفعة جديدة', 'תשלום חדש', 'New payment')}>
+        <Input label={tl(language, 'التاريخ', 'תאריך', 'Date')} value={form.date} onChange={f('date')} type="date" />
 
         {!editingId && (
           <div style={{ marginBottom:14 }}>
-            <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>العامل *</label>
+            <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>{tl(language, 'العامل', 'עובד', 'Worker')} *</label>
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
               {employees.map(e => {
                 const owed = calcOwed(e.id)
@@ -338,11 +342,11 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
 
         <div style={{ marginBottom:14 }}>
           <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6, fontWeight:600 }}>
-            المشروع <span style={{ color: C.accent }}>*</span>
+            {tl(language, 'المشروع', 'פרויקט', 'Project')} <span style={{ color: C.accent }}>*</span>
           </label>
           {projects.length === 0 ? (
             <div style={{ fontSize:12, color:C.accent, padding:'8px 12px', background:`${C.accent}10`, borderRadius:10 }}>
-              لا توجد مشاريع — أضف مشروعاً أولاً
+              {tl(language, 'لا توجد مشاريع — أضف مشروعاً أولاً', 'אין פרויקטים — הוסף פרויקט תחילה', 'No projects — add a project first')}
             </div>
           ) : (
             <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
@@ -356,22 +360,22 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
           )}
         </div>
 
-        <Input label="المبلغ (₪)" value={form.amount} onChange={f('amount')} type="number" min="0.01" required />
-        <Input label="طريقة الدفع" value={form.method} onChange={f('method')} options={methods} />
+        <Input label={tl(language, 'المبلغ (₪)', 'סכום (₪)', 'Amount (₪)')} value={form.amount} onChange={f('amount')} type="number" min="0.01" required />
+        <Input label={tl(language, 'طريقة الدفع', 'אמצעי תשלום', 'Payment method')} value={form.method} onChange={f('method')} options={methods} />
 
         {form.method === 'تحويل بنكي' && (
           <div style={{ marginBottom:14 }}>
-            <label style={{ fontSize:12, color:C.textDim, marginBottom:6, fontWeight:600, display:'flex', alignItems:'center', gap:5 }}><Paperclip size={12} strokeWidth={2} /> إثبات التحويل</label>
+            <label style={{ fontSize:12, color:C.textDim, marginBottom:6, fontWeight:600, display:'flex', alignItems:'center', gap:5 }}><Paperclip size={12} strokeWidth={2} /> {tl(language, 'إثبات التحويل', 'אישור העברה', 'Transfer proof')}</label>
             <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display:'none' }} onChange={pickFile} />
             {preview
               ? <div style={{ position:'relative' }}>
-                  <img src={preview} alt="إثبات" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:12, border:`1px solid ${C.border}` }} />
+                  <img src={preview} alt={tl(language, 'إثبات', 'אישור', 'Proof')} style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:12, border:`1px solid ${C.border}` }} />
                   <button onClick={() => { if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview); setReceiptFile(null); setPreview('') }}
                     style={{ position:'absolute', top:6, left:6, background:`${C.accent}dd`, border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><X size={14} strokeWidth={2.5} /></button>
                 </div>
               : <button onClick={() => fileRef.current.click()}
                   style={{ width:'100%', padding:'14px', borderRadius:12, border:`2px dashed ${C.border}`, background:'transparent', color:C.textDim, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontFamily:'inherit' }}>
-                  <Camera size={16} strokeWidth={1.8} /> اضغط لرفع صورة الإثبات
+                  <Camera size={16} strokeWidth={1.8} /> {tl(language, 'اضغط لرفع صورة الإثبات', 'לחץ להעלאת תמונת אישור', 'Tap to upload proof image')}
                 </button>
             }
           </div>
@@ -381,13 +385,13 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
         <Btn onClick={save} full disabled={saving || (!editingId && !form.employee_id) || !form.amount}>
           <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}>
             {!saving && <Check size={15} strokeWidth={3} />}
-            {saving ? 'جاري الحفظ...' : editingId ? 'حفظ التعديل' : 'سجّل الدفعة'}
+            {saving ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : editingId ? tl(language, 'حفظ التعديل', 'שמור שינויים', 'Save changes') : tl(language, 'سجّل الدفعة', 'רשום תשלום', 'Record payment')}
           </span>
         </Btn>
       </Modal>
 
       <ConfirmDialog open={!!confirmDel} onClose={() => setConfirmDel(null)}
-        onConfirm={async () => { await deletePayment(confirmDel); setConfirmDel(null) }} message="حذف هالدفعة؟" />
+        onConfirm={async () => { await deletePayment(confirmDel); setConfirmDel(null) }} message={tl(language, 'حذف هالدفعة؟', 'למחוק את התשלום הזה?', 'Delete this payment?')} />
 
       {/* ── سجل العامل المالي (modal) ── */}
       {selectedEmp && (() => {
@@ -445,7 +449,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                     </div>
                     <div>
                       <div style={{ fontSize:16, fontWeight:900, color:C.text }}>{emp.name}</div>
-                      <div style={{ fontSize:11, color:C.textDim }}>السجل المالي</div>
+                      <div style={{ fontSize:11, color:C.textDim }}>{tl(language, 'السجل المالي', 'תיעוד פיננסי', 'Financial record')}</div>
                     </div>
                   </div>
                   <button onClick={() => setSelectedEmp(null)}
@@ -456,14 +460,14 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                 {/* الإجماليات */}
                 <div style={{ display:'flex', justifyContent:'space-around', background:`${C.border}33`, borderRadius:14, padding:'10px 8px' }}>
                   {[
-                    { l:'المستحق الكلي', v: fmtA(totalEarned), c:C.text },
-                    { l: 'المدفوع الكلي', v: fmtA(totalPaid), c:C.success },
-                    { l:'المتبقي',       v: totalOwedEmp > 0 ? fmtA(totalOwedEmp) : null, paid: !(totalOwedEmp > 0), c: totalOwedEmp > 0 ? C.accent : C.success },
+                    { l:tl(language, 'المستحق الكلي', 'סך זכאי', 'Total earned'), v: fmtA(totalEarned), c:C.text },
+                    { l: tl(language, 'المدفوع الكلي', 'סך ששולם', 'Total paid'), v: fmtA(totalPaid), c:C.success },
+                    { l:tl(language, 'المتبقي', 'נותר', 'Remaining'),       v: totalOwedEmp > 0 ? fmtA(totalOwedEmp) : null, paid: !(totalOwedEmp > 0), c: totalOwedEmp > 0 ? C.accent : C.success },
                   ].map(s => (
                     <div key={s.l} style={{ textAlign:'center' }}>
                       <div style={{ fontSize:9, color:C.textDim, fontWeight:600, marginBottom:2 }}>{s.l}</div>
                       <div style={{ fontSize:13, fontWeight:900, color:s.c, fontFamily:'monospace', display:'flex', alignItems:'center', justifyContent:'center', gap:3 }}>
-                        {s.paid ? <><Check size={12} strokeWidth={3} /> مسدد</> : s.v}
+                        {s.paid ? <><Check size={12} strokeWidth={3} /> {tl(language, 'مسدد', 'שולם', 'Paid')}</> : s.v}
                       </div>
                     </div>
                   ))}
@@ -473,7 +477,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
               {/* قائمة الأشهر */}
               <div style={{ overflowY:'auto', padding:'12px 16px 32px', flex:1 }}>
                 {monthDataDesc.length === 0
-                  ? <div style={{ textAlign:'center', color:C.textDim, padding:32, fontSize:13 }}>لا يوجد سجل مالي</div>
+                  ? <div style={{ textAlign:'center', color:C.textDim, padding:32, fontSize:13 }}>{tl(language, 'لا يوجد سجل مالي', 'אין תיעוד פיננסי', 'No financial record')}</div>
                   : monthDataDesc.map(({ m, mEarned, mPaid, daysCount, paysCount, balance }) => {
                       const isOpen = openMonths.has(m)
                       const mGrad  = balance > 0 ? GRAD.danger : GRAD.success
@@ -485,14 +489,14 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                             style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 14px', background: isOpen ? `${C.border}44` : 'transparent', border:'none', cursor:'pointer', gap:8 }}>
                             <div style={{ height:3, position:'absolute', top:0, left:0, right:0, background: mGrad }} />
                             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                              <span style={{ fontSize:14, fontWeight:800, color:C.text }}>{fmtMonth(m)}</span>
+                              <span style={{ fontSize:14, fontWeight:800, color:C.text }}>{fmtMonth(m, language)}</span>
                               <span style={{ fontSize:10, color:C.textDim, background:`${C.border}66`, borderRadius:8, padding:'2px 8px' }}>
-                                {daysCount > 0 ? `${daysCount} يوم` : ''}{daysCount > 0 && paysCount > 0 ? ' · ' : ''}{paysCount > 0 ? `${paysCount} دفعة` : ''}
+                                {daysCount > 0 ? `${daysCount} ${tl(language, 'يوم', 'יום', 'day')}` : ''}{daysCount > 0 && paysCount > 0 ? ' · ' : ''}{paysCount > 0 ? `${paysCount} ${tl(language, 'دفعة', 'תשלום', 'payment')}` : ''}
                               </span>
                             </div>
                             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                               <span style={{ fontSize:13, fontWeight:900, color: balance > 0 ? C.accent : C.success, fontFamily:'monospace', display:'inline-flex', alignItems:'center', gap:3 }}>
-                                {balance > 0 ? `${fmt(balance)}₪ باقي` : <><Check size={12} strokeWidth={3} /> مسدد</>}
+                                {balance > 0 ? `${fmt(balance)}₪ ${tl(language, 'باقي', 'נותר', 'left')}` : <><Check size={12} strokeWidth={3} /> {tl(language, 'مسدد', 'שולם', 'Paid')}</>}
                               </span>
                               <ChevronDown size={14} strokeWidth={2.4} style={{ color:C.textDim, transition:'transform .2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
                             </div>
@@ -502,14 +506,14 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
                           {isOpen && (
                             <div style={{ padding:'10px 14px 14px', borderTop:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:8 }}>
                               {[
-                                { l:'المستحق',         v:`${fmt(mEarned)}₪`, c:C.primary },
-                                { l:'واصل',            v:`${fmt(mPaid)}₪`,   c:C.success },
-                                { l:'الرصيد التراكمي', v: balance > 0 ? `${fmt(balance)}₪` : null, paid: !(balance > 0), c: balance > 0 ? C.accent : C.success },
+                                { l:tl(language, 'المستحق', 'זכאי', 'Earned'),         v:`${fmt(mEarned)}₪`, c:C.primary },
+                                { l:tl(language, 'واصل', 'שולם', 'Received'),            v:`${fmt(mPaid)}₪`,   c:C.success },
+                                { l:tl(language, 'الرصيد التراكمي', 'יתרה מצטברת', 'Running balance'), v: balance > 0 ? `${fmt(balance)}₪` : null, paid: !(balance > 0), c: balance > 0 ? C.accent : C.success },
                               ].map(row => (
                                 <div key={row.l} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:`${C.border}22`, borderRadius:10 }}>
                                   <span style={{ fontSize:13, color:C.textDim, fontWeight:600 }}>{row.l}</span>
                                   <span style={{ fontSize:15, fontWeight:900, color:row.c, fontFamily:'monospace', display:'inline-flex', alignItems:'center', gap:4 }}>
-                                    {row.paid ? <><Check size={13} strokeWidth={3} /> مسدد</> : row.v}
+                                    {row.paid ? <><Check size={13} strokeWidth={3} /> {tl(language, 'مسدد', 'שולם', 'Paid')}</> : row.v}
                                   </span>
                                 </div>
                               ))}

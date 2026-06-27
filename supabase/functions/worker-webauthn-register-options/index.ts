@@ -50,7 +50,7 @@ serve(async (req) => {
       .eq('employee_id', emp.id)
 
     const options = await generateRegistrationOptions({
-      rpName: 'Contractor Pro',
+      rpName: 'Kabblan',
       rpID,
       userID: new TextEncoder().encode(String(emp.id).replace(/-/g, '').slice(0, 32)),
       userName: emp.worker_username || emp.name || 'worker',

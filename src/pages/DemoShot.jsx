@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { C } from '../constants/index.js'
 import { buildDemo, makeDemoBag, seedDemoStores } from '../lib/demoData.js'
+import { setLanguage } from '../i18n/index.js'
+import { useAppStore } from '../store/useAppStore.js'
 import ErrorBoundary from '../components/ErrorBoundary.jsx'
 
 import DashboardScreen from '../screens/dashboard/DashboardScreen.jsx'
@@ -21,8 +23,10 @@ import MaterialsScreen from '../screens/MaterialsScreen.jsx'
 
 const DEMO = buildDemo()
 
-function Screen({ name }) {
-  const props = makeDemoBag(DEMO)
+function Screen({ name, lang }) {
+  // نمرّر language صريحاً من بارامتر الـURL حتى تُرندَر الشاشات بلغة الإعلان
+  // بشكل حتمي (الشاشات تعتمد على prop اسمه language) — بلا انتظار توقيت i18n.
+  const props = makeDemoBag(DEMO, { extra: { language: lang || undefined } })
   switch (name) {
     case 'workdays':  return <WorkDaysScreen {...props} />
     case 'workers':   return <WorkersScreen {...props} />
@@ -41,6 +45,17 @@ export default function DemoShot() {
   const name = params.get('screen') || 'dashboard'
   const focus = params.get('focus')        // نصّ بطاقة لتمريرها لأعلى الشاشة
   const y = params.get('y')                 // أو إزاحة تمرير بالبكسل
+  const lang = params.get('lang')           // ar | he | en — لشاشة بلغة الإعلان (موكاب البوسترات العبرية)
+
+  // اضبط اللغة مرّة واحدة قبل أوّل رسم (synchronous — الموارد مُجمّعة) حتى يلتقطها السكرينشوت.
+  // نضبط i18n + مخزن التطبيق معاً حتى تُرندَر المكوّنات التي تقرأ اللغة من useAppStore بشكل صحيح.
+  useState(() => {
+    if (lang === 'he' || lang === 'en' || lang === 'ar') {
+      setLanguage(lang)
+      useAppStore.getState().setLanguage(lang)
+    }
+    return null
+  })
 
   useEffect(() => {
     seedDemoStores(DEMO)
@@ -60,7 +75,7 @@ export default function DemoShot() {
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, color: C.text, direction: 'rtl', paddingBottom: 24 }}>
       <ErrorBoundary key={name}>
-        <Screen name={name} />
+        <Screen name={name} lang={lang} />
       </ErrorBoundary>
     </div>
   )

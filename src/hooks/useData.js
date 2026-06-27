@@ -90,21 +90,11 @@ export function useProjects(userId) {
     await refetch()
   }
 
-  // حذف المشروع مع كل بياناته المالية المرتبطة نهائياً
+  // حذف المشروع مع كل بياناته المالية نهائياً — عبر RPC ذرّية (transaction):
+  // إمّا يُحذف كل شيء معاً أو لا شيء، فلا تبقى حالة جزئية عند فشل في المنتصف.
+  // الدالة SECURITY INVOKER فتفرض RLS الملكية تماماً مثل المسار القديم (مالك/عضو مخوّل).
   async function deleteProjectWithAll(id) {
-    // نحذف بيانات الأبناء أولاً ونتحقّق من نتيجة كل عملية — عميل Supabase لا يرمي
-    // على خطأ DB بل يرجّع {error}، فلو لم نفحصه نكمل ونحذف المشروع رغم فشل الحذف
-    // (يترك صفوفاً يتيمة بصمت). نوقف ونبلّغ بدل المتابعة.
-    const results = await Promise.all([
-      supabase.from('work_days').delete().eq('project_id', id).eq('user_id', userId),
-      supabase.from('expenses').delete().eq('project_id', id).eq('user_id', userId),
-      supabase.from('payments').delete().eq('project_id', id).eq('user_id', userId),
-      supabase.from('advances').delete().eq('project_id', id).eq('user_id', userId),
-      supabase.from('client_receipts').delete().eq('project_id', id).eq('user_id', userId),
-    ])
-    const failed = results.find((r) => r.error)
-    if (failed) throw failed.error
-    const { error } = await supabase.from('projects').delete().eq('id', id).eq('user_id', userId)
+    const { error } = await supabase.rpc('delete_project_cascade', { p_project_id: id })
     if (error) throw error
     await refetch()
   }
@@ -169,7 +159,9 @@ export function useWorkDays(userId) {
   }
 
   async function rejectWorkDay(id) {
-    const { error } = await supabase.from('work_days').delete().eq('id', id).eq('user_id', userId)
+    // رفض = وضع حالة "مرفوض" (لا حذف نهائي) — يحفظ سجلّ العامل، والحالة مدعومة
+    // أصلاً في WorkDayTicket/بوّابة العامل/تحليلات WorkerDNA. المالية تستثني غير المعتمد.
+    const { error } = await supabase.from('work_days').update({ status: 'rejected' }).eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
   }
@@ -212,7 +204,9 @@ export function useExpenses(userId) {
   }
 
   async function rejectExpense(id) {
-    const { error } = await supabase.from('expenses').delete().eq('id', id).eq('user_id', userId)
+    // رفض = وضع حالة "مرفوض" (لا حذف) — يحفظ السجلّ للتدقيق؛ المالية وطابور
+    // المعلّقات يستثنيان غير المعتمد، فلا يظهر المصروف المرفوض في الحسابات.
+    const { error } = await supabase.from('expenses').update({ status: 'rejected' }).eq('id', id).eq('user_id', userId)
     if (error) throw error
     await refetch()
   }

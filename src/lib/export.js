@@ -232,7 +232,7 @@ export function exportProjectToPDF({ project, workDays, expenses, clientReceipts
   // Header
   doc.setFontSize(18)
   doc.setTextColor(0, 212, 170)
-  doc.text('Contractor Pro', 105, 18, { align: 'center' })
+  doc.text('Kabblan', 105, 18, { align: 'center' })
 
   doc.setFontSize(14)
   doc.setTextColor(40, 40, 40)
@@ -355,7 +355,7 @@ export function exportWorkerSalaryPDF({ worker, workDays, payments }) {
 
   doc.setFontSize(18)
   doc.setTextColor(0, 212, 170)
-  doc.text('Contractor Pro - Salary Report', 105, 18, { align: 'center' })
+  doc.text('Kabblan - Salary Report', 105, 18, { align: 'center' })
 
   doc.setFontSize(13)
   doc.setTextColor(40, 40, 40)
@@ -420,7 +420,7 @@ export function exportWorkerContractPDF({ worker, ownerName = '', contractorNumb
   doc.rect(0, 0, 210, 28, 'F')
   doc.setFontSize(16)
   doc.setTextColor(255)
-  doc.text('Contractor Pro - Employment Contract', 105, 11, { align: 'center' })
+  doc.text('Kabblan - Employment Contract', 105, 11, { align: 'center' })
   doc.setFontSize(9)
   doc.text(`عقد توظيف / Employment Agreement  |  ${today}`, 105, 20, { align: 'center' })
 
@@ -501,7 +501,7 @@ export function exportWorkerContractPDF({ worker, ownerName = '', contractorNumb
   // Footer
   doc.setFontSize(7)
   doc.setTextColor(160)
-  const footer = `Contractor Pro${contractorNumber ? ' • License: ' + contractorNumber : ''} • Generated ${today}`
+  const footer = `Kabblan${contractorNumber ? ' • License: ' + contractorNumber : ''} • Generated ${today}`
   doc.text(footer, 105, 288, { align: 'center' })
 
   doc.save(`${worker.name}-contract-${new Date().toISOString().slice(0, 10)}.pdf`)

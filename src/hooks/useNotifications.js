@@ -34,7 +34,7 @@ export function useNotifications(userId) {
     const n = payload.new
     if (!n) return
     const tag = TYPE_TAG[n.type] || 'general'
-    notify(n.title || 'Contractor Pro', n.body || n.message || '', tag)
+    notify(n.title || 'كبلان', n.body || n.message || '', tag)
   }, [fetch, notify])
 
   useEffect(() => {

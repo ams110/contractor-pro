@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { C, GRAD } from '../constants/index.js'
 import { useAppStore } from '../store/useAppStore.js'
 import { fmt } from '../lib/helpers.js'
+import { tl, tEnum } from '../lib/labels.js'
 
 function ResultItem({ icon: Icon, color, label, sub, onSelect }) {
   return (
@@ -26,6 +27,7 @@ function ResultItem({ icon: Icon, color, label, sub, onSelect }) {
 
 export default function SmartSearch({ projects = [], employees = [], expenses = [], payments = [], onNav }) {
   const { showSearch, setShowSearch } = useAppStore()
+  const language = useAppStore(s => s.language)
   const [q, setQ] = useState('')
 
   useEffect(() => {
@@ -77,7 +79,7 @@ export default function SmartSearch({ projects = [], employees = [], expenses = 
                 <Command.Input
                   value={q}
                   onValueChange={setQ}
-                  placeholder="ابحث عن مشروع أو عامل... (Ctrl+K)"
+                  placeholder={tl(language, 'ابحث عن مشروع أو عامل... (Ctrl+K)', 'חפש פרויקט או עובד... (Ctrl+K)', 'Search project or worker... (Ctrl+K)')}
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: C.text, fontSize: 15, fontFamily: 'inherit', direction: 'inherit' }}
                   autoFocus
                 />
@@ -92,29 +94,29 @@ export default function SmartSearch({ projects = [], employees = [], expenses = 
               {/* Results */}
               <Command.List style={{ maxHeight: 420, overflowY: 'auto', padding: '8px 8px 12px' }}>
                 <Command.Empty style={{ padding: '32px 16px', textAlign: 'center', color: C.textDim, fontSize: 13 }}>
-                  لا نتائج — جرب كلمة أخرى
+                  {tl(language, 'لا نتائج — جرب كلمة أخرى', 'אין תוצאות — נסה מילה אחרת', 'No results — try another word')}
                 </Command.Empty>
 
                 {!q && (
                   <Command.Group>
-                    <div style={{ padding: '8px 14px 4px', fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.08em', textTransform: 'uppercase' }}>تنقل سريع</div>
-                    <ResultItem icon={Building2} color={C.primary} label="المشاريع" sub="عرض جميع المشاريع" onSelect={() => go('projects')} />
-                    <ResultItem icon={Users} color={C.secondary} label="العمال" sub="عرض جميع العمال" onSelect={() => go('workers')} />
-                    <ResultItem icon={CreditCard} color={C.gold} label="المصاريف" sub="المصاريف والفواتير" onSelect={() => go('finance')} />
-                    <ResultItem icon={Banknote} color={C.cyan} label="الرواتب" sub="كشف رواتب العمال" onSelect={() => go('finance')} />
+                    <div style={{ padding: '8px 14px 4px', fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{tl(language, 'تنقل سريع', 'ניווט מהיר', 'Quick navigation')}</div>
+                    <ResultItem icon={Building2} color={C.primary} label={tl(language, 'المشاريع', 'פרויקטים', 'Projects')} sub={tl(language, 'عرض جميع المشاريع', 'הצג את כל הפרויקטים', 'View all projects')} onSelect={() => go('projects')} />
+                    <ResultItem icon={Users} color={C.secondary} label={tl(language, 'العمال', 'עובדים', 'Workers')} sub={tl(language, 'عرض جميع العمال', 'הצג את כל העובדים', 'View all workers')} onSelect={() => go('workers')} />
+                    <ResultItem icon={CreditCard} color={C.gold} label={tl(language, 'المصاريف', 'הוצאות', 'Expenses')} sub={tl(language, 'المصاريف والفواتير', 'הוצאות וחשבוניות', 'Expenses and invoices')} onSelect={() => go('finance')} />
+                    <ResultItem icon={Banknote} color={C.cyan} label={tl(language, 'الرواتب', 'משכורות', 'Salaries')} sub={tl(language, 'كشف رواتب العمال', 'דוח משכורות עובדים', 'Worker payroll')} onSelect={() => go('finance')} />
                   </Command.Group>
                 )}
 
                 {fp.length > 0 && (
                   <Command.Group>
-                    <div style={{ padding: '8px 14px 4px', fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.08em', textTransform: 'uppercase' }}>مشاريع</div>
+                    <div style={{ padding: '8px 14px 4px', fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{tl(language, 'مشاريع', 'פרויקטים', 'Projects')}</div>
                     {fp.map(p => (
                       <ResultItem
                         key={p.id}
                         icon={Building2}
                         color={C.primary}
                         label={p.name}
-                        sub={`${p.status || ''} ${p.type || ''}`}
+                        sub={`${p.status ? tEnum(p.status, language) : ''} ${p.type ? tEnum(p.type, language) : ''}`}
                         onSelect={() => go('projects')}
                       />
                     ))}
@@ -123,14 +125,14 @@ export default function SmartSearch({ projects = [], employees = [], expenses = 
 
                 {fe.length > 0 && (
                   <Command.Group>
-                    <div style={{ padding: '8px 14px 4px', fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.08em', textTransform: 'uppercase' }}>عمال</div>
+                    <div style={{ padding: '8px 14px 4px', fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{tl(language, 'عمال', 'עובדים', 'Workers')}</div>
                     {fe.map(e => (
                       <ResultItem
                         key={e.id}
                         icon={Users}
                         color={C.secondary}
                         label={e.name}
-                        sub={e.specialty || ''}
+                        sub={e.specialty ? tEnum(e.specialty, language) : ''}
                         onSelect={() => go('workers')}
                       />
                     ))}
@@ -140,9 +142,9 @@ export default function SmartSearch({ projects = [], employees = [], expenses = 
 
               {/* Footer */}
               <div style={{ padding: '8px 16px', borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 10, color: C.textDim }}>↑↓ تنقل</span>
-                <span style={{ fontSize: 10, color: C.textDim }}>↵ اختيار</span>
-                <span style={{ fontSize: 10, color: C.textDim }}>Esc إغلاق</span>
+                <span style={{ fontSize: 10, color: C.textDim }}>↑↓ {tl(language, 'تنقل', 'ניווט', 'Navigate')}</span>
+                <span style={{ fontSize: 10, color: C.textDim }}>↵ {tl(language, 'اختيار', 'בחירה', 'Select')}</span>
+                <span style={{ fontSize: 10, color: C.textDim }}>Esc {tl(language, 'إغلاق', 'סגירה', 'Close')}</span>
                 <div style={{ marginInlineStart: 'auto', fontSize: 10, background: `${C.primary}18`, border: `1px solid ${C.primary}30`, borderRadius: 6, padding: '2px 7px', color: C.primary, fontWeight: 700 }}>Ctrl+K</div>
               </div>
             </Command>

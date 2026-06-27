@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { ChevronDown, TrendingUp, TrendingDown, CalendarDays, Users, Gift } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
+import { tl } from '../lib/labels.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
 
 // ════════════════════════════════════════════════════════════════════════
@@ -28,7 +29,7 @@ function Sparkline({ bars = [], color }) {
 
 export default function WorkMonthHeader({
   monthShort, year, monthNum, label, total, workDays, holidays = 0, workerCount = 0,
-  isCurrent = false, isOpen = false, trendPct = null, bars = [], onToggle,
+  isCurrent = false, isOpen = false, trendPct = null, bars = [], onToggle, language = 'ar',
 }) {
   const accent = isCurrent ? C.primary : C.success
   const trendUp = trendPct != null && trendPct >= 0
@@ -58,12 +59,12 @@ export default function WorkMonthHeader({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 15, fontWeight: 900, color: isCurrent ? C.primary : C.text, letterSpacing: '-0.02em' }}>{label}</span>
-            {isCurrent && <span style={{ fontSize: 8.5, fontWeight: 800, color: '#fff', background: GRAD.primary, borderRadius: 20, padding: '2px 8px' }}>الحالي</span>}
+            {isCurrent && <span style={{ fontSize: 8.5, fontWeight: 800, color: '#fff', background: GRAD.primary, borderRadius: 20, padding: '2px 8px' }}>{tl(language, 'الحالي', 'הנוכחי', 'Current')}</span>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: C.textDim }}><CalendarDays size={10} strokeWidth={2.2} /> {workDays} يوم</span>
-            {holidays > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: C.warning }}><Gift size={10} strokeWidth={2.2} /> {holidays} عطلة</span>}
-            {workerCount > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: C.textDim }}><Users size={10} strokeWidth={2.2} /> {workerCount} عامل</span>}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: C.textDim }}><CalendarDays size={10} strokeWidth={2.2} /> {workDays} {tl(language, 'يوم', 'ימים', 'days')}</span>
+            {holidays > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: C.warning }}><Gift size={10} strokeWidth={2.2} /> {holidays} {tl(language, 'عطلة', 'חופשה', 'holiday')}</span>}
+            {workerCount > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: C.textDim }}><Users size={10} strokeWidth={2.2} /> {workerCount} {tl(language, 'عامل', 'עובדים', 'workers')}</span>}
           </div>
           <Sparkline bars={bars} color={accent} />
         </div>

@@ -39,7 +39,7 @@ self.addEventListener('message', (event) => {
 // ── Push Notification handler (background) ──────────────────────────────
 self.addEventListener('push', event => {
   if (!event.data) return
-  let data = { title: 'Contractor Pro', body: '' }
+  let data = { title: 'كبلان', body: '' }
   try { data = event.data.json() } catch { data.body = event.data.text() }
 
   event.waitUntil(

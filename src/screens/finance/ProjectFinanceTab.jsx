@@ -11,6 +11,7 @@ import { calcProjectStats as _calcStats } from '../../lib/calculations.js'
 import { supabase } from '../../lib/supabase.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
+import { tl, tEnum } from '../../lib/labels.js'
 
 const STATUS_COLOR = {
   'نشط':        C.success,
@@ -21,10 +22,10 @@ const STATUS_COLOR = {
 }
 
 const PMETHODS = [
-  { id: 'cash',     label: 'كاش'     },
-  { id: 'transfer', label: 'تحويل'   },
-  { id: 'check',    label: 'شيك'     },
-  { id: 'app',      label: 'אפליקציה'},
+  { id: 'cash',     ar: 'كاش',   he: 'מזומן',     en: 'Cash'     },
+  { id: 'transfer', ar: 'تحويل', he: 'העברה',     en: 'Transfer' },
+  { id: 'check',    ar: 'شيك',   he: "צ'ק",       en: 'Cheque'   },
+  { id: 'app',      ar: 'تطبيق', he: 'אפליקציה',  en: 'App'      },
 ]
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -50,6 +51,7 @@ function EmptyState({ icon: Icon, msg }) {
 // ─── SimpleRow ────────────────────────────────────────────────────────────────
 function SimpleRow({ amount, date, refNum, label, sub, color, onDelete }) {
   const [delConfirm, setDelConfirm] = useState(false)
+  const language = useAppStore(s => s.language)
   return (
     <motion.div layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 30 }}
       style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '10px 12px', marginBottom: 8 }}>
@@ -75,9 +77,9 @@ function SimpleRow({ amount, date, refNum, label, sub, color, onDelete }) {
               </button>
             : <div style={{ display: 'flex', gap: 3 }}>
                 <button onClick={() => setDelConfirm(false)}
-                  style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 5, color: C.textDim, cursor: 'pointer', padding: '2px 6px', fontSize: 9 }}>لا</button>
+                  style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 5, color: C.textDim, cursor: 'pointer', padding: '2px 6px', fontSize: 9 }}>{tl(language, 'لا', 'לא', 'No')}</button>
                 <button onClick={() => { onDelete(); setDelConfirm(false) }}
-                  style={{ background: C.accent, border: 'none', borderRadius: 5, color: '#fff', cursor: 'pointer', padding: '2px 6px', fontSize: 9, fontWeight: 700 }}>احذف</button>
+                  style={{ background: C.accent, border: 'none', borderRadius: 5, color: '#fff', cursor: 'pointer', padding: '2px 6px', fontSize: 9, fontWeight: 700 }}>{tl(language, 'احذف', 'מחק', 'Delete')}</button>
               </div>
         )}
       </div>
@@ -87,6 +89,7 @@ function SimpleRow({ amount, date, refNum, label, sub, color, onDelete }) {
 
 // ─── AddReceiptSheet ──────────────────────────────────────────────────────────
 function AddReceiptSheet({ open, onClose, onSave, projectId, userId }) {
+  const language = useAppStore(s => s.language)
   const [form, setF] = useState({ amount: '', date: todayStr(), payment_method: 'cash', payer_name: '', notes: '' })
   const [saving, setSaving] = useState(false)
   const [focus, setFocus] = useState('')
@@ -115,39 +118,39 @@ function AddReceiptSheet({ open, onClose, onSave, projectId, userId }) {
             onClick={e => e.stopPropagation()}
             style={{ position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: C.card, borderRadius: '20px 20px 0 0', border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', maxHeight: '92dvh' }}>
             <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تسجيل قبضة</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{tl(language, 'تسجيل قبضة', 'רישום הכנסה', 'Add income')}</div>
               <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex' }}><X size={18} /></button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>المبلغ (₪) <span style={{ color: C.accent }}>*</span></div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'المبلغ', 'סכום', 'Amount')} (₪) <span style={{ color: C.accent }}>*</span></div>
                 <input type="number" inputMode="decimal" value={form.amount} onChange={e => set('amount', e.target.value)}
                   onFocus={() => setFocus('amount')} onBlur={() => setFocus('')}
                   style={{ ...sheetInp(focus, 'amount'), fontSize: 22, fontWeight: 900, direction: 'ltr', color: C.success }} />
               </div>
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>التاريخ</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'التاريخ', 'תאריך', 'Date')}</div>
                 <input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={{ ...sheetInp(focus, 'date'), direction: 'ltr' }} />
               </div>
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>طريقة الدفع</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>{tl(language, 'طريقة الدفع', 'אמצעי תשלום', 'Payment method')}</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {PMETHODS.map(m => (
                     <button key={m.id} onClick={() => set('payment_method', m.id)}
                       style={{ flex: 1, padding: '8px 4px', background: form.payment_method === m.id ? `${C.success}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${form.payment_method === m.id ? C.success : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 9, fontWeight: form.payment_method === m.id ? 700 : 500, color: form.payment_method === m.id ? C.success : C.textDim }}>
-                      {m.label}
+                      {tl(language, m.ar, m.he, m.en)}
                     </button>
                   ))}
                 </div>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم الدافع (اختياري)</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'اسم الدافع (اختياري)', 'שם המשלם (אופציונלי)', 'Payer name (optional)')}</div>
                 <input value={form.payer_name} onChange={e => set('payer_name', e.target.value)}
-                  placeholder="اسم العميل أو الجهة"
+                  placeholder={tl(language, 'اسم العميل أو الجهة', 'שם הלקוח או הגורם', 'Client or party name')}
                   onFocus={() => setFocus('payer')} onBlur={() => setFocus('')} style={sheetInp(focus, 'payer')} />
               </div>
               <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ملاحظة (اختياري)</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'ملاحظة (اختياري)', 'הערה (אופציונלי)', 'Note (optional)')}</div>
                 <input value={form.notes} onChange={e => set('notes', e.target.value)}
                   onFocus={() => setFocus('notes')} onBlur={() => setFocus('')} style={sheetInp(focus, 'notes')} />
               </div>
@@ -155,7 +158,7 @@ function AddReceiptSheet({ open, onClose, onSave, projectId, userId }) {
             <div style={{ padding: '12px 18px calc(16px + env(safe-area-inset-bottom, 0px))', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
               <button onClick={save} disabled={!canSave}
                 style={{ width: '100%', padding: '13px', background: canSave ? GRAD.success : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 14, color: canSave ? '#fff' : C.textDim, fontSize: 14, fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
-                {saving ? 'جاري الحفظ...' : '+ تسجيل القبضة'}
+                {saving ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : tl(language, '+ تسجيل القبضة', '+ רישום הכנסה', '+ Add income')}
               </button>
             </div>
           </motion.div>
@@ -168,6 +171,7 @@ function AddReceiptSheet({ open, onClose, onSave, projectId, userId }) {
 
 // ─── AddExpenseSheet ──────────────────────────────────────────────────────────
 function AddExpenseSheet({ open, onClose, onSave, projectId, userId }) {
+  const language = useAppStore(s => s.language)
   const [form, setF] = useState({ amount: '', date: todayStr(), category: EXP_CATS[0] ?? '', vendor: '', payment_method: 'cash', note: '' })
   const [saving, setSaving] = useState(false)
   const [focus, setFocus] = useState('')
@@ -196,49 +200,49 @@ function AddExpenseSheet({ open, onClose, onSave, projectId, userId }) {
             onClick={e => e.stopPropagation()}
             style={{ position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: C.card, borderRadius: '20px 20px 0 0', border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', maxHeight: '92dvh' }}>
             <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تسجيل مصروف</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{tl(language, 'تسجيل مصروف', 'רישום הוצאה', 'Add expense')}</div>
               <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex' }}><X size={18} /></button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>المبلغ (₪) <span style={{ color: C.accent }}>*</span></div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'المبلغ', 'סכום', 'Amount')} (₪) <span style={{ color: C.accent }}>*</span></div>
                 <input type="number" inputMode="decimal" value={form.amount} onChange={e => set('amount', e.target.value)}
                   onFocus={() => setFocus('amount')} onBlur={() => setFocus('')}
                   style={{ ...sheetInp(focus, 'amount'), fontSize: 22, fontWeight: 900, direction: 'ltr', color: C.accent }} />
               </div>
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>الفئة</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'الفئة', 'קטגוריה', 'Category')}</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                   {EXP_CATS.map(cat => (
                     <button key={cat} onClick={() => set('category', cat)}
                       style={{ padding: '5px 9px', background: form.category === cat ? `${C.accent}20` : 'rgba(255,255,255,0.04)', border: `1.5px solid ${form.category === cat ? C.accent : C.border}`, borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: form.category === cat ? 700 : 500, color: form.category === cat ? C.accent : C.textDim }}>
-                      {cat}
+                      {tEnum(cat, language)}
                     </button>
                   ))}
                 </div>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>التاريخ</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'التاريخ', 'תאריך', 'Date')}</div>
                 <input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={{ ...sheetInp(focus, 'date'), direction: 'ltr' }} />
               </div>
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>طريقة الدفع</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>{tl(language, 'طريقة الدفع', 'אמצעי תשלום', 'Payment method')}</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {PMETHODS.map(m => (
                     <button key={m.id} onClick={() => set('payment_method', m.id)}
                       style={{ flex: 1, padding: '8px 4px', background: form.payment_method === m.id ? `${C.accent}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${form.payment_method === m.id ? C.accent : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 9, fontWeight: form.payment_method === m.id ? 700 : 500, color: form.payment_method === m.id ? C.accent : C.textDim }}>
-                      {m.label}
+                      {tl(language, m.ar, m.he, m.en)}
                     </button>
                   ))}
                 </div>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم المورد (اختياري)</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'اسم المورد (اختياري)', 'שם הספק (אופציונלי)', 'Vendor name (optional)')}</div>
                 <input value={form.vendor} onChange={e => set('vendor', e.target.value)}
                   onFocus={() => setFocus('vendor')} onBlur={() => setFocus('')} style={sheetInp(focus, 'vendor')} />
               </div>
               <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ملاحظة (اختياري)</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'ملاحظة (اختياري)', 'הערה (אופציונלי)', 'Note (optional)')}</div>
                 <input value={form.note} onChange={e => set('note', e.target.value)}
                   onFocus={() => setFocus('note')} onBlur={() => setFocus('')} style={sheetInp(focus, 'note')} />
               </div>
@@ -246,7 +250,7 @@ function AddExpenseSheet({ open, onClose, onSave, projectId, userId }) {
             <div style={{ padding: '12px 18px calc(16px + env(safe-area-inset-bottom, 0px))', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
               <button onClick={save} disabled={!canSave}
                 style={{ width: '100%', padding: '13px', background: canSave ? GRAD.danger : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 14, color: canSave ? '#fff' : C.textDim, fontSize: 14, fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
-                {saving ? 'جاري الحفظ...' : '+ تسجيل المصروف'}
+                {saving ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : tl(language, '+ تسجيل المصروف', '+ רישום הוצאה', '+ Add expense')}
               </button>
             </div>
           </motion.div>
@@ -260,6 +264,7 @@ function AddExpenseSheet({ open, onClose, onSave, projectId, userId }) {
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function ProjectFinanceTab({ userId }) {
   const { showToast, celebrate } = useAppStore()
+  const language = useAppStore(s => s.language)
 
   // ── مصلحة نشطة (نفس نمط IncomeTab) ──────────────────────────────────────
   const businesses    = useBusinessStore(s => s.businesses)
@@ -358,7 +363,7 @@ export default function ProjectFinanceTab({ userId }) {
     const { data, error } = await supabase.from('client_receipts').insert(fields).select().single()
     if (error) throw error
     setReceipts(prev => [data, ...prev])
-    showToast('تم تسجيل القبضة')
+    showToast(tl(language, 'تم تسجيل القبضة', 'ההכנסה נרשמה', 'Income recorded'))
     celebrate('money')
   }
 
@@ -366,23 +371,23 @@ export default function ProjectFinanceTab({ userId }) {
     const { data, error } = await supabase.from('expenses').insert(fields).select().single()
     if (error) throw error
     setExpenses(prev => [data, ...prev])
-    showToast('تم تسجيل المصروف')
+    showToast(tl(language, 'تم تسجيل المصروف', 'ההוצאה נרשמה', 'Expense recorded'))
   }
 
   async function deleteReceipt(id) {
     await supabase.from('client_receipts').delete().eq('id', id)
     setReceipts(prev => prev.filter(r => r.id !== id))
-    showToast('تم الحذف')
+    showToast(tl(language, 'تم الحذف', 'נמחק', 'Deleted'))
   }
 
   async function deleteExpense(id) {
     await supabase.from('expenses').delete().eq('id', id)
     setExpenses(prev => prev.filter(e => e.id !== id))
-    showToast('تم الحذف')
+    showToast(tl(language, 'تم الحذف', 'נמחק', 'Deleted'))
   }
 
   if (loading) return (
-    <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>تحميل...</div>
+    <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>{tl(language, 'تحميل...', 'טוען...', 'Loading...')}</div>
   )
 
   // ════════════════════════════════════════════════════════════════════════
@@ -392,9 +397,9 @@ export default function ProjectFinanceTab({ userId }) {
     const sc = STATUS_COLOR[selProject.status] ?? C.textDim
 
     const SUBS = [
-      { id: 'income',  label: 'قبضات',  icon: TrendingUp,   color: C.success, total: selProject.income,   count: selProject.rcpCount },
-      { id: 'expense', label: 'مصاريف', icon: TrendingDown, color: C.accent,  total: selProject.expense,  count: selProject.expCount },
-      { id: 'payment', label: 'رواتب',  icon: Banknote,     color: '#8B5CF6', total: selProject.payTotal, count: selProject.payCount },
+      { id: 'income',  label: tl(language, 'قبضات', 'הכנסות', 'Income'),   icon: TrendingUp,   color: C.success, total: selProject.income,   count: selProject.rcpCount },
+      { id: 'expense', label: tl(language, 'مصاريف', 'הוצאות', 'Expenses'), icon: TrendingDown, color: C.accent,  total: selProject.expense,  count: selProject.expCount },
+      { id: 'payment', label: tl(language, 'رواتب', 'משכורות', 'Salaries'),  icon: Banknote,     color: '#8B5CF6', total: selProject.payTotal, count: selProject.payCount },
     ]
 
     return (
@@ -414,16 +419,16 @@ export default function ProjectFinanceTab({ userId }) {
             )}
           </div>
           <span style={{ fontSize: 10, fontWeight: 700, color: sc, background: `${sc}18`, padding: '3px 10px', borderRadius: 10, flexShrink: 0 }}>
-            {selProject.status}
+            {tEnum(selProject.status, language)}
           </span>
         </div>
 
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
           {[
-            { label: 'إجمالي القبضات', val: selProject.income, color: C.success },
-            { label: 'إجمالي التكاليف', val: selProject.cost,  color: C.accent  },
-            { label: 'صافي الربح',      val: selProject.profit, color: selProject.profit >= 0 ? C.success : C.accent, sign: true },
+            { label: tl(language, 'إجمالي القبضات', 'סך ההכנסות', 'Total income'), val: selProject.income, color: C.success },
+            { label: tl(language, 'إجمالي التكاليف', 'סך העלויות', 'Total costs'), val: selProject.cost,  color: C.accent  },
+            { label: tl(language, 'صافي الربح', 'רווח נקי', 'Net profit'),      val: selProject.profit, color: selProject.profit >= 0 ? C.success : C.accent, sign: true },
           ].map(({ label, val, color, sign }) => (
             <div key={label} style={{ flex: 1, background: `${color}0E`, border: `1px solid ${color}22`, borderRadius: 14, padding: '10px 6px', textAlign: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 900, color, fontFamily: 'monospace' }}>
@@ -438,8 +443,8 @@ export default function ProjectFinanceTab({ userId }) {
         {selProject.contractPrice > 0 && (
           <div style={{ background: C.surface, border: `1px solid ${selProject.overdue ? C.accent + '40' : C.border}`, borderRadius: 16, padding: '12px 14px', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 800, color: C.text }}>تحصيل العقد</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>قيمة العقد ₪{fmt(selProject.contractPrice)}</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: C.text }}>{tl(language, 'تحصيل العقد', 'גביית החוזה', 'Contract collection')}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>{tl(language, 'قيمة العقد', 'ערך החוזה', 'Contract value')} ₪{fmt(selProject.contractPrice)}</span>
             </div>
             {/* شريط التحصيل */}
             <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
@@ -448,17 +453,17 @@ export default function ProjectFinanceTab({ userId }) {
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>₪{fmt(selProject.income)}</div>
-                <div style={{ fontSize: 8, color: C.textDim }}>مقبوض ({selProject.collectedPct}%)</div>
+                <div style={{ fontSize: 8, color: C.textDim }}>{tl(language, 'مقبوض', 'נגבה', 'Collected')} ({selProject.collectedPct}%)</div>
               </div>
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: 12, fontWeight: 900, color: selProject.remaining > 0 ? C.primary : C.textDim, fontFamily: 'monospace' }}>₪{fmt(selProject.remaining)}</div>
-                <div style={{ fontSize: 8, color: C.textDim }}>باقي للقبض</div>
+                <div style={{ fontSize: 8, color: C.textDim }}>{tl(language, 'باقي للقبض', 'נותר לגבייה', 'Left to collect')}</div>
               </div>
             </div>
             {selProject.overdue && (
               <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: C.accent, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.accent, display: 'inline-block' }} />
-                متأخّر {selProject.overdue.daysSince} يوم بدون قبضة جديدة
+                {tl(language, `متأخّر ${selProject.overdue.daysSince} يوم بدون قبضة جديدة`, `באיחור ${selProject.overdue.daysSince} ימים ללא הכנסה חדשה`, `${selProject.overdue.daysSince} days overdue with no new income`)}
               </div>
             )}
           </div>
@@ -483,7 +488,7 @@ export default function ProjectFinanceTab({ userId }) {
             {subTab === 'income' && (
               <>
                 {selReceipts.length === 0
-                  ? <EmptyState icon={TrendingUp} msg="لا توجد قبضات لهذا المشروع" />
+                  ? <EmptyState icon={TrendingUp} msg={tl(language, 'لا توجد قبضات لهذا المشروع', 'אין הכנסות לפרויקט זה', 'No income for this project')} />
                   : selReceipts.map(r => (
                       <SimpleRow key={r.id} amount={r.amount} date={r.date} refNum={r.ref_number}
                         label={r.payer_name} sub={r.notes} color={C.success}
@@ -496,10 +501,10 @@ export default function ProjectFinanceTab({ userId }) {
             {subTab === 'expense' && (
               <>
                 {selExpenses.length === 0
-                  ? <EmptyState icon={TrendingDown} msg="لا توجد مصاريف لهذا المشروع" />
+                  ? <EmptyState icon={TrendingDown} msg={tl(language, 'لا توجد مصاريف لهذا المشروع', 'אין הוצאות לפרויקט זה', 'No expenses for this project')} />
                   : selExpenses.map(e => (
                       <SimpleRow key={e.id} amount={e.amount} date={e.date} refNum={e.ref_number}
-                        label={e.category} sub={e.vendor || e.note} color={C.accent}
+                        label={tEnum(e.category, language)} sub={e.vendor || e.note} color={C.accent}
                         onDelete={() => deleteExpense(e.id)} />
                     ))
                 }
@@ -509,10 +514,10 @@ export default function ProjectFinanceTab({ userId }) {
             {subTab === 'payment' && (
               <>
                 {selPayments.length === 0
-                  ? <EmptyState icon={Banknote} msg="لا توجد رواتب مرتبطة بهذا المشروع" />
+                  ? <EmptyState icon={Banknote} msg={tl(language, 'لا توجد رواتب مرتبطة بهذا المشروع', 'אין משכורות המשויכות לפרויקט זה', 'No salaries linked to this project')} />
                   : selPayments.map(p => (
                       <SimpleRow key={p.id} amount={p.amount} date={p.date} refNum={p.ref_number}
-                        label={p.method} sub={null} color="#8B5CF6"
+                        label={tEnum(p.method, language)} sub={null} color="#8B5CF6"
                         onDelete={null} />
                     ))
                 }
@@ -527,7 +532,7 @@ export default function ProjectFinanceTab({ userId }) {
             <motion.button whileTap={{ scale: 0.92 }} onClick={() => setAddOpen(true)}
               style={{ pointerEvents: 'all', display: 'flex', alignItems: 'center', gap: 7, padding: '12px 20px', background: subTab === 'income' ? GRAD.success : GRAD.danger, border: 'none', borderRadius: 50, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 4px 20px ${subTab === 'income' ? C.success : C.accent}44` }}>
               <Plus size={16} strokeWidth={2.5} />
-              {subTab === 'income' ? 'تسجيل قبضة' : 'تسجيل مصروف'}
+              {subTab === 'income' ? tl(language, 'تسجيل قبضة', 'רישום הכנסה', 'Add income') : tl(language, 'تسجيل مصروف', 'רישום הוצאה', 'Add expense')}
             </motion.button>
           </div>
         )}
@@ -550,9 +555,9 @@ export default function ProjectFinanceTab({ userId }) {
       {/* إجماليات كلية */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
         {[
-          { label: 'إجمالي الدخل',    val: grandIncome,  color: C.success },
-          { label: 'إجمالي التكاليف', val: grandExpense, color: C.accent  },
-          { label: 'صافي الكل',       val: grandProfit,  color: grandProfit >= 0 ? C.success : C.accent, sign: true },
+          { label: tl(language, 'إجمالي الدخل', 'סך ההכנסות', 'Total income'),    val: grandIncome,  color: C.success },
+          { label: tl(language, 'إجمالي التكاليف', 'סך העלויות', 'Total costs'), val: grandExpense, color: C.accent  },
+          { label: tl(language, 'صافي الكل', 'סך נטו', 'Net total'),       val: grandProfit,  color: grandProfit >= 0 ? C.success : C.accent, sign: true },
         ].map(({ label, val, color, sign }) => (
           <div key={label} style={{ flex: 1, background: `${color}0E`, border: `1px solid ${color}22`, borderRadius: 14, padding: '10px 6px', textAlign: 'center' }}>
             <div style={{ fontSize: 14, fontWeight: 900, color, fontFamily: 'monospace' }}>
@@ -565,7 +570,7 @@ export default function ProjectFinanceTab({ userId }) {
 
       {/* بطاقة لكل مشروع */}
       {summaries.length === 0
-        ? <EmptyState icon={FolderOpen} msg="لا توجد مشاريع" />
+        ? <EmptyState icon={FolderOpen} msg={tl(language, 'لا توجد مشاريع', 'אין פרויקטים', 'No projects')} />
         : summaries.map(p => {
             const sc  = STATUS_COLOR[p.status] ?? C.textDim
             const pct = Math.max(0, Math.min(100, p.margin ?? 0))
@@ -583,7 +588,7 @@ export default function ProjectFinanceTab({ userId }) {
                       </span>
                     )}
                     <span style={{ fontSize: 10, fontWeight: 700, color: sc, background: `${sc}18`, padding: '2px 7px', borderRadius: 8 }}>
-                      {p.status}
+                      {tEnum(p.status, language)}
                     </span>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{p.name}</div>
@@ -593,17 +598,17 @@ export default function ProjectFinanceTab({ userId }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 12, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>₪{fmt(p.income)}</div>
-                    <div style={{ fontSize: 8, color: C.textDim }}>قبضات ({p.rcpCount})</div>
+                    <div style={{ fontSize: 8, color: C.textDim }}>{tl(language, 'قبضات', 'הכנסות', 'Income')} ({p.rcpCount})</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 12, fontWeight: 800, color: C.accent, fontFamily: 'monospace' }}>₪{fmt(p.cost)}</div>
-                    <div style={{ fontSize: 8, color: C.textDim }}>تكاليف ({p.expCount + p.payCount})</div>
+                    <div style={{ fontSize: 8, color: C.textDim }}>{tl(language, 'تكاليف', 'עלויות', 'Costs')} ({p.expCount + p.payCount})</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 13, fontWeight: 900, color: p.profit >= 0 ? C.success : C.accent, fontFamily: 'monospace' }}>
                       {p.profit >= 0 ? '+' : ''}₪{fmt(p.profit)}
                     </div>
-                    <div style={{ fontSize: 8, color: C.textDim }}>صافي</div>
+                    <div style={{ fontSize: 8, color: C.textDim }}>{tl(language, 'صافي', 'נטו', 'Net')}</div>
                   </div>
                 </div>
 
@@ -616,8 +621,8 @@ export default function ProjectFinanceTab({ userId }) {
                 {p.contractPrice > 0 && p.remaining > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
                     <span style={{ fontSize: 9, color: C.textDim }}>
-                      باقي للقبض من العقد
-                      {p.overdue && <span style={{ color: C.accent, fontWeight: 700 }}> · متأخّر {p.overdue.daysSince}ي</span>}
+                      {tl(language, 'باقي للقبض من العقد', 'נותר לגבייה מהחוזה', 'Left to collect from contract')}
+                      {p.overdue && <span style={{ color: C.accent, fontWeight: 700 }}> · {tl(language, `متأخّر ${p.overdue.daysSince}ي`, `באיחור ${p.overdue.daysSince} ימ׳`, `${p.overdue.daysSince}d overdue`)}</span>}
                     </span>
                     <span style={{ fontSize: 10, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>₪{fmt(p.remaining)}</span>
                   </div>

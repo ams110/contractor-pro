@@ -5,6 +5,8 @@ import {
   MessageCircle, CheckCircle2, Sparkles, Crosshair,
 } from 'lucide-react'
 import { C } from '../constants/index.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 const TONE = {
   excellent: { main: C.success, soft: 'rgba(34,197,94,0.14)',  glow: 'rgba(34,197,94,0.45)' },
@@ -95,6 +97,7 @@ function FactorBar({ label, score, delay, animate }) {
 
 // ─── البطاقة الكاملة ──────────────────────────────────────────────────────────────
 export default function ProjectHealth({ health }) {
+  const language = useAppStore(s => s.language)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.3 })
   if (!health) return null
@@ -115,8 +118,8 @@ export default function ProjectHealth({ health }) {
           <ShieldCheck size={16} color={t.main} strokeWidth={2.5} />
         </motion.div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>صحّة المشروع</div>
-          <div style={{ fontSize: 10, color: C.textDim }}>تحليل ذكي لربحية المشروع ومخاطره</div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'صحّة المشروع', 'בריאות הפרויקט', 'Project health')}</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'تحليل ذكي لربحية المشروع ومخاطره', 'ניתוח חכם של רווחיות הפרויקט והסיכונים שלו', 'Smart analysis of project profitability and risk')}</div>
         </div>
       </div>
 
@@ -138,8 +141,8 @@ export default function ProjectHealth({ health }) {
             <Crosshair size={15} color={pmColor} strokeWidth={2.2} />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim }}>الهامش النهائي المتوقّع</div>
-            <div style={{ fontSize: 10, color: C.textDim }}>لو استمرّت التكلفة بنفس معدّل الإنجاز</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim }}>{tl(language, 'الهامش النهائي المتوقّع', 'שולי הרווח הסופיים הצפויים', 'Projected final margin')}</div>
+            <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'لو استمرّت التكلفة بنفس معدّل الإنجاز', 'אם העלות תימשך באותו קצב התקדמות', 'If costs continue at the same completion rate')}</div>
           </div>
           <span style={{ fontSize: 22, fontWeight: 900, color: pmColor, letterSpacing: '-0.02em', direction: 'ltr' }}>{pm}%</span>
         </motion.div>

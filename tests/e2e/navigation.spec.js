@@ -37,6 +37,6 @@ test.describe('التنقّل بين الصفحات', () => {
 
   test('فتح /login مباشرة يعرض الشاشة الصحيحة', async ({ page }) => {
     await page.goto('/login')
-    await expect(page.getByText('Contractor Pro')).toBeVisible()
+    await expect(page.getByText('كبلان')).toBeVisible()
   })
 })

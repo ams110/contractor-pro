@@ -206,7 +206,7 @@ function BootIntro({ onDone }) {
       </motion.div>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22, duration: 0.4 }}
         style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 19, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>Contractor Pro</div>
+        <div style={{ fontSize: 19, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>كبلان</div>
         <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 3, letterSpacing: '0.08em' }}>إدارة مقاولات</div>
       </motion.div>
       <div style={{ width: 150, height: 3, background: C.card, borderRadius: 2, overflow: 'hidden' }}>
@@ -247,7 +247,7 @@ function Navbar({ loggedIn }) {
             <HardHat size={20} color="#fff" strokeWidth={2.5} />
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>Contractor Pro</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>كبلان</div>
             <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.06em' }}>إدارة مقاولات</div>
           </div>
         </div>
@@ -370,7 +370,7 @@ function PhoneMockup({ float = true }) {
           <div style={{ width: 28, height: 28, borderRadius: 9, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <HardHat size={14} color="#fff" strokeWidth={2.5} />
           </div>
-          <span style={{ fontSize: 10, fontWeight: 800, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Contractor Pro</span>
+          <span style={{ fontSize: 10, fontWeight: 800, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>كبلان</span>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <div style={{ width: 22, height: 22, borderRadius: 7, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -628,7 +628,7 @@ function BlueprintHero() {
 
             <motion.p {...fadeIn(gradDelay + 0.12)}
               style={{ fontSize: 'clamp(13.5px,1.6vw,16.5px)', color: C.textDim, lineHeight: 1.75, marginBottom: 'clamp(16px, 2.8vh, 26px)', maxWidth: 520 }}>
-              Contractor Pro يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
+              كبلان يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
             </motion.p>
 
             <motion.div {...fadeIn(gradDelay + 0.2)}
@@ -643,6 +643,10 @@ function BlueprintHero() {
               <button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }) }} className="lp-btn"
                 style={{ background: `${C.cyan}10`, border: `1px solid ${C.cyan}40`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '15px 26px', borderRadius: 14 }}>
                 شاهد كيف يعمل
+              </button>
+              <button onClick={() => goCta('landing_calculator', '/calculator')} className="lp-btn"
+                style={{ background: `${C.primary}10`, border: `1px solid ${C.primary}40`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '15px 26px', borderRadius: 14 }}>
+                احسب راتب عامل مجاناً
               </button>
             </motion.div>
 
@@ -704,7 +708,7 @@ function BlueprintHero() {
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', flexWrap: 'wrap', borderTop: `1px solid ${C.cyan}33`, background: 'rgba(10,15,34,0.72)', backdropFilter: 'blur(6px)' }}>
           {[
             ['المشروع', 'مصلحتك — بنظام'],
-            ['رسم', 'Contractor Pro'],
+            ['رسم', 'كبلان'],
             ['التاريخ', 'اليوم'],
             ['المراجعة', 'تجربة 14 يوم مجاناً'],
           ].map(([k, v], i) => (
@@ -1237,7 +1241,7 @@ function BlueprintFeatures() {
             {[
               ['المشروع', 'مصلحتك — بنظام'],
               ['المقياس', '1 : 1'],
-              ['رسم', 'Contractor Pro'],
+              ['رسم', 'كبلان'],
               ['الحالة', 'جاهز للتنفيذ ✓'],
             ].map(([k, v], i) => (
               <div key={i} style={{ flex: '1 1 140px', padding: '10px 16px', borderInlineStart: i ? `1px solid ${C.cyan}22` : 'none' }}>
@@ -1434,7 +1438,7 @@ function Footer() {
           <div style={{ width: 32, height: 32, borderRadius: 10, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <HardHat size={16} color="#fff" strokeWidth={2.5} />
           </div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Contractor Pro</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>كبلان</span>
           <span style={{ fontSize: 11, color: C.textDim }}>© {new Date().getFullYear()}</span>
         </div>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>

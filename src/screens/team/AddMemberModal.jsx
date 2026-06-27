@@ -3,9 +3,10 @@ import { X, Lock, UserPlus, CalendarClock, FolderTree, AlertTriangle, Check, Loa
 import { C, GRAD } from '../../constants/index.js'
 import { Btn, GlassCard } from '../../components/index.jsx'
 import { IconChip } from '../../ui/Premium.jsx'
-import { PERM_LABELS, PRESET_ROLES } from './teamConstants.js'
+import { PERM_LABELS, PRESET_ROLES, permLabel, tRole } from './teamConstants.js'
+import { tl } from '../../lib/labels.js'
 
-export function AddMemberModal({ manager, onSubmit, projects = [] }) {
+export function AddMemberModal({ manager, onSubmit, projects = [], language }) {
   const {
     showAddMember, closeAddMember,
     memberForm, setMemberForm,
@@ -20,11 +21,11 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
 
   function nextStep() {
     setAddMemberErr('')
-    if (!memberForm.displayName.trim()) return setAddMemberErr('أدخل الاسم')
-    if (!memberForm.username.trim())    return setAddMemberErr('أدخل اسم المستخدم')
+    if (!memberForm.displayName.trim()) return setAddMemberErr(tl(language, 'أدخل الاسم', 'הזן שם', 'Enter a name'))
+    if (!memberForm.username.trim())    return setAddMemberErr(tl(language, 'أدخل اسم المستخدم', 'הזן שם משתמש', 'Enter a username'))
     if (!/^[a-z0-9_]{3,30}$/.test(memberForm.username))
-      return setAddMemberErr('اسم المستخدم: 3-30 حرف إنجليزي صغير أو أرقام أو _')
-    if (memberForm.password.length < 6) return setAddMemberErr('كلمة المرور 6 أحرف على الأقل')
+      return setAddMemberErr(tl(language, 'اسم المستخدم: 3-30 حرف إنجليزي صغير أو أرقام أو _', 'שם משתמש: 3-30 אותיות אנגלית קטנות, ספרות או _', 'Username: 3-30 lowercase letters, digits or _'))
+    if (memberForm.password.length < 6) return setAddMemberErr(tl(language, 'كلمة المرور 6 أحرف على الأقل', 'הסיסמה 6 תווים לפחות', 'Password at least 6 characters'))
     setAddStep(2)
   }
 
@@ -39,14 +40,14 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <IconChip icon={UserPlus} tone="brand" size={36} radius={11} />
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>عضو جديد</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{tl(language, 'عضو جديد', 'חבר חדש', 'New member')}</div>
           </div>
           <button onClick={closeAddMember} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 10, color: C.textDim, cursor: 'pointer', padding: '4px 10px', display:'flex', alignItems:'center' }}><X size={14} strokeWidth={2.5} /></button>
         </div>
 
         {/* Step indicator */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
-          {[{ n: 1, label: 'البيانات' }, { n: 2, label: 'الصلاحيات' }].map(s => (
+          {[{ n: 1, label: tl(language, 'البيانات', 'פרטים', 'Details') }, { n: 2, label: tl(language, 'الصلاحيات', 'הרשאות', 'Permissions') }].map(s => (
             <div key={s.n} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{
                 width: 22, height: 22, borderRadius: '50%', fontSize: 11, fontWeight: 800,
@@ -64,27 +65,27 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
         {addStep === 1 && (
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              <Field label="الاسم *">
+              <Field label={tl(language, 'الاسم *', 'שם *', 'Name *')}>
                 <input
                   value={memberForm.displayName}
                   onChange={e => setMemberForm(f => ({ ...f, displayName: e.target.value }))}
-                  placeholder="مثال: أبو محمد"
+                  placeholder={tl(language, 'مثال: أبو محمد', 'לדוגמה: אבו מוחמד', 'e.g. Abu Mohammad')}
                   style={inputStyle}
                 />
               </Field>
-              <Field label="الدور">
+              <Field label={tl(language, 'الدور', 'תפקיד', 'Role')}>
                 <select
                   value={memberForm.selectedRole === 'مخصص' ? 'مخصص' : memberForm.selectedRole}
                   onChange={e => handleRoleChange(e.target.value)}
                   style={{ ...inputStyle, cursor: 'pointer' }}
                 >
-                  {PRESET_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  {PRESET_ROLES.map(r => <option key={r} value={r}>{tRole(r, language)}</option>)}
                 </select>
               </Field>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              <Field label="اسم المستخدم *" hint="أحرف إنجليزية صغيرة، أرقام، أو _">
+              <Field label={tl(language, 'اسم المستخدم *', 'שם משתמש *', 'Username *')} hint={tl(language, 'أحرف إنجليزية صغيرة، أرقام، أو _', 'אותיות אנגלית קטנות, ספרות או _', 'Lowercase letters, digits or _')}>
                 <input
                   value={memberForm.username}
                   onChange={e => setMemberForm(f => ({ ...f, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))}
@@ -93,7 +94,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
                   style={inputStyle}
                 />
               </Field>
-              <Field label="كلمة المرور * (6+)">
+              <Field label={tl(language, 'كلمة المرور * (6+)', 'סיסמה * (6+)', 'Password * (6+)')}>
                 <input
                   type="password"
                   value={memberForm.password}
@@ -104,7 +105,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
               </Field>
             </div>
 
-            <Field label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CalendarClock size={11} strokeWidth={2.3} /> تاريخ انتهاء الصلاحية (اختياري)</span>}>
+            <Field label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CalendarClock size={11} strokeWidth={2.3} /> {tl(language, 'تاريخ انتهاء الصلاحية (اختياري)', 'תאריך תפוגה (אופציונלי)', 'Expiry date (optional)')}</span>}>
               <input
                 type="date"
                 value={memberForm.expiresAt}
@@ -114,7 +115,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
             </Field>
 
             {addMemberErr && <ErrorMsg msg={addMemberErr} />}
-            <Btn onClick={nextStep} full style={{ marginTop: 14 }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>التالي <ChevronLeft size={14} strokeWidth={2.6} /> الصلاحيات</span></Btn>
+            <Btn onClick={nextStep} full style={{ marginTop: 14 }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>{tl(language, 'التالي', 'הבא', 'Next')} <ChevronLeft size={14} strokeWidth={2.6} /> {tl(language, 'الصلاحيات', 'הרשאות', 'Permissions')}</span></Btn>
           </div>
         )}
 
@@ -123,7 +124,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
           <div>
             {/* Role preset chips */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8 }}>نموذج الصلاحيات</div>
+              <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8 }}>{tl(language, 'نموذج الصلاحيات', 'תבנית הרשאות', 'Permission preset')}</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {PRESET_ROLES.map(role => {
                   const active = memberForm.selectedRole === role
@@ -134,7 +135,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
                       background: active ? `${C.primary}22` : 'transparent',
                       color: active ? C.primary : C.textDim, transition: 'all .15s',
                     }}>
-                      {role}
+                      {tRole(role, language)}
                     </button>
                   )
                 })}
@@ -142,7 +143,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
             </div>
 
             {/* Permission checkboxes */}
-            <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8, display:'flex', alignItems:'center', gap:4 }}><Lock size={10} strokeWidth={2} /> الصلاحيات التفصيلية</div>
+            <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8, display:'flex', alignItems:'center', gap:4 }}><Lock size={10} strokeWidth={2} /> {tl(language, 'الصلاحيات التفصيلية', 'הרשאות מפורטות', 'Detailed permissions')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, marginBottom: 14 }}>
               {PERM_LABELS.map(([key, label]) => {
                 const on = !!memberForm.perms[key]
@@ -156,7 +157,7 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
                     transition: 'all .15s',
                   }}>
                     <input type="checkbox" checked={on} onChange={() => togglePerm(key)} style={{ accentColor: C.primary, cursor: 'pointer' }} />
-                    {label}
+                    {permLabel(label, language)}
                   </label>
                 )
               })}
@@ -175,12 +176,12 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
                   style={{ accentColor: C.primary }}
                 />
                 <span style={{ fontSize: 11, fontWeight: 700, color: addRestrictProjects ? C.text : C.textDim, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <FolderTree size={12} strokeWidth={2.3} /> تقييد المشاريع (يرى مشاريع محددة فقط)
+                  <FolderTree size={12} strokeWidth={2.3} /> {tl(language, 'تقييد المشاريع (يرى مشاريع محددة فقط)', 'הגבלת פרויקטים (רואה פרויקטים מסוימים בלבד)', 'Restrict projects (sees specific projects only)')}
                 </span>
               </label>
               {addRestrictProjects && (
                 projects.length === 0
-                  ? <div style={{ fontSize: 11, color: C.textDim, padding: '6px 10px' }}>لا توجد مشاريع</div>
+                  ? <div style={{ fontSize: 11, color: C.textDim, padding: '6px 10px' }}>{tl(language, 'لا توجد مشاريع', 'אין פרויקטים', 'No projects')}</div>
                   : <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {projects.map(proj => {
                         const sel = addAllowedProjects.includes(proj.id)
@@ -204,11 +205,11 @@ export function AddMemberModal({ manager, onSubmit, projects = [] }) {
             {addMemberErr && <ErrorMsg msg={addMemberErr} />}
 
             <div style={{ display: 'flex', gap: 8 }}>
-              <Btn onClick={() => { setAddStep(1); setAddMemberErr('') }} variant="outline" color={C.textDim} full><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'center' }}><ChevronRight size={14} strokeWidth={2.6} /> رجوع</span></Btn>
+              <Btn onClick={() => { setAddStep(1); setAddMemberErr('') }} variant="outline" color={C.textDim} full><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'center' }}><ChevronRight size={14} strokeWidth={2.6} /> {tl(language, 'رجوع', 'חזרה', 'Back')}</span></Btn>
               <Btn onClick={onSubmit} full disabled={addingMember}>
                 {addingMember
-                  ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Loader2 size={14} strokeWidth={2.6} style={{ animation: 'spin .8s linear infinite' }} /> جاري الإنشاء...</span>
-                  : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Check size={14} strokeWidth={2.6} /> إضافة العضو</span>}
+                  ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Loader2 size={14} strokeWidth={2.6} style={{ animation: 'spin .8s linear infinite' }} /> {tl(language, 'جاري الإنشاء...', 'יוצר...', 'Creating...')}</span>
+                  : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Check size={14} strokeWidth={2.6} /> {tl(language, 'إضافة العضو', 'הוספת חבר', 'Add member')}</span>}
               </Btn>
             </div>
           </div>

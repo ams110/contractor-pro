@@ -44,7 +44,7 @@ serve(async (req) => {
       .eq('user_id', user.id)
 
     const options = await generateRegistrationOptions({
-      rpName: 'Contractor Pro',
+      rpName: 'Kabblan',
       rpID,
       userID: new TextEncoder().encode(user.id.replace(/-/g, '').slice(0, 32)),
       userName: user.email!,

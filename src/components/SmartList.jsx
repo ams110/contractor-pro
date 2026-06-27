@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, X, AlertTriangle } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
+import { tl } from '../lib/labels.js'
 
 // ─── SmartList ────────────────────────────────────────────────────────────────
 // قائمة إدارة ذكية بلغة تصميم «جاهزية الحساب»: كل عنصر يعرض بصمته الحقيقية.
@@ -11,7 +12,7 @@ import { fmt } from '../lib/helpers.js'
 
 export default function SmartList({
   icon: Icon, title, accent = C.primary, variant = 'cloud', valueMode = 'count',
-  usage, onAdd, onRemove, addPlaceholder = 'إضافة...', language = 'ar',
+  usage, onAdd, onRemove, addPlaceholder, language = 'ar',
 }) {
   const [input, setInput]   = useState('')
   const [confirm, setConfirm] = useState(null)   // العنصر بانتظار تأكيد الحذف
@@ -44,7 +45,7 @@ export default function SmartList({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>{title}</div>
           <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
-            {usage.total} عنصر · {usage.used} مُستخدم
+            {usage.total} {tl(language, 'عنصر', 'פריטים', 'items')} · {usage.used} {tl(language, 'مُستخدم', 'בשימוש', 'used')}
             {valueMode === 'amount' && usage.totalAmount > 0 ? ` · ₪${fmt(usage.totalAmount)}` : ''}
           </div>
         </div>
@@ -107,7 +108,7 @@ export default function SmartList({
                     <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: active ? C.text : C.textDim }}>{r.label}</span>
                     {active && <span style={{ fontSize: 11, fontWeight: 800, color: accent, fontFamily: 'monospace' }}>{val(r)}</span>}
                     {active && <span style={{ fontSize: 9, color: C.textDim, minWidth: 30, textAlign: 'end' }}>{share}%</span>}
-                    {!active && <span style={{ fontSize: 9, color: C.textDim }}>غير مستخدم</span>}
+                    {!active && <span style={{ fontSize: 9, color: C.textDim }}>{tl(language, 'غير مستخدم', 'לא בשימוש', 'Unused')}</span>}
                     <button onClick={() => tryRemove(r.label, r.count)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, color: isConfirm ? C.accent : C.textDim, flexShrink: 0 }}>
                       {isConfirm ? <AlertTriangle size={13} strokeWidth={2.4} /> : <X size={13} strokeWidth={2} />}
@@ -132,7 +133,7 @@ export default function SmartList({
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
             style={{ overflow: 'hidden' }}>
             <div style={{ fontSize: 10, color: C.accent, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <AlertTriangle size={11} /> «{confirm}» مستخدم فعلاً — اضغط ✕ مرة ثانية للحذف.
+              <AlertTriangle size={11} /> «{confirm}» {tl(language, 'مستخدم فعلاً — اضغط ✕ مرة ثانية للحذف.', 'בשימוש בפועל — לחץ ✕ פעם נוספת למחיקה.', 'is in use — press ✕ again to delete.')}
             </div>
           </motion.div>
         )}

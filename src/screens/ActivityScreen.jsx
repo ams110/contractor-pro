@@ -8,26 +8,41 @@ import { C } from '../constants/index.js'
 import { fmtDate } from '../lib/helpers.js'
 import { GlassCard, Btn } from '../components/index.jsx'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
+// خرائط ثلاثية اللغة — القيمة العربية canonical (للتصدير الافتراضي) + عبري/إنجليزي
 const ACTION_MAP = {
-  insert: 'أضاف',
-  update: 'عدّل',
-  delete: 'حذف',
-  view:   'فتح',
+  insert: { ar: 'أضاف', he: 'הוסיף', en: 'Added' },
+  update: { ar: 'عدّل', he: 'ערך',   en: 'Edited' },
+  delete: { ar: 'حذف',  he: 'מחק',   en: 'Deleted' },
+  view:   { ar: 'فتح',  he: 'פתח',   en: 'Opened' },
 }
 
 const TABLE_MAP = {
-  projects:   'مشروع',
-  employees:  'عامل',
-  expenses:   'مصروف',
-  payments:   'دفعة',
-  work_days:  'يوم عمل',
-  client_receipts: 'إيصال',
-  dashboard:  'الرئيسية',
-  workers:    'العمال',
-  workdays:   'أيام العمل',
-  settings:   'الإعدادات',
-  activity:   'النشاط',
+  projects:        { ar: 'مشروع',     he: 'פרויקט',    en: 'Project' },
+  employees:       { ar: 'عامل',      he: 'עובד',      en: 'Worker' },
+  expenses:        { ar: 'مصروف',     he: 'הוצאה',     en: 'Expense' },
+  payments:        { ar: 'دفعة',      he: 'תשלום',     en: 'Payment' },
+  work_days:       { ar: 'يوم عمل',   he: 'יום עבודה', en: 'Work day' },
+  client_receipts: { ar: 'إيصال',     he: 'קבלה',      en: 'Receipt' },
+  dashboard:       { ar: 'الرئيسية',  he: 'דף הבית',   en: 'Home' },
+  workers:         { ar: 'العمال',    he: 'עובדים',    en: 'Workers' },
+  workdays:        { ar: 'أيام العمل',he: 'ימי עבודה', en: 'Work days' },
+  settings:        { ar: 'الإعدادات', he: 'הגדרות',    en: 'Settings' },
+  activity:        { ar: 'النشاط',    he: 'פעילות',    en: 'Activity' },
+}
+
+// مساعدات عرض حسب اللغة (تقع على القيمة العربية ثم على المفتاح الخام)
+function actionLabel(action, language) {
+  const e = ACTION_MAP[action]
+  if (!e) return action
+  return tl(language, e.ar, e.he, e.en)
+}
+function tableLabel(tbl, language) {
+  const e = TABLE_MAP[tbl]
+  if (!e) return tbl
+  return tl(language, e.ar, e.he, e.en)
 }
 
 const ACTION_COLOR = {
@@ -44,24 +59,24 @@ const ACTION_ICON = {
   view:   Eye,
 }
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, language) {
   if (!dateStr) return ''
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
-  if (diff < 60)    return 'الآن'
-  if (diff < 3600)  return `منذ ${Math.floor(diff / 60)} دقيقة`
-  if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} ساعة`
-  return `منذ ${Math.floor(diff / 86400)} يوم`
+  if (diff < 60)    return tl(language, 'الآن', 'עכשיו', 'now')
+  if (diff < 3600)  return tl(language, `منذ ${Math.floor(diff / 60)} دقيقة`, `לפני ${Math.floor(diff / 60)} דקות`, `${Math.floor(diff / 60)}m ago`)
+  if (diff < 86400) return tl(language, `منذ ${Math.floor(diff / 3600)} ساعة`, `לפני ${Math.floor(diff / 3600)} שעות`, `${Math.floor(diff / 3600)}h ago`)
+  return tl(language, `منذ ${Math.floor(diff / 86400)} يوم`, `לפני ${Math.floor(diff / 86400)} ימים`, `${Math.floor(diff / 86400)}d ago`)
 }
 
-function translateEntry(entry) {
-  const action = ACTION_MAP[entry.action] || entry.action
-  const table  = TABLE_MAP[entry.tbl]    || entry.tbl
+function translateEntry(entry, language) {
+  const action = actionLabel(entry.action, language)
+  const table  = tableLabel(entry.tbl, language)
   return `${action} ${table}`
 }
 
-function ActionBadge({ action }) {
+function ActionBadge({ action, language }) {
   const color = ACTION_COLOR[action] || C.textDim
-  const label = ACTION_MAP[action] || action
+  const label = actionLabel(action, language)
   const Icon  = ACTION_ICON[action]
   return (
     <span style={{
@@ -86,6 +101,7 @@ function MetaTag({ icon: Icon, label, color }) {
 }
 
 export default function ActivityScreen({ getAllActivity, getActivity, teamMembers, permissions }) {
+  const language = useAppStore(s => s.language)
   const [entries,      setEntries]      = useState([])
   const [loading,      setLoading]      = useState(true)
   const [filterMember, setFilterMember] = useState('all')
@@ -118,16 +134,21 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
   })
 
   function exportToExcel() {
+    const colTime   = tl(language, 'الوقت', 'זמן', 'Time')
+    const colMember = tl(language, 'العضو', 'חבר', 'Member')
+    const colAction = tl(language, 'الإجراء', 'פעולה', 'Action')
+    const colTable  = tl(language, 'الجدول', 'טבלה', 'Table')
+    const colId     = tl(language, 'المعرّف', 'מזהה', 'ID')
     const rows = filtered.map(e => ({
-      'الوقت':     new Date(e.created_at).toLocaleString('ar-IL'),
-      'العضو':     e.actor_name || e.actor_email || '',
-      'الإجراء':   ACTION_MAP[e.action]  || e.action,
-      'الجدول':    TABLE_MAP[e.tbl]      || e.tbl,
-      'المعرّف':   e.record_id || '',
+      [colTime]:   new Date(e.created_at).toLocaleString('ar-IL'),
+      [colMember]: e.actor_name || e.actor_email || '',
+      [colAction]: actionLabel(e.action, language),
+      [colTable]:  tableLabel(e.tbl, language),
+      [colId]:     e.record_id || '',
     }))
     const wb  = XLSX.utils.book_new()
     const ws  = XLSX.utils.json_to_sheet(rows)
-    XLSX.utils.book_append_sheet(wb, ws, 'سجل النشاط')
+    XLSX.utils.book_append_sheet(wb, ws, tl(language, 'سجل النشاط', 'יומן פעילות', 'Activity log'))
     XLSX.writeFile(wb, `activity_log_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
@@ -141,8 +162,8 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
         <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
           <IconChip icon={ClipboardList} tone="premium" size={40} radius={12} />
           <div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1.1, letterSpacing: '-0.02em' }}>سجل النشاط</div>
-            <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{filtered.length} إجراء</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1.1, letterSpacing: '-0.02em' }}>{tl(language, 'سجل النشاط', 'יומן פעילות', 'Activity log')}</div>
+            <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{filtered.length} {tl(language, 'إجراء', 'פעולות', 'actions')}</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -162,10 +183,10 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {/* Member filter */}
             <div style={{ flex: 1, minWidth: 120 }}>
-              <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>العضو</label>
+              <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>{tl(language, 'العضو', 'חבר', 'Member')}</label>
               <select value={filterMember} onChange={e => setFilterMember(e.target.value)}
                 style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 12, outline: 'none' }}>
-                <option value="all">الكل</option>
+                <option value="all">{tl(language, 'الكل', 'הכל', 'All')}</option>
                 {members.map(m => (
                   <option key={m.id} value={m.auth_email}>{m.display_name || m.username}</option>
                 ))}
@@ -173,19 +194,19 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
             </div>
             {/* Action filter */}
             <div style={{ flex: 1, minWidth: 100 }}>
-              <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>الإجراء</label>
+              <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>{tl(language, 'الإجراء', 'פעולה', 'Action')}</label>
               <select value={filterAction} onChange={e => setFilterAction(e.target.value)}
                 style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 12, outline: 'none' }}>
-                <option value="all">الكل</option>
-                <option value="insert">أضاف</option>
-                <option value="update">عدّل</option>
-                <option value="delete">حذف</option>
-                <option value="view">فتح</option>
+                <option value="all">{tl(language, 'الكل', 'הכל', 'All')}</option>
+                <option value="insert">{tl(language, 'أضاف', 'הוסיף', 'Added')}</option>
+                <option value="update">{tl(language, 'عدّل', 'ערך', 'Edited')}</option>
+                <option value="delete">{tl(language, 'حذف', 'מחק', 'Deleted')}</option>
+                <option value="view">{tl(language, 'فتح', 'פתח', 'Opened')}</option>
               </select>
             </div>
             {/* Date filter */}
             <div style={{ flex: 1, minWidth: 120 }}>
-              <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>التاريخ</label>
+              <label style={{ fontSize: 10, color: C.textDim, display: 'block', marginBottom: 4, fontWeight: 700 }}>{tl(language, 'التاريخ', 'תאריך', 'Date')}</label>
               <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
                 style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
             </div>
@@ -193,7 +214,7 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
           {hasFilter && (
             <button onClick={() => { setFilterMember('all'); setFilterAction('all'); setFilterDate('') }}
               style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: `1px solid ${C.accent}44`, background: `${C.accent}12`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-              <X size={12} strokeWidth={2.5} /> مسح الفلاتر
+              <X size={12} strokeWidth={2.5} /> {tl(language, 'مسح الفلاتر', 'נקה סינון', 'Clear filters')}
             </button>
           )}
         </div>
@@ -214,15 +235,15 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '44px 0', color: C.textDim }}>
           <IconChip icon={ClipboardList} tone="premium" size={52} radius={16} iconSize={26} style={{ margin: '0 auto 12px' }} />
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>لا يوجد نشاط مسجّل بعد</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'لا يوجد نشاط مسجّل بعد', 'אין פעילות מתועדת עדיין', 'No activity recorded yet')}</div>
         </div>
       ) : (
         <div>
           {filtered.map((entry, i) => {
             const color = ACTION_COLOR[entry.action] || C.textDim
             const Icon  = ACTION_ICON[entry.action] || ClipboardList
-            const desc  = translateEntry(entry)
-            const name  = entry.actor_name || entry.actor_email || 'مجهول'
+            const desc  = translateEntry(entry, language)
+            const name  = entry.actor_name || entry.actor_email || tl(language, 'مجهول', 'לא ידוע', 'Unknown')
             return (
               <PremiumCard key={i} color={color} glow={false} radius={12} padding="12px 14px" delay={Math.min(i * 0.03, 0.3)} style={{ marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -234,14 +255,14 @@ export default function ActivityScreen({ getAllActivity, getActivity, teamMember
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 800, color: C.text }}>
                         <User size={12} color={C.textDim} strokeWidth={2.3} />{name}
                       </span>
-                      <ActionBadge action={entry.action} />
+                      <ActionBadge action={entry.action} language={language} />
                       <span style={{ fontSize: 12, color: C.textDim }}>
-                        {TABLE_MAP[entry.tbl] || entry.tbl}
+                        {tableLabel(entry.tbl, language)}
                       </span>
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       <MetaTag icon={Calendar} label={fmtDate(entry.created_at)} color="#94A3B8" />
-                      <MetaTag icon={Clock} label={timeAgo(entry.created_at)} color={C.cyan} />
+                      <MetaTag icon={Clock} label={timeAgo(entry.created_at, language)} color={C.cyan} />
                     </div>
                   </div>
                 </div>

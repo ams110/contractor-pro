@@ -24,6 +24,7 @@ import { calcMustahaq, calcPaid, calcAdvances, calcMutabqi } from '../../lib/cal
 import { uploadReceipt, openSignedUrl } from '../../lib/storage.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
+import { tEnum } from '../../lib/labels.js'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function lbl(ar, he, en, lang) { return lang === 'he' ? he : lang === 'en' ? en : ar }
@@ -52,6 +53,7 @@ function SubTab({ active, label, icon: Icon, onClick }) {
 // يُفلتر المشاريع مباشرةً بـ project.business_id === activeBusiness.id
 function AccountingModuleTab({ projects, employees, userId, refetchReceipts, refetchExpenses, pensionMonthly }) {
   const { businesses, initialized, load } = useBusinessStore()
+  const language       = useAppStore(s => s.language)
   const activeBizId    = useBusinessStore(s => s.activeBusinessId)
   const activeBusiness = useMemo(
     () => businesses.find(b => b.id === activeBizId) ?? businesses[0] ?? null,
@@ -95,18 +97,18 @@ function AccountingModuleTab({ projects, employees, userId, refetchReceipts, ref
   }, [projects, activeBusiness?.id])
 
   if (!initialized) return (
-    <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>تحميل...</div>
+    <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim, fontSize: 12 }}>{lbl('تحميل...', 'טוען...', 'Loading...', language)}</div>
   )
 
   if (businesses.length === 0) return <BusinessSetup onDone={() => load()} />
 
   const SUB_TABS = [
-    { id: 'project',    icon: FolderOpen,   label: 'بالمشروع' },
-    { id: 'income',     icon: TrendingUp,   label: 'مدخولات'  },
-    { id: 'bizexp',     icon: TrendingDown, label: 'مصاريف'   },
-    { id: 'archive',    icon: FolderOpen,   label: 'فواتير'   },
-    { id: 'payroll',    icon: Banknote,     label: 'رواتب'    },
-    { id: 'taxsummary', icon: BarChart3,    label: 'ملخص'     },
+    { id: 'project',    icon: FolderOpen,   label: lbl('بالمشروع', 'לפי פרויקט', 'By project', language) },
+    { id: 'income',     icon: TrendingUp,   label: lbl('مدخولات', 'הכנסות', 'Income', language)  },
+    { id: 'bizexp',     icon: TrendingDown, label: lbl('مصاريف', 'הוצאות', 'Expenses', language)   },
+    { id: 'archive',    icon: FolderOpen,   label: lbl('فواتير', 'חשבוניות', 'Invoices', language)   },
+    { id: 'payroll',    icon: Banknote,     label: lbl('رواتب', 'שכר', 'Salaries', language)    },
+    { id: 'taxsummary', icon: BarChart3,    label: lbl('ملخص', 'סיכום', 'Summary', language)     },
   ]
 
   return (
@@ -124,7 +126,7 @@ function AccountingModuleTab({ projects, employees, userId, refetchReceipts, ref
         }}>
           <FolderOpen size={11} color={C.primary} />
           <span style={{ fontSize: 10, fontWeight: 700, color: C.primary }}>
-            {filteredProjects.length} مشروع تابع لهذه المصلحة
+            {lbl(`${filteredProjects.length} مشروع تابع لهذه المصلحة`, `${filteredProjects.length} פרויקטים בעסק זה`, `${filteredProjects.length} projects in this business`, language)}
           </span>
         </div>
       )}
@@ -305,7 +307,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
 
   function pickFile(e) {
     const file = e.target.files?.[0]; if (!file) return
-    if (file.size > 10 * 1024 * 1024) { setFormErr('حجم الملف أكثر من 10MB'); return }
+    if (file.size > 10 * 1024 * 1024) { setFormErr(lbl('حجم الملف أكثر من 10MB', 'גודל הקובץ עולה על 10MB', 'File size exceeds 10MB', language)); return }
     if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview)
     setReceiptFile(file)
     if (file.type.startsWith('image/')) setPreview(URL.createObjectURL(file))
@@ -315,24 +317,32 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
   async function save() {
     const err = validateExpense(form)
     if (err) return setFormErr(err)
-    if (isReadOnly) return setFormErr('التطبيق في وضع القراءة فقط — تواصل مع المالك')
+    if (isReadOnly) return setFormErr(lbl('التطبيق في وضع القراءة فقط — تواصل مع المالك', 'האפליקציה במצב קריאה בלבד — פנה לבעלים', 'App is in read-only mode — contact the owner', language))
     // Period lock check
     if (form.date) {
       const d = new Date(form.date)
       const locked = lockedPeriods.some(p => p.year === d.getFullYear() && p.month === d.getMonth() + 1)
-      if (locked) return setFormErr('هذه الفترة مقفلة — لا يمكن إضافة مصاريف لهذا الشهر')
+      if (locked) return setFormErr(lbl('هذه الفترة مقفلة — لا يمكن إضافة مصاريف لهذا الشهر', 'התקופה נעולה — לא ניתן להוסיף הוצאות לחודש זה', 'This period is locked — cannot add expenses for this month', language))
     }
     // Daily limit check
     if (appCfg?.config?.daily_spend_limit > 0) {
       const today = todayStr()
       const todayTotal = expenses.filter(e => e.date === today).reduce((s, e) => s + (e.amount || 0), 0)
       if (todayTotal + parseFloat(form.amount || 0) > appCfg.config.daily_spend_limit) {
-        return setFormErr(`تجاوز حد الصرف اليومي ₪${fmt(appCfg.config.daily_spend_limit)} — المصروف اليوم: ₪${fmt(todayTotal)}`)
+        return setFormErr(lbl(
+          `تجاوز حد الصرف اليومي ₪${fmt(appCfg.config.daily_spend_limit)} — المصروف اليوم: ₪${fmt(todayTotal)}`,
+          `חריגה ממגבלת ההוצאה היומית ₪${fmt(appCfg.config.daily_spend_limit)} — הוצאה היום: ₪${fmt(todayTotal)}`,
+          `Daily spending limit exceeded ₪${fmt(appCfg.config.daily_spend_limit)} — spent today: ₪${fmt(todayTotal)}`,
+          language))
       }
     }
     if (form.client_receipt_id && selectedReceipt) {
       if (parseFloat(form.amount) > selectedReceipt.remaining) {
-        return setFormErr(`المبلغ يتجاوز المتبقي من القبضة ${selectedReceipt.ref_number || ''} — المتبقي: ₪${fmt(selectedReceipt.remaining)}`)
+        return setFormErr(lbl(
+          `المبلغ يتجاوز المتبقي من القبضة ${selectedReceipt.ref_number || ''} — المتبقي: ₪${fmt(selectedReceipt.remaining)}`,
+          `הסכום עולה על היתרה של הקבלה ${selectedReceipt.ref_number || ''} — נותר: ₪${fmt(selectedReceipt.remaining)}`,
+          `Amount exceeds remaining of receipt ${selectedReceipt.ref_number || ''} — remaining: ₪${fmt(selectedReceipt.remaining)}`,
+          language))
       }
     }
     setSaving(true); setFormErr('')
@@ -374,7 +384,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
             return (
               <div key={exp.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{exp.category || exp.vendor || '—'}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{tEnum(exp.category, language) || exp.vendor || '—'}</div>
                   <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(exp.date)} {proj ? `· ${proj.name}` : ''}</div>
                 </div>
                 <span style={{ fontSize: 12, fontWeight: 800, color: C.accent, flexShrink: 0 }}>₪{fmt(exp.amount || 0)}</span>
@@ -416,7 +426,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
         {catChips.map(c => (
           <button key={c} onClick={() => setCatFilter(c)}
             style={{ padding: '4px 11px', borderRadius: 9, whiteSpace: 'nowrap', background: catFilter === c ? GRAD.danger : 'rgba(255,255,255,0.05)', border: `1px solid ${catFilter === c ? 'transparent' : C.border}`, color: catFilter === c ? '#fff' : C.textDim, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            {c === 'all' ? lbl('الكل', 'הכל', 'All', language) : c}
+            {c === 'all' ? lbl('الكل', 'הכל', 'All', language) : tEnum(c, language)}
           </button>
         ))}
       </div>
@@ -439,7 +449,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
                 <CreditCard size={14} color={C.accent} strokeWidth={2} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{exp.category || exp.vendor || '—'}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{tEnum(exp.category, language) || exp.vendor || '—'}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 9, color: C.textDim }}>{fmtDate(exp.date)}</span>
                   {exp.ref_number && (
@@ -460,7 +470,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
                 )}
                 {permissions?.isOwner && (
                   <button onClick={async () => {
-                    const sig = await bioConfirm(`حذف مصروف: ${exp.category || ''} — ₪${fmt(exp.amount || 0)}`, 'expenses')
+                    const sig = await bioConfirm(`${lbl('حذف مصروف', 'מחיקת הוצאה', 'Delete expense', language)}: ${tEnum(exp.category, language) || ''} — ₪${fmt(exp.amount || 0)}`, 'expenses')
                     if (!sig) return
                     deleteExpense?.(exp.id)
                   }} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', display: 'flex', padding: 4 }}>
@@ -474,32 +484,32 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
               <div style={{ borderTop: `1px solid ${C.border}`, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {proj && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>المشروع</span>
+                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>{lbl('المشروع', 'פרויקט', 'Project', language)}</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{proj.name}</span>
                     {proj.ref_number && <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, background: `${C.primary}15`, borderRadius: 5, padding: '1px 6px' }}>{proj.ref_number}</span>}
                   </div>
                 )}
                 {rcpt && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>القبضة</span>
+                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>{lbl('القبضة', 'קבלה', 'Receipt', language)}</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: C.cyan }}>{rcpt.ref_number}</span>
                     <span style={{ fontSize: 10, color: C.textDim }}>₪{fmt(rcpt.amount)}</span>
                   </div>
                 )}
                 {emp && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>العامل</span>
+                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>{lbl('العامل', 'עובד', 'Worker', language)}</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: C.secondary }}>{emp.name}</span>
                   </div>
                 )}
                 {exp.vendor && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>المورّد</span>
+                    <span style={{ fontSize: 10, color: C.textDim, width: 52 }}>{lbl('المورّد', 'ספק', 'Vendor', language)}</span>
                     <span style={{ fontSize: 11, color: C.text }}>{exp.vendor}</span>
                   </div>
                 )}
                 {!proj && !rcpt && !emp && (
-                  <span style={{ fontSize: 11, color: C.textDim }}>لا توجد ارتباطات مسجّلة</span>
+                  <span style={{ fontSize: 11, color: C.textDim }}>{lbl('لا توجد ارتباطات مسجّلة', 'אין קישורים רשומים', 'No linked records', language)}</span>
                 )}
               </div>
             )}
@@ -524,7 +534,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
         <Field label={lbl('الفئة', 'קטגוריה', 'Category', language)}>
           <select value={form.category} onChange={e => f('category')(e.target.value)} style={sel}>
             <option value="">{lbl('اختر فئة...', 'בחר קטגוריה...', 'Select category...', language)}</option>
-            {cats.map(c => <option key={c} value={c}>{c}</option>)}
+            {cats.map(c => <option key={c} value={c}>{tEnum(c, language)}</option>)}
           </select>
         </Field>
         <Field label={lbl('المشروع', 'פרויקט', 'Project', language)}>
@@ -575,7 +585,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
         <Field label={lbl('طريقة الدفع', 'אמצעי תשלום', 'Payment Method', language)}>
           <select value={form.payment_method} onChange={e => f('payment_method')(e.target.value)} style={sel}>
             <option value="">{lbl('اختر...', 'בחר...', 'Select...', language)}</option>
-            {PAY_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+            {PAY_METHODS.map(m => <option key={m} value={m}>{tEnum(m, language)}</option>)}
           </select>
         </Field>
 
@@ -662,7 +672,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
 
   function pickFile(e) {
     const file = e.target.files?.[0]; if (!file) return
-    if (file.size > 10 * 1024 * 1024) { setFormErr('حجم الملف أكثر من 10MB'); return }
+    if (file.size > 10 * 1024 * 1024) { setFormErr(lbl('حجم الملف أكثر من 10MB', 'גודל הקובץ עולה על 10MB', 'File size exceeds 10MB', language)); return }
     if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview)
     setReceiptFile(file)
     setPreview(URL.createObjectURL(file))
@@ -671,24 +681,28 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
   async function save() {
     const err = validatePayment(form)
     if (err) return setFormErr(err)
-    if (isReadOnly) return setFormErr('التطبيق في وضع القراءة فقط')
+    if (isReadOnly) return setFormErr(lbl('التطبيق في وضع القراءة فقط', 'האפליקציה במצב קריאה בלבד', 'App is in read-only mode', language))
     // Period lock check
     if (form.date && !editingId) {
       const d = new Date(form.date)
       const locked = lockedPeriods.some(p => p.year === d.getFullYear() && p.month === d.getMonth() + 1)
-      if (locked) return setFormErr('هذه الفترة مقفلة — لا يمكن إضافة دفعات لهذا الشهر')
+      if (locked) return setFormErr(lbl('هذه الفترة مقفلة — لا يمكن إضافة دفعات لهذا الشهر', 'התקופה נעולה — לא ניתן להוסיף תשלומים לחודש זה', 'This period is locked — cannot add payments for this month', language))
     }
     // تحقق من ميزانية القبضة
     if (form.client_receipt_id && selectedReceipt) {
       const newAmt = parseFloat(form.amount)
       if (newAmt > selectedReceipt.remaining) {
-        return setFormErr(`المبلغ يتجاوز المتبقي من القبضة ${selectedReceipt.ref_number || ''} — المتبقي: ₪${fmt(selectedReceipt.remaining)}`)
+        return setFormErr(lbl(
+          `المبلغ يتجاوز المتبقي من القبضة ${selectedReceipt.ref_number || ''} — المتبقي: ₪${fmt(selectedReceipt.remaining)}`,
+          `הסכום עולה על היתרה של הקבלה ${selectedReceipt.ref_number || ''} — נותר: ₪${fmt(selectedReceipt.remaining)}`,
+          `Amount exceeds remaining of receipt ${selectedReceipt.ref_number || ''} — remaining: ₪${fmt(selectedReceipt.remaining)}`,
+          language))
       }
     }
     // توقيع بيومتري عند إضافة دفعة جديدة
     if (!editingId) {
       const emp = employees.find(e => e.id === form.employee_id)
-      const sig = await bioConfirm(`تسجيل دفعة: ${emp?.name || '—'} — ₪${form.amount}`, 'payments')
+      const sig = await bioConfirm(`${lbl('تسجيل دفعة', 'רישום תשלום', 'Record payment', language)}: ${emp?.name || '—'} — ₪${form.amount}`, 'payments')
       if (!sig) return
     }
     setSaving(true); setFormErr('')
@@ -809,7 +823,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{emp.name}</div>
-                {emp.specialty && <div style={{ fontSize: 10, color: C.textDim }}>{emp.specialty}</div>}
+                {emp.specialty && <div style={{ fontSize: 10, color: C.textDim }}>{tEnum(emp.specialty, language)}</div>}
               </div>
               {permissions?.addPayments !== false && (
                 <motion.button whileTap={{ scale: 0.93 }}
@@ -855,7 +869,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
                   return (
                     <div key={pay.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(pay.date)}{pay.method ? ` · ${pay.method}` : ''}{proj ? ` · ${proj.name}` : ''}</div>
+                        <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(pay.date)}{pay.method ? ` · ${tEnum(pay.method, language)}` : ''}{proj ? ` · ${proj.name}` : ''}</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
                           {pay.ref_number && <span style={{ fontSize: 9, fontWeight: 700, color: C.primary, letterSpacing: '0.04em' }}>{pay.ref_number}</span>}
                           {pay.client_receipt_id && (() => {
@@ -878,7 +892,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
                           </button>
                           <button onClick={async () => {
                             const emp = employees.find(e => e.id === pay.employee_id)
-                            const sig = await bioConfirm(`حذف دفعة: ${emp?.name || ''} — ₪${fmt(pay.amount || 0)}`, 'payments')
+                            const sig = await bioConfirm(`${lbl('حذف دفعة', 'מחיקת תשלום', 'Delete payment', language)}: ${emp?.name || ''} — ₪${fmt(pay.amount || 0)}`, 'payments')
                             if (!sig) return
                             deletePayment?.(pay.id)
                           }} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}>
@@ -925,7 +939,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
         <Field label={lbl('طريقة الدفع', 'אמצעי תשלום', 'Method', language)}>
           <select value={form.method} onChange={e => f('method')(e.target.value)} style={sel}>
             <option value="">{lbl('اختر...', 'בחר...', 'Select...', language)}</option>
-            {methods.map(m => <option key={m} value={m}>{m}</option>)}
+            {methods.map(m => <option key={m} value={m}>{tEnum(m, language)}</option>)}
           </select>
         </Field>
         <Field label={lbl('المشروع *', 'פרויקט *', 'Project *', language)}>
@@ -1108,7 +1122,7 @@ export default function FinanceScreen({
       {isReadOnly && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: `${C.accent}15`, border: `1px solid ${C.accent}30`, borderRadius: 14, marginBottom: 14 }}>
           <Lock size={14} color={C.accent} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>وضع القراءة فقط — لا يمكن إضافة أو تعديل البيانات</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>{lbl('وضع القراءة فقط — لا يمكن إضافة أو تعديل البيانات', 'מצב קריאה בלבד — לא ניתן להוסיף או לערוך נתונים', 'Read-only mode — cannot add or edit data', language)}</span>
         </div>
       )}
 
@@ -1124,7 +1138,7 @@ export default function FinanceScreen({
             onClick={toggleCurrentPeriodLock}
             style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 10, background: isCurrentPeriodLocked ? `${C.accent}18` : `${C.primary}12`, border: `1px solid ${isCurrentPeriodLocked ? C.accent : C.primary}30`, color: isCurrentPeriodLocked ? C.accent : C.primary, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
           >
-            {isCurrentPeriodLocked ? <><Lock size={11} />مقفل</> : <><CalendarOff size={11} />قفل الشهر</>}
+            {isCurrentPeriodLocked ? <><Lock size={11} />{lbl('مقفل', 'נעול', 'Locked', language)}</> : <><CalendarOff size={11} />{lbl('قفل الشهر', 'נעילת החודש', 'Lock month', language)}</>}
           </button>
         )}
       </div>

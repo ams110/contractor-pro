@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Building2, HardHat, CreditCard, Wallet, Search, X } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt, fmtDate } from '../lib/helpers.js'
+import { tl, tEnum } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 export default function SearchOverlay({ open, onClose, projects, employees, expenses, payments, workDays, onNav }) {
+  const language            = useAppStore(s => s.language)
   const [q, setQ]           = useState('')
   const inputRef            = useRef()
 
@@ -24,14 +27,14 @@ export default function SearchOverlay({ open, onClose, projects, employees, expe
     ...employees.filter(e =>
       e.name?.toLowerCase().includes(lower) ||
       e.specialization?.toLowerCase().includes(lower)
-    ).map(e => ({ type: 'worker', Icon: HardHat, title: e.name, sub: `${e.daily_rate}₪/يوم`, nav: 'workers', id: e.id })),
+    ).map(e => ({ type: 'worker', Icon: HardHat, title: e.name, sub: `${e.daily_rate}₪/${tl(language, 'يوم', 'יום', 'day')}`, nav: 'workers', id: e.id })),
 
     ...expenses.filter(e =>
       e.vendor?.toLowerCase().includes(lower) ||
       e.category?.toLowerCase().includes(lower)
     ).slice(0, 5).map(e => {
       const proj = projects.find(p => p.id === e.project_id)
-      return { type: 'expense', Icon: CreditCard, title: e.category, sub: `${fmtDate(e.date)}${proj ? ' • ' + proj.name : ''}`, amount: e.amount, nav: 'expenses', id: e.id }
+      return { type: 'expense', Icon: CreditCard, title: tEnum(e.category, language), sub: `${fmtDate(e.date)}${proj ? ' • ' + proj.name : ''}`, amount: e.amount, nav: 'expenses', id: e.id }
     }),
 
     ...payments.filter(p => {
@@ -43,7 +46,12 @@ export default function SearchOverlay({ open, onClose, projects, employees, expe
     }),
   ]
 
-  const TYPE_LABEL = { project:'مشروع', worker:'عامل', expense:'مصروف', payment:'دفعة' }
+  const TYPE_LABEL = {
+    project: tl(language, 'مشروع', 'פרויקט', 'Project'),
+    worker:  tl(language, 'عامل', 'עובד', 'Worker'),
+    expense: tl(language, 'مصروف', 'הוצאה', 'Expense'),
+    payment: tl(language, 'دفعة', 'תשלום', 'Payment'),
+  }
 
   return (
     <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', flexDirection:'column' }}
@@ -62,7 +70,7 @@ export default function SearchOverlay({ open, onClose, projects, employees, expe
             ref={inputRef}
             value={q}
             onChange={e => setQ(e.target.value)}
-            placeholder="ابحث عن مشروع، عامل، مصروف..."
+            placeholder={tl(language, 'ابحث عن مشروع، عامل، مصروف...', 'חפש פרויקט, עובד, הוצאה...', 'Search project, worker, expense...')}
             style={{ flex:1, background:'none', border:'none', outline:'none', color:C.text, fontSize:15, direction:'rtl' }}
           />
           {q && (
@@ -75,12 +83,12 @@ export default function SearchOverlay({ open, onClose, projects, employees, expe
         <div style={{ overflowY:'auto', flex:1 }}>
           {lower.length < 2 && (
             <div style={{ padding:'30px 20px', textAlign:'center', color:C.textDim, fontSize:13 }}>
-              اكتب حرفين على الأقل للبحث
+              {tl(language, 'اكتب حرفين على الأقل للبحث', 'הקלד לפחות שתי אותיות לחיפוש', 'Type at least two characters to search')}
             </div>
           )}
           {lower.length >= 2 && results.length === 0 && (
             <div style={{ padding:'30px 20px', textAlign:'center', color:C.textDim, fontSize:13 }}>
-              ما في نتائج لـ &ldquo;{q}&rdquo;
+              {tl(language, 'ما في نتائج لـ', 'אין תוצאות עבור', 'No results for')} &ldquo;{q}&rdquo;
             </div>
           )}
           {results.map((r, i) => (

@@ -2,9 +2,10 @@ import React from 'react'
 import { ClipboardList, ChevronDown } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import { GlassCard } from '../../components/index.jsx'
-import { ACTION_MAP, TABLE_MAP, ACTION_COLOR, fmtRelative } from './teamConstants.js'
+import { ACTION_COLOR, fmtRelative, tAction, tTable } from './teamConstants.js'
+import { tl } from '../../lib/labels.js'
 
-export function MemberActivity({ memberId, authEmail, manager }) {
+export function MemberActivity({ memberId, authEmail, manager, language }) {
   const { expandedActivity, activityCache, activityLoading, toggleActivity } = manager
   const isOpen    = expandedActivity.has(memberId)
   const isLoading = activityLoading[memberId]
@@ -22,7 +23,7 @@ export function MemberActivity({ memberId, authEmail, manager }) {
           fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all .18s',
         }}
       >
-        <span style={{ display:'flex', alignItems:'center', gap:5 }}><ClipboardList size={13} strokeWidth={2} /> سجل النشاط</span>
+        <span style={{ display:'flex', alignItems:'center', gap:5 }}><ClipboardList size={13} strokeWidth={2} /> {tl(language, 'سجل النشاط', 'יומן פעילות', 'Activity log')}</span>
         <ChevronDown size={13} style={{ transition: 'transform .2s', transform: isOpen ? 'rotate(180deg)' : 'none' }} />
       </button>
 
@@ -31,18 +32,18 @@ export function MemberActivity({ memberId, authEmail, manager }) {
           {isLoading ? (
             <div style={{ textAlign: 'center', padding: '16px 0', color: C.textDim, fontSize: 11 }}>
               <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${C.blue}`, borderTopColor: 'transparent', animation: 'spin .7s linear infinite', margin: '0 auto 8px' }} />
-              جاري التحميل...
+              {tl(language, 'جاري التحميل...', 'טוען...', 'Loading...')}
             </div>
           ) : entries.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '14px 0', color: C.textDim, fontSize: 11 }}>
-              لا يوجد نشاط مسجّل بعد
+              {tl(language, 'لا يوجد نشاط مسجّل بعد', 'אין עדיין פעילות מתועדת', 'No recorded activity yet')}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {entries.slice(0, 10).map((e, i) => {
                 const color = ACTION_COLOR[e.action] || C.textDim
-                const tbl   = TABLE_MAP[e.tbl]  || e.tbl
-                const act   = ACTION_MAP[e.action] || e.action
+                const tbl   = tTable(e.tbl, language)
+                const act   = tAction(e.action, language)
                 return (
                   <div key={i} style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -56,13 +57,16 @@ export function MemberActivity({ memberId, authEmail, manager }) {
                       }}>{act}</span>
                       <span style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{tbl}</span>
                     </div>
-                    <span style={{ fontSize: 10, color: C.textDim }}>{fmtRelative(e.created_at)}</span>
+                    <span style={{ fontSize: 10, color: C.textDim }}>{fmtRelative(e.created_at, language)}</span>
                   </div>
                 )
               })}
               {entries.length > 10 && (
                 <div style={{ textAlign: 'center', fontSize: 10, color: C.textDim, paddingTop: 4 }}>
-                  +{entries.length - 10} مزيد في سجل النشاط الكامل
+                  {tl(language,
+                    `+${entries.length - 10} مزيد في سجل النشاط الكامل`,
+                    `+${entries.length - 10} נוספים ביומן הפעילות המלא`,
+                    `+${entries.length - 10} more in the full activity log`)}
                 </div>
               )}
             </div>

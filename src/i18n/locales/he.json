@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Contractor Pro",
+    "name": "Kabblan",
     "tagline": "נהל את הפרויקטים שלך בחוכמה"
   },
   "nav": {
@@ -144,7 +144,7 @@
     "offlineFor": "מנותק כבר {{time}}"
   },
   "onboarding": {
-    "welcome":   "ברוכים הבאים ל-Contractor Pro",
+    "welcome":   "ברוכים הבאים ל-Kabblan",
     "subtitle":  "הנה התכונות החשובות להתחלה מהירה",
     "projects":  "הוסף פרויקטים ועקוב אחר רווחים והוצאות לכל פרויקט",
     "workers":   "נהל את הצוות שלך, משכורות ומקדמות בקלות",

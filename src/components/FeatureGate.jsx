@@ -3,6 +3,8 @@ import { Lock, Sparkles, ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { C, GRAD } from '../constants/index.js'
 import { useHasFeature } from '../store/usePlanStore.js'
+import { useAppStore } from '../store/useAppStore.js'
+import { tl } from '../lib/labels.js'
 import { navigate } from '../Router.jsx'
 
 const PLAN_LABEL = { starter: 'Starter', pro: 'Pro', business: 'Business' }
@@ -17,6 +19,7 @@ const PLAN_LABEL = { starter: 'Starter', pro: 'Pro', business: 'Business' }
  */
 export default function FeatureGate({ requiredPlan = 'pro', title, description, children }) {
   const allowed = useHasFeature(requiredPlan)
+  const language = useAppStore(s => s.language)
   if (allowed) return children
 
   const planName = PLAN_LABEL[requiredPlan] || 'Pro'
@@ -38,19 +41,19 @@ export default function FeatureGate({ requiredPlan = 'pro', title, description, 
 
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: `${C.secondary}16`, border: `1px solid ${C.secondary}3a`, borderRadius: 9, padding: '4px 11px', marginBottom: 14 }}>
           <Sparkles size={12} color={C.secondary} />
-          <span style={{ fontSize: 11, fontWeight: 800, color: C.secondary }}>ميزة خطة {planName}</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: C.secondary }}>{tl(language, `ميزة خطة ${planName}`, `תכונת תוכנית ${planName}`, `${planName} plan feature`)}</span>
         </div>
 
         <h3 style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>
-          {title || 'هذه الميزة بحاجة لترقية'}
+          {title || tl(language, 'هذه الميزة بحاجة لترقية', 'תכונה זו דורשת שדרוג', 'This feature requires an upgrade')}
         </h3>
         <p style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7, marginBottom: 22 }}>
-          {description || `رقِّ خطتك إلى ${planName} لفتح هذه الميزة والاستفادة منها بالكامل.`}
+          {description || tl(language, `رقِّ خطتك إلى ${planName} لفتح هذه الميزة والاستفادة منها بالكامل.`, `שדרג את התוכנית שלך ל-${planName} כדי לפתוח תכונה זו וליהנות ממנה במלואה.`, `Upgrade your plan to ${planName} to unlock this feature and use it fully.`)}
         </p>
 
         <button onClick={() => navigate('/pricing')}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: GRAD.premium, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', padding: '13px 28px', borderRadius: 14, boxShadow: `0 8px 28px ${C.secondary}40` }}>
-          عرض الخطط والترقية
+          {tl(language, 'عرض الخطط والترقية', 'הצגת התוכניות ושדרוג', 'View plans & upgrade')}
           <ArrowLeft size={17} strokeWidth={2.5} />
         </button>
       </motion.div>

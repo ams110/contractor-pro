@@ -21,6 +21,7 @@ import CashForecast from '../../components/CashForecast.jsx'
 import CommandCenter from '../../components/CommandCenter.jsx'
 import NetWorth from '../../components/NetWorth.jsx'
 import { PremiumCard, IconChip as KitIconChip, useCountUp, Money } from '../../ui/Premium.jsx'
+import { tEnum } from '../../lib/labels.js'
 
 // شارة اتّجاه صغيرة (شهر مقابل شهر)
 function TrendChip({ trend }) {
@@ -197,7 +198,7 @@ function ProjectRow({ project, revenue, expenses, rank, onClick, lang }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
           <span style={{ fontSize: 13, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</span>
-          <span style={{ fontSize: 9, fontWeight: 700, color: statusColor, background: `${statusColor}18`, border: `1px solid ${statusColor}30`, borderRadius: 6, padding: '1px 7px', flexShrink: 0 }}>{status}</span>
+          <span style={{ fontSize: 9, fontWeight: 700, color: statusColor, background: `${statusColor}18`, border: `1px solid ${statusColor}30`, borderRadius: 6, padding: '1px 7px', flexShrink: 0 }}>{tEnum(status, lang)}</span>
         </div>
         <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
           <motion.div
@@ -333,14 +334,14 @@ export default function DashboardScreen({
     owedByClients: stats.owedByClients,
     overdueCount:  stats.overdueCount,
     monthlyData:   stats.monthlyData,
-  }), [stats])
+  }, language), [stats, language])
 
   // التوقّع الذكي للسيولة — مسار النقد للأشهر القادمة + عدّاد الأمان
   const forecast = useMemo(() => computeCashForecast({
     cashOnHand:   stats.cashOnHand,
     totalRevenue: stats.totalRevenue,
     monthlyData:  stats.monthlyData,
-  }), [stats])
+  }, language), [stats, language])
 
   // الذمّة الصافية — عدسة الميزانية
   const netWorth = useMemo(() => computeNetWorth({
@@ -348,7 +349,7 @@ export default function DashboardScreen({
     owedByClients:   stats.owedByClients,
     owedToWorkers:   stats.owedToWorkers,
     pendingExpenses: stats.pendingExpenses,
-  }), [stats])
+  }, language), [stats, language])
 
   // مركز القيادة الذكي
   const now2 = new Date()
@@ -356,7 +357,7 @@ export default function DashboardScreen({
   const commandCenter = useMemo(() => computeCommandCenter({
     projects, employees, workDays, expenses, payments, advances, clientReceipts,
     monthKey, isOwner: !!permissions?.isOwner,
-  }), [projects, employees, workDays, expenses, payments, advances, clientReceipts, monthKey, permissions?.isOwner])
+  }, language), [projects, employees, workDays, expenses, payments, advances, clientReceipts, monthKey, permissions?.isOwner, language])
 
   const hasData = projects.length > 0 || employees.length > 0
   const showAmounts = permissions?.viewAmounts !== false   // عضو فريق بلا صلاحية «مشاهدة المبالغ» → تُخفى الأرقام المالية
@@ -402,7 +403,7 @@ export default function DashboardScreen({
       {!showAmounts && (
         <div style={{ marginBottom: 12, padding: '12px 14px', borderRadius: 14, background: `${C.secondary}10`, border: `1px solid ${C.secondary}28`, display: 'flex', alignItems: 'center', gap: 10 }}>
           <Lock size={16} color={C.secondary} />
-          <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>الأرقام المالية مخفيّة عن حسابك — تواصل مع صاحب العمل.</div>
+          <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>{language === 'he' ? 'הנתונים הכספיים מוסתרים מהחשבון שלך — פנה לבעל העסק.' : language === 'en' ? 'Financial figures are hidden from your account — contact the business owner.' : 'الأرقام المالية مخفيّة عن حسابك — تواصل مع صاحب العمل.'}</div>
         </div>
       )}
 

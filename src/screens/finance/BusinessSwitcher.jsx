@@ -6,6 +6,8 @@ import { C, GRAD } from '../../constants/index.js'
 import { useBusinessStore, BUSINESS_TYPES } from '../../store/useBusinessStore.js'
 import BusinessSetup from './BusinessSetup.jsx'
 import BusinessEditSheet from './BusinessEditSheet.jsx'
+import { tl } from '../../lib/labels.js'
+import { useAppStore } from '../../store/useAppStore.js'
 
 function typeLabel(type) {
   return BUSINESS_TYPES.find(t => t.id === type)?.label ?? ''
@@ -20,6 +22,7 @@ function typeColor(type) {
 
 export default function BusinessSwitcher() {
   const { businesses, activeBusinessId, setActiveBusiness, initialized } = useBusinessStore()
+  const language = useAppStore(s => s.language)
   const active = businesses.find(b => b.id === activeBusinessId) ?? businesses[0] ?? null
 
   const [open,     setOpen]     = useState(false)
@@ -173,7 +176,7 @@ export default function BusinessSwitcher() {
                   <Plus size={14} color={C.primary} strokeWidth={2.5} />
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>
-                  إضافة مصلحة جديدة
+                  {tl(language, 'إضافة مصلحة جديدة', 'הוספת עסק חדש', 'Add new business')}
                 </span>
               </button>
             </motion.div>

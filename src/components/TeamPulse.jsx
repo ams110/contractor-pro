@@ -4,6 +4,8 @@ import {
   Users, Activity, Zap, UserX, UserMinus, Trash2,
 } from 'lucide-react'
 import { C } from '../constants/index.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 const TONE = {
   excellent: { main: C.success, soft: 'rgba(34,197,94,0.14)',  glow: 'rgba(34,197,94,0.45)' },
@@ -69,6 +71,7 @@ function Gauge({ score, tone, grade, animate }) {
 }
 
 export default function TeamPulse({ pulse }) {
+  const language = useAppStore(s => s.language)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.2 })
   if (!pulse || !pulse.hasData) return null
@@ -88,8 +91,8 @@ export default function TeamPulse({ pulse }) {
           <Users size={16} color={t.main} strokeWidth={2.5} />
         </motion.div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>نبض الفريق</div>
-          <div style={{ fontSize: 10, color: C.textDim }}>تحليل ذكي لتفاعل أعضاء فريقك</div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'نبض الفريق', 'דופק הצוות', 'Team Pulse')}</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'تحليل ذكي لتفاعل أعضاء فريقك', 'ניתוח חכם של פעילות חברי הצוות', 'Smart analysis of your team members\' activity')}</div>
         </div>
       </div>
 

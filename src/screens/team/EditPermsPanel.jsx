@@ -3,9 +3,10 @@ import { Pencil, X, Lock, FolderTree, AlertTriangle, Check, Loader2 } from 'luci
 import { C, GRAD } from '../../constants/index.js'
 import { Btn } from '../../components/index.jsx'
 import { IconChip } from '../../ui/Premium.jsx'
-import { PERM_LABELS, PRESET_ROLES } from './teamConstants.js'
+import { PERM_LABELS, PRESET_ROLES, permLabel, tRole } from './teamConstants.js'
+import { tl } from '../../lib/labels.js'
 
-export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
+export function EditPermsPanel({ member, manager, onSave, projects = [], language }) {
   const {
     editingMemberId, closeEditPerms,
     editPerms, editSelectedRole,
@@ -29,7 +30,7 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <IconChip icon={Pencil} tone="premium" size={36} radius={11} />
             <div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تعديل الصلاحيات</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{tl(language, 'تعديل الصلاحيات', 'עריכת הרשאות', 'Edit permissions')}</div>
               <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
                 {member.display_name || member.username}
               </div>
@@ -40,7 +41,7 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
 
         {/* Role preset chips */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8, letterSpacing: '0.04em' }}>نموذج الصلاحيات</div>
+          <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8, letterSpacing: '0.04em' }}>{tl(language, 'نموذج الصلاحيات', 'תבנית הרשאות', 'Permission preset')}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {PRESET_ROLES.map(role => {
               const active = editSelectedRole === role
@@ -51,7 +52,7 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
                   background: active ? `${C.primary}22` : 'transparent',
                   color: active ? C.primary : C.textDim, transition: 'all .15s',
                 }}>
-                  {role}
+                  {tRole(role, language)}
                 </button>
               )
             })}
@@ -59,7 +60,7 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
         </div>
 
         {/* Permission toggles */}
-        <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8, letterSpacing: '0.04em', display:'flex', alignItems:'center', gap:4 }}><Lock size={10} strokeWidth={2} /> الصلاحيات التفصيلية</div>
+        <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginBottom: 8, letterSpacing: '0.04em', display:'flex', alignItems:'center', gap:4 }}><Lock size={10} strokeWidth={2} /> {tl(language, 'الصلاحيات التفصيلية', 'הרשאות מפורטות', 'Detailed permissions')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, marginBottom: 14 }}>
           {PERM_LABELS.map(([key, label]) => {
             const on = !!editPerms[key]
@@ -73,7 +74,7 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
                 transition: 'all .15s',
               }}>
                 <input type="checkbox" checked={on} onChange={() => toggleEditPerm(key)} style={{ accentColor: C.primary, cursor: 'pointer' }} />
-                {label}
+                {permLabel(label, language)}
               </label>
             )
           })}
@@ -92,12 +93,12 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
               style={{ accentColor: C.primary }}
             />
             <span style={{ fontSize: 11, fontWeight: 700, color: editRestrictProjects ? C.text : C.textDim, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <FolderTree size={12} strokeWidth={2.3} /> تقييد المشاريع (يرى مشاريع محددة فقط)
+              <FolderTree size={12} strokeWidth={2.3} /> {tl(language, 'تقييد المشاريع (يرى مشاريع محددة فقط)', 'הגבלת פרויקטים (רואה פרויקטים מסוימים בלבד)', 'Restrict projects (sees specific projects only)')}
             </span>
           </label>
           {editRestrictProjects && (
             projects.length === 0
-              ? <div style={{ fontSize: 11, color: C.textDim, padding: '6px 10px' }}>لا توجد مشاريع</div>
+              ? <div style={{ fontSize: 11, color: C.textDim, padding: '6px 10px' }}>{tl(language, 'لا توجد مشاريع', 'אין פרויקטים', 'No projects')}</div>
               : <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {projects.map(proj => {
                     const sel = editAllowedProjects.includes(proj.id)
@@ -127,10 +128,10 @@ export function EditPermsPanel({ member, manager, onSave, projects = [] }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <Btn onClick={onSave} full disabled={editPermsSaving}>
             {editPermsSaving
-              ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Loader2 size={14} strokeWidth={2.6} style={{ animation: 'spin .8s linear infinite' }} /> جاري الحفظ...</span>
-              : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Check size={14} strokeWidth={2.6} /> حفظ الصلاحيات</span>}
+              ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Loader2 size={14} strokeWidth={2.6} style={{ animation: 'spin .8s linear infinite' }} /> {tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...')}</span>
+              : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Check size={14} strokeWidth={2.6} /> {tl(language, 'حفظ الصلاحيات', 'שמירת הרשאות', 'Save permissions')}</span>}
           </Btn>
-          <Btn onClick={closeEditPerms} variant="outline" color={C.textDim} full>إلغاء</Btn>
+          <Btn onClick={closeEditPerms} variant="outline" color={C.textDim} full>{tl(language, 'إلغاء', 'ביטול', 'Cancel')}</Btn>
         </div>
       </div>
     </div>

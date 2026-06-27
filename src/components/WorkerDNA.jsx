@@ -8,6 +8,8 @@ import {
   CheckCircle2, Sparkles, Star,
 } from 'lucide-react'
 import { C } from '../constants/index.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 // نبرة لونية → ألوان الثيم (نفس مفاتيح نبض المصلحة)
 const TONE = {
@@ -36,6 +38,7 @@ export function WorkerDNABadge({ dna }) {
 
 // ─── البطاقة الكاملة (تبويب ملخّص العامل) ─────────────────────────────────────────
 export default function WorkerDNA({ dna }) {
+  const language = useAppStore(s => s.language)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.3 })
   if (!dna) return null
@@ -68,8 +71,8 @@ export default function WorkerDNA({ dna }) {
           <Fingerprint size={16} color={t.main} strokeWidth={2.5} />
         </motion.div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>بصمة العامل</div>
-          <div style={{ fontSize: 10, color: C.textDim }}>تحليل ذكي لأداء العامل وموثوقيته</div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'بصمة العامل', 'טביעת העובד', 'Worker DNA')}</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'تحليل ذكي لأداء العامل وموثوقيته', 'ניתוח חכם של ביצועי העובד ואמינותו', 'Smart analysis of the worker\'s performance and reliability')}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, background: t.soft, border: `1px solid ${t.main}55` }}>
           {dna.star && <Star size={12} color={t.main} strokeWidth={2.5} fill={t.main} />}

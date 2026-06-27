@@ -4,6 +4,8 @@ import {
   Radar as RadarIcon, TrendingUp, FolderInput, AlertTriangle, ShieldCheck,
 } from 'lucide-react'
 import { C } from '../constants/index.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 const TONE = {
   excellent: { main: C.success, soft: 'rgba(34,197,94,0.14)',  glow: 'rgba(34,197,94,0.45)' },
@@ -16,6 +18,7 @@ const INSIGHT_TONE = { warn: C.accent, tip: C.warning, good: C.success }
 const ICONS = { TrendingUp, FolderInput, AlertTriangle, ShieldCheck }
 
 export default function ExpenseRadar({ radar, monthKey }) {
+  const language = useAppStore(s => s.language)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.3 })
   if (!radar || !radar.hasData) return null
@@ -40,12 +43,12 @@ export default function ExpenseRadar({ radar, monthKey }) {
           </div>
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>كاشف التسريب</div>
-          <div style={{ fontSize: 10, color: C.textDim }}>مسح ذكي للمصاريف الشاذّة — {monthKey}</div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'كاشف التسريب', 'גלאי דליפות', 'Leak Detector')}</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'مسح ذكي للمصاريف الشاذّة', 'סריקה חכמה של הוצאות חריגות', 'Smart scan for anomalous expenses')} — {monthKey}</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 12px', borderRadius: 12, background: t.soft, border: `1px solid ${t.main}55` }}>
           <span style={{ fontSize: 18, fontWeight: 900, color: t.main, lineHeight: 1 }}>{flagged}</span>
-          <span style={{ fontSize: 8, fontWeight: 700, color: t.main, opacity: 0.85 }}>تنبيه</span>
+          <span style={{ fontSize: 8, fontWeight: 700, color: t.main, opacity: 0.85 }}>{tl(language, 'تنبيه', 'התראה', 'Alert')}</span>
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
+import { tEnum } from '../lib/labels.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
 
 // ════════════════════════════════════════════════════════════════════════
@@ -79,7 +80,7 @@ export default function ProjectCard({ project, stats = {}, businessName, lang = 
                 <Icon size={22} color="#fff" strokeWidth={1.9} />
               </div>
               <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', padding: '4px 10px', borderRadius: 999, background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.28)', whiteSpace: 'nowrap' }}>
-                {project.status || L('نشط', 'פעיל', 'Active')}
+                {project.status ? tEnum(project.status, lang) : L('نشط', 'פעיל', 'Active')}
               </span>
             </div>
             <button onClick={flip} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(255,255,255,0.28)', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>

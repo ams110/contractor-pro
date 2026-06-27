@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 import { PremiumCard, IconChip, InsightRow, INSIGHT_TONE, TONES } from '../ui/Premium.jsx'
 
 const ICONS = {
@@ -34,6 +36,7 @@ function Scorecard({ card, onNav, delay, animate }) {
 }
 
 export default function CommandCenter({ cc, onNav }) {
+  const language = useAppStore(s => s.language)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.2 })
   if (!cc || !cc.hasData) return null
@@ -48,8 +51,8 @@ export default function CommandCenter({ cc, onNav }) {
             <IconChip icon={LayoutDashboard} color={t.main} size={30} radius={10} iconSize={16} strokeWidth={2.5} />
           </motion.div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>مركز القيادة الذكي</div>
-            <div style={{ fontSize: 10, color: C.textDim }}>كل مؤشّرات مصلحتك في مكان واحد</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'مركز القيادة الذكي', 'מרכז שליטה חכם', 'Smart Command Center')}</div>
+            <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'كل مؤشّرات مصلحتك في مكان واحد', 'כל מדדי העסק שלך במקום אחד', 'All your business metrics in one place')}</div>
           </div>
           {cc.alertCount > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 11px', borderRadius: 20, background: `${C.accent}18`, border: `1px solid ${C.accent}44` }}>
@@ -69,7 +72,7 @@ export default function CommandCenter({ cc, onNav }) {
         {/* الموجز الموحّد */}
         {cc.feed.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em' }}>أهم ما يحتاج انتباهك</div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em' }}>{tl(language, 'أهم ما يحتاج انتباهك', 'מה שדורש את תשומת לבך', 'What needs your attention most')}</div>
             {cc.feed.map((item, i) => (
               <InsightRow
                 key={i}
@@ -83,7 +86,7 @@ export default function CommandCenter({ cc, onNav }) {
             ))}
           </div>
         ) : (
-          <InsightRow icon={CheckCircle2} color={C.success} text="كل المؤشّرات خضراء — ما في تنبيهات تحتاج انتباهك الآن." inView={inView} />
+          <InsightRow icon={CheckCircle2} color={C.success} text={tl(language, 'كل المؤشّرات خضراء — ما في تنبيهات تحتاج انتباهك الآن.', 'כל המדדים ירוקים — אין התראות שדורשות את תשומת לבך כעת.', 'All metrics are green — no alerts need your attention right now.')} inView={inView} />
         )}
       </div>
     </PremiumCard>

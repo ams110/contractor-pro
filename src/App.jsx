@@ -11,7 +11,8 @@ import {
 } from 'lucide-react'
 
 import { supabase }            from './lib/supabase.js'
-import { C, GRAD, NAV, MORE_SCREENS } from './constants/index.js'
+import { C, GRAD, NAV, MORE_SCREENS, navLabel } from './constants/index.js'
+import { tl } from './lib/labels.js'
 import { navigate }            from './Router.jsx'
 import { useAppStore }         from './store/useAppStore.js'
 import { useBusinessStore }    from './store/useBusinessStore.js'
@@ -104,12 +105,13 @@ function useIsDesktop() {
 }
 
 function NoAccess() {
+  const language = useAppStore(s => s.language)
   return (
     <div style={{ padding: 60, textAlign: 'center' }}>
       <div style={{ width: 56, height: 56, borderRadius: 18, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
         <Lock size={24} color="#EF4444" strokeWidth={2} />
       </div>
-      <div style={{ fontSize: 14, color: '#64748B', fontWeight: 600 }}>ليس لديك صلاحية لعرض هذه الصفحة</div>
+      <div style={{ fontSize: 14, color: '#64748B', fontWeight: 600 }}>{tl(language, 'ليس لديك صلاحية لعرض هذه الصفحة', 'אין לך הרשאה לצפות בדף זה', "You don't have permission to view this page")}</div>
     </div>
   )
 }
@@ -117,6 +119,7 @@ function NoAccess() {
 // ─── "المزيد" Drawer — accessed via settings tab on mobile ──────────────────
 function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
   const p = permissions || {}
+  const language = useAppStore(s => s.language)
   const filtered = MORE_SCREENS.filter(s => {
     if (s.id === 'activity') return p.viewActivity || p.isOwner
     return true
@@ -170,7 +173,7 @@ function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
                     }}
                   >
                     <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
-                    <span style={{ fontSize: 13, fontWeight: 700 }}>{item.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>{navLabel(item, language)}</span>
                   </motion.button>
                 )
               })}
@@ -185,6 +188,7 @@ function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
 // ─── Desktop Sidebar ─────────────────────────────────────────────────────────
 function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
   const p = permissions || {}
+  const language = useAppStore(s => s.language)
   const moreScreenIds = MORE_SCREENS.map(s => s.id)
   const activeScreen = moreScreenIds.includes(screen) ? screen
     : NAV.find(n => n.id === screen) ? screen
@@ -207,7 +211,7 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
           <div style={{ width: 36, height: 36, borderRadius: 11, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(245,158,11,0.35)', flexShrink: 0 }}>
             <HardHat size={18} color="#000" strokeWidth={2} />
           </div>
-          <div style={{ fontSize: 14, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>Contractor Pro</div>
+          <div style={{ fontSize: 14, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>{language === 'ar' ? 'كبلان' : 'Kabblan'}</div>
         </div>
       </div>
 
@@ -225,13 +229,13 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
               textAlign: 'right', fontFamily: 'inherit', transition: 'all .15s',
             }}>
               {Icon && <Icon size={17} color={active ? C.primary : '#94A3B8'} strokeWidth={active ? 2.2 : 1.8} />}
-              <span style={{ fontSize: 13, fontWeight: active ? 700 : 500 }}>{n.label}</span>
+              <span style={{ fontSize: 13, fontWeight: active ? 700 : 500 }}>{navLabel(n, language)}</span>
             </button>
           )
         })}
 
         <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '10px 4px' }} />
-        <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 12px 8px' }}>المزيد</div>
+        <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 12px 8px' }}>{tl(language, 'المزيد', 'עוד', 'More')}</div>
 
         {filteredMore.map(item => {
           const active = activeScreen === item.id
@@ -246,7 +250,7 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
               textAlign: 'right', fontFamily: 'inherit', transition: 'all .15s',
             }}>
               {Icon && <Icon size={16} color={active ? C.primary : '#94A3B8'} strokeWidth={active ? 2.2 : 1.8} />}
-              <span style={{ fontSize: 12, fontWeight: active ? 700 : 500 }}>{item.label}</span>
+              <span style={{ fontSize: 12, fontWeight: active ? 700 : 500 }}>{navLabel(item, language)}</span>
               {item.id === 'workers' && pendingCount > 0 && (
                 <span style={{ marginRight: 'auto', background: C.accent, color: '#fff', fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 8, minWidth: 18, textAlign: 'center' }}>{pendingCount}</span>
               )}
@@ -377,13 +381,13 @@ function OwnerApp() {
     const isOwner = permissions?.isOwner !== false
     let name = ''
     if (isOwner) {
-      name = profile?.name || user?.email || 'المالك'
+      name = profile?.name || user?.email || tl(language, 'المالك', 'בעל החשבון', 'Owner')
     } else {
       const member = teamMembers?.find(m => m.member_id === uid)
-      name = member?.display_name || user?.email || 'عضو'
+      name = member?.display_name || user?.email || tl(language, 'عضو', 'חבר צוות', 'Member')
     }
     setSigner(name, isOwner ? 'owner' : 'member', uid, eid)
-  }, [uid, eid, profile, permissions, teamMembers])
+  }, [uid, eid, profile, permissions, teamMembers, language])
 
   // Sync app_config to store
   useEffect(() => {
@@ -449,20 +453,20 @@ function OwnerApp() {
     })
   }, [visibleProjects, visibleEmployees, visibleWorkDays, visibleExpenses, visiblePayments, visibleClientReceipts, visibleAdvances])
 
-  const _approveWorkDay = id      => approveWorkDay(id).then(() => showToast('تمت الموافقة على يوم العمل'))
-  const _rejectWorkDay  = (id, r) => rejectWorkDay(id, r).then(() => showToast('رُفض يوم العمل', 'warning'))
-  const _approveExpense = id      => approveExpense(id).then(() => showToast('تمت الموافقة على المصروف'))
-  const _rejectExpense  = (id, r) => rejectExpense(id, r).then(() => showToast('رُفض المصروف', 'warning'))
-  const _approvePayment = id      => approvePaymentRequest(id).then(() => { showToast('تمت الموافقة على الدفعة'); useAppStore.getState().celebrate('success') })
-  const _rejectPayment  = (id, r) => rejectPaymentRequest(id, r).then(() => showToast('رُفضت الدفعة', 'warning'))
+  const _approveWorkDay = id      => approveWorkDay(id).then(() => showToast(tl(language, 'تمت الموافقة على يوم العمل', 'יום העבודה אושר', 'Work day approved')))
+  const _rejectWorkDay  = (id, r) => rejectWorkDay(id, r).then(() => showToast(tl(language, 'رُفض يوم العمل', 'יום העבודה נדחה', 'Work day rejected'), 'warning'))
+  const _approveExpense = id      => approveExpense(id).then(() => showToast(tl(language, 'تمت الموافقة على المصروف', 'ההוצאה אושרה', 'Expense approved')))
+  const _rejectExpense  = (id, r) => rejectExpense(id, r).then(() => showToast(tl(language, 'رُفض المصروف', 'ההוצאה נדחתה', 'Expense rejected'), 'warning'))
+  const _approvePayment = id      => approvePaymentRequest(id).then(() => { showToast(tl(language, 'تمت الموافقة على الدفعة', 'התשלום אושר', 'Payment approved')); useAppStore.getState().celebrate('success') })
+  const _rejectPayment  = (id, r) => rejectPaymentRequest(id, r).then(() => showToast(tl(language, 'رُفضت الدفعة', 'התשלום נדחה', 'Payment rejected'), 'warning'))
 
   // تأكيد بصمة للدفعات فوق حدّ يضبطه المالك (payment_bio_threshold، 0 = معطّل)
   const { confirm: _bioConfirm } = useBiometricConfirm()
   const _addPayment = async (form) => {
     const thr = Number(appCfg?.config?.payment_bio_threshold) || 0
     if (thr > 0 && Number(form?.amount) >= thr) {
-      const sig = await _bioConfirm(`تأكيد دفعة ${form.amount}₪`, 'payments')
-      if (!sig) throw new Error('مطلوب تأكيد بصمة لاعتماد هذه الدفعة')
+      const sig = await _bioConfirm(tl(language, `تأكيد دفعة ${form.amount}₪`, `אישור תשלום ${form.amount}₪`, `Confirm payment ${form.amount}₪`), 'payments')
+      if (!sig) throw new Error(tl(language, 'مطلوب تأكيد بصمة لاعتماد هذه الدفعة', 'נדרש אימות ביומטרי לאישור תשלום זה', 'Biometric confirmation required to approve this payment'))
     }
     const res = await addPayment(form)
     useAppStore.getState().celebrate('money')
@@ -485,8 +489,8 @@ function OwnerApp() {
         >
           <HardHat size={48} color="#000" strokeWidth={1.5} />
         </motion.div>
-        <div style={{ fontSize: 28, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6, letterSpacing: '-0.02em', position: 'relative', zIndex: 1 }}>Contractor Pro</div>
-        <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.15em', marginBottom: 44, textTransform: 'uppercase', fontWeight: 600, position: 'relative', zIndex: 1 }}>إدارة مشاريعك بذكاء</div>
+        <div style={{ fontSize: 28, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6, letterSpacing: '-0.02em', position: 'relative', zIndex: 1 }}>{language === 'ar' ? 'كبلان' : 'Kabblan'}</div>
+        <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.15em', marginBottom: 44, textTransform: 'uppercase', fontWeight: 600, position: 'relative', zIndex: 1 }}>{tl(language, 'إدارة مشاريعك بذكاء', 'נהל את הפרויקטים שלך בחוכמה', 'Manage your projects smartly')}</div>
         <div style={{ position: 'relative', zIndex: 1 }}><LoadingSpinner /></div>
       </div>
     )
@@ -508,13 +512,13 @@ function OwnerApp() {
         {isExpired ? <Clock size={36} color="#EF4444" strokeWidth={1.5} /> : <ShieldOff size={36} color="#EF4444" strokeWidth={1.5} />}
       </div>
       <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 8 }}>
-        {isExpired ? 'انتهت صلاحية وصولك' : 'تم إيقاف وصولك'}
+        {isExpired ? tl(language, 'انتهت صلاحية وصولك', 'תוקף הגישה שלך פג', 'Your access has expired') : tl(language, 'تم إيقاف وصولك', 'הגישה שלך הושבתה', 'Your access has been disabled')}
       </div>
       <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7, maxWidth: 280 }}>
-        تواصل مع صاحب الحساب لإعادة تفعيل صلاحياتك
+        {tl(language, 'تواصل مع صاحب الحساب لإعادة تفعيل صلاحياتك', 'פנה לבעל החשבון לחידוש ההרשאות שלך', 'Contact the account owner to restore your access')}
       </div>
       <button onClick={() => supabase.auth.signOut()} style={{ marginTop: 28, padding: '10px 28px', borderRadius: 14, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-        خروج
+        {tl(language, 'خروج', 'יציאה', 'Sign out')}
       </button>
     </div>
   )
@@ -524,15 +528,15 @@ function OwnerApp() {
       <style>{globalCSS}</style>
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 50% at 50% 30%, rgba(249,115,22,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
       <div style={{ width: 72, height: 72, borderRadius: 24, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', position: 'relative', zIndex: 1 }}><Clock size={36} color={C.primary} strokeWidth={1.5} /></div>
-      <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 10, position: 'relative', zIndex: 1 }}>انتهت فترة التجربة المجانية</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 10, position: 'relative', zIndex: 1 }}>{tl(language, 'انتهت فترة التجربة المجانية', 'תקופת הניסיון החינמי הסתיימה', 'Your free trial has ended')}</div>
       <div style={{ fontSize: 14, color: C.textDim, lineHeight: 1.7, maxWidth: 300, marginBottom: 32, position: 'relative', zIndex: 1 }}>
-        جميع بياناتك محفوظة. اشترك الآن للاستمرار في استخدام Contractor Pro.
+        {tl(language, 'جميع بياناتك محفوظة. اشترك الآن للاستمرار في استخدام كبلان.', 'כל הנתונים שלך שמורים. הירשם עכשיו כדי להמשיך להשתמש ב-Kabblan.', 'All your data is saved. Subscribe now to keep using Kabblan.')}
       </div>
       <button onClick={() => navigate('/pricing')} style={{ padding: '14px 36px', borderRadius: 16, background: GRAD.primary, border: 'none', color: '#000', fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 28px rgba(245,158,11,0.4)', marginBottom: 14, position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
-        اختر خطة اشتراك
+        {tl(language, 'اختر خطة اشتراك', 'בחר תוכנית מנוי', 'Choose a plan')}
       </button>
       <button onClick={() => supabase.auth.signOut()} style={{ padding: '10px 24px', borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
-        تسجيل الخروج
+        {tl(language, 'تسجيل الخروج', 'יציאה', 'Sign out')}
       </button>
     </div>
   )
@@ -565,7 +569,7 @@ function OwnerApp() {
       case 'materials':  content = p?.viewProjects  ? <MaterialsScreen userId={eid} employees={visibleEmployees} projects={visibleProjects} /> : <NoAccess />; break
       case 'accounting': setScreen('finance'); content = null; break
       case 'activity':   content = (p?.viewActivity || p?.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />; break
-      case 'team':       content = p?.isOwner ? <FeatureGate requiredPlan="pro" title="إدارة الفريق" description="أضف أعضاء فريق بصلاحيات دقيقة وتابع نشاطهم. هذه الميزة متاحة في خطّتَي Pro و Business."><TeamScreen projects={visibleProjects} teamMembers={teamMembers} permissions={p} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} getAllActivity={getAllActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} /></FeatureGate> : <NoAccess />; break
+      case 'team':       content = p?.isOwner ? <FeatureGate requiredPlan="pro" title={tl(language, 'إدارة الفريق', 'ניהול צוות', 'Team management')} description={tl(language, 'أضف أعضاء فريق بصلاحيات دقيقة وتابع نشاطهم. هذه الميزة متاحة في خطّتَي Pro و Business.', 'הוסף חברי צוות עם הרשאות מדויקות ועקוב אחר הפעילות שלהם. תכונה זו זמינה בתוכניות Pro ו-Business.', 'Add team members with fine-grained permissions and track their activity. Available on the Pro and Business plans.')}><TeamScreen projects={visibleProjects} teamMembers={teamMembers} permissions={p} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} getAllActivity={getAllActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} /></FeatureGate> : <NoAccess />; break
       default:           content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} />
     }
     return <ErrorBoundary key={screen}>{content}</ErrorBoundary>
@@ -587,16 +591,16 @@ function OwnerApp() {
         <div style={{ width: 72, height: 72, borderRadius: 24, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
           <AlertTriangle size={36} color={C.warning} strokeWidth={1.5} />
         </div>
-        <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 8 }}>تعذّر تحميل المصالح</div>
+        <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 8 }}>{tl(language, 'تعذّر تحميل المصالح', 'טעינת העסקים נכשלה', 'Failed to load businesses')}</div>
         <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7, maxWidth: 300, marginBottom: 28 }}>
-          حدث خطأ أثناء جلب بياناتك. بياناتك محفوظة — تحقّق من الاتصال وأعد المحاولة.
+          {tl(language, 'حدث خطأ أثناء جلب بياناتك. بياناتك محفوظة — تحقّق من الاتصال وأعد المحاولة.', 'אירעה שגיאה בעת טעינת הנתונים שלך. הנתונים שלך שמורים — בדוק את החיבור ונסה שוב.', 'An error occurred while loading your data. Your data is safe — check your connection and try again.')}
         </div>
         <button onClick={() => loadBiz()} disabled={bizLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 32px', borderRadius: 16, background: GRAD.primary, border: 'none', color: '#000', fontSize: 15, fontWeight: 800, cursor: bizLoading ? 'wait' : 'pointer', opacity: bizLoading ? 0.7 : 1, boxShadow: '0 8px 28px rgba(245,158,11,0.4)', fontFamily: 'inherit' }}>
           <RefreshCw size={18} strokeWidth={2.2} style={bizLoading ? { animation: 'spin 1s linear infinite' } : undefined} />
-          {bizLoading ? 'جارٍ المحاولة…' : 'إعادة المحاولة'}
+          {bizLoading ? tl(language, 'جارٍ المحاولة…', 'מנסה…', 'Retrying…') : tl(language, 'إعادة المحاولة', 'נסה שוב', 'Try again')}
         </button>
         <button onClick={() => supabase.auth.signOut()} style={{ marginTop: 14, padding: '10px 24px', borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-          تسجيل الخروج
+          {tl(language, 'تسجيل الخروج', 'יציאה', 'Sign out')}
         </button>
       </div>
     )
@@ -608,7 +612,7 @@ function OwnerApp() {
     return (
       <>
         <style>{globalCSS}</style>
-        <FirstTimeSetup language={language} />
+        <FirstTimeSetup language={language} addEmployee={addEmployee} />
       </>
     )
   }
@@ -630,11 +634,15 @@ function OwnerApp() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Gift size={15} color="#FBBF24" strokeWidth={2} />
             <span style={{ fontSize: 11, color: '#FBBF24', fontWeight: 700 }}>
-              التجربة المجانية — متبقي <strong style={{ color: '#fff' }}>{trialDaysLeft()} يوم</strong>
+              {language === 'he'
+                ? <>ניסיון חינם — נותרו <strong style={{ color: '#fff' }}>{trialDaysLeft()} ימים</strong></>
+                : language === 'en'
+                ? <>Free trial — <strong style={{ color: '#fff' }}>{trialDaysLeft()} days</strong> left</>
+                : <>التجربة المجانية — متبقي <strong style={{ color: '#fff' }}>{trialDaysLeft()} يوم</strong></>}
             </span>
           </div>
           <button onClick={() => navigate('/pricing')} style={{ padding: '5px 14px', borderRadius: 9, background: GRAD.primary, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
-            اشترك الآن
+            {tl(language, 'اشترك الآن', 'הירשם עכשיו', 'Subscribe now')}
           </button>
         </div>
       )}
@@ -644,13 +652,13 @@ function OwnerApp() {
         <div style={{ position: 'sticky', top: 0, zIndex: 198, background: 'rgba(249,115,22,0.1)', backdropFilter: 'blur(12px)', padding: '9px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid rgba(249,115,22,0.2)', direction: 'rtl' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Bell size={14} color={C.primary} strokeWidth={2} />
-            <span style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>فعّل الإشعارات لاستقبال طلبات العمال فورياً</span>
+            <span style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{tl(language, 'فعّل الإشعارات لاستقبال طلبات العمال فورياً', 'הפעל התראות לקבלת בקשות העובדים באופן מיידי', 'Enable notifications to receive worker requests instantly')}</span>
           </div>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button
               onClick={() => { requestPushPermission(); localStorage.setItem('cpro_notif_dismissed', '1') }}
               style={{ padding: '5px 12px', borderRadius: 9, background: C.primary, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}
-            >تفعيل</button>
+            >{tl(language, 'تفعيل', 'הפעל', 'Enable')}</button>
             <button
               onClick={() => localStorage.setItem('cpro_notif_dismissed', '1')}
               style={{ padding: '5px 8px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: 'none', color: C.textDim, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -666,9 +674,9 @@ function OwnerApp() {
             <HardHat size={22} color="#000" strokeWidth={2} />
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.2, letterSpacing: '-0.02em' }}>Contractor Pro</div>
+            <div style={{ fontSize: 16, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.2, letterSpacing: '-0.02em' }}>{language === 'ar' ? 'كبلان' : 'Kabblan'}</div>
             <div style={{ fontSize: 9, color: C.primary, letterSpacing: '0.08em', fontWeight: 700, opacity: 0.75, textTransform: 'uppercase' }}>
-              {NAV.find(n => n.id === activeNav)?.label || MORE_SCREENS.find(s => s.id === screen)?.label || 'إدارة مشاريعك بذكاء'}
+              {navLabel(NAV.find(n => n.id === activeNav), language) || navLabel(MORE_SCREENS.find(s => s.id === screen), language) || tl(language, 'إدارة مشاريعك بذكاء', 'נהל את הפרויקטים שלך בחוכמה', 'Manage your projects smartly')}
             </div>
           </div>
         </div>
@@ -764,7 +772,7 @@ function OwnerApp() {
 
               {/* Label */}
               <span style={{ fontSize: 8.5, fontWeight: active ? 800 : 500, color: active ? C.primary : 'rgba(255,255,255,0.25)', position: 'relative', zIndex: 1, letterSpacing: '0.01em', lineHeight: 1 }}>
-                {n.label}
+                {navLabel(n, language)}
               </span>
 
               {/* Active dot */}
@@ -829,15 +837,15 @@ function OwnerApp() {
                 <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 8px 28px rgba(245,158,11,0.35)' }}>
                   <HardHat size={32} color="#000" strokeWidth={1.8} />
                 </div>
-                <div style={{ fontSize: 19, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>أهلاً بك في Contractor Pro</div>
-                <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>إليك أهم الميزات للبداية السريعة</div>
+                <div style={{ fontSize: 19, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tl(language, 'أهلاً بك في كبلان', 'ברוכים הבאים ל-Kabblan', 'Welcome to Kabblan')}</div>
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>{tl(language, 'إليك أهم الميزات للبداية السريعة', 'הנה התכונות החשובות להתחלה מהירה', "Here are the key features to get you started")}</div>
               </div>
 
               {[
-                { Icon: Building2,    title: 'المشاريع',    desc: 'أضف مشاريعك وتابع الأرباح والمصاريف لكل مشروع' },
-                { Icon: Users,        title: 'العمال',      desc: 'أدر فريق عملك، الرواتب، والسلف بسهولة' },
-                { Icon: CalendarDays, title: 'أيام العمل',  desc: 'سجّل أيام العمل اليومية مع نظام الموافقات' },
-                { Icon: CreditCard,   title: 'المصاريف',   desc: 'تتبع مصاريف المشاريع واسترداد ضريبة القيمة المضافة' },
+                { Icon: Building2,    title: tl(language, 'المشاريع', 'פרויקטים', 'Projects'),      desc: tl(language, 'أضف مشاريعك وتابع الأرباح والمصاريف لكل مشروع', 'הוסף פרויקטים ועקוב אחר רווחים והוצאות לכל פרויקט', 'Add projects and track profit and expenses for each one') },
+                { Icon: Users,        title: tl(language, 'العمال', 'עובדים', 'Workers'),         desc: tl(language, 'أدر فريق عملك، الرواتب، والسلف بسهولة', 'נהל את הצוות שלך, משכורות ומקדמות בקלות', 'Manage your team, salaries and advances with ease') },
+                { Icon: CalendarDays, title: tl(language, 'أيام العمل', 'ימי עבודה', 'Work days'),  desc: tl(language, 'سجّل أيام العمل اليومية مع نظام الموافقات', 'רשום ימי עבודה יומיים עם מערכת אישורים', 'Log daily work days with an approval system') },
+                { Icon: CreditCard,   title: tl(language, 'المصاريف', 'הוצאות', 'Expenses'),       desc: tl(language, 'تتبع مصاريف المشاريع واسترداد ضريبة القيمة المضافة', 'עקוב אחר הוצאות פרויקטים והחזרי מע"מ', 'Track project expenses and VAT refunds') },
               ].map(({ Icon, title, desc }, i) => (
                 <div key={title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < 3 ? `1px solid ${C.border}` : 'none' }}>
                   <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -855,7 +863,7 @@ function OwnerApp() {
                 onClick={() => { localStorage.setItem('cp_onboarded', '1'); setShowOnboarding(false) }}
                 style={{ marginTop: 22, width: '100%', padding: '13px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 24px rgba(245,158,11,0.35)', letterSpacing: '0.02em', fontFamily: 'inherit' }}
               >
-                ابدأ الآن
+                {tl(language, 'ابدأ الآن', 'התחל עכשיו', 'Get started')}
               </motion.button>
             </motion.div>
           </motion.div>

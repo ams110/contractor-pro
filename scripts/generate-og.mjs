@@ -49,7 +49,7 @@ const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
     <div class="orb1"></div><div class="orb2"></div>
     <div class="row">
       <div class="logo">${HARDHAT}</div>
-      <div class="brand">Contractor Pro<small>إدارة المقاولات</small></div>
+      <div class="brand">كبلان<small>إدارة المقاولات</small></div>
     </div>
     <h1>كل مشاريعك وعمّالك ورواتبك<br><span class="grad">في تطبيق واحد</span></h1>
     <p>للمقاول العربي في إسرائيل — مشاريع · عمّال · رواتب · ضرائب (מע"מ)</p>

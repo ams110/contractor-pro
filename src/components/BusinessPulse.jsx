@@ -5,6 +5,8 @@ import {
   MessageCircle, CheckCircle2, Sparkles,
 } from 'lucide-react'
 import { C } from '../constants/index.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 import { PremiumCard, IconChip, InsightRow, INSIGHT_TONE, TONES, useCountUp } from '../ui/Premium.jsx'
 
 const ICONS = { Activity, Wallet, Clock, AlertTriangle, TrendingDown, TrendingUp, MessageCircle, CheckCircle2, Sparkles }
@@ -83,6 +85,7 @@ function FactorBar({ label, score, delay, animate }) {
 
 // ─── البطاقة الكاملة ──────────────────────────────────────────────────────────────
 export default function BusinessPulse({ pulse, onNav }) {
+  const language = useAppStore(s => s.language)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.3 })
   if (!pulse) return null
@@ -100,8 +103,8 @@ export default function BusinessPulse({ pulse, onNav }) {
             <IconChip icon={Activity} color={t.main} size={30} radius={10} iconSize={16} strokeWidth={2.5} />
           </motion.div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>نبض المصلحة</div>
-            <div style={{ fontSize: 10, color: C.textDim }}>تحليل ذكي لصحّة مصلحتك المالية</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'نبض المصلحة', 'דופק העסק', 'Business Pulse')}</div>
+            <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'تحليل ذكي لصحّة مصلحتك المالية', 'ניתוח חכם של בריאות העסק הפיננסית שלך', 'Smart analysis of your financial health')}</div>
           </div>
         </div>
 

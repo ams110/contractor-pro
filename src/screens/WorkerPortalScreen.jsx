@@ -6,6 +6,8 @@ import {
   Check, X as XIcon, ChevronDown, Sparkles, MapPin, Camera, Paperclip, Fingerprint, ShieldCheck, Trash2,
 } from 'lucide-react'
 import { C, GRAD, EXP_CATS } from '../constants/index.js'
+import { useAppStore } from '../store/useAppStore.js'
+import { tl, tEnum } from '../lib/labels.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
 import WorkDayTicket from '../components/WorkDayTicket.jsx'
 import WorkMonthHeader from '../components/WorkMonthHeader.jsx'
@@ -21,23 +23,31 @@ const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو
 const DAY_TYPES = ['كامل', 'نص يوم', 'ساعات']
 
 const EXP_STATUS_BADGE = {
-  approved: { label: 'موافق',  color: C.success },
-  pending:  { label: 'معلق',   color: C.warning },
+  approved: { ar: 'موافق', he: 'מאושר', en: 'Approved', color: C.success },
+  pending:  { ar: 'معلق',  he: 'ממתין', en: 'Pending',  color: C.warning },
 }
 
 const STATUS_BADGE = {
-  approved: { label: 'موافق',  bg: `${C.success}22`, color: C.success },
-  pending:  { label: 'معلق',   bg: `${C.warning}22`, color: C.warning },
-  rejected: { label: 'مرفوض', bg: `${C.accent}22`,  color: C.accent  },
+  approved: { ar: 'موافق', he: 'מאושר', en: 'Approved', bg: `${C.success}22`, color: C.success },
+  pending:  { ar: 'معلق',  he: 'ממתין', en: 'Pending',  bg: `${C.warning}22`, color: C.warning },
+  rejected: { ar: 'مرفوض', he: 'נדחה',  en: 'Rejected', bg: `${C.accent}22`,  color: C.accent  },
 }
 
-function fmtMonth(yyyymm) {
+const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
+                   'יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
+const MONTHS_EN = ['January','February','March','April','May','June',
+                   'July','August','September','October','November','December']
+
+function fmtMonth(yyyymm, language = 'ar') {
   const [y, m] = yyyymm.split('-')
-  return `${MONTHS_AR[parseInt(m, 10) - 1]} ${y}`
+  const idx = parseInt(m, 10) - 1
+  const names = language === 'he' ? MONTHS_HE : language === 'en' ? MONTHS_EN : MONTHS_AR
+  return `${names[idx]} ${y}`
 }
 
 // ─── هيدر «بطاقة العامل» — بانر محفظة متدرّج + لمعة ────────────────────────────
 function PortalHero({ worker, owed, earned, paid, daysCount, pending, onLogout }) {
+  const language = useAppStore(s => s.language)
   const initials = (worker?.name || '؟').split(' ').map(w => w[0]).join('').slice(0, 2)
   const specialty = worker?.specialization ? worker.specialization.split(',')[0] : ''
   return (
@@ -52,32 +62,32 @@ function PortalHero({ worker, owed, earned, paid, daysCount, pending, onLogout }
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
           <div style={{ width: 48, height: 48, borderRadius: 15, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 900, color: '#fff', backdropFilter: 'blur(4px)', flexShrink: 0 }}>{initials}</div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>أهلاً بعودتك</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>{tl(language, 'أهلاً بعودتك', 'ברוך שובך', 'Welcome back')}</div>
             <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.25)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{worker?.name}</div>
             {specialty && <span style={{ display: 'inline-block', fontSize: 9.5, fontWeight: 800, color: '#fff', padding: '2px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.26)', marginTop: 3 }}>{specialty}</span>}
           </div>
         </div>
         <button onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 11px', borderRadius: 11, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.28)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
-          <LogOut size={13} strokeWidth={2.4} /> خروج
+          <LogOut size={13} strokeWidth={2.4} /> {tl(language, 'خروج', 'יציאה', 'Log out')}
         </button>
       </div>
 
       <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
         <div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: 2 }}>
-            <Wallet size={12} color="#fff" strokeWidth={2.4} /> مستحقّ لك الآن
+            <Wallet size={12} color="#fff" strokeWidth={2.4} /> {tl(language, 'مستحقّ لك الآن', 'מגיע לך כעת', 'Owed to you now')}
           </div>
           <div style={{ fontSize: 30, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>₪{fmt(owed)}</div>
         </div>
         {pending > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,0.2)', borderRadius: 999, padding: '4px 9px', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }}>
-            <ClockIcon size={11} strokeWidth={2.6} /> {pending} بانتظار الموافقة
+            <ClockIcon size={11} strokeWidth={2.6} /> {tl(language, `${pending} بانتظار الموافقة`, `${pending} ממתינים לאישור`, `${pending} pending approval`)}
           </div>
         )}
       </div>
 
       <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7, marginTop: 14 }}>
-        {[{ l: 'استحققت', v: `₪${fmt(earned)}` }, { l: 'قبضت', v: `₪${fmt(paid)}` }, { l: 'أيام', v: daysCount }].map(s => (
+        {[{ l: tl(language, 'استحققت', 'נצברו', 'Earned'), v: `₪${fmt(earned)}` }, { l: tl(language, 'قبضت', 'נמשכו', 'Received'), v: `₪${fmt(paid)}` }, { l: tl(language, 'أيام', 'ימים', 'Days'), v: daysCount }].map(s => (
           <div key={s.l} style={{ background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 11, padding: '7px 6px', textAlign: 'center', backdropFilter: 'blur(2px)' }}>
             <div style={{ fontSize: 13, fontWeight: 900, color: '#fff' }}>{s.v}</div>
             <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.78)', marginTop: 1 }}>{s.l}</div>
@@ -111,6 +121,7 @@ function PortalTabs({ tabs, tab, setTab }) {
 const DAY_TYPE_COLORS = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange }
 
 function MonthRow({ month, data, payments, holidays = [], prevTotal = 0, isCurrent = false }) {
+  const language = useAppStore(s => s.language)
   const [open, setOpen] = useState(false)
   const monthPayments = payments.filter(p => String(p.date).substring(0, 7) === month)
 
@@ -138,7 +149,7 @@ function MonthRow({ month, data, payments, holidays = [], prevTotal = 0, isCurre
   return (
     <div style={{ marginBottom: 10 }}>
       <WorkMonthHeader
-        label={fmtMonth(month)}
+        label={fmtMonth(month, language)}
         monthNum={parseInt(m, 10)}
         year={y}
         total={data.amount}
@@ -178,7 +189,7 @@ function MonthRow({ month, data, payments, holidays = [], prevTotal = 0, isCurre
                   <Gift size={18} style={{ color: C.warning, flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.warning }}>{h.name}</div>
-                    <div style={{ fontSize: 11, color: C.textDim }}>{fmtDateFull(h.date)} · عطلة رسمية</div>
+                    <div style={{ fontSize: 11, color: C.textDim }}>{fmtDateFull(h.date)} · {tl(language, 'عطلة رسمية', 'חג רשמי', 'Official holiday')}</div>
                   </div>
                 </div>
               ))}
@@ -187,17 +198,17 @@ function MonthRow({ month, data, payments, holidays = [], prevTotal = 0, isCurre
 
           {monthPayments.length > 0 && (
             <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6, fontWeight: 600 }}>المدفوعات هذا الشهر:</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6, fontWeight: 600 }}>{tl(language, 'المدفوعات هذا الشهر:', 'התשלומים של החודש:', 'Payments this month:')}</div>
               {monthPayments.map(p => (
                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}33` }}>
-                  <span style={{ fontSize: 11, color: C.textDim }}>{fmtDate(p.date)} • {p.method || 'كاش'}</span>
+                  <span style={{ fontSize: 11, color: C.textDim }}>{fmtDate(p.date)} • {tEnum(p.method || 'كاش', language)}</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: C.success, fontFamily: 'monospace' }}>+{fmt(p.amount)}₪</span>
                 </div>
               ))}
             </div>
           )}
           <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', padding: '9px 12px', background: `${C.primary}15`, borderRadius: 10, border: `1px solid ${C.primary}33` }}>
-            <span style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>مستحق الشهر</span>
+            <span style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>{tl(language, 'مستحق الشهر', 'מגיע לחודש', 'Owed this month')}</span>
             <span style={{ fontSize: 14, fontWeight: 900, color: C.primary, fontFamily: 'monospace' }}>{fmt(data.amount)}₪</span>
           </div>
         </div>
@@ -208,6 +219,7 @@ function MonthRow({ month, data, payments, holidays = [], prevTotal = 0, isCurre
 
 // ─── شاشة تسجيل الدخول ───────────────────────────────────────────────────────
 function LoginScreen({ onLogin, error, loading, onPasskeyLogin, hasPasskey, passkeySupported }) {
+  const language = useAppStore(s => s.language)
   const [username,   setUsername]   = useState('')
   const [password,   setPassword]   = useState('')
   const [showPass,   setShowPass]   = useState(false)
@@ -222,20 +234,20 @@ function LoginScreen({ onLogin, error, loading, onPasskeyLogin, hasPasskey, pass
 
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 12px 36px rgba(245,158,11,0.35)', animation: 'float 3s ease-in-out infinite' }}><HardHat size={38} strokeWidth={1.8} color="#000" /></div>
-        <div style={{ fontSize: 24, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>بوابة العمال</div>
-        <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, letterSpacing: '0.06em' }}>Contractor Pro</div>
+        <div style={{ fontSize: 24, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tl(language, 'بوابة العمال', 'פורטל העובדים', 'Worker Portal')}</div>
+        <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, letterSpacing: '0.06em' }}>{tl(language, 'كبلان', 'כבלאן', 'Kabblan')}</div>
       </div>
 
       <div style={{ width: '100%', maxWidth: 380, background: 'rgba(13,17,23,0.9)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: 28, padding: 28, border: `1px solid ${C.borderMid}`, boxShadow: '0 24px 80px rgba(0,0,0,0.5)' }}>
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }}>اسم المستخدم</label>
+          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }}>{tl(language, 'اسم المستخدم', 'שם משתמש', 'Username')}</label>
           <input value={username} onChange={e => setUsername(e.target.value)}
-            placeholder="أدخل اسم المستخدم" autoComplete="username"
+            placeholder={tl(language, 'أدخل اسم المستخدم', 'הזן שם משתמש', 'Enter username')} autoComplete="username"
             style={{ width: '100%', padding: '13px 14px', borderRadius: 14, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }}>كلمة المرور</label>
+          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }}>{tl(language, 'كلمة المرور', 'סיסמה', 'Password')}</label>
           <div style={{ position: 'relative' }}>
             <input value={password} onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && onLogin(username, password)}
@@ -257,34 +269,34 @@ function LoginScreen({ onLogin, error, loading, onPasskeyLogin, hasPasskey, pass
         <button onClick={() => onLogin(username, password)}
           disabled={loading || !username || !password}
           style={{ width: '100%', padding: 14, borderRadius: 16, background: loading || !username || !password ? C.border : GRAD.brand, border: 'none', color: loading || !username || !password ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: loading || !username || !password ? 'default' : 'pointer', boxShadow: !loading && username && password ? `0 4px 20px ${C.primary}44` : 'none', transition: 'all .2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
-          {loading ? 'جاري التحقق...' : <><LogIn size={17} strokeWidth={2.4} /> دخول</>}
+          {loading ? tl(language, 'جاري التحقق...', 'מאמת...', 'Verifying...') : <><LogIn size={17} strokeWidth={2.4} /> {tl(language, 'دخول', 'כניסה', 'Log in')}</>}
         </button>
 
         {showBiometric && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0' }}>
               <div style={{ flex: 1, height: 1, background: C.border }} />
-              <span style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>أو</span>
+              <span style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>{tl(language, 'أو', 'או', 'or')}</span>
               <div style={{ flex: 1, height: 1, background: C.border }} />
             </div>
             <button onClick={() => onPasskeyLogin && onPasskeyLogin()} disabled={loading}
               style={{ width: '100%', padding: 14, borderRadius: 16, background: `${C.secondary}18`, border: `1.5px solid ${C.secondary}44`, color: C.secondary, fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <Fingerprint size={19} strokeWidth={2.2} /> دخول بالبصمة
+              <Fingerprint size={19} strokeWidth={2.2} /> {tl(language, 'دخول بالبصمة', 'כניסה עם טביעת אצבע', 'Sign in with biometrics')}
             </button>
           </>
         )}
 
         <button onClick={() => setShowForgot(s => !s)}
           style={{ width: '100%', marginTop: 12, background: 'none', border: 'none', color: C.textDim, fontSize: 12, cursor: 'pointer', textAlign: 'center', textDecoration: 'underline', padding: 4 }}>
-          نسيت كلمة المرور؟
+          {tl(language, 'نسيت كلمة المرور؟', 'שכחת סיסמה?', 'Forgot password?')}
         </button>
 
         {showForgot && (
           <div style={{ marginTop: 10, padding: '14px 16px', background: `${C.primary}12`, borderRadius: 14, border: `1px solid ${C.primary}33` }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 6, display:'flex', alignItems:'center', gap:6 }}><KeyRound size={13} strokeWidth={2} /> كيف تعيد كلمة مرورك؟</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 6, display:'flex', alignItems:'center', gap:6 }}><KeyRound size={13} strokeWidth={2} /> {tl(language, 'كيف تعيد كلمة مرورك؟', 'איך לאפס את הסיסמה?', 'How to reset your password?')}</div>
             <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
-              تواصل مع المشرف أو صاحب العمل وأطلب منه إعادة تعيين كلمة مرورك.<br />
-              بإمكانه تغييرها من تطبيق <span style={{ color: C.primary, fontWeight: 700 }}>Contractor Pro</span> مباشرةً.
+              {tl(language, 'تواصل مع المشرف أو صاحب العمل وأطلب منه إعادة تعيين كلمة مرورك.', 'פנה למנהל או למעסיק ובקש לאפס את הסיסמה שלך.', 'Contact your supervisor or employer and ask them to reset your password.')}<br />
+              {tl(language, 'بإمكانه تغييرها من تطبيق', 'הוא יכול לשנות אותה מתוך אפליקציית', 'They can change it directly from the')} <span style={{ color: C.primary, fontWeight: 700 }}>{tl(language, 'كبلان', 'כבלאן', 'Kabblan')}</span> {tl(language, 'مباشرةً.', 'ישירות.', 'app.')}
             </div>
           </div>
         )}
@@ -295,6 +307,7 @@ function LoginScreen({ onLogin, error, loading, onPasskeyLogin, hasPasskey, pass
 
 // ─── فورم إرسال يوم عمل ──────────────────────────────────────────────────────
 function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, setSubmitErr, holidaySet = new Set() }) {
+  const language = useAppStore(s => s.language)
   const [form, setForm]         = useState({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8', location: '' })
   const [done, setDone]         = useState(false)
   const [amount, setAmount]     = useState(0)
@@ -314,7 +327,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
   }
 
   async function handleSubmit() {
-    if (!form.projectId) return setSubmitErr('اختر المشروع')
+    if (!form.projectId) return setSubmitErr(tl(language, 'اختر المشروع', 'בחר פרויקט', 'Select a project'))
     setSubmitErr('')
     try {
       const res  = await onSubmit({ projectId: form.projectId, date: form.date, dayType: form.dayType, hours: form.hours, location: form.location || null })
@@ -332,16 +345,16 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
     return (
       <div style={{ textAlign: 'center', padding: '30px 16px' }}>
         <CheckCircle2 size={52} color={C.success} strokeWidth={1.6} style={{ margin: '0 auto 12px', display: 'block' }} />
-        <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم الإرسال!</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>{tl(language, 'تم الإرسال!', 'נשלח!', 'Sent!')}</div>
         <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>{projName} • {submittedDate}</div>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.primary, marginBottom: 16, fontFamily: 'monospace' }}>{fmt(amount)}₪</div>
         <div style={{ padding: '12px 16px', background: `${C.primary}12`, borderRadius: 12, marginBottom: 20, border: `1px solid ${C.primary}33` }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4, display:'flex', alignItems:'center', gap:6 }}><Bell size={13} strokeWidth={2} /> وصل إشعار للمشرف</div>
-          <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب في التطبيق ويوافق عليه</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4, display:'flex', alignItems:'center', gap:6 }}><Bell size={13} strokeWidth={2} /> {tl(language, 'وصل إشعار للمشرف', 'נשלחה התראה למנהל', 'A notification was sent to the supervisor')}</div>
+          <div style={{ fontSize: 12, color: C.textDim }}>{tl(language, 'المشرف رح يشوف الطلب في التطبيق ويوافق عليه', 'המנהל יראה את הבקשה באפליקציה ויאשר אותה', 'The supervisor will see the request in the app and approve it')}</div>
         </div>
         <button onClick={() => { setDone(false); setForm({ date: todayStr(), projectId: '', dayType: 'كامل', hours: '8', location: '' }) }}
           style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-          + أضف يوم آخر
+          + {tl(language, 'أضف يوم آخر', 'הוסף יום נוסף', 'Add another day')}
         </button>
       </div>
     )
@@ -352,26 +365,26 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
       {projects.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim }}>
           <ConstructionIcon size={36} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
-          <div>لا توجد مشاريع نشطة</div>
+          <div>{tl(language, 'لا توجد مشاريع نشطة', 'אין פרויקטים פעילים', 'No active projects')}</div>
         </div>
       ) : (
         <>
           {/* التاريخ */}
           <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>التاريخ *</label>
+            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'التاريخ', 'תאריך', 'Date')} *</label>
             <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
               max={todayStr()}
               style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${holidaySet.has(form.date) ? C.warning : C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
             {holidaySet.has(form.date) && (
               <div style={{ marginTop: 6, padding: '6px 12px', borderRadius: 8, background: `${C.warning}18`, border: `1px solid ${C.warning}33`, fontSize: 12, color: C.warning, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Gift size={13} strokeWidth={2.2} /> هذا اليوم عطلة رسمية — تأكد قبل الإرسال
+                <Gift size={13} strokeWidth={2.2} /> {tl(language, 'هذا اليوم عطلة رسمية — تأكد قبل الإرسال', 'יום זה הוא חג רשמי — ודא לפני השליחה', 'This day is an official holiday — confirm before sending')}
               </div>
             )}
           </div>
 
           {/* المشروع */}
           <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المشروع *</label>
+            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'المشروع', 'פרויקט', 'Project')} *</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {projects.map(p => (
                 <button key={p.id} onClick={() => setForm(prev => ({ ...prev, projectId: p.id, location: '' }))}
@@ -390,7 +403,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
             if (selProj?.type !== 'يومي' || locs.length === 0) return null
             return (
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, color: C.textDim, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}><MapPin size={12} strokeWidth={2.2} /> مكان العمل</label>
+                <label style={{ fontSize: 12, color: C.textDim, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}><MapPin size={12} strokeWidth={2.2} /> {tl(language, 'مكان العمل', 'אתר העבודה', 'Work site')}</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {locs.map(loc => (
                     <button key={loc} onClick={() => setForm(prev => ({ ...prev, location: prev.location === loc ? '' : loc }))}
@@ -405,12 +418,12 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
 
           {/* نوع اليوم */}
           <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>نوع اليوم</label>
+            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'نوع اليوم', 'סוג היום', 'Day type')}</label>
             <div style={{ display: 'flex', gap: 8 }}>
               {DAY_TYPES.map(t => (
                 <button key={t} onClick={() => setDayType(t)}
                   style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: `2px solid ${form.dayType === t ? C.primary : C.border}`, background: form.dayType === t ? `${C.primary}22` : 'transparent', color: form.dayType === t ? C.primary : C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                  {t}
+                  {tEnum(t, language)}
                 </button>
               ))}
             </div>
@@ -418,7 +431,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
 
           {form.dayType === 'ساعات' && (
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>عدد الساعات</label>
+              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'عدد الساعات', 'מספר שעות', 'Number of hours')}</label>
               <input type="number" value={form.hours} min="0.5" max="24" step="0.5"
                 onChange={e => setForm(p => ({ ...p, hours: e.target.value }))}
                 style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
@@ -427,7 +440,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
 
           {/* معاينة المبلغ */}
           <div style={{ padding: '12px 16px', background: `${C.primary}15`, borderRadius: 12, marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13, color: C.textDim }}>المبلغ المحسوب</span>
+            <span style={{ fontSize: 13, color: C.textDim }}>{tl(language, 'المبلغ المحسوب', 'הסכום המחושב', 'Calculated amount')}</span>
             <span style={{ fontSize: 20, fontWeight: 800, color: C.primary, fontFamily: 'monospace' }}>{fmt(preview())}₪</span>
           </div>
 
@@ -439,7 +452,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
 
           <button onClick={handleSubmit} disabled={submitting || !form.projectId}
             style={{ width: '100%', padding: 14, borderRadius: 14, background: submitting || !form.projectId ? C.border : C.primary, border: 'none', color: submitting || !form.projectId ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: submitting || !form.projectId ? 'default' : 'pointer' }}>
-            {submitting ? 'جاري الإرسال...' : <><CalendarPlus size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />أرسل اليوم للمشرف</>}
+            {submitting ? tl(language, 'جاري الإرسال...', 'שולח...', 'Sending...') : <><CalendarPlus size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />{tl(language, 'أرسل اليوم للمشرف', 'שלח את היום למנהל', 'Send day to supervisor')}</>}
           </button>
         </>
       )}
@@ -449,6 +462,7 @@ function SubmitDayForm({ projects, dailyRate, onSubmit, submitting, submitErr, s
 
 // ─── فورم إرسال مصروف ────────────────────────────────────────────────────────
 function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, setSubmitErr }) {
+  const language = useAppStore(s => s.language)
   const emptyForm = { date: todayStr(), amount: '', category: '', projectId: '', vendor: '' }
   const [form,         setForm]         = useState(emptyForm)
   const [receiptFile,  setReceiptFile]  = useState(null)
@@ -495,7 +509,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
         date:     r.date     || prev.date,
         category: r.category || prev.category,
       }))
-      setScanOk(true); setScanMsg('تم استخراج البيانات تلقائياً')
+      setScanOk(true); setScanMsg(tl(language, 'تم استخراج البيانات تلقائياً', 'הנתונים חולצו אוטומטית', 'Data extracted automatically'))
     } catch (e) {
       setScanOk(false); setScanMsg(e.message)
     } finally {
@@ -510,18 +524,18 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
   }
 
   async function handleSubmit() {
-    if (!form.category)  return setSubmitErr('اختر التصنيف')
-    if (!form.amount || parseFloat(form.amount) <= 0) return setSubmitErr('أدخل المبلغ')
-    if (!form.projectId) return setSubmitErr('اختر المشروع')
-    if (!form.vendor?.trim()) return setSubmitErr('أدخل اسم المحل أو المزود')
-    if (!receiptFile) return setSubmitErr('صورة الفاتورة مطلوبة')
+    if (!form.category)  return setSubmitErr(tl(language, 'اختر التصنيف', 'בחר קטגוריה', 'Select a category'))
+    if (!form.amount || parseFloat(form.amount) <= 0) return setSubmitErr(tl(language, 'أدخل المبلغ', 'הזן סכום', 'Enter the amount'))
+    if (!form.projectId) return setSubmitErr(tl(language, 'اختر المشروع', 'בחר פרויקט', 'Select a project'))
+    if (!form.vendor?.trim()) return setSubmitErr(tl(language, 'أدخل اسم المحل أو المزود', 'הזן את שם החנות או הספק', 'Enter the store or supplier name'))
+    if (!receiptFile) return setSubmitErr(tl(language, 'صورة الفاتورة مطلوبة', 'תמונת החשבונית נדרשת', 'Receipt image is required'))
     setSubmitErr('')
     let receiptUrl = ''
     setUploading(true)
     try {
       receiptUrl = await uploadWorkerReceipt(worker.id, worker.token, receiptFile)
     } catch (e) {
-      setSubmitErr('فشل رفع الفاتورة: ' + e.message)
+      setSubmitErr(tl(language, 'فشل رفع الفاتورة: ', 'העלאת החשבונית נכשלה: ', 'Receipt upload failed: ') + e.message)
       setUploading(false)
       return
     }
@@ -537,16 +551,16 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
     return (
       <div style={{ textAlign: 'center', padding: '30px 16px' }}>
         <CheckCircle2 size={52} color={C.success} strokeWidth={1.6} style={{ margin: '0 auto 12px', display: 'block' }} />
-        <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم الإرسال!</div>
-        <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>{form.category}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>{tl(language, 'تم الإرسال!', 'נשלח!', 'Sent!')}</div>
+        <div style={{ fontSize: 13, color: C.textDim, marginBottom: 4 }}>{tEnum(form.category, language)}</div>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.accent, marginBottom: 16, fontFamily: 'monospace' }}>{fmt(submittedAmt)}₪</div>
         <div style={{ padding: '12px 16px', background: `${C.primary}12`, borderRadius: 12, marginBottom: 20, border: `1px solid ${C.primary}33` }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4, display:'flex', alignItems:'center', gap:6 }}><Bell size={13} strokeWidth={2} /> وصل إشعار للمشرف</div>
-          <div style={{ fontSize: 12, color: C.textDim }}>المشرف رح يشوف الطلب والفاتورة ويوافق عليه</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4, display:'flex', alignItems:'center', gap:6 }}><Bell size={13} strokeWidth={2} /> {tl(language, 'وصل إشعار للمشرف', 'נשלחה התראה למנהל', 'A notification was sent to the supervisor')}</div>
+          <div style={{ fontSize: 12, color: C.textDim }}>{tl(language, 'المشرف رح يشوف الطلب والفاتورة ويوافق عليه', 'המנהל יראה את הבקשה והחשבונית ויאשר אותה', 'The supervisor will see the request and receipt and approve it')}</div>
         </div>
         <button onClick={() => { setDone(false); setForm(emptyForm); clearFile() }}
           style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-          + أضف مصروف آخر
+          + {tl(language, 'أضف مصروف آخر', 'הוסף הוצאה נוספת', 'Add another expense')}
         </button>
       </div>
     )
@@ -558,14 +572,14 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
     <div style={{ paddingBottom: 16 }}>
       {/* التاريخ */}
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>التاريخ *</label>
+        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'التاريخ', 'תאריך', 'Date')} *</label>
         <input type="date" value={form.date} max={todayStr()} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
           style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
       </div>
 
       {/* المبلغ */}
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المبلغ (₪) *</label>
+        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'المبلغ (₪)', 'סכום (₪)', 'Amount (₪)')} *</label>
         <input type="number" value={form.amount} min="0.01" step="0.01" placeholder="0.00"
           onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
           style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }} />
@@ -573,12 +587,12 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
 
       {/* التصنيف */}
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>التصنيف *</label>
+        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'التصنيف', 'קטגוריה', 'Category')} *</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {EXP_CATS.map(cat => (
             <button key={cat} onClick={() => setForm(p => ({ ...p, category: cat }))}
               style={{ padding: '8px 12px', borderRadius: 10, border: `1.5px solid ${form.category === cat ? C.accent : C.border}`, background: form.category === cat ? `${C.accent}22` : C.bg, color: form.category === cat ? C.accent : C.textDim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-              {cat}
+              {tEnum(cat, language)}
             </button>
           ))}
         </div>
@@ -587,7 +601,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
       {/* المشروع - إجباري */}
       {projects.length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المشروع *</label>
+          <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'المشروع', 'פרויקט', 'Project')} *</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {projects.map(p => (
               <button key={p.id} onClick={() => setForm(prev => ({ ...prev, projectId: prev.projectId === p.id ? '' : p.id }))}
@@ -601,9 +615,9 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
 
       {/* المحل / المزود - إجباري */}
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المحل / المزود *</label>
+        <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'المحل / المزود', 'חנות / ספק', 'Store / Supplier')} *</label>
         <input value={form.vendor} onChange={e => setForm(p => ({ ...p, vendor: e.target.value }))}
-          placeholder="مثال: مستودع الجابر"
+          placeholder={tl(language, 'مثال: مستودع الجابر', 'לדוגמה: מחסן אלג׳אבר', 'e.g. Al-Jaber Warehouse')}
           style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
       </div>
 
@@ -611,12 +625,12 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <label style={{ fontSize: 12 }}>
-            <span style={{ color: C.accent, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Paperclip size={12} strokeWidth={2.2} /> صورة الفاتورة *</span>
+            <span style={{ color: C.accent, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Paperclip size={12} strokeWidth={2.2} /> {tl(language, 'صورة الفاتورة', 'תמונת החשבונית', 'Receipt image')} *</span>
           </label>
           {receiptFile && receiptFile.type.startsWith('image/') && (
             <button onClick={scanReceipt} disabled={scanning}
               style={{ padding: '4px 10px', borderRadius: 8, border: `1px solid ${C.primary}55`, background: `${C.primary}15`, color: C.primary, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              {scanning ? 'مسح...' : <><Sparkles size={14} strokeWidth={2.4} style={{ verticalAlign: '-2px', marginInlineEnd: 4 }} />مسح AI</>}
+              {scanning ? tl(language, 'مسح...', 'סורק...', 'Scanning...') : <><Sparkles size={14} strokeWidth={2.4} style={{ verticalAlign: '-2px', marginInlineEnd: 4 }} />{tl(language, 'مسح AI', 'סריקת AI', 'AI scan')}</>}
             </button>
           )}
         </div>
@@ -628,12 +642,12 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
               <div style={{ padding: '14px', borderRadius: 12, border: `1.5px solid ${C.success}55`, background: `${C.success}11`, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <FileText size={24} color={C.blue} strokeWidth={1.8} />
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.success }}>تم رفع الملف</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.success }}>{tl(language, 'تم رفع الملف', 'הקובץ הועלה', 'File uploaded')}</div>
                   <div style={{ fontSize: 10, color: C.textDim }}>{receiptFile?.name}</div>
                 </div>
               </div>
             ) : (
-              <img src={receiptPreview} alt="فاتورة" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 12, border: `1.5px solid ${C.success}55` }} />
+              <img src={receiptPreview} alt={tl(language, 'فاتورة', 'חשבונית', 'Receipt')} style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 12, border: `1.5px solid ${C.success}55` }} />
             )}
             <button onClick={clearFile}
               style={{ position: 'absolute', top: 6, left: 6, width: 26, height: 26, borderRadius: '50%', background: `${C.accent}dd`, border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -644,8 +658,8 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
           <button onClick={() => fileRef.current.click()}
             style={{ width: '100%', padding: '18px 14px', borderRadius: 12, border: `2px dashed ${C.accent}66`, background: `${C.accent}08`, color: C.accent, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <Camera size={28} strokeWidth={1.9} />
-            <span>اضغط لالتقاط صورة الفاتورة</span>
-            <span style={{ fontSize: 11, color: C.textDim, fontWeight: 400 }}>صورة أو PDF</span>
+            <span>{tl(language, 'اضغط لالتقاط صورة الفاتورة', 'לחץ לצילום החשבונית', 'Tap to capture the receipt')}</span>
+            <span style={{ fontSize: 11, color: C.textDim, fontWeight: 400 }}>{tl(language, 'صورة أو PDF', 'תמונה או PDF', 'Image or PDF')}</span>
           </button>
         )}
         {scanMsg && (
@@ -661,7 +675,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
 
       <button onClick={handleSubmit} disabled={!canSubmit}
         style={{ width: '100%', padding: 14, borderRadius: 14, background: !canSubmit ? C.border : C.accent, border: 'none', color: !canSubmit ? C.textDim : '#fff', fontSize: 15, fontWeight: 800, cursor: !canSubmit ? 'default' : 'pointer' }}>
-        {uploading ? 'جاري رفع الفاتورة...' : submitting ? 'جاري الإرسال...' : <><Send size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />أرسل المصروف للمشرف</>}
+        {uploading ? tl(language, 'جاري رفع الفاتورة...', 'מעלה חשבונית...', 'Uploading receipt...') : submitting ? tl(language, 'جاري الإرسال...', 'שולח...', 'Sending...') : <><Send size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />{tl(language, 'أرسل المصروف للمشرف', 'שלח את ההוצאה למנהל', 'Send expense to supervisor')}</>}
       </button>
     </div>
   )
@@ -669,6 +683,7 @@ function SubmitExpenseForm({ worker, projects, onSubmit, submitting, submitErr, 
 
 // ─── فورم تغيير كلمة المرور ──────────────────────────────────────────────────
 function ChangePasswordForm({ worker, onChangePassword }) {
+  const language = useAppStore(s => s.language)
   const [oldPass,  setOldPass]  = useState('')
   const [newPass,  setNewPass]  = useState('')
   const [confirm,  setConfirm]  = useState('')
@@ -680,9 +695,9 @@ function ChangePasswordForm({ worker, onChangePassword }) {
 
   async function handleSubmit() {
     setErr('')
-    if (!oldPass) return setErr('أدخل كلمة المرور الحالية')
-    if (newPass.length < 4) return setErr('كلمة المرور الجديدة يجب أن تكون 4 أحرف على الأقل')
-    if (newPass !== confirm) return setErr('كلمة المرور الجديدة غير متطابقة')
+    if (!oldPass) return setErr(tl(language, 'أدخل كلمة المرور الحالية', 'הזן את הסיסמה הנוכחית', 'Enter your current password'))
+    if (newPass.length < 4) return setErr(tl(language, 'كلمة المرور الجديدة يجب أن تكون 4 أحرف على الأقل', 'הסיסמה החדשה חייבת להכיל לפחות 4 תווים', 'New password must be at least 4 characters'))
+    if (newPass !== confirm) return setErr(tl(language, 'كلمة المرور الجديدة غير متطابقة', 'הסיסמאות החדשות אינן תואמות', 'New passwords do not match'))
     setSaving(true)
     try {
       await onChangePassword(oldPass, newPass)
@@ -714,7 +729,7 @@ function ChangePasswordForm({ worker, onChangePassword }) {
             {worker.specialization && (
               <div style={{ fontSize: 11, color: C.primary, marginTop: 2 }}>{worker.specialization.split(',')[0]}</div>
             )}
-            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>معدل يومي: <span style={{ color: C.success, fontWeight: 700, fontFamily: 'monospace' }}>{worker.daily_rate || 0}₪</span></div>
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{tl(language, 'معدل يومي:', 'תעריף יומי:', 'Daily rate:')} <span style={{ color: C.success, fontWeight: 700, fontFamily: 'monospace' }}>{worker.daily_rate || 0}₪</span></div>
           </div>
         </div>
       </div>
@@ -722,16 +737,16 @@ function ChangePasswordForm({ worker, onChangePassword }) {
       {/* فورم تغيير كلمة المرور */}
       <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.borderMid}`, padding: '18px 16px', overflow: 'hidden' }}>
         <div style={{ height: 3, background: GRAD.purple, margin: '-18px -16px 16px' }} />
-        <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 16, display:'flex', alignItems:'center', gap:6 }}><KeyRound size={14} strokeWidth={2} /> تغيير كلمة المرور</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 16, display:'flex', alignItems:'center', gap:6 }}><KeyRound size={14} strokeWidth={2} /> {tl(language, 'تغيير كلمة المرور', 'שינוי סיסמה', 'Change password')}</div>
 
         {success && (
           <div style={{ padding: '12px 14px', background: `${C.success}18`, borderRadius: 12, marginBottom: 16, fontSize: 13, color: C.success, textAlign: 'center', border: `1px solid ${C.success}33`, fontWeight: 700 }}>
-<Check size={14} strokeWidth={2.6} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />تم تغيير كلمة المرور بنجاح
+<Check size={14} strokeWidth={2.6} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />{tl(language, 'تم تغيير كلمة المرور بنجاح', 'הסיסמה שונתה בהצלחה', 'Password changed successfully')}
           </div>
         )}
 
         <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>كلمة المرور الحالية</label>
+          <label style={labelStyle}>{tl(language, 'كلمة المرور الحالية', 'סיסמה נוכחית', 'Current password')}</label>
           <div style={{ position: 'relative' }}>
             <input type={showOld ? 'text' : 'password'} value={oldPass} onChange={e => { setOldPass(e.target.value); setSuccess(false) }}
               placeholder="••••••••" style={inputStyle} />
@@ -743,10 +758,10 @@ function ChangePasswordForm({ worker, onChangePassword }) {
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>كلمة المرور الجديدة</label>
+          <label style={labelStyle}>{tl(language, 'كلمة المرور الجديدة', 'סיסמה חדשה', 'New password')}</label>
           <div style={{ position: 'relative' }}>
             <input type={showNew ? 'text' : 'password'} value={newPass} onChange={e => { setNewPass(e.target.value); setSuccess(false) }}
-              placeholder="4 أحرف على الأقل" style={inputStyle} />
+              placeholder={tl(language, '4 أحرف على الأقل', 'לפחות 4 תווים', 'At least 4 characters')} style={inputStyle} />
             <button onClick={() => setShowNew(s => !s)}
               style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: 15, padding: 0 }}>
               {showNew ? <EyeOff size={16} strokeWidth={2} /> : <Eye size={16} strokeWidth={2} />}
@@ -755,12 +770,12 @@ function ChangePasswordForm({ worker, onChangePassword }) {
         </div>
 
         <div style={{ marginBottom: 18 }}>
-          <label style={labelStyle}>تأكيد كلمة المرور الجديدة</label>
+          <label style={labelStyle}>{tl(language, 'تأكيد كلمة المرور الجديدة', 'אימות הסיסמה החדשה', 'Confirm new password')}</label>
           <input type="password" value={confirm} onChange={e => { setConfirm(e.target.value); setSuccess(false) }}
             placeholder="••••••••" style={{ ...inputStyle, paddingLeft: 14 }} />
           {confirm && newPass && (
             <div style={{ marginTop: 6, fontSize: 11, fontWeight: 600, color: confirm === newPass ? C.success : C.accent }}>
-              {confirm === newPass ? <><Check size={11} strokeWidth={2.8} style={{ verticalAlign: '-1px', marginInlineEnd: 2 }} />متطابقة</> : <><XIcon size={11} strokeWidth={2.8} style={{ verticalAlign: '-1px', marginInlineEnd: 2 }} />غير متطابقة</>}
+              {confirm === newPass ? <><Check size={11} strokeWidth={2.8} style={{ verticalAlign: '-1px', marginInlineEnd: 2 }} />{tl(language, 'متطابقة', 'תואמות', 'Match')}</> : <><XIcon size={11} strokeWidth={2.8} style={{ verticalAlign: '-1px', marginInlineEnd: 2 }} />{tl(language, 'غير متطابقة', 'אינן תואמות', 'No match')}</>}
             </div>
           )}
         </div>
@@ -773,7 +788,7 @@ function ChangePasswordForm({ worker, onChangePassword }) {
 
         <button onClick={handleSubmit} disabled={saving || !oldPass || !newPass || !confirm}
           style={{ width: '100%', padding: 14, borderRadius: 14, background: saving || !oldPass || !newPass || !confirm ? C.border : GRAD.purple, border: 'none', color: saving || !oldPass || !newPass || !confirm ? C.textDim : '#fff', fontSize: 15, fontWeight: 800, cursor: saving || !oldPass || !newPass || !confirm ? 'default' : 'pointer', transition: 'all .2s', boxShadow: oldPass && newPass && confirm ? `0 4px 20px ${C.secondary}44` : 'none' }}>
-          {saving ? 'جاري الحفظ...' : <><KeyRound size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />حفظ كلمة المرور الجديدة</>}
+          {saving ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : <><KeyRound size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />{tl(language, 'حفظ كلمة المرور الجديدة', 'שמירת הסיסמה החדשה', 'Save new password')}</>}
         </button>
       </div>
     </div>
@@ -783,6 +798,7 @@ function ChangePasswordForm({ worker, onChangePassword }) {
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 // ─── فورم طلب راتب ───────────────────────────────────────────────────────────
 function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
+  const language = useAppStore(s => s.language)
   const PAY_M = ['كاش', 'تحويل بنكي', 'شيك']
   const [form,    setForm]    = useState({ amount: '', method: 'كاش', notes: '' })
   const [saving,  setSaving]  = useState(false)
@@ -791,8 +807,8 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
   const [sentAmt, setSentAmt] = useState(0)
 
   async function handleSubmit() {
-    if (!form.amount || parseFloat(form.amount) <= 0) return setErr('أدخل المبلغ')
-    if (!form.notes?.trim()) return setErr('أدخل ملاحظة (مثال: راتب شهر أبريل)')
+    if (!form.amount || parseFloat(form.amount) <= 0) return setErr(tl(language, 'أدخل المبلغ', 'הזן סכום', 'Enter the amount'))
+    if (!form.notes?.trim()) return setErr(tl(language, 'أدخل ملاحظة (مثال: راتب شهر أبريل)', 'הזן הערה (לדוגמה: משכורת חודש אפריל)', 'Enter a note (e.g. April salary)'))
     setErr(''); setSaving(true)
     try {
       await onRequest({ amount: form.amount, projectId: null, method: form.method, notes: form.notes })
@@ -803,15 +819,15 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
   if (done) return (
     <div style={{ textAlign:'center', padding:'30px 16px' }}>
       <CheckCircle2 size={52} color={C.success} strokeWidth={1.6} style={{ margin: '0 auto 12px', display: 'block' }} />
-      <div style={{ fontSize:16, fontWeight:800, color:C.success, marginBottom:6 }}>تم إرسال الطلب!</div>
+      <div style={{ fontSize:16, fontWeight:800, color:C.success, marginBottom:6 }}>{tl(language, 'تم إرسال الطلب!', 'הבקשה נשלחה!', 'Request sent!')}</div>
       <div style={{ fontSize:15, fontWeight:800, color:C.primary, marginBottom:16, fontFamily:'monospace' }}>{fmt(sentAmt)}₪</div>
       <div style={{ padding:'12px 16px', background:`${C.primary}12`, borderRadius:12, marginBottom:20, border:`1px solid ${C.primary}33` }}>
-        <div style={{ fontSize:13, fontWeight:700, color:C.primary, marginBottom:4, display:'flex', alignItems:'center', gap:6 }}><Bell size={13} strokeWidth={2} /> وصل إشعار للمشرف</div>
-        <div style={{ fontSize:12, color:C.textDim }}>المشرف رح يراجع الطلب ويحدد من أي مشروع</div>
+        <div style={{ fontSize:13, fontWeight:700, color:C.primary, marginBottom:4, display:'flex', alignItems:'center', gap:6 }}><Bell size={13} strokeWidth={2} /> {tl(language, 'وصل إشعار للمشرف', 'נשלחה התראה למנהל', 'A notification was sent to the supervisor')}</div>
+        <div style={{ fontSize:12, color:C.textDim }}>{tl(language, 'المشرف رح يراجع الطلب ويحدد من أي مشروع', 'המנהל יבדוק את הבקשה ויקבע מאיזה פרויקט', 'The supervisor will review the request and decide which project')}</div>
       </div>
       <button onClick={() => { setDone(false); setForm({ amount:'', method:'كاش', notes:'' }) }}
         style={{ width:'100%', padding:'12px 0', borderRadius:12, background:C.primary, border:'none', color:'#000', fontSize:14, fontWeight:700, cursor:'pointer' }}>
-        + طلب آخر
+        + {tl(language, 'طلب آخر', 'בקשה נוספת', 'Another request')}
       </button>
     </div>
   )
@@ -823,7 +839,7 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
       {unpaidDays && unpaidDays.length > 0 && (
         <div style={{ marginBottom:16, background:`${C.primary}0a`, borderRadius:16, border:`1px solid ${C.primary}22`, overflow:'hidden' }}>
           <div style={{ padding:'12px 16px', borderBottom:`1px solid ${C.primary}18`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <span style={{ fontSize:13, fontWeight:800, color:C.primary, display:'flex', alignItems:'center', gap:6 }}><ClipboardList size={13} strokeWidth={2} /> أيامك غير المدفوعة</span>
+            <span style={{ fontSize:13, fontWeight:800, color:C.primary, display:'flex', alignItems:'center', gap:6 }}><ClipboardList size={13} strokeWidth={2} /> {tl(language, 'أيامك غير المدفوعة', 'הימים שטרם שולמו', 'Your unpaid days')}</span>
             <span style={{ fontSize:15, fontWeight:900, color:C.primary, fontFamily:'monospace' }}>{fmt(totalOwed)}₪</span>
           </div>
           <div style={{ padding:'8px 16px 12px', maxHeight:220, overflowY:'auto' }}>
@@ -834,29 +850,29 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
                   <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
                     <span style={{ fontSize:11, color:C.textDim, flexShrink:0 }}>{fmtDateFull(d.date)}</span>
                     {d.project_name && <span style={{ fontSize:11, color:C.textDim, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.project_name}</span>}
-                    <span style={{ fontSize:10, fontWeight:700, color:tc, background:`${tc}18`, padding:'1px 6px', borderRadius:5, border:`1px solid ${tc}25`, flexShrink:0 }}>{d.day_type}</span>
+                    <span style={{ fontSize:10, fontWeight:700, color:tc, background:`${tc}18`, padding:'1px 6px', borderRadius:5, border:`1px solid ${tc}25`, flexShrink:0 }}>{tEnum(d.day_type, language)}</span>
                   </div>
                   <span style={{ fontSize:12, fontWeight:800, color:tc, fontFamily:'monospace', flexShrink:0 }}>{fmt(d.amount)}₪</span>
                 </div>
               )
             })}
-            {unpaidDays.length > 20 && <div style={{ fontSize:10, color:C.textDim, textAlign:'center', paddingTop:6 }}>و {unpaidDays.length - 20} يوم آخر...</div>}
+            {unpaidDays.length > 20 && <div style={{ fontSize:10, color:C.textDim, textAlign:'center', paddingTop:6 }}>{tl(language, `و ${unpaidDays.length - 20} يوم آخر...`, `ועוד ${unpaidDays.length - 20} ימים...`, `and ${unpaidDays.length - 20} more days...`)}</div>}
           </div>
           <button onClick={() => setForm(p => ({ ...p, amount: String(Math.round(totalOwed)) }))}
             style={{ width:'100%', padding:'10px 0', background:`${C.primary}15`, border:'none', borderTop:`1px solid ${C.primary}22`, color:C.primary, fontSize:12, fontWeight:700, cursor:'pointer' }}>
-<Check size={13} strokeWidth={2.6} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />استخدم المبلغ الكامل {fmt(totalOwed)}₪
+<Check size={13} strokeWidth={2.6} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />{tl(language, `استخدم المبلغ الكامل ${fmt(totalOwed)}₪`, `השתמש בסכום המלא ${fmt(totalOwed)}₪`, `Use the full amount ${fmt(totalOwed)}₪`)}
           </button>
         </div>
       )}
 
       <div style={{ padding:'12px 14px', background:`${C.warning}12`, borderRadius:12, marginBottom:16, border:`1px solid ${C.warning}33` }}>
-        <div style={{ fontSize:12, color:C.warning, fontWeight:700, display:'flex', alignItems:'center', gap:5 }}><AlertTriangle size={13} strokeWidth={2.2} /> تنبيه</div>
-        <div style={{ fontSize:11, color:C.textDim, marginTop:4 }}>الطلب يذهب للمشرف للموافقة — الراتب لا يُسجَّل تلقائياً</div>
+        <div style={{ fontSize:12, color:C.warning, fontWeight:700, display:'flex', alignItems:'center', gap:5 }}><AlertTriangle size={13} strokeWidth={2.2} /> {tl(language, 'تنبيه', 'שים לב', 'Note')}</div>
+        <div style={{ fontSize:11, color:C.textDim, marginTop:4 }}>{tl(language, 'الطلب يذهب للمشرف للموافقة — الراتب لا يُسجَّل تلقائياً', 'הבקשה נשלחת למנהל לאישור — המשכורת אינה נרשמת אוטומטית', 'The request goes to the supervisor for approval — the salary is not recorded automatically')}</div>
       </div>
 
       {/* المبلغ */}
       <div style={{ marginBottom:14 }}>
-        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>المبلغ المطلوب (₪) *</label>
+        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>{tl(language, 'المبلغ المطلوب (₪)', 'הסכום המבוקש (₪)', 'Requested amount (₪)')} *</label>
         <input type="number" value={form.amount} min="1" step="1" placeholder="0"
           onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
           style={{ width:'100%', padding:'13px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:18, fontWeight:800, boxSizing:'border-box', outline:'none', fontFamily:'monospace' }} />
@@ -864,12 +880,12 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
 
       {/* طريقة الدفع */}
       <div style={{ marginBottom:14 }}>
-        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>طريقة الدفع المفضلة</label>
+        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>{tl(language, 'طريقة الدفع المفضلة', 'אמצעי תשלום מועדף', 'Preferred payment method')}</label>
         <div style={{ display:'flex', gap:8 }}>
           {PAY_M.map(m => (
             <button key={m} onClick={() => setForm(p => ({ ...p, method: m }))}
               style={{ flex:1, padding:'9px 0', borderRadius:10, border:`1.5px solid ${form.method === m ? C.primary : C.border}`, background:form.method === m ? `${C.primary}22` : 'transparent', color:form.method === m ? C.primary : C.textDim, fontSize:12, fontWeight:700, cursor:'pointer' }}>
-              {m}
+              {tEnum(m, language)}
             </button>
           ))}
         </div>
@@ -877,9 +893,9 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
 
       {/* ملاحظة */}
       <div style={{ marginBottom:16 }}>
-        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>ملاحظة * <span style={{ fontWeight:400, color:C.textDim, fontSize:10 }}>(مثال: راتب شهر أبريل)</span></label>
+        <label style={{ fontSize:12, color:C.textDim, display:'block', marginBottom:6 }}>{tl(language, 'ملاحظة', 'הערה', 'Note')} * <span style={{ fontWeight:400, color:C.textDim, fontSize:10 }}>{tl(language, '(مثال: راتب شهر أبريل)', '(לדוגמה: משכורת חודש אפריל)', '(e.g. April salary)')}</span></label>
         <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-          placeholder="راتب شهر أبريل"
+          placeholder={tl(language, 'راتب شهر أبريل', 'משכורת חודש אפריל', 'April salary')}
           style={{ width:'100%', padding:'11px 14px', borderRadius:12, border:`1px solid ${C.border}`, background:C.surface, color:C.text, fontSize:14, boxSizing:'border-box', outline:'none' }} />
       </div>
 
@@ -887,7 +903,7 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
 
       <button onClick={handleSubmit} disabled={saving || !form.amount || !form.notes?.trim()}
         style={{ width:'100%', padding:14, borderRadius:14, background:saving || !form.amount || !form.notes?.trim() ? C.border : GRAD.success, border:'none', color:saving || !form.amount || !form.notes?.trim() ? C.textDim : '#000', fontSize:15, fontWeight:800, cursor:saving || !form.amount || !form.notes?.trim() ? 'default' : 'pointer', boxShadow:form.amount && form.notes ? `0 4px 20px ${C.success}44` : 'none' }}>
-        {saving ? 'جاري الإرسال...' : <><Wallet size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />أرسل طلب الراتب للمشرف</>}
+        {saving ? tl(language, 'جاري الإرسال...', 'שולח...', 'Sending...') : <><Wallet size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />{tl(language, 'أرسل طلب الراتب للمشرف', 'שלח בקשת משכורת למנהל', 'Send salary request to supervisor')}</>}
       </button>
     </div>
   )
@@ -895,6 +911,7 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
 
 // ─── فورم طلب سلفة ───────────────────────────────────────────────────────────
 function RequestAdvanceForm({ onRequest }) {
+  const language = useAppStore(s => s.language)
   const [amount,   setAmount]   = useState('')
   const [notes,    setNotes]    = useState('')
   const [loading,  setLoading]  = useState(false)
@@ -920,32 +937,32 @@ function RequestAdvanceForm({ onRequest }) {
   if (success) return (
     <div style={{ textAlign: 'center', padding: '36px 16px' }}>
       <CheckCircle2 size={48} color={C.success} strokeWidth={1.6} style={{ margin: '0 auto 12px', display: 'block' }} />
-      <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم إرسال طلب السلفة</div>
-      <div style={{ fontSize: 12, color: C.textDim }}>سيراجعه المشرف قريباً</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>{tl(language, 'تم إرسال طلب السلفة', 'בקשת המקדמה נשלחה', 'Advance request sent')}</div>
+      <div style={{ fontSize: 12, color: C.textDim }}>{tl(language, 'سيراجعه المشرف قريباً', 'המנהל יבדוק אותה בקרוב', 'The supervisor will review it soon')}</div>
     </div>
   )
 
   return (
     <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.border}`, padding: 20, direction: 'rtl' }}>
-      <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 7 }}><HandCoins size={17} color={C.primary} strokeWidth={2.2} /> طلب سلفة</div>
+      <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 7 }}><HandCoins size={17} color={C.primary} strokeWidth={2.2} /> {tl(language, 'طلب سلفة', 'בקשת מקדמה', 'Request an advance')}</div>
       <div style={{ fontSize: 11, color: C.textDim, marginBottom: 18 }}>
-        اطلب سلفة من راتبك — ستُخصم تلقائياً من مستحقاتك
+        {tl(language, 'اطلب سلفة من راتبك — ستُخصم تلقائياً من مستحقاتك', 'בקש מקדמה מהמשכורת שלך — היא תנוכה אוטומטית מהזכאות שלך', 'Request an advance on your salary — it will be deducted automatically from what you are owed')}
       </div>
 
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 700 }}>مبلغ السلفة (₪) *</label>
+        <label style={{ fontSize: 11, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 700 }}>{tl(language, 'مبلغ السلفة (₪)', 'סכום המקדמה (₪)', 'Advance amount (₪)')} *</label>
         <input
           type="number" min="1" value={amount} onChange={e => setAmount(e.target.value)}
-          placeholder="أدخل المبلغ"
+          placeholder={tl(language, 'أدخل المبلغ', 'הזן סכום', 'Enter the amount')}
           style={{ width: '100%', padding: '13px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 16, fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }}
         />
       </div>
 
       <div style={{ marginBottom: 18 }}>
-        <label style={{ fontSize: 11, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 700 }}>السبب / الملاحظات (اختياري)</label>
+        <label style={{ fontSize: 11, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 700 }}>{tl(language, 'السبب / الملاحظات (اختياري)', 'סיבה / הערות (אופציונלי)', 'Reason / notes (optional)')}</label>
         <textarea
           value={notes} onChange={e => setNotes(e.target.value)}
-          placeholder="مثال: ضرورة طارئة..."
+          placeholder={tl(language, 'مثال: ضرورة طارئة...', 'לדוגמה: צורך דחוף...', 'e.g. urgent need...')}
           rows={3}
           style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
         />
@@ -959,7 +976,7 @@ function RequestAdvanceForm({ onRequest }) {
 
       <button onClick={submit} disabled={loading || !amount}
         style={{ width: '100%', padding: 16, borderRadius: 14, border: 'none', cursor: loading || !amount ? 'default' : 'pointer', fontWeight: 800, fontSize: 14, background: loading || !amount ? C.border : GRAD.warm, color: '#000', transition: 'all .2s' }}>
-        {loading ? 'جاري الإرسال...' : <><HandCoins size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />إرسال الطلب</>}
+        {loading ? tl(language, 'جاري الإرسال...', 'שולח...', 'Sending...') : <><HandCoins size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />{tl(language, 'إرسال الطلب', 'שליחת הבקשה', 'Send request')}</>}
       </button>
     </div>
   )
@@ -968,7 +985,28 @@ function RequestAdvanceForm({ onRequest }) {
 // ─── فورم تسجيل بضاعة ────────────────────────────────────────────────────────
 const MATERIAL_UNITS = ['قطعة', 'كيس', 'م', 'م²', 'م³', 'طن', 'لتر', 'يوم', 'ساعة', 'متر طولي']
 
+// عرض الوحدات بثلاث لغات — القيمة المخزّنة تبقى عربية.
+const MATERIAL_UNIT_LABELS = {
+  'قطعة':       { he: 'יחידה',    en: 'Unit' },
+  'كيس':        { he: 'שק',       en: 'Bag' },
+  'م':          { he: 'מ׳',       en: 'm' },
+  'م²':         { he: 'מ״ר',      en: 'm²' },
+  'م³':         { he: 'מ״ק',      en: 'm³' },
+  'طن':         { he: 'טון',      en: 'Ton' },
+  'لتر':        { he: 'ליטר',     en: 'Liter' },
+  'يوم':        { he: 'יום',      en: 'Day' },
+  'ساعة':       { he: 'שעה',      en: 'Hour' },
+  'متر طولي':   { he: 'מטר אורך', en: 'Linear meter' },
+}
+function unitLabel(u, language) {
+  if (language === 'ar') return u
+  const e = MATERIAL_UNIT_LABELS[u]
+  if (!e) return u
+  return language === 'he' ? e.he : (e.en ?? u)
+}
+
 function SubmitMaterialForm({ worker, projects }) {
+  const language = useAppStore(s => s.language)
   const { workerAddMaterialLog, loading, error } = useMaterialLogs()
   const [form,    setForm]    = useState({ date: todayStr(), itemName: '', quantity: '', unit: 'قطعة', projectId: '', notes: '' })
   const [done,    setDone]    = useState(false)
@@ -977,8 +1015,8 @@ function SubmitMaterialForm({ worker, projects }) {
   function set(field, val) { setForm(p => ({ ...p, [field]: val })) }
 
   async function handleSubmit() {
-    if (!form.itemName.trim())                      return setFormErr('أدخل اسم المادة')
-    if (!parseFloat(form.quantity) || parseFloat(form.quantity) <= 0) return setFormErr('أدخل الكمية')
+    if (!form.itemName.trim())                      return setFormErr(tl(language, 'أدخل اسم المادة', 'הזן שם חומר', 'Enter the material name'))
+    if (!parseFloat(form.quantity) || parseFloat(form.quantity) <= 0) return setFormErr(tl(language, 'أدخل الكمية', 'הזן כמות', 'Enter the quantity'))
     setFormErr('')
     try {
       await workerAddMaterialLog({
@@ -1003,11 +1041,11 @@ function SubmitMaterialForm({ worker, projects }) {
       {done && (
         <div style={{ textAlign: 'center', padding: '30px 16px' }}>
           <CheckCircle2 size={52} color={C.success} strokeWidth={1.6} style={{ margin: '0 auto 12px', display: 'block' }} />
-          <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>تم التسجيل!</div>
-          <div style={{ fontSize: 12, color: C.textDim, marginBottom: 16 }}>تم حفظ سجل البضاعة بنجاح</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: C.success, marginBottom: 6 }}>{tl(language, 'تم التسجيل!', 'נרשם!', 'Recorded!')}</div>
+          <div style={{ fontSize: 12, color: C.textDim, marginBottom: 16 }}>{tl(language, 'تم حفظ سجل البضاعة بنجاح', 'רישום החומרים נשמר בהצלחה', 'Material log saved successfully')}</div>
           <button onClick={() => setDone(false)}
             style={{ width: '100%', padding: '12px 0', borderRadius: 12, background: C.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-            + تسجيل مادة أخرى
+            + {tl(language, 'تسجيل مادة أخرى', 'רישום חומר נוסף', 'Record another material')}
           </button>
         </div>
       )}
@@ -1015,37 +1053,37 @@ function SubmitMaterialForm({ worker, projects }) {
       {!done && (
         <>
           <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>التاريخ</label>
+            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'التاريخ', 'תאריך', 'Date')}</label>
             <input type="date" value={form.date} max={todayStr()} onChange={e => set('date', e.target.value)}
               style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>اسم المادة *</label>
+            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'اسم المادة', 'שם החומר', 'Material name')} *</label>
             <input value={form.itemName} onChange={e => set('itemName', e.target.value)}
-              placeholder="مثال: أسمنت بورتلاند"
+              placeholder={tl(language, 'مثال: أسمنت بورتلاند', 'לדוגמה: מלט פורטלנד', 'e.g. Portland cement')}
               style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
             <div>
-              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>الكمية *</label>
+              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'الكمية', 'כמות', 'Quantity')} *</label>
               <input type="number" min="0" step="any" value={form.quantity} onChange={e => set('quantity', e.target.value)}
                 placeholder="0"
                 style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 15, fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }} />
             </div>
             <div>
-              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>الوحدة</label>
+              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'الوحدة', 'יחידה', 'Unit')}</label>
               <select value={form.unit} onChange={e => set('unit', e.target.value)}
                 style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none' }}>
-                {MATERIAL_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                {MATERIAL_UNITS.map(u => <option key={u} value={u}>{unitLabel(u, language)}</option>)}
               </select>
             </div>
           </div>
 
           {projects.length > 0 && (
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>المشروع</label>
+              <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'المشروع', 'פרויקט', 'Project')}</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {projects.map(p => (
                   <button key={p.id} onClick={() => set('projectId', form.projectId === p.id ? '' : p.id)}
@@ -1058,9 +1096,9 @@ function SubmitMaterialForm({ worker, projects }) {
           )}
 
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>ملاحظات</label>
+            <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6 }}>{tl(language, 'ملاحظات', 'הערות', 'Notes')}</label>
             <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
-              placeholder="أي تفاصيل إضافية..."
+              placeholder={tl(language, 'أي تفاصيل إضافية...', 'פרטים נוספים...', 'Any additional details...')}
               rows={2}
               style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
           </div>
@@ -1073,7 +1111,7 @@ function SubmitMaterialForm({ worker, projects }) {
 
           <button onClick={handleSubmit} disabled={!canSubmit}
             style={{ width: '100%', padding: 14, borderRadius: 14, background: !canSubmit ? C.border : GRAD.brand, border: 'none', color: !canSubmit ? C.textDim : '#000', fontSize: 15, fontWeight: 800, cursor: !canSubmit ? 'default' : 'pointer' }}>
-            {loading ? 'جاري الحفظ...' : <><Package size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />سجّل البضاعة</>}
+            {loading ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : <><Package size={16} strokeWidth={2.4} style={{ verticalAlign: '-3px', marginInlineEnd: 6 }} />{tl(language, 'سجّل البضاعة', 'רישום החומרים', 'Record material')}</>}
           </button>
         </>
       )}
@@ -1087,6 +1125,7 @@ function loadBlueprints(projectId) {
 }
 
 function BlueprintsTab({ projects }) {
+  const language = useAppStore(s => s.language)
   const [selProj, setSelProj] = useState(projects[0]?.id || '')
   const [viewer,  setViewer]  = useState(null)
   const bps = selProj ? loadBlueprints(selProj) : []
@@ -1106,7 +1145,7 @@ function BlueprintsTab({ projects }) {
       {bps.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: C.textDim }}>
           <Ruler size={40} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
-          <div style={{ fontSize: 13 }}>لا توجد خرائط لهذا المشروع</div>
+          <div style={{ fontSize: 13 }}>{tl(language, 'لا توجد خرائط لهذا المشروع', 'אין מפות לפרויקט זה', 'No blueprints for this project')}</div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
@@ -1142,7 +1181,7 @@ function BlueprintsTab({ projects }) {
                     <span style={{ fontSize: 11, color: C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{bp.name}</span>
                     <a href={bp.dataUrl} download={bp.name}
                       style={{ padding: '5px 12px', borderRadius: 8, background: `${C.blue}22`, border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
-<Download size={12} strokeWidth={2.2} style={{ verticalAlign: '-2px', marginInlineEnd: 3 }} />تحميل
+<Download size={12} strokeWidth={2.2} style={{ verticalAlign: '-2px', marginInlineEnd: 3 }} />{tl(language, 'تحميل', 'הורדה', 'Download')}
                     </a>
                   </div>
                 </div>
@@ -1167,6 +1206,7 @@ function BlueprintsTab({ projects }) {
 
 // ─── بطاقة الدخول بالبصمة (passkey) ──────────────────────────────────────────
 function PasskeyCard({ supported, enabled: enabledInit, onRegister, onRemove }) {
+  const language = useAppStore(s => s.language)
   const [enabled, setEnabled] = useState(enabledInit)
   const [busy,    setBusy]    = useState(false)
   const [err,     setErr]     = useState('')
@@ -1179,7 +1219,7 @@ function PasskeyCard({ supported, enabled: enabledInit, onRegister, onRemove }) 
     try {
       await onRegister()
       setEnabled(true); setDone(true)
-    } catch (e) { setErr(e.message || 'فشل تفعيل البصمة') }
+    } catch (e) { setErr(e.message || tl(language, 'فشل تفعيل البصمة', 'הפעלת טביעת האצבע נכשלה', 'Failed to enable biometrics')) }
     finally { setBusy(false) }
   }
 
@@ -1188,7 +1228,7 @@ function PasskeyCard({ supported, enabled: enabledInit, onRegister, onRemove }) 
     try {
       await onRemove()
       setEnabled(false)
-    } catch (e) { setErr(e.message || 'فشل إلغاء البصمة') }
+    } catch (e) { setErr(e.message || tl(language, 'فشل إلغاء البصمة', 'ביטול טביעת האצבע נכשל', 'Failed to disable biometrics')) }
     finally { setBusy(false) }
   }
 
@@ -1199,29 +1239,29 @@ function PasskeyCard({ supported, enabled: enabledInit, onRegister, onRemove }) 
           <Fingerprint size={18} strokeWidth={2.2} color={C.secondary} />
         </div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>الدخول بالبصمة</div>
-          <div style={{ fontSize: 11, color: C.textDim }}>سجّل بصمتك لتدخل بسرعة بدون كلمة مرور</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{tl(language, 'الدخول بالبصمة', 'כניסה עם טביעת אצבע', 'Biometric sign-in')}</div>
+          <div style={{ fontSize: 11, color: C.textDim }}>{tl(language, 'سجّل بصمتك لتدخل بسرعة بدون كلمة مرور', 'רשום את טביעת האצבע שלך לכניסה מהירה ללא סיסמה', 'Register your fingerprint to sign in quickly without a password')}</div>
         </div>
       </div>
 
       {enabled ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: `${C.success}14`, borderRadius: 12, border: `1px solid ${C.success}33`, marginTop: 10 }}>
           <ShieldCheck size={16} strokeWidth={2.2} color={C.success} />
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: C.success, flex: 1 }}>البصمة مفعّلة على هذا الجهاز</span>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: C.success, flex: 1 }}>{tl(language, 'البصمة مفعّلة على هذا الجهاز', 'טביעת האצבע מופעלת במכשיר זה', 'Biometrics enabled on this device')}</span>
           <button onClick={disable} disabled={busy}
             style={{ background: 'none', border: 'none', color: C.accent, cursor: busy ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700 }}>
-            <Trash2 size={13} strokeWidth={2.2} /> إلغاء
+            <Trash2 size={13} strokeWidth={2.2} /> {tl(language, 'إلغاء', 'ביטול', 'Disable')}
           </button>
         </div>
       ) : (
         <button onClick={enable} disabled={busy}
           style={{ width: '100%', marginTop: 10, padding: 12, borderRadius: 14, background: `${C.secondary}18`, border: `1.5px solid ${C.secondary}44`, color: C.secondary, fontSize: 14, fontWeight: 800, cursor: busy ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <Fingerprint size={17} strokeWidth={2.2} /> {busy ? 'جاري التفعيل...' : 'تفعيل البصمة'}
+          <Fingerprint size={17} strokeWidth={2.2} /> {busy ? tl(language, 'جاري التفعيل...', 'מפעיל...', 'Enabling...') : tl(language, 'تفعيل البصمة', 'הפעלת טביעת אצבע', 'Enable biometrics')}
         </button>
       )}
 
       {done && !err && (
-        <div style={{ marginTop: 10, fontSize: 12, color: C.success, fontWeight: 700, textAlign: 'center' }}>تم تفعيل البصمة بنجاح ✓</div>
+        <div style={{ marginTop: 10, fontSize: 12, color: C.success, fontWeight: 700, textAlign: 'center' }}>{tl(language, 'تم تفعيل البصمة بنجاح ✓', 'טביעת האצבע הופעלה בהצלחה ✓', 'Biometrics enabled successfully ✓')}</div>
       )}
       {err && (
         <div style={{ marginTop: 10, padding: '8px 12px', background: `${C.accent}18`, borderRadius: 10, fontSize: 12, color: C.accent, fontWeight: 600, textAlign: 'center' }}>{err}</div>
@@ -1232,6 +1272,7 @@ function PasskeyCard({ supported, enabled: enabledInit, onRegister, onRemove }) 
 
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
+  const language = useAppStore(s => s.language)
   const {
     worker, workDays, payments, projects, holidays, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
@@ -1267,14 +1308,14 @@ export default function WorkerPortalScreen() {
   const canBlueprints = worker.can_view_blueprints === true
 
   const tabs = [
-    ...(canWorkday     ? [{ id: 'submit',     label: 'يوم',    Icon: CalendarPlus }] : []),
-    ...(canExpense     ? [{ id: 'expense',    label: 'مصروف', Icon: Receipt }] : []),
-    ...(canMaterials   ? [{ id: 'materials',  label: 'بضاعة',  Icon: Package }] : []),
-    ...(canSalary      ? [{ id: 'salary',     label: 'راتب',  Icon: Wallet }] : []),
-    ...(canSalary      ? [{ id: 'advance',    label: 'سلفة',  Icon: HandCoins }] : []),
-    { id: 'monthly',    label: 'شهري',   Icon: CalendarDays },
-    ...(canBlueprints  ? [{ id: 'blueprints', label: 'خرائط', Icon: MapIcon }] : []),
-    { id: 'account',    label: 'حساب',   Icon: Settings },
+    ...(canWorkday     ? [{ id: 'submit',     label: tl(language, 'يوم',    'יום',    'Day'),       Icon: CalendarPlus }] : []),
+    ...(canExpense     ? [{ id: 'expense',    label: tl(language, 'مصروف',  'הוצאה',  'Expense'),   Icon: Receipt }] : []),
+    ...(canMaterials   ? [{ id: 'materials',  label: tl(language, 'بضاعة',  'חומרים', 'Materials'), Icon: Package }] : []),
+    ...(canSalary      ? [{ id: 'salary',     label: tl(language, 'راتب',   'משכורת', 'Salary'),    Icon: Wallet }] : []),
+    ...(canSalary      ? [{ id: 'advance',    label: tl(language, 'سلفة',   'מקדמה',  'Advance'),   Icon: HandCoins }] : []),
+    { id: 'monthly',    label: tl(language, 'شهري',   'חודשי',  'Monthly'),   Icon: CalendarDays },
+    ...(canBlueprints  ? [{ id: 'blueprints', label: tl(language, 'خرائط',  'מפות',   'Blueprints'), Icon: MapIcon }] : []),
+    { id: 'account',    label: tl(language, 'حساب',   'חשבון',  'Account'),   Icon: Settings },
   ]
   // التبويب الفعّال: لو التبويب الحالي مُخفىً (صلاحية موقوفة) ارجع لأول تبويب متاح
   const activeTab = tabs.some(t => t.id === tab) ? tab : (tabs[0]?.id || 'monthly')
@@ -1323,18 +1364,18 @@ export default function WorkerPortalScreen() {
             />
             {workerExpenses.length > 0 && (
               <div style={{ marginTop: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>مصاريفي السابقة</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>{tl(language, 'مصاريفي السابقة', 'ההוצאות הקודמות שלי', 'My previous expenses')}</div>
                 {workerExpenses.map(ex => {
                   const badge = EXP_STATUS_BADGE[ex.status] || EXP_STATUS_BADGE.approved
                   return (
                     <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: ex.status === 'pending' ? `${C.warning}11` : C.card, borderRadius: 10, border: `1px solid ${ex.status === 'pending' ? C.warning + '44' : C.border}`, marginBottom: 6 }}>
                       <div>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{ex.category}{ex.vendor ? ` • ${ex.vendor}` : ''}</div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{tEnum(ex.category, language)}{ex.vendor ? ` • ${ex.vendor}` : ''}</div>
                         <div style={{ fontSize: 10, color: C.textDim }}>{fmtDate(ex.date)}{ex.project_name ? ` • ${ex.project_name}` : ''}</div>
                       </div>
                       <div style={{ textAlign: 'left' }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, fontFamily: 'monospace' }}>{fmt(ex.amount)}₪</div>
-                        <div style={{ fontSize: 9, color: badge.color, background: `${badge.color}22`, padding: '2px 6px', borderRadius: 4, marginTop: 2, textAlign: 'center' }}>{badge.label}</div>
+                        <div style={{ fontSize: 9, color: badge.color, background: `${badge.color}22`, padding: '2px 6px', borderRadius: 4, marginTop: 2, textAlign: 'center' }}>{tl(language, badge.ar, badge.he, badge.en)}</div>
                       </div>
                     </div>
                   )
@@ -1350,16 +1391,16 @@ export default function WorkerPortalScreen() {
             {/* أيام معلقة */}
             {pendingDays.length > 0 && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.warning, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}><ClockIcon size={13} strokeWidth={2.2} /> بانتظار الموافقة</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.warning, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}><ClockIcon size={13} strokeWidth={2.2} /> {tl(language, 'بانتظار الموافقة', 'ממתין לאישור', 'Pending approval')}</div>
                 {pendingDays.map(d => (
                   <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: `${C.warning}11`, borderRadius: 10, border: `1px solid ${C.warning}33`, marginBottom: 6 }}>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{fmtDateFull(d.date)} • {d.day_type}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{fmtDateFull(d.date)} • {tEnum(d.day_type, language)}</div>
                       <div style={{ fontSize: 10, color: C.textDim }}>{d.project_name || '?'}</div>
                     </div>
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.warning, fontFamily: 'monospace' }}>{fmt(d.amount)}₪</div>
-                      <div style={{ fontSize: 9, color: C.warning, background: `${C.warning}22`, padding: '2px 6px', borderRadius: 4, marginTop: 2 }}>معلق</div>
+                      <div style={{ fontSize: 9, color: C.warning, background: `${C.warning}22`, padding: '2px 6px', borderRadius: 4, marginTop: 2 }}>{tl(language, 'معلق', 'ממתין', 'Pending')}</div>
                     </div>
                   </div>
                 ))}
@@ -1369,7 +1410,7 @@ export default function WorkerPortalScreen() {
             {monthlyBreakdown.length === 0 && pendingDays.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim }}>
                 <CalendarDays size={40} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
-                <div>ما في أيام عمل مسجّلة بعد</div>
+                <div>{tl(language, 'ما في أيام عمل مسجّلة بعد', 'אין עדיין ימי עבודה רשומים', 'No work days recorded yet')}</div>
               </div>
             ) : (() => {
               const curKey = new Date().toISOString().slice(0, 7)
@@ -1428,14 +1469,14 @@ export default function WorkerPortalScreen() {
             {payments.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: C.textDim }}>
                 <Wallet size={40} style={{ color: C.textDim, margin: '0 auto 8px', display:'block' }} />
-                <div>ما في مدفوعات بعد</div>
+                <div>{tl(language, 'ما في مدفوعات بعد', 'אין עדיין תשלומים', 'No payments yet')}</div>
               </div>
             ) : (
               payments.map(p => (
                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 8 }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fmtDate(p.date)}</div>
-                    <div style={{ fontSize: 11, color: C.textDim }}>{p.method || 'كاش'}</div>
+                    <div style={{ fontSize: 11, color: C.textDim }}>{tEnum(p.method || 'كاش', language)}</div>
                   </div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: C.success, fontFamily: 'monospace' }}>{fmt(p.amount)}₪</div>
                 </div>
@@ -1443,7 +1484,7 @@ export default function WorkerPortalScreen() {
             )}
             {payments.length > 0 && (
               <div style={{ padding: '12px 14px', background: `${C.success}15`, borderRadius: 12, border: `1px solid ${C.success}33`, display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.success }}>إجمالي الواصل</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: C.success }}>{tl(language, 'إجمالي الواصل', 'סך הכל שהתקבל', 'Total received')}</span>
                 <span style={{ fontSize: 16, fontWeight: 900, color: C.success, fontFamily: 'monospace' }}>{fmt(totalPaid)}₪</span>
               </div>
             )}

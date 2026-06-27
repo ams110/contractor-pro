@@ -2,11 +2,18 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { supabase } from '../lib/supabase.js'
 
+// label = المصطلح القانوني العبري (يُعرض كما هو في كل اللغات) · desc مترجم ثلاثياً
 export const BUSINESS_TYPES = [
-  { id: 'osek_patur', label: 'עוסק פטור',  desc: 'معفي من מע"מ — حد ₪120,000/سنة' },
-  { id: 'osek_moreh', label: 'עוסק מורשה', desc: 'مرخص — يجمع ويدفع מע"מ 18%' },
-  { id: 'hevra',      label: 'חברה בע"מ',  desc: 'شركة — ضريبة شركات 23%' },
+  { id: 'osek_patur', label: 'עוסק פטור',  desc: 'معفي من מע"מ — حد ₪120,000/سنة', desc_he: 'פטור ממע"מ — תקרה ₪120,000/שנה', desc_en: 'VAT-exempt — ₪120,000/yr cap' },
+  { id: 'osek_moreh', label: 'עוסק מורשה', desc: 'مرخص — يجمع ويدفع מע"מ 18%',      desc_he: 'מורשה — גובה ומשלם מע"מ 18%',   desc_en: 'Licensed — charges & pays 18% VAT' },
+  { id: 'hevra',      label: 'חברה בע"מ',  desc: 'شركة — ضريبة شركات 23%',          desc_he: 'חברה — מס חברות 23%',          desc_en: 'Company — 23% corporate tax' },
 ]
+
+// نصّ وصف نوع المصلحة حسب اللغة (للاستعمال في شاشات الإعداد/التعديل)
+export function bizTypeDesc(bt, lang) {
+  if (!bt) return ''
+  return lang === 'he' ? (bt.desc_he || bt.desc) : lang === 'en' ? (bt.desc_en || bt.desc) : bt.desc
+}
 
 // ─── Helper: compute activeBusiness from businesses + activeBusinessId ─────────
 function computeActive(businesses, activeBusinessId) {

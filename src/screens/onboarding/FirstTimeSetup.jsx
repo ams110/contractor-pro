@@ -4,11 +4,13 @@ import { Building2, Plus, Sparkles, ChevronLeft, HardHat, Users, Wallet } from '
 import { C, GRAD } from '../../constants/index.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { tl } from '../../lib/labels.js'
 import BusinessSetup from '../finance/BusinessSetup.jsx'
+import SalaryCalculator from '../../components/SalaryCalculator.jsx'
 
 const LANG = {
   ar: {
-    welcome:      'مرحباً بك في Contractor Pro',
+    welcome:      'مرحباً بك في كبلان',
     subtitle:     'قبل البدء، أنشئ المصلحة التجارية الخاصة بك حتى تتمكن من إدارة مشاريعك ومالياتك',
     auto_title:   'ابدأ بمصلحة عامة',
     auto_desc:    'سيتم إنشاء مصلحة باسم "عامة" تقدر تعدّلها لاحقاً من الإعدادات',
@@ -20,7 +22,7 @@ const LANG = {
     features:     ['المشاريع', 'العمّال', 'المالية الذكية'],
   },
   he: {
-    welcome:      'ברוך הבא ל-Contractor Pro',
+    welcome:      'ברוך הבא ל-Kabblan',
     subtitle:     'לפני שמתחילים, צור עסק כדי שתוכל לנהל פרויקטים ופיננסים',
     auto_title:   'התחל עם עסק כללי',
     auto_desc:    'ייווצר עסק בשם "כללי" — תוכל לערוך אותו מאוחר יותר',
@@ -32,7 +34,7 @@ const LANG = {
     features:     ['פרויקטים', 'עובדים', 'כספים חכמים'],
   },
   en: {
-    welcome:      'Welcome to Contractor Pro',
+    welcome:      'Welcome to Kabblan',
     subtitle:     'Before you start, create your business so you can manage projects and finances',
     auto_title:   'Start with a General Business',
     auto_desc:    'A business called "General" will be created — you can edit it later in settings',
@@ -47,13 +49,16 @@ const LANG = {
 
 const FEATURE_ICONS = [Building2, Users, Wallet]
 
-export default function FirstTimeSetup({ language = 'ar' }) {
+export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
   const t = LANG[language] ?? LANG.ar
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const { create, load } = useBusinessStore()
   const [mode,     setMode]     = useState(null)  // null | 'manual'
   const [creating, setCreating] = useState(false)
   const [err,      setErr]      = useState('')
+  const [step,       setStep]       = useState('calc')   // 'calc' | 'name'
+  const [workerVals, setWorkerVals] = useState(null)
+  const [workerName, setWorkerName] = useState('')
 
   async function handleAutoCreate() {
     setCreating(true)
@@ -61,11 +66,25 @@ export default function FirstTimeSetup({ language = 'ar' }) {
     try {
       await create({ name: t.default_name, business_type: 'osek_patur' })
       await load()
-      useAppStore.getState().celebrate('win', { label: 'مرحباً بك!' })
+      useAppStore.getState().celebrate('win', { label: tl(language, 'مرحباً بك!', 'ברוך הבא!', 'Welcome!') })
     } catch (e) {
       console.error(e)
-      setErr('حدث خطأ — حاول مجدداً')
+      setErr(tl(language, 'حدث خطأ — حاول مجدداً', 'אירעה שגיאה — נסה שוב', 'Something went wrong — try again'))
       setCreating(false)
+    }
+  }
+
+  // حفظ القيم المُدخلة في الحاسبة كأول عامل حقيقي (ينشئ مصلحة عامة إن لزم)
+  async function handleSaveWorker() {
+    if (!workerName.trim()) { setErr(tl(language, 'اكتب اسم العامل', 'הכנס שם עובד', 'Enter the worker name')); return }
+    setCreating(true); setErr('')
+    try {
+      await create({ name: t.default_name, business_type: 'osek_patur' })
+      await addEmployee({ name: workerName.trim(), daily_rate: workerVals?.dailyWage || 0 })
+      await load()
+      useAppStore.getState().celebrate('win', { label: tl(language, 'تمام! عاملك جاهز', 'מצוין! העובד שלך מוכן', 'Done! Your worker is ready') })
+    } catch (e) {
+      console.error(e); setErr(tl(language, 'حدث خطأ — حاول مجدداً', 'אירעה שגיאה — נסה שוב', 'Something went wrong — try again')); setCreating(false)
     }
   }
 
@@ -82,7 +101,7 @@ export default function FirstTimeSetup({ language = 'ar' }) {
             <ChevronLeft size={16} />
             {t.back}
           </button>
-          <BusinessSetup onDone={() => { load(); useAppStore.getState().celebrate('win', { label: 'مرحباً بك!' }) }} />
+          <BusinessSetup onDone={() => { load(); useAppStore.getState().celebrate('win', { label: tl(language, 'مرحباً بك!', 'ברוך הבא!', 'Welcome!') }) }} />
         </div>
       </div>
     )
@@ -127,6 +146,33 @@ export default function FirstTimeSetup({ language = 'ar' }) {
             })}
           </div>
         </div>
+
+        {/* الحاسبة الذكية = أول لحظة قيمة (راتب محسوب فوراً) ثم تتحوّل لأول عامل حقيقي */}
+        {step === 'calc' && (
+          <SalaryCalculator
+            mode="onboarding"
+            ctaLabel={tl(language, 'احفظ كعامل حقيقي وابدأ', 'שמור כעובד אמיתי והתחל', 'Save as a real worker and start')}
+            busy={creating}
+            onCta={(vals) => { setWorkerVals(vals); setStep('name') }}
+          />
+        )}
+
+        {step === 'name' && (
+          <div style={{ width: '100%', maxWidth: 440, margin: '0 auto' }}>
+            <label style={{ fontSize: 13, fontWeight: 700, color: C.textDim, marginBottom: 8, display: 'block' }}>{tl(language, 'اسم العامل', 'שם העובד', 'Worker name')}</label>
+            <input autoFocus value={workerName} onChange={e => setWorkerName(e.target.value)} placeholder={tl(language, 'مثلاً: محمود', 'לדוגמה: מחמוד', 'e.g. Mahmoud')}
+              style={{ width: '100%', padding: '14px 16px', borderRadius: 14, background: C.surface, border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 16, fontWeight: 700, fontFamily: 'inherit', outline: 'none', marginBottom: 12 }} />
+            <button onClick={handleSaveWorker} disabled={creating}
+              style={{ width: '100%', padding: '16px', borderRadius: 16, border: 'none', background: creating ? `${C.primary}40` : GRAD.primary, color: '#000', fontSize: 15, fontWeight: 800, fontFamily: 'inherit', cursor: creating ? 'not-allowed' : 'pointer' }}>
+              {creating ? tl(language, 'جاري الحفظ...', '...שומר', 'Saving...') : tl(language, 'تمام، ابدأ', 'מצוין, התחל', 'Done, start')}
+            </button>
+            <button onClick={() => { setStep('calc'); setErr('') }} style={{ width: '100%', marginTop: 8, background: 'none', border: 'none', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t.back}</button>
+          </div>
+        )}
+
+        {err && <div style={{ color: C.accent, fontSize: 13, textAlign: 'center', marginTop: 12 }}>{err}</div>}
+
+        <div style={{ textAlign: 'center', margin: '18px 0 8px', fontSize: 12, color: C.textDim }}>{tl(language, 'أو', 'או', 'or')}</div>
 
         {/* خيار 1: مصلحة عامة تلقائية */}
         <motion.button

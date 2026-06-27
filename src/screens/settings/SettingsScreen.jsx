@@ -31,6 +31,7 @@ import { useSubscription } from '../../hooks/useSubscription.js'
 import { usePlanStore, useHasFeature } from '../../store/usePlanStore.js'
 import { openCustomerPortal } from '../../lib/paddle.js'
 import PortalUpsell from '../../components/PortalUpsell.jsx'
+import { tl } from '../../lib/labels.js'
 
 const PLAN_META_UI = {
   free:     { label: 'مجانية', color: C.textDim },
@@ -351,7 +352,7 @@ export default function SettingsScreen({
     setTestNotifLoading(true)
     try {
       await supabase.functions.invoke('send-push', {
-        body: { user_ids: [userId], title: 'اختبار الإشعارات', body: 'وصل الإشعار بنجاح حتى بعد إغلاق التطبيق' }
+        body: { user_ids: [userId], title: tl(language, 'اختبار الإشعارات', 'בדיקת התראות', 'Notification test'), body: tl(language, 'وصل الإشعار بنجاح حتى بعد إغلاق التطبيق', 'ההתראה הגיעה בהצלחה גם לאחר סגירת האפליקציה', 'Notification delivered successfully even after closing the app') }
       })
     } catch {}
     setTestNotifLoading(false)
@@ -379,7 +380,7 @@ export default function SettingsScreen({
       setHasPasskey(true)
       setShowRegisterBio(false)
     } catch (e) {
-      setBioError(e.message || 'فشل تسجيل البصمة')
+      setBioError(e.message || tl(language, 'فشل تسجيل البصمة', 'רישום טביעת האצבע נכשל', 'Fingerprint registration failed'))
     } finally {
       setBioLoading(false)
     }
@@ -481,7 +482,7 @@ export default function SettingsScreen({
     hasPasskey,
     notifGranted:    permission === 'granted',
     dailySpendLimit: appCfg?.config?.daily_spend_limit,
-  }), [profile?.full_name, profile?.avatar_url, profile?.contractor_number, pensionMonthly, hasPasskey, permission, appCfg?.config?.daily_spend_limit])
+  }, language), [profile?.full_name, profile?.avatar_url, profile?.contractor_number, pensionMonthly, hasPasskey, permission, appCfg?.config?.daily_spend_limit, language])
 
   // الفئات المرئية (data/security للمالك فقط) + الفئة النشطة
   const visibleCategories = useMemo(
@@ -531,7 +532,7 @@ export default function SettingsScreen({
   const backupAgo = (() => {
     if (!backupAt) return null
     const days = Math.floor((Date.now() - new Date(backupAt)) / 86400000)
-    return days <= 0 ? 'اليوم' : days === 1 ? 'أمس' : `قبل ${days} يوم`
+    return days <= 0 ? tl(language, 'اليوم', 'היום', 'Today') : days === 1 ? tl(language, 'أمس', 'אתמול', 'Yesterday') : tl(language, `قبل ${days} يوم`, `לפני ${days} ימים`, `${days} days ago`)
   })()
 
   function addHolidayRow() {
@@ -564,7 +565,7 @@ export default function SettingsScreen({
       await deleteAccount()
       // إنهاء الجلسة داخل deleteAccount يُحوّل التطبيق لشاشة الدخول تلقائياً
     } catch (e) {
-      setDeleteError(e.message || 'فشل حذف الحساب')
+      setDeleteError(e.message || tl(language, 'فشل حذف الحساب', 'מחיקת החשבון נכשלה', 'Failed to delete account'))
       setDeleting(false)
     }
   }
@@ -667,7 +668,7 @@ export default function SettingsScreen({
             )}
           </div>
         </div>
-        <Row icon={Smartphone} label={language === 'he' ? 'התנתק מכל המכשירים' : language === 'en' ? 'Sign out everywhere' : 'تسجيل الخروج من كل الأجهزة'} color={C.cyan} value={globalConfirm ? (language === 'en' ? 'Tap to confirm' : 'اضغط للتأكيد') : ''} onClick={globalSignout} />
+        <Row icon={Smartphone} label={language === 'he' ? 'התנתק מכל המכשירים' : language === 'en' ? 'Sign out everywhere' : 'تسجيل الخروج من كل الأجهزة'} color={C.cyan} value={globalConfirm ? tl(language, 'اضغط للتأكيد', 'לחץ לאישור', 'Tap to confirm') : ''} onClick={globalSignout} />
         <Row icon={LogOut} label={language === 'he' ? 'יציאה' : language === 'en' ? 'Sign Out' : 'تسجيل الخروج'} danger onClick={() => supabase.auth.signOut()} last />
       </Section>
 
@@ -746,8 +747,8 @@ export default function SettingsScreen({
               <BellRing size={16} color={C.warning} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>تنبيه الرواتب المتأخّرة</div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>تنبيه يومي للعمّال اللي مستحقاتهم متأخّرة 14+ يوم</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'تنبيه الرواتب المتأخّرة', 'התראת שכר באיחור', 'Late salary alert')}</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{tl(language, 'تنبيه يومي للعمّال اللي مستحقاتهم متأخّرة 14+ يوم', 'התראה יומית על עובדים שזכאותם מתעכבת 14+ ימים', 'Daily alert for workers whose dues are 14+ days overdue')}</div>
             </div>
             <button onClick={() => setSalaryAlerts?.(!salaryAlerts)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: salaryAlerts ? C.success : C.textDim }}>
@@ -759,8 +760,8 @@ export default function SettingsScreen({
               <BellRing size={16} color={C.cyan} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>الملخّص اليومي</div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>إشعار يومي: الطلبات المعلّقة وصرف اليوم</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'الملخّص اليومي', 'סיכום יומי', 'Daily digest')}</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{tl(language, 'إشعار يومي: الطلبات المعلّقة وصرف اليوم', 'התראה יומית: בקשות ממתינות והוצאות היום', 'Daily notification: pending requests & today\'s spend')}</div>
             </div>
             <button onClick={() => setDailyDigest?.(!dailyDigest)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: dailyDigest ? C.success : C.textDim }}>
@@ -779,8 +780,8 @@ export default function SettingsScreen({
               <Banknote size={16} color={C.blue} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>قسط الפנסיה الشهري</div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>يُخصم من الوعاء الضريبي ويظهر الوفر في ملخص الضرائب</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'قسط التقاعد الشهري', 'הפקדת פנסיה חודשית', 'Monthly pension deposit')}</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{tl(language, 'يُخصم من الوعاء الضريبي ويظهر الوفر في ملخص الضرائب', 'מנוכה מבסיס המס והחיסכון מוצג בסיכום המסים', 'Deducted from the tax base; savings shown in the tax summary')}</div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input
@@ -800,8 +801,8 @@ export default function SettingsScreen({
               <Tag size={16} color={C.gold} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{language === 'he' ? 'מספר עוסק / ח.פ' : 'رقم العوسيك / ח.פ'}</div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>يظهر على الفواتير الرسمية وملخص الضرائب</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'رقم العوسيك / ח.פ', 'מספר עוסק / ח.פ', 'Business / Company ID')}</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{tl(language, 'يظهر على الفواتير الرسمية وملخص الضرائب', 'מופיע בחשבוניות הרשמיות ובסיכום המסים', 'Appears on official invoices and the tax summary')}</div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input
@@ -953,12 +954,17 @@ export default function SettingsScreen({
       {/* ── Subscription ── */}
       {permissions?.isOwner && (() => {
         const pm = PLAN_META_UI[plan] || PLAN_META_UI.free
+        // اسم الخطة المعروض — «مجانية» فقط تُترجم (الباقي أسماء تجارية ثابتة)
+        const planLabel = pm.label === 'مجانية' ? tl(language, 'مجانية', 'חינם', 'Free') : pm.label
         const paid = subIsActive()
+        const days = daysUntilPeriodEnd()
         const statusText = paid
           ? (isCanceling()
-              ? `يُلغى بعد ${daysUntilPeriodEnd() ?? 0} يوم`
-              : `نشط${daysUntilPeriodEnd() != null ? ` · تجديد بعد ${daysUntilPeriodEnd()} يوم` : ''}`)
-          : trialActive ? 'تجربة مجانية' : 'بدون اشتراك'
+              ? tl(language, `يُلغى بعد ${days ?? 0} يوم`, `מתבטל בעוד ${days ?? 0} ימים`, `Cancels in ${days ?? 0} days`)
+              : days != null
+                ? tl(language, `نشط · تجديد بعد ${days} يوم`, `פעיל · מתחדש בעוד ${days} ימים`, `Active · renews in ${days} days`)
+                : tl(language, 'نشط', 'פעיל', 'Active'))
+          : trialActive ? tl(language, 'تجربة مجانية', 'תקופת ניסיון חינם', 'Free trial') : tl(language, 'بدون اشتراك', 'ללא מנוי', 'No subscription')
         return (
           <Section icon={Shield} accent={C.gold} title={t('settings.subscription')}>
             {/* بطاقة الخطة الحالية */}
@@ -967,10 +973,10 @@ export default function SettingsScreen({
                 <Shield size={16} color={pm.color} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>خطتك الحالية: {pm.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{tl(language, 'خطتك الحالية', 'התוכנית הנוכחית שלך', 'Your current plan')}: {planLabel}</div>
                 <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{statusText}</div>
               </div>
-              <span style={{ fontSize: 10, fontWeight: 800, color: pm.color, background: `${pm.color}16`, border: `1px solid ${pm.color}3a`, borderRadius: 9, padding: '4px 9px', whiteSpace: 'nowrap' }}>{pm.label}</span>
+              <span style={{ fontSize: 10, fontWeight: 800, color: pm.color, background: `${pm.color}16`, border: `1px solid ${pm.color}3a`, borderRadius: 9, padding: '4px 9px', whiteSpace: 'nowrap' }}>{planLabel}</span>
             </div>
             {/* زر الإدارة: المشترك → بوّابة Paddle · غير المشترك → صفحة الأسعار */}
             {paid && subscription?.paddle_subscription_id ? (
@@ -996,9 +1002,9 @@ export default function SettingsScreen({
               <Database size={16} color={C.cyan} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>تصدير كل بياناتك</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'تصدير كل بياناتك', 'ייצא את כל הנתונים שלך', 'Export all your data')}</div>
               <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
-                {backupAgo ? `آخر نسخة: ${backupAgo}` : 'ملف JSON كامل (مشاريع · عمّال · مالية · إجازات)'}
+                {backupAgo ? tl(language, `آخر نسخة: ${backupAgo}`, `גיבוי אחרון: ${backupAgo}`, `Last backup: ${backupAgo}`) : tl(language, 'ملف JSON كامل (مشاريع · عمّال · مالية · إجازات)', 'קובץ JSON מלא (פרויקטים · עובדים · כספים · חגים)', 'Full JSON file (projects · workers · finances · holidays)')}
               </div>
             </div>
             <motion.button
@@ -1006,7 +1012,7 @@ export default function SettingsScreen({
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 11, background: GRAD.cyan, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: backingUp ? 'default' : 'pointer', fontFamily: 'inherit', flexShrink: 0, opacity: backingUp ? 0.7 : 1 }}
             >
               <Download size={13} strokeWidth={2.5} />
-              {backingUp ? '...' : 'تصدير'}
+              {backingUp ? '...' : tl(language, 'تصدير', 'ייצוא', 'Export')}
             </motion.button>
           </div>
         </Section>
@@ -1016,7 +1022,7 @@ export default function SettingsScreen({
       {permissions?.isOwner && (
         <Section icon={CalendarDays} accent={C.gold} title={language === 'he' ? 'חגים' : language === 'en' ? 'Holidays' : 'الإجازات الرسمية'}>
           <div style={{ padding: '12px 16px' }}>
-            <div style={{ fontSize: 10, color: C.textDim, marginBottom: 10 }}>الأيام المسجّلة هنا تُحتسب كعطل في حساب أيام العمل والرواتب.</div>
+            <div style={{ fontSize: 10, color: C.textDim, marginBottom: 10 }}>{tl(language, 'الأيام المسجّلة هنا تُحتسب كعطل في حساب أيام العمل والرواتب.', 'הימים הרשומים כאן נחשבים כחגים בחישוב ימי העבודה והשכר.', 'Days listed here count as holidays in work-day and payroll calculations.')}</div>
             {(holidays || []).length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
                 {[...holidays].sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(h => (
@@ -1035,7 +1041,7 @@ export default function SettingsScreen({
               <input type="date" value={holDate} onChange={e => setHolDate(e.target.value)}
                 style={{ width: 140, padding: '8px 10px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 12, fontFamily: 'inherit', outline: 'none' }} />
               <input value={holName} onChange={e => setHolName(e.target.value)}
-                placeholder="اسم العطلة..."
+                placeholder={tl(language, 'اسم العطلة...', 'שם החג...', 'Holiday name...')}
                 onKeyDown={e => { if (e.key === 'Enter') addHolidayRow() }}
                 style={{ flex: 1, padding: '8px 11px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 12, fontFamily: 'inherit', outline: 'none' }} />
               <button onClick={addHolidayRow}
@@ -1060,7 +1066,7 @@ export default function SettingsScreen({
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                Contractor Pro v{__APP_VERSION__}
+                كبلان v{__APP_VERSION__}
               </div>
               <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
                 {updateStatus === 'upToDate'
@@ -1131,16 +1137,18 @@ export default function SettingsScreen({
 
       {/* ── Security & Access Control ── */}
       {permissions?.isOwner && appCfg && (
-        <Section id="set-security" icon={Lock} accent={C.accent} title="الأمان والتحكم">
+        <Section id="set-security" icon={Lock} accent={C.accent} title={tl(language, 'الأمان والتحكم', 'אבטחה ובקרה', 'Security & control')}>
 
           {/* تنبيه: لا وسيلة فتح سريعة → القفل يطلب كلمة السر كل مرّة */}
           {!hasPasskey && !hasPin() && (
             <div style={{ margin: '12px 16px', padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start', background: `${C.warning}14`, border: `1px solid ${C.warning}3a`, borderRadius: 12 }}>
               <AlertTriangle size={17} color={C.warning} strokeWidth={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 800, color: C.text }}>ما في وسيلة فتح سريعة</div>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: C.text }}>{tl(language, 'ما في وسيلة فتح سريعة', 'אין אמצעי פתיחה מהיר', 'No quick unlock method')}</div>
                 <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 2, lineHeight: 1.5 }}>
-                  قفل الجلسة شغّال، لكن فتحه رح يتطلّب <b style={{ color: C.text }}>كلمة سرّ حسابك</b> كل مرّة. فعّل <b style={{ color: C.text }}>البصمة</b> أو عيّن <b style={{ color: C.text }}>PIN</b> (بالأسفل) لفتح أسرع.
+                  {language === 'he' ? <>נעילת ההפעלה פעילה, אך פתיחתה תדרוש <b style={{ color: C.text }}>את סיסמת החשבון שלך</b> בכל פעם. הפעל <b style={{ color: C.text }}>טביעת אצבע</b> או הגדר <b style={{ color: C.text }}>PIN</b> (למטה) לפתיחה מהירה יותר.</>
+                    : language === 'en' ? <>Session lock is on, but unlocking it will require <b style={{ color: C.text }}>your account password</b> every time. Enable <b style={{ color: C.text }}>fingerprint</b> or set a <b style={{ color: C.text }}>PIN</b> (below) for faster unlock.</>
+                    : <>قفل الجلسة شغّال، لكن فتحه رح يتطلّب <b style={{ color: C.text }}>كلمة سرّ حسابك</b> كل مرّة. فعّل <b style={{ color: C.text }}>البصمة</b> أو عيّن <b style={{ color: C.text }}>PIN</b> (بالأسفل) لفتح أسرع.</>}
                 </div>
               </div>
             </div>
@@ -1520,7 +1528,7 @@ export default function SettingsScreen({
 
       {/* App version */}
       <div style={{ textAlign: 'center', padding: '20px 0 8px', fontSize: 10, color: C.textDim }}>
-        Contractor Pro v{__APP_VERSION__} · {__BUILD_DATE__}
+        كبلان v{__APP_VERSION__} · {__BUILD_DATE__}
         <br />
         {language === 'he' ? 'כל הזכויות שמורות' : language === 'en' ? 'All rights reserved' : 'جميع الحقوق محفوظة'}
       </div>

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { ChevronDown, Medal, Crown, Gift } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
+import { tl } from '../lib/labels.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
 
 // ════════════════════════════════════════════════════════════════════════
@@ -33,7 +34,7 @@ function Sparkline({ bars = [], color }) {
 }
 
 export default function WorkerMonthStrip({
-  name, rank, workDays = 0, holidays = 0, total = 0, bars = [], isOpen = false, onToggle, isLast = false,
+  name, rank, workDays = 0, holidays = 0, total = 0, bars = [], isOpen = false, onToggle, isLast = false, language = 'ar',
 }) {
   const r = RANK[rank]
   const accent = r ? r.ring : C.secondary
@@ -67,12 +68,12 @@ export default function WorkerMonthStrip({
       <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 14, fontWeight: 900, color: C.text, letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name || '؟'}</span>
-          {rank === 1 && <span style={{ fontSize: 8, fontWeight: 800, color: C.gold, background: `${C.gold}1c`, border: `1px solid ${C.gold}40`, borderRadius: 20, padding: '1px 7px', flexShrink: 0 }}>الأعلى</span>}
+          {rank === 1 && <span style={{ fontSize: 8, fontWeight: 800, color: C.gold, background: `${C.gold}1c`, border: `1px solid ${C.gold}40`, borderRadius: 20, padding: '1px 7px', flexShrink: 0 }}>{tl(language, 'الأعلى', 'הגבוה ביותר', 'Top')}</span>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>{workDays} يوم</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>{workDays} {tl(language, 'يوم', 'ימים', 'days')}</span>
           {holidays > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 10, fontWeight: 700, color: C.warning }}><Gift size={9} strokeWidth={2.2} /> {holidays}</span>}
-          {avg > 0 && <><span style={{ width: 3, height: 3, borderRadius: '50%', background: C.textDim, opacity: 0.5 }} /><span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>₪{fmt(avg)}/يوم</span></>}
+          {avg > 0 && <><span style={{ width: 3, height: 3, borderRadius: '50%', background: C.textDim, opacity: 0.5 }} /><span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>₪{fmt(avg)}/{tl(language, 'يوم', 'יום', 'day')}</span></>}
         </div>
         <Sparkline bars={bars} color={accent} />
       </div>

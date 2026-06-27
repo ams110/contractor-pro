@@ -42,7 +42,7 @@ function Navbar() {
         <div style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }} onClick={() => navigate('/')}>
           <div style={{ width:40, height:40, borderRadius:13, background:GRAD.brand, display:'flex', alignItems:'center', justifyContent:'center' }}><HardHat size={21} color="#fff" strokeWidth={2} /></div>
           <div>
-            <div style={{ fontSize:16, fontWeight:900, color:C.text }}>Contractor Pro</div>
+            <div style={{ fontSize:16, fontWeight:900, color:C.text }}>كبلان</div>
             <div style={{ fontSize:10, color:C.textDim }}>קבלן פרו</div>
           </div>
         </div>
@@ -362,7 +362,7 @@ export default function PricingPage() {
         {/* ── Checkout feedback ── */}
         {checkoutSuccess && (
           <div style={{ maxWidth:600, margin:'0 auto 24px', padding:'16px 24px', background:`${C.success}18`, border:`1px solid ${C.success}44`, borderRadius:16, textAlign:'center', direction:'rtl', fontSize:14, color:C.success, fontWeight:700 }}>
-            <span style={{ display:'inline-flex', alignItems:'center', gap:6, justifyContent:'center' }}><CheckCircle2 size={16} strokeWidth={2.4} /> تم تفعيل اشتراكك بنجاح! مرحباً بك في Contractor Pro.</span>
+            <span style={{ display:'inline-flex', alignItems:'center', gap:6, justifyContent:'center' }}><CheckCircle2 size={16} strokeWidth={2.4} /> تم تفعيل اشتراكك بنجاح! مرحباً بك في كبلان.</span>
             <button onClick={() => navigate('/app')} style={{ display:'block', margin:'12px auto 0', background:C.success, border:'none', color:'#fff', fontSize:13, fontWeight:800, padding:'10px 24px', borderRadius:12, cursor:'pointer' }}>
               الدخول للتطبيق
             </button>
@@ -415,7 +415,7 @@ export default function PricingPage() {
           <div style={{ maxWidth:1120, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <HardHat size={16} color={C.primary} strokeWidth={2} />
-              <span style={{ fontSize:13, fontWeight:700, color:C.text }}>Contractor Pro</span>
+              <span style={{ fontSize:13, fontWeight:700, color:C.text }}>كبلان</span>
               <span style={{ fontSize:11, color:C.textDim }}>© {new Date().getFullYear()}</span>
             </div>
             <div style={{ display:'flex', gap:18, flexWrap:'wrap', alignItems:'center' }}>

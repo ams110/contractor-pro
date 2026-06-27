@@ -5,6 +5,8 @@ import { C } from '../constants/index.js'
 import { fmtDate } from '../lib/helpers.js'
 import { supabase } from '../lib/supabase.js'
 import { PremiumCard, IconChip } from '../ui/Premium.jsx'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 // ─── hook لجلب السجلات ────────────────────────────────────────────────────────
 function useMaterialLogsList(ownerId) {
@@ -53,6 +55,7 @@ function MetaTag({ icon: Icon, label, color }) {
 
 // ─── الشاشة الرئيسية ──────────────────────────────────────────────────────────
 export default function MaterialsScreen({ userId, employees = [], projects = [] }) {
+  const language = useAppStore(s => s.language)
   const { logs, loading, error, reload } = useMaterialLogsList(userId)
 
   const [filterEmp,     setFilterEmp]     = useState('')
@@ -81,8 +84,8 @@ export default function MaterialsScreen({ userId, employees = [], projects = [] 
         style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 16 }}>
         <IconChip icon={Package} tone="brand" size={40} radius={12} />
         <div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>سجلات البضاعة</div>
-          <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>المستلزمات المسجّلة من بوابة العمال</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{tl(language, 'سجلات البضاعة', 'יומני חומרים', 'Material logs')}</div>
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{tl(language, 'المستلزمات المسجّلة من بوابة العمال', 'חומרים שתועדו מפורטל העובדים', 'Materials logged from the worker portal')}</div>
         </div>
       </motion.div>
 
@@ -91,7 +94,7 @@ export default function MaterialsScreen({ userId, employees = [], projects = [] 
         <Search size={16} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
         <input
           value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="ابحث عن مادة..."
+          placeholder={tl(language, 'ابحث عن مادة...', 'חיפוש חומר...', 'Search material...')}
           style={{ width: '100%', padding: '11px 14px', paddingInlineStart: 40, borderRadius: 13, border: `1px solid ${C.borderMid}`, background: C.surface, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }}
         />
       </div>
@@ -101,20 +104,20 @@ export default function MaterialsScreen({ userId, employees = [], projects = [] 
         <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
           {empNames.length > 1 && (
             <select value={filterEmp} onChange={e => setFilterEmp(e.target.value)} style={selectStyle(!!filterEmp)}>
-              <option value="">كل العمال</option>
+              <option value="">{tl(language, 'كل العمال', 'כל העובדים', 'All workers')}</option>
               {empNames.map(n => <option key={n} value={n}>{n}</option>)}
             </select>
           )}
           {projNames.length > 1 && (
             <select value={filterProject} onChange={e => setFilterProject(e.target.value)} style={selectStyle(!!filterProject)}>
-              <option value="">كل المشاريع</option>
+              <option value="">{tl(language, 'كل المشاريع', 'כל הפרויקטים', 'All projects')}</option>
               {projNames.map(n => <option key={n} value={n}>{n}</option>)}
             </select>
           )}
           {(filterEmp || filterProject || search) && (
             <motion.button whileTap={{ scale: 0.96 }} onClick={() => { setFilterEmp(''); setFilterProject(''); setSearch('') }}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '9px 14px', borderRadius: 11, border: `1px solid ${C.accent}44`, background: `${C.accent}11`, color: C.accent, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-              <X size={13} strokeWidth={2.5} /> مسح
+              <X size={13} strokeWidth={2.5} /> {tl(language, 'مسح', 'נקה', 'Clear')}
             </motion.button>
           )}
         </div>
@@ -130,15 +133,15 @@ export default function MaterialsScreen({ userId, employees = [], projects = [] 
       {error && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: `${C.accent}15`, borderRadius: 13, border: `1px solid ${C.accent}33`, color: C.accent, fontSize: 13, marginBottom: 12 }}>
           <AlertTriangle size={15} strokeWidth={2.3} /> {error}
-          <button onClick={reload} style={{ marginInlineStart: 'auto', background: 'none', border: 'none', color: C.primary, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>إعادة المحاولة</button>
+          <button onClick={reload} style={{ marginInlineStart: 'auto', background: 'none', border: 'none', color: C.primary, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>{tl(language, 'إعادة المحاولة', 'נסה שוב', 'Retry')}</button>
         </div>
       )}
 
       {!loading && !error && filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: '44px 0', color: C.textDim }}>
           <IconChip icon={Package} tone="brand" size={52} radius={16} iconSize={26} style={{ margin: '0 auto 12px' }} />
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{logs.length === 0 ? 'لا توجد سجلات بعد' : 'لا نتائج للفلتر الحالي'}</div>
-          <div style={{ fontSize: 11, marginTop: 4 }}>العمال يسجّلون البضاعة من بوابتهم</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{logs.length === 0 ? tl(language, 'لا توجد سجلات بعد', 'אין יומנים עדיין', 'No logs yet') : tl(language, 'لا نتائج للفلتر الحالي', 'אין תוצאות לסינון הנוכחי', 'No results for the current filter')}</div>
+          <div style={{ fontSize: 11, marginTop: 4 }}>{tl(language, 'العمال يسجّلون البضاعة من بوابتهم', 'העובדים מתעדים חומרים מהפורטל שלהם', 'Workers log materials from their portal')}</div>
         </div>
       )}
 
@@ -169,9 +172,9 @@ export default function MaterialsScreen({ userId, employees = [], projects = [] 
       {/* إجمالي الظاهر */}
       {!loading && filtered.length > 1 && (
         <div style={{ marginTop: 8, padding: '11px 14px', background: `${C.primary}12`, borderRadius: 13, border: `1px solid ${C.primary}28`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: C.textDim, fontWeight: 600 }}>{filtered.length} سجل</span>
+          <span style={{ fontSize: 12, color: C.textDim, fontWeight: 600 }}>{filtered.length} {tl(language, 'سجل', 'רשומות', 'records')}</span>
           <button onClick={reload} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.primary, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit' }}>
-            <RefreshCw size={13} strokeWidth={2.3} /> تحديث
+            <RefreshCw size={13} strokeWidth={2.3} /> {tl(language, 'تحديث', 'רענון', 'Refresh')}
           </button>
         </div>
       )}

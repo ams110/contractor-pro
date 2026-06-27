@@ -80,7 +80,7 @@ export function calcBituachLeumiEmployee(monthlyGross) {
  * 'israeli'      — عامل إسرائيلي / مقيم (مدرجات عادية + نقاط زكاء)
  * 'foreign_res'  — أجنبي مقيم (نفس المدرجات، نقاط أقل)
  * 'foreign_non'  — أجنبي غير مقيم (20% ثابت، بدون نقاط)
- * 'palestinian'  — فلسطيني (20% מס הכנסה، ביטוח לאומי يدفعه صاحب العمل)
+ * 'palestinian'  — فلسطيني (20% מס הכנסה ، ביטוח לאומי يدفعه صاحب العمل)
  * 'self'         — عامل مستقل (לא שכיר — لا استقطاع)
  */
 export function calcWorkerDeductions(monthlyGross, workerType = 'israeli', taxPoints = DEFAULT_POINTS_ISRAELI) {

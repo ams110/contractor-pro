@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { C, GRAD } from '../constants/index.js'
 import { fmt, fmtDate } from '../lib/helpers.js'
+import { tEnum } from '../lib/labels.js'
 
 const L = (lang, ar, he, en) => (lang === 'en' ? en : lang === 'he' ? he : ar)
 const HEAT = [C.card, `${C.primary}33`, `${C.primary}66`, `${C.primary}aa`, C.primary]
@@ -61,7 +62,7 @@ export function AttendanceHeatmap({ heatmap, lang = 'ar' }) {
                 <motion.div key={ri}
                   initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: cell.future ? 0.25 : 1, scale: 1 }}
                   transition={{ delay: (ci * 7 + ri) * 0.001 }}
-                  title={`${cell.date}${cell.count ? ` · ₪${fmt(cell.amount)}${cell.dayType ? ' · ' + cell.dayType : ''}` : ''}`}
+                  title={`${cell.date}${cell.count ? ` · ₪${fmt(cell.amount)}${cell.dayType ? ' · ' + tEnum(cell.dayType, lang) : ''}` : ''}`}
                   style={{
                     width: 12, height: 12, borderRadius: 3,
                     background: cell.dayType === 'عطلة' ? `${C.gold}aa` : HEAT[cell.level],

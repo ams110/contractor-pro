@@ -148,7 +148,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     try {
       await signInWithPasskey()
       trackLogin('passkey')
-      navigate('/welcome')
+      navigate('/app')
     } catch (e) {
       if (e.name === 'SessionExpiredError' || e.message?.includes('SESSION_EXPIRED')) {
         setError(language === 'en' ? 'Session expired — sign in with password once.' : language === 'he' ? 'הפעלה פגה — היכנס עם סיסמה פעם אחת.' : 'انتهت الجلسة — سجّل الدخول بالباسورد مرة واحدة.')
@@ -174,7 +174,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
       await signInWithPin(candidate)
       setPinPhase('success')
       trackLogin('pin')
-      setTimeout(() => navigate('/welcome'), 350)
+      setTimeout(() => navigate('/app'), 350)
     } catch (e) {
       if (e.message?.includes('SESSION_EXPIRED')) {
         setError(language === 'en' ? 'Session expired — sign in with password once.' : language === 'he' ? 'ההפעלה פגה — היכנס עם סיסמה פעם אחת.' : 'انتهت الجلسة — سجّل الدخول بالباسورد مرة واحدة.')
@@ -195,7 +195,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     if (!email || !password) return
     setLoading(true); setError('')
     const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-    if (err) { setError(err.message || t('auth.wrongCredentials')) } else { trackLogin('password'); navigate('/welcome') }
+    if (err) { setError(err.message || t('auth.wrongCredentials')) } else { trackLogin('password'); navigate('/app') }
     setLoading(false)
   }
 
@@ -207,7 +207,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     try {
       await _teamSignIn(teamCode, teamPass)
       trackLogin('team')
-      navigate('/welcome')
+      navigate('/app')
     } catch (err) {
       setError(err.message || t('auth.wrongCredentials'))
     }
@@ -233,11 +233,11 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
       // وإلا نحاول تسجيل دخول تلقائي بنفس البيانات (يشتغل لحظة إطفاء التأكيد بلوحة Supabase)،
       // فإن لم تنجح (التأكيد ما زال مطلوباً) نعرض رسالة لطيفة بدل حائط «تحقّق من بريدك».
       if (data?.session) {
-        navigate('/welcome'); return
+        navigate('/app'); return
       }
       const { data: signInData } = await supabase.auth.signInWithPassword({ email, password: regPass })
       if (signInData?.session) {
-        navigate('/welcome')
+        navigate('/app')
       } else {
         setRegInfo(language === 'en' ? 'Account created! You can sign in now.' : language === 'he' ? 'החשבון נוצר! אפשר להיכנס עכשיו.' : 'تم إنشاء حسابك! تقدر تدخل الآن.')
       }
@@ -306,7 +306,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
               <HardHat size={40} color="#fff" strokeWidth={1.5} />
             </motion.div>
             <div style={{ fontSize: 28, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em', marginBottom: 6 }}>
-              Contractor Pro
+              كبلان
             </div>
             <div style={{ fontSize: 13, color: C.textDim, fontWeight: 500 }}>
               {language === 'he' ? 'נהל את הפרויקטים שלך בחוכמה' : language === 'en' ? 'Manage your projects smartly' : 'إدارة مشاريعك بذكاء'}

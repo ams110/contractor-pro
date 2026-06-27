@@ -5,6 +5,8 @@ import WelcomePage from './pages/WelcomePage.jsx'
 import LegalPage   from './pages/LegalPage.jsx'
 import BlogPage    from './pages/BlogPage.jsx'
 import ThankYouPage from './pages/ThankYouPage.jsx'
+import CalculatorPage from './pages/CalculatorPage.jsx'
+import VatCalculatorPage from './pages/VatCalculatorPage.jsx'
 import CookieConsent from './components/CookieConsent.jsx'
 import Celebration from './components/Celebration.jsx'
 import { ttPage } from './lib/tiktok.js'
@@ -64,6 +66,8 @@ export default function Router() {
   let page
   if (path === '/')              page = <LandingPage />
   else if (path === '/pricing')  page = <PricingPage />
+  else if (path === '/calculator') page = <CalculatorPage />
+  else if (path === '/vat-calculator') page = <VatCalculatorPage />
   else if (path === '/welcome')  page = <WelcomePage />
   else if (path === '/terms')    page = <LegalPage type="terms" />
   else if (path === '/privacy')  page = <LegalPage type="privacy" />

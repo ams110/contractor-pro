@@ -42,7 +42,8 @@ const DPR     = Number(env('DPR', 2))
 const FORMAT  = env('FORMAT', 'png').toLowerCase()
 const QUALITY = Number(env('QUALITY', 95))
 const BASE    = env('BASE', 'http://localhost:3000')
-const OUT     = resolve(process.cwd(), env('OUT', 'ads'))
+const LANG    = env('LANG', '')            // '' = عربي (افتراضي) · he = بوسترات عبرية (IDEAS_HE)
+const OUT     = resolve(process.cwd(), env('OUT', LANG ? `ads-${LANG}` : 'ads'))
 
 async function main() {
   if (!SIZES.length) { console.error('❌ لا مقاسات صالحة (square|portrait|story)'); process.exit(1) }
@@ -62,10 +63,13 @@ async function main() {
   for (const size of SIZES) {
     const { w, h } = DIMS[size]
     const ctx = await browser.newContext({ viewport: { width: w + 100, height: h + 60 }, deviceScaleFactor: DPR })
+    // 🔑 ابذر لغة التطبيق قبل أي تحميل حتى يبدأ i18n باللغة المطلوبة من أوّل لقطة
+    // (وإلا أوّل بوستر يُلتقط أثناء انتقال ar→he فيطلع نصف عربي).
+    if (LANG) await ctx.addInitScript((l) => { try { localStorage.setItem('cp_lang', l) } catch (e) {} }, LANG)
     const page = await ctx.newPage()
 
     for (const id of IDEAS) {
-      await page.goto(`${BASE}/adstudio?idea=${id}&size=${size}`, { waitUntil: 'networkidle' })
+      await page.goto(`${BASE}/adstudio?idea=${id}&size=${size}${LANG ? `&lang=${LANG}` : ''}`, { waitUntil: 'networkidle' })
       // انتظر ظهور عنصر البوستر بالأبعاد الصحيحة ثم علّمه
       try {
         await page.waitForFunction(({ ww, hh }) => {

@@ -7,6 +7,8 @@ import {
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../lib/whatsapp.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 
 const TONE = {
   excellent: { main: C.success, soft: 'rgba(34,197,94,0.14)',  glow: 'rgba(34,197,94,0.45)' },
@@ -21,6 +23,7 @@ const INSIGHT_TONE = { warn: C.accent, tip: C.cyan, good: C.success }
 const ICONS = { PhoneCall, AlertTriangle, Clock, CalendarClock, CheckCircle2 }
 
 export default function CollectionAging({ aging }) {
+  const language = useAppStore(s => s.language)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.2 })
   if (!aging || !aging.hasData) return null
@@ -46,12 +49,12 @@ export default function CollectionAging({ aging }) {
           <Hourglass size={15} color={t.main} strokeWidth={2.5} />
         </motion.div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>رادار التحصيل</div>
-          <div style={{ fontSize: 10, color: C.textDim }}>أعمار ذمم العملاء وأولوية الاتصال</div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'رادار التحصيل', 'רדאר גבייה', 'Collection radar')}</div>
+          <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'أعمار ذمم العملاء وأولوية الاتصال', 'גיל חובות הלקוחות ועדיפות יצירת קשר', 'Client receivables aging and call priority')}</div>
         </div>
         <div style={{ textAlign: 'end' }}>
           <div style={{ fontSize: 16, fontWeight: 900, color: t.main, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>₪{fmt(total)}</div>
-          <div style={{ fontSize: 9, color: C.textDim }}>إجمالي مستحقّ</div>
+          <div style={{ fontSize: 9, color: C.textDim }}>{tl(language, 'إجمالي مستحقّ', 'סך לגבייה', 'Total outstanding')}</div>
         </div>
       </div>
 
@@ -98,7 +101,7 @@ export default function CollectionAging({ aging }) {
       {/* قائمة أولوية الاتصال (أعلى 4) */}
       {aging.items.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em' }}>أولوية الاتصال</div>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.06em' }}>{tl(language, 'أولوية الاتصال', 'עדיפות יצירת קשר', 'Call priority')}</div>
           {aging.items.slice(0, 4).map((it, i) => {
             const bc = BUCKET_COLOR[it.bucket]
             return (
@@ -109,13 +112,13 @@ export default function CollectionAging({ aging }) {
                   <div style={{ fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {it.client || it.name}
                   </div>
-                  <div style={{ fontSize: 10, color: C.textDim }}>{it.name} · متأخّر {it.daysSince} يوم</div>
+                  <div style={{ fontSize: 10, color: C.textDim }}>{it.name} · {tl(language, `متأخّر ${it.daysSince} يوم`, `באיחור ${it.daysSince} ימים`, `${it.daysSince} days overdue`)}</div>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 900, color: bc, fontFamily: 'monospace' }}>₪{fmt(it.outstanding)}</div>
                 {it.phone && (
                   <button onClick={() => remind(it)}
                     style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 11px', borderRadius: 10, background: `${C.success}18`, border: `1.5px solid ${C.success}44`, color: C.success, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    <MessageCircle size={12} strokeWidth={2} /> تذكير
+                    <MessageCircle size={12} strokeWidth={2} /> {tl(language, 'تذكير', 'תזכורת', 'Reminder')}
                   </button>
                 )}
               </motion.div>

@@ -27,8 +27,8 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
         id: base,
-        name: 'Contractor Pro — إدارة المقاولات',
-        short_name: 'Contractor Pro',
+        name: 'كبلان — إدارة المقاولات',
+        short_name: 'كبلان',
         description: 'تطبيق إدارة المقاولات للمقاول العربي في إسرائيل: المشاريع، العمّال، أيام العمل، الرواتب، المصاريف، والضرائب.',
         categories: ['business', 'productivity', 'finance'],
         theme_color: '#F97316',
@@ -56,7 +56,7 @@ export default defineConfig({
     }),
   ],
   base,
-  server: { port: 3000 },
+  server: { port: Number(process.env.PORT) || 3000 },
   // اختبارات الوحدة (Vitest) — استثناء مواصفات Playwright E2E كي لا تُلتقط كـ"فشل"
   test: {
     exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**'],

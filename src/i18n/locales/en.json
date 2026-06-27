@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Contractor Pro",
+    "name": "Kabblan",
     "tagline": "Manage your projects smartly"
   },
   "nav": {
@@ -135,7 +135,7 @@
     "banner":   "Free Trial — {{days}} days remaining",
     "expired":  "Your free trial has ended",
     "subscribe":"Subscribe Now",
-    "message":  "All your data is saved. Subscribe to continue using Contractor Pro."
+    "message":  "All your data is saved. Subscribe to continue using Kabblan."
   },
   "offline": {
     "message": "No connection — data saved locally",
@@ -144,7 +144,7 @@
     "offlineFor": "Offline for {{time}}"
   },
   "onboarding": {
-    "welcome":   "Welcome to Contractor Pro",
+    "welcome":   "Welcome to Kabblan",
     "subtitle":  "Here are the key features to get you started",
     "projects":  "Add projects and track profits and expenses for each",
     "workers":   "Manage your team, salaries, and advances easily",

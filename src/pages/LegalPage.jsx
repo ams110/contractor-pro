@@ -16,7 +16,7 @@ const GRAD = { brand: 'linear-gradient(135deg, #F97316, #DC2626)' }
 // ─── إعدادات قابلة للتعديل ──────────────────────────────────────────────────────
 // عدّل هاي القيم لتطابق بياناتك القانونية الفعلية.
 export const LEGAL_INFO = {
-  product:      'Contractor Pro',
+  product:      'كبلان',
   company:      'Linko',                       // ← الاسم القانوني للمشغّل
   domain:       'app.linko.services',
   supportEmail: 'contractor.pro.linko@gmail.com', // ← بريد الدعم الرسمي
@@ -183,7 +183,7 @@ function TopBar() {
           <div style={{ width: 38, height: 38, borderRadius: 12, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <HardHat size={19} color="#fff" strokeWidth={2.5} />
           </div>
-          <span style={{ fontSize: 15, fontWeight: 900, color: C.text }}>Contractor Pro</span>
+          <span style={{ fontSize: 15, fontWeight: 900, color: C.text }}>كبلان</span>
         </div>
         <button onClick={() => navigate('/')} className="lg-btn"
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: `1px solid ${C.borderMid}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '8px 16px', borderRadius: 12 }}>

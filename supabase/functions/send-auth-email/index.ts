@@ -5,7 +5,7 @@
 // الإعداد المطلوب (أسرار الـ Edge Function):
 //   RESEND_API_KEY            — مفتاح Resend
 //   SEND_EMAIL_HOOK_SECRET    — سرّ الـ hook من Supabase (صيغة Standard Webhooks: v1,whsec_...)
-//   EMAIL_FROM                — مثال: "Contractor Pro <noreply@linko.services>"
+//   EMAIL_FROM                — مثال: "Kabblan <noreply@linko.services>"
 //   APP_URL                   — رابط التطبيق (افتراضي https://app.linko.services)
 //   SUPABASE_URL              — متوفّر تلقائياً
 //
@@ -15,7 +15,7 @@ import { Webhook } from 'https://esm.sh/standardwebhooks@1.0.0'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? ''
 const HOOK_SECRET    = Deno.env.get('SEND_EMAIL_HOOK_SECRET') ?? ''
-const EMAIL_FROM     = Deno.env.get('EMAIL_FROM') ?? 'Contractor Pro <noreply@linko.services>'
+const EMAIL_FROM     = Deno.env.get('EMAIL_FROM') ?? 'Kabblan <noreply@linko.services>'
 const APP_URL        = Deno.env.get('APP_URL') ?? 'https://app.linko.services'
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL') ?? ''
 
@@ -34,7 +34,7 @@ function shell(title: string, body: string, ctaText: string, ctaUrl: string): st
   <div style="max-width:480px;margin:0 auto;padding:32px 20px">
     <div style="text-align:center;margin-bottom:24px">
       <div style="display:inline-block;width:54px;height:54px;line-height:54px;border-radius:16px;background:linear-gradient(135deg,#F97316,#DC2626);color:#fff;font-size:26px;font-weight:900">🏗️</div>
-      <div style="color:${C.text};font-size:18px;font-weight:800;margin-top:10px">Contractor Pro</div>
+      <div style="color:${C.text};font-size:18px;font-weight:800;margin-top:10px">كبلان</div>
     </div>
     <div style="background:${C.card};border:1px solid rgba(249,115,22,0.18);border-radius:18px;padding:28px 24px">
       <h1 style="color:${C.text};font-size:20px;font-weight:800;margin:0 0 14px">${title}</h1>
@@ -45,7 +45,7 @@ function shell(title: string, body: string, ctaText: string, ctaUrl: string): st
       </div>
     </div>
     <div style="text-align:center;color:${C.dim};font-size:11px;margin-top:20px;line-height:1.6">
-      إذا لم تطلب هذا الإيميل، تجاهله بأمان.<br>© ${new Date().getFullYear()} Contractor Pro
+      إذا لم تطلب هذا الإيميل، تجاهله بأمان.<br>© ${new Date().getFullYear()} كبلان
     </div>
   </div>
 </body></html>`
@@ -56,7 +56,7 @@ function renderEmail(type: string, link: string): { subject: string; html: strin
   switch (type) {
     case 'signup':
       return {
-        subject: 'فعّل حسابك في Contractor Pro',
+        subject: 'فعّل حسابك في كبلان',
         html: shell('مرحباً بك! 👋', 'يسعدنا انضمامك. اضغط الزر لتأكيد بريدك وبدء تجربتك المجانية لمدة 14 يوماً.', 'تأكيد البريد وبدء التجربة', link),
       }
     case 'recovery':
@@ -66,7 +66,7 @@ function renderEmail(type: string, link: string): { subject: string; html: strin
       }
     case 'magiclink':
       return {
-        subject: 'رابط الدخول إلى Contractor Pro',
+        subject: 'رابط الدخول إلى كبلان',
         html: shell('رابط الدخول السريع', 'اضغط الزر للدخول إلى حسابك مباشرة بدون كلمة مرور.', 'الدخول الآن', link),
       }
     case 'email_change':
@@ -78,13 +78,13 @@ function renderEmail(type: string, link: string): { subject: string; html: strin
       }
     case 'invite':
       return {
-        subject: 'دعوة للانضمام إلى Contractor Pro',
+        subject: 'دعوة للانضمام إلى كبلان',
         html: shell('تمّت دعوتك 🎉', 'تمّت دعوتك للانضمام. اضغط الزر لقبول الدعوة وإعداد حسابك.', 'قبول الدعوة', link),
       }
     default:
       return {
-        subject: 'Contractor Pro',
-        html: shell('إشعار من Contractor Pro', 'اضغط الزر للمتابعة.', 'متابعة', link),
+        subject: 'كبلان',
+        html: shell('إشعار من كبلان', 'اضغط الزر للمتابعة.', 'متابعة', link),
       }
   }
 }

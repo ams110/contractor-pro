@@ -2,8 +2,10 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Building2, ChevronLeft, Check } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
-import { useBusinessStore, BUSINESS_TYPES } from '../../store/useBusinessStore.js'
+import { useBusinessStore, BUSINESS_TYPES, bizTypeDesc } from '../../store/useBusinessStore.js'
 import { supabase } from '../../lib/supabase.js'
+import { tl } from '../../lib/labels.js'
+import { useAppStore } from '../../store/useAppStore.js'
 
 const inp = {
   width: '100%',
@@ -21,6 +23,7 @@ const inp = {
 
 export default function BusinessSetup({ onDone }) {
   const createBusiness = useBusinessStore(s => s.create)
+  const language = useAppStore(s => s.language)
 
   const [form, setForm] = useState({
     name:          '',
@@ -35,7 +38,7 @@ export default function BusinessSetup({ onDone }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   async function handleSave() {
-    if (!form.name.trim()) { setError('اسم المصلحة مطلوب'); return }
+    if (!form.name.trim()) { setError(tl(language, 'اسم المصلحة مطلوب', 'שם העסק נדרש', 'Business name is required')); return }
     setSaving(true)
     setError('')
     try {
@@ -69,7 +72,7 @@ export default function BusinessSetup({ onDone }) {
 
       onDone?.()
     } catch (e) {
-      setError('حدث خطأ، حاول مرة أخرى')
+      setError(tl(language, 'حدث خطأ، حاول مرة أخرى', 'אירעה שגיאה, נסה שוב', 'An error occurred, try again'))
       console.error(e)
     } finally {
       setSaving(false)
@@ -99,10 +102,10 @@ export default function BusinessSetup({ onDone }) {
         {/* Title */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>
-            مرحباً بك في المالية
+            {tl(language, 'مرحباً بك في المالية', 'ברוך הבא לפיננסים', 'Welcome to Finance')}
           </div>
           <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.6 }}>
-            ابدأ بإضافة مصلحتك الأولى لتتبع مدخولاتك ومصاريفك وأرشفة فواتيرك
+            {tl(language, 'ابدأ بإضافة مصلحتك الأولى لتتبع مدخولاتك ومصاريفك وأرشفة فواتيرك', 'התחל בהוספת העסק הראשון שלך כדי לעקוב אחר ההכנסות, ההוצאות וארכיון החשבוניות', 'Start by adding your first business to track income, expenses and archive invoices')}
           </div>
         </div>
 
@@ -112,14 +115,14 @@ export default function BusinessSetup({ onDone }) {
           {/* اسم المصلحة */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>
-              اسم المصلحة / الشركة <span style={{ color: C.accent }}>*</span>
+              {tl(language, 'اسم المصلحة / الشركة', 'שם העסק / החברה', 'Business / Company name')} <span style={{ color: C.accent }}>*</span>
             </div>
             <input
               value={form.name}
               onChange={e => set('name', e.target.value)}
               onFocus={() => setFocus('name')}
               onBlur={() => setFocus('')}
-              placeholder="مثال: מקבלנות הצפון"
+              placeholder={tl(language, 'مثال: מקבלנות הצפון', 'דוגמה: קבלנות הצפון', 'e.g. North Contracting')}
               style={{ ...inp, borderColor: focus === 'name' ? C.primary : C.border }}
             />
           </div>
@@ -127,7 +130,7 @@ export default function BusinessSetup({ onDone }) {
           {/* نوع المصلحة */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 8 }}>
-              نوع المصلحة <span style={{ color: C.accent }}>*</span>
+              {tl(language, 'نوع المصلحة', 'סוג העסק', 'Business type')} <span style={{ color: C.accent }}>*</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {BUSINESS_TYPES.map(bt => {
@@ -159,7 +162,7 @@ export default function BusinessSetup({ onDone }) {
                       <div style={{ fontSize: 14, fontWeight: 700, color: active ? C.primary : C.text, direction: 'rtl' }}>
                         {bt.label}
                       </div>
-                      <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{bt.desc}</div>
+                      <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{bizTypeDesc(bt, language)}</div>
                     </div>
                   </button>
                 )
@@ -170,8 +173,10 @@ export default function BusinessSetup({ onDone }) {
           {/* رقم ע.מ */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>
-              {form.business_type === 'hevra' ? 'رقم ח.פ' : 'رقم ע.מ'}
-              <span style={{ color: C.textDim, fontWeight: 400, marginRight: 4 }}>(اختياري)</span>
+              {form.business_type === 'hevra'
+                ? tl(language, 'رقم ח.פ', 'מספר ח.פ', 'Company no. (ח.פ)')
+                : tl(language, 'رقم ע.מ', 'מספר ע.מ', 'Business no. (ע.מ)')}
+              <span style={{ color: C.textDim, fontWeight: 400, marginRight: 4 }}>{tl(language, '(اختياري)', '(אופציונלי)', '(optional)')}</span>
             </div>
             <input
               value={form.reg_number}
@@ -187,8 +192,8 @@ export default function BusinessSetup({ onDone }) {
           {/* الهاتف */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>
-              رقم الهاتف
-              <span style={{ color: C.textDim, fontWeight: 400, marginRight: 4 }}>(اختياري)</span>
+              {tl(language, 'رقم الهاتف', 'מספר טלפון', 'Phone number')}
+              <span style={{ color: C.textDim, fontWeight: 400, marginRight: 4 }}>{tl(language, '(اختياري)', '(אופציונלי)', '(optional)')}</span>
             </div>
             <input
               value={form.phone}
@@ -222,9 +227,9 @@ export default function BusinessSetup({ onDone }) {
               transition: 'all .2s',
             }}
           >
-            {saving ? 'جاري الحفظ...' : (
+            {saving ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : (
               <>
-                حفظ والمتابعة
+                {tl(language, 'حفظ والمتابعة', 'שמור והמשך', 'Save & continue')}
                 <ChevronLeft size={16} strokeWidth={2.5} />
               </>
             )}
@@ -232,7 +237,7 @@ export default function BusinessSetup({ onDone }) {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: C.textDim }}>
-          يمكنك إضافة مصالح أخرى لاحقاً في أي وقت
+          {tl(language, 'يمكنك إضافة مصالح أخرى لاحقاً في أي وقت', 'תוכל להוסיף עסקים נוספים בכל עת', 'You can add more businesses anytime')}
         </div>
       </motion.div>
     </div>

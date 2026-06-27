@@ -3,6 +3,8 @@ import { motion } from 'framer-motion'
 import { ReceiptText, ArrowDownLeft, ArrowUpRight, Image as ImageIcon } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
 
 // ════════════════════════════════════════════════════════════════════════
@@ -12,11 +14,14 @@ import { HolographicSheen } from '../ui/Premium.jsx'
 // ════════════════════════════════════════════════════════════════════════
 export default function ReceiptCard({
   accent = C.success, refNumber, date, title, subtitle,
-  amount, amountLabel = 'قُبض', direction = 'in', // 'in' أخضر داخل / 'out' أحمر خارج
-  chips = [], onView, viewLabel = 'عرض الإيصال', actions, children,
+  amount, amountLabel, direction = 'in', // 'in' أخضر داخل / 'out' أحمر خارج
+  chips = [], onView, viewLabel, actions, children,
   notchColor = C.bg, delay = 0,
 }) {
+  const language = useAppStore(s => s.language)
   const AmountIcon = direction === 'out' ? ArrowUpRight : ArrowDownLeft
+  const amountLabelText = amountLabel ?? tl(language, 'قُبض', 'נגבה', 'Received')
+  const viewLabelText = viewLabel ?? tl(language, 'عرض الإيصال', 'הצג קבלה', 'View receipt')
   return (
     <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 40 }} transition={{ delay }}
       style={{ position: 'relative', overflow: 'hidden', borderRadius: 16, marginBottom: 9,
@@ -67,11 +72,11 @@ export default function ReceiptCard({
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 13px 11px', minHeight: 32 }}>
         {onView
           ? <button onClick={onView} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 700, color: C.primary, background: `${C.primary}14`, border: `1px solid ${C.primary}30`, borderRadius: 9, padding: '5px 10px', cursor: 'pointer', fontFamily: 'inherit' }}>
-              <ImageIcon size={12} strokeWidth={2.2} /> {viewLabel}
+              <ImageIcon size={12} strokeWidth={2.2} /> {viewLabelText}
             </button>
           : <span />}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-          <span style={{ fontSize: 9.5, color: C.textDim, fontWeight: 600 }}>{amountLabel}</span>
+          <span style={{ fontSize: 9.5, color: C.textDim, fontWeight: 600 }}>{amountLabelText}</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 18, fontWeight: 900, color: accent, letterSpacing: '-0.02em' }}>
             <AmountIcon size={14} strokeWidth={2.6} />₪{fmt(amount || 0)}
           </span>

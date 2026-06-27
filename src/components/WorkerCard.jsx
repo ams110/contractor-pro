@@ -7,6 +7,7 @@ import {
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../lib/whatsapp.js'
+import { tEnum } from '../lib/labels.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
 import PortalUpsell from './PortalUpsell.jsx'
 
@@ -77,7 +78,7 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
               </div>
               {worker.specialty && (
                 <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', padding: '4px 9px', borderRadius: 999, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.26)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>
-                  {worker.specialty}
+                  {tEnum(worker.specialty, lang)}
                 </span>
               )}
             </div>

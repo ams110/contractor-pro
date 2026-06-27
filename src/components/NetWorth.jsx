@@ -6,6 +6,8 @@ import {
 } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 import { PremiumCard, IconChip, InsightRow, INSIGHT_TONE, TONES, useCountUp, Money } from '../ui/Premium.jsx'
 
 const ICONS = { Wallet, DollarSign, Users, Clock, Landmark, AlertTriangle, CheckCircle2, ShieldCheck }
@@ -18,6 +20,7 @@ function segColor(seg, t) {
 }
 
 export default function NetWorth({ netWorth, onNav }) {
+  const language = useAppStore(s => s.language)
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, amount: 0.2 })
   // الـ hook يُستدعى قبل أي return مبكّر (قاعدة React Hooks)
@@ -44,8 +47,8 @@ export default function NetWorth({ netWorth, onNav }) {
             <IconChip icon={Landmark} color={t.main} size={30} radius={10} iconSize={16} strokeWidth={2.5} />
           </motion.div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>ذمّتك الصافية</div>
-            <div style={{ fontSize: 10, color: C.textDim }}>لو صفّيت كل حساباتك اليوم</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'ذمّتك الصافية', 'ההון הנקי שלך', 'Your Net Worth')}</div>
+            <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'لو صفّيت كل حساباتك اليوم', 'אם תסגור את כל החשבונות שלך היום', 'If you settled all your accounts today')}</div>
           </div>
           {/* شارة التغطية / الحالة */}
           {liabilities > 0 && coverage != null ? (
@@ -58,14 +61,14 @@ export default function NetWorth({ netWorth, onNav }) {
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 9, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.30)' }}>
               <ShieldCheck size={12} color={C.success} strokeWidth={2.3} />
-              <span style={{ fontSize: 11, fontWeight: 800, color: C.success }}>بلا ديون</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: C.success }}>{tl(language, 'بلا ديون', 'ללא חובות', 'Debt-free')}</span>
             </div>
           )}
         </div>
 
         {/* الرقم المركزي */}
         <div style={{ marginBottom: 14, position: 'relative' }}>
-          <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600, marginBottom: 5 }}>صافي مركزك الآن</div>
+          <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600, marginBottom: 5 }}>{tl(language, 'صافي مركزك الآن', 'המאזן הנקי שלך כעת', 'Your net position now')}</div>
           <Money v={netDisplay} color={t.main} size={36} />
         </div>
 

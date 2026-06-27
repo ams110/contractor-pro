@@ -10,12 +10,13 @@ import { todayStr } from '../../lib/helpers.js'
 import { uploadReceipt } from '../../lib/storage.js'
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm.js'
 import { useAppStore } from '../../store/useAppStore.js'
+import { tl, tEnum } from '../../lib/labels.js'
 
 const METHODS = [
-  { id: 'cash',     label: 'كاش',            Icon: Banknote   },
-  { id: 'transfer', label: 'تحويل بنكي',     Icon: Building   },
-  { id: 'check',    label: 'شيك',             Icon: CreditCard },
-  { id: 'app',      label: 'בנקאות סלולרית', Icon: Smartphone },
+  { id: 'cash',     label: 'كاش',            he: 'מזומן',          en: 'Cash',          Icon: Banknote   },
+  { id: 'transfer', label: 'تحويل بنكي',     he: 'העברה בנקאית',   en: 'Bank transfer', Icon: Building   },
+  { id: 'check',    label: 'شيك',             he: "צ'ק",            en: 'Cheque',        Icon: CreditCard },
+  { id: 'app',      label: 'בנקאות סלולרית', he: 'בנקאות סלולרית', en: 'Mobile banking', Icon: Smartphone },
 ]
 
 const CAT_COLORS = ['#F59E0B','#22C55E','#3B82F6','#8B5CF6','#EC4899','#06B6D4','#F97316','#EF4444','#84CC16','#94A3B8']
@@ -72,6 +73,7 @@ export default function AddExpenseSheet({
   const fileRef = useRef()
   const { confirm: bioConfirm, hasAnyMethod } = useBiometricConfirm()
   const showToast = useAppStore(s => s.showToast)
+  const language = useAppStore(s => s.language)
 
   const lockedProject = !!defaultProjectId
   const noProjects    = projects.length === 0 && !lockedProject
@@ -102,8 +104,8 @@ export default function AddExpenseSheet({
 
   function validate() {
     const next = {}
-    if (!form.project_id) next.project_id = 'اختر المشروع أو "مصروف عام"'
-    if (!form.amount || Number(form.amount) <= 0) next.amount = 'أدخل المبلغ'
+    if (!form.project_id) next.project_id = tl(language, 'اختر المشروع أو "مصروف عام"', 'בחר פרויקט או "הוצאה כללית"', 'Select a project or "General expense"')
+    if (!form.amount || Number(form.amount) <= 0) next.amount = tl(language, 'أدخل المبلغ', 'הזן סכום', 'Enter amount')
     setErr(next)
     return Object.keys(next).length === 0
   }
@@ -111,7 +113,7 @@ export default function AddExpenseSheet({
   async function handleSave() {
     if (!validate()) return
     if (hasAnyMethod()) {
-      const sig = await bioConfirm(`تسجيل مصروف: ₪${form.amount} — ${form.category}`, 'expenses')
+      const sig = await bioConfirm(`${tl(language, 'تسجيل مصروف', 'רישום הוצאה', 'Record expense')}: ₪${form.amount} — ${tEnum(form.category, language)}`, 'expenses')
       if (!sig) return
     }
     setSaving(true)
@@ -142,7 +144,7 @@ export default function AddExpenseSheet({
     } catch (e) {
       console.error(e)
       setSaving(false)
-      showToast?.(e?.message || 'تعذّر حفظ المصروف — حاول مرة أخرى', 'error')
+      showToast?.(e?.message || tl(language, 'تعذّر حفظ المصروف — حاول مرة أخرى', 'שמירת ההוצאה נכשלה — נסה שוב', 'Could not save expense — try again'), 'error')
     }
   }
 
@@ -151,9 +153,9 @@ export default function AddExpenseSheet({
   const showFormBody = !noProjects || isGeneralSelected
   const rate = vatDeductRate(form.category)
   const vatLabel =
-    rate >= 1.0 ? `${'מע"מ'} قابل للخصم 100%` :
-    rate >= 0.6 ? `${'מע"מ'} قابل للخصم 67%`  :
-                  `${'מע"מ'} غير قابل للخصم`
+    rate >= 1.0 ? tl(language, 'מע"מ قابل للخصم 100%', 'מע"מ לניכוי 100%', 'VAT deductible 100%') :
+    rate >= 0.6 ? tl(language, 'מע"מ قابل للخصم 67%',  'מע"מ לניכוי 67%',  'VAT deductible 67%')  :
+                  tl(language, 'מע"מ غير قابل للخصم',  'מע"מ לא לניכוי',   'VAT not deductible')
   const vatColor = rate >= 1.0 ? '#22C55E' : rate >= 0.6 ? '#F59E0B' : '#EF4444'
 
   return createPortal(
@@ -169,7 +171,7 @@ export default function AddExpenseSheet({
 
             {/* Header */}
             <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>تسجيل مصروف</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{tl(language, 'تسجيل مصروف', 'רישום הוצאה', 'Record expense')}</div>
               <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex' }}>
                 <X size={18} />
               </button>
@@ -183,19 +185,19 @@ export default function AddExpenseSheet({
                 <div style={{ textAlign: 'center', padding: '12px 0 16px' }}>
                   <FolderOpen size={36} color={C.warning} style={{ marginBottom: 12, opacity: 0.7 }} />
                   <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 6 }}>
-                    ما في مشاريع في هذه المصلحة
+                    {tl(language, 'ما في مشاريع في هذه المصلحة', 'אין פרויקטים בעסק זה', 'No projects in this business')}
                   </div>
                   <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, marginBottom: 16 }}>
-                    تقدر تسجل مصروف عام على المصلحة، أو تنشئ مشروع لربطه فيه.
+                    {tl(language, 'تقدر تسجل مصروف عام على المصلحة، أو تنشئ مشروع لربطه فيه.', 'אפשר לרשום הוצאה כללית על העסק, או ליצור פרויקט לקשר אליו.', 'You can record a general business expense, or create a project to link it to.')}
                   </div>
                   <button onClick={() => set('project_id', GENERAL_VALUE)}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '11px 18px', background: form.project_id === GENERAL_VALUE ? `${C.warning}25` : 'rgba(255,255,255,0.05)', border: `1.5px solid ${form.project_id === GENERAL_VALUE ? C.warning : C.border}`, borderRadius: 12, color: form.project_id === GENERAL_VALUE ? C.warning : C.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>
-                    <Globe size={14} /> مصروف عام على المصلحة
+                    <Globe size={14} /> {tl(language, 'مصروف عام على المصلحة', 'הוצאה כללית על העסק', 'General business expense')}
                   </button>
                   <div>
                     <button onClick={() => { onClose(); onGoToProjects?.() }}
                       style={{ background: 'none', border: 'none', color: C.primary, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
-                      أو إنشاء مشروع جديد →
+                      {tl(language, 'أو إنشاء مشروع جديد →', 'או יצירת פרויקט חדש →', 'Or create a new project →')}
                     </button>
                   </div>
                 </div>
@@ -204,7 +206,7 @@ export default function AddExpenseSheet({
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
                     <FolderOpen size={11} />
-                    المشروع <span style={{ color: C.accent }}>*</span>
+                    {tl(language, 'المشروع', 'פרויקט', 'Project')} <span style={{ color: C.accent }}>*</span>
                     {lockedProject && <Lock size={9} style={{ marginRight: 'auto' }} />}
                   </div>
                   {lockedProject ? (
@@ -222,8 +224,8 @@ export default function AddExpenseSheet({
                     <select value={form.project_id} onChange={e => set('project_id', e.target.value)}
                       onFocus={() => setFocus('proj')} onBlur={() => setFocus('')}
                       style={{ ...inp(focus, 'proj', err.project_id), cursor: 'pointer' }}>
-                      <option value="">— اختر —</option>
-                      <option value={GENERAL_VALUE}>مصروف عام على المصلحة (بدون مشروع)</option>
+                      <option value="">{tl(language, '— اختر —', '— בחר —', '— Select —')}</option>
+                      <option value={GENERAL_VALUE}>{tl(language, 'مصروف عام على المصلحة (بدون مشروع)', 'הוצאה כללית על העסק (ללא פרויקט)', 'General business expense (no project)')}</option>
                       <option disabled>──────────</option>
                       {projects.map(p => (
                         <option key={p.id} value={p.id}>
@@ -239,7 +241,7 @@ export default function AddExpenseSheet({
                   )}
                   {isGeneralSelected && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, padding: '6px 10px', background: `${C.warning}12`, border: `1px solid ${C.warning}30`, borderRadius: 8, fontSize: 10, color: C.warning, fontWeight: 600 }}>
-                      <Globe size={10} /> مصروف عام على المصلحة، مش مربوط بمشروع محدد.
+                      <Globe size={10} /> {tl(language, 'مصروف عام على المصلحة، مش مربوط بمشروع محدد.', 'הוצאה כללית על העסק, לא משויכת לפרויקט מסוים.', 'General business expense, not linked to a specific project.')}
                     </div>
                   )}
                 </div>
@@ -251,7 +253,7 @@ export default function AddExpenseSheet({
                   {/* المبلغ */}
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>
-                      المبلغ (₪) <span style={{ color: C.accent }}>*</span>
+                      {tl(language, 'المبلغ (₪)', 'סכום (₪)', 'Amount (₪)')} <span style={{ color: C.accent }}>*</span>
                     </div>
                     <input type="number" inputMode="decimal" value={form.amount}
                       onChange={e => set('amount', e.target.value)} placeholder="0.00"
@@ -267,7 +269,7 @@ export default function AddExpenseSheet({
                   {/* الفئة */}
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span>الفئة</span>
+                      <span>{tl(language, 'الفئة', 'קטגוריה', 'Category')}</span>
                       {showVat && (
                         <span style={{ fontSize: 9, color: vatColor, fontWeight: 700, background: `${vatColor}15`, border: `1px solid ${vatColor}30`, padding: '2px 7px', borderRadius: 8 }}>
                           {vatLabel}
@@ -281,7 +283,7 @@ export default function AddExpenseSheet({
                         return (
                           <button key={cat} onClick={() => set('category', cat)}
                             style={{ padding: '6px 10px', background: active ? `${color}20` : 'rgba(255,255,255,0.04)', border: `1.5px solid ${active ? color : C.border}`, borderRadius: 10, color: active ? color : C.textDim, fontSize: 10, fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
-                            {cat}
+                            {tEnum(cat, language)}
                           </button>
                         )
                       })}
@@ -290,14 +292,14 @@ export default function AddExpenseSheet({
 
                   {/* التاريخ */}
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>التاريخ</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'التاريخ', 'תאריך', 'Date')}</div>
                     <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
                       style={{ ...inp(focus, 'date'), direction: 'ltr' }} />
                   </div>
 
                   {/* طريقة الدفع */}
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>طريقة الدفع</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>{tl(language, 'طريقة الدفع', 'אמצעי תשלום', 'Payment method')}</div>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {METHODS.map(m => {
                         const active = form.payment_method === m.id
@@ -305,7 +307,7 @@ export default function AddExpenseSheet({
                           <button key={m.id} onClick={() => set('payment_method', m.id)}
                             style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', background: active ? `${C.accent}15` : 'rgba(255,255,255,0.03)', border: `1.5px solid ${active ? C.accent : C.border}`, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s' }}>
                             <m.Icon size={14} color={active ? C.accent : C.textDim} />
-                            <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? C.accent : C.textDim }}>{m.label}</span>
+                            <span style={{ fontSize: 9, fontWeight: active ? 700 : 500, color: active ? C.accent : C.textDim }}>{tl(language, m.label, m.he, m.en)}</span>
                           </button>
                         )
                       })}
@@ -314,25 +316,25 @@ export default function AddExpenseSheet({
 
                   {/* اسم المورد */}
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>اسم المورّد / الجهة (اختياري)</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'اسم المورّد / الجهة (اختياري)', 'שם הספק / הגורם (אופציונלי)', 'Vendor / party name (optional)')}</div>
                     <input value={form.vendor} onChange={e => set('vendor', e.target.value)}
-                      placeholder="مثال: חומרי בניין X"
+                      placeholder={tl(language, 'مثال: חומרי בניין X', 'דוגמה: חומרי בניין X', 'e.g. Building materials X')}
                       onFocus={() => setFocus('vendor')} onBlur={() => setFocus('')}
                       style={inp(focus, 'vendor')} />
                   </div>
 
                   {/* ملاحظة */}
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>ملاحظة (اختياري)</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 5 }}>{tl(language, 'ملاحظة (اختياري)', 'הערה (אופציונלי)', 'Note (optional)')}</div>
                     <input value={form.note} onChange={e => set('note', e.target.value)}
-                      placeholder="أي تفاصيل إضافية..."
+                      placeholder={tl(language, 'أي تفاصيل إضافية...', 'פרטים נוספים...', 'Any additional details...')}
                       onFocus={() => setFocus('note')} onBlur={() => setFocus('')}
                       style={inp(focus, 'note')} />
                   </div>
 
                   {/* صورة الإيصال */}
                   <div style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>صورة الإيصال / الفاتورة (اختياري)</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 6 }}>{tl(language, 'صورة الإيصال / الفاتورة (اختياري)', 'תמונת קבלה / חשבונית (אופציונלי)', 'Receipt / invoice photo (optional)')}</div>
                     <input ref={fileRef} type="file" accept="image/*" onChange={pickFile} style={{ display: 'none' }} />
                     {proofPreview ? (
                       <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -345,7 +347,7 @@ export default function AddExpenseSheet({
                     ) : (
                       <button onClick={() => fileRef.current?.click()}
                         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: `1.5px dashed ${C.border}`, borderRadius: 12, color: C.textDim, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <Image size={14} /> رفع صورة إيصال
+                        <Image size={14} /> {tl(language, 'رفع صورة إيصال', 'העלאת תמונת קבלה', 'Upload receipt photo')}
                       </button>
                     )}
                   </div>
@@ -358,7 +360,7 @@ export default function AddExpenseSheet({
               <div style={{ padding: '12px 18px calc(16px + env(safe-area-inset-bottom, 0px))', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
                 <button onClick={handleSave} disabled={!canSave}
                   style={{ width: '100%', padding: '13px', background: canSave ? GRAD.danger : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 14, color: canSave ? '#fff' : C.textDim, fontSize: 14, fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
-                  {saving ? 'جاري الحفظ...' : '+ تسجيل المصروف'}
+                  {saving ? tl(language, 'جاري الحفظ...', 'שומר...', 'Saving...') : tl(language, '+ تسجيل المصروف', '+ רישום הוצאה', '+ Record expense')}
                 </button>
               </div>
             )}

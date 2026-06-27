@@ -1,5 +1,7 @@
 import React from 'react'
 import { Bell, X, CalendarDays, Banknote, AlertCircle, Lightbulb, AlertTriangle } from 'lucide-react'
+import { tl } from '../lib/labels.js'
+import { useAppStore } from '../store/useAppStore.js'
 import { C } from '../constants/index.js'
 
 const TYPE_ICON = {
@@ -16,15 +18,16 @@ const TYPE_NAV = {
   salary_overdue:  'workers',
 }
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, language) {
   const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000)
-  if (diff < 60)    return 'الآن'
-  if (diff < 3600)  return `${Math.floor(diff / 60)} د`
-  if (diff < 86400) return `${Math.floor(diff / 3600)} س`
-  return `${Math.floor(diff / 86400)} يوم`
+  if (diff < 60)    return tl(language, 'الآن', 'עכשיו', 'now')
+  if (diff < 3600)  return `${Math.floor(diff / 60)} ${tl(language, 'د', 'ד׳', 'm')}`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} ${tl(language, 'س', 'ש׳', 'h')}`
+  return `${Math.floor(diff / 86400)} ${tl(language, 'يوم', 'ימים', 'd')}`
 }
 
 export default function NotificationsPanel({ open, onClose, notifications, unreadCount, markAllRead, markRead, deleteAll, onNav }) {
+  const language = useAppStore(s => s.language)
   if (!open) return null
 
   return (
@@ -76,13 +79,13 @@ export default function NotificationsPanel({ open, onClose, notifications, unrea
             {/* Title — RIGHT in RTL (first DOM child) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Bell size={18} style={{ color: C.primary }} />
-              <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>الإشعارات</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{tl(language, 'الإشعارات', 'התראות', 'Notifications')}</span>
               {unreadCount > 0 && (
                 <span style={{
                   background: C.accent, borderRadius: 20,
                   padding: '2px 8px', fontSize: 11, fontWeight: 800, color: '#fff',
                 }}>
-                  {unreadCount} جديد
+                  {unreadCount} {tl(language, 'جديد', 'חדש', 'new')}
                 </span>
               )}
             </div>
@@ -94,7 +97,7 @@ export default function NotificationsPanel({ open, onClose, notifications, unrea
                   fontSize: 11, color: C.primary, background: 'none',
                   border: 'none', cursor: 'pointer', fontWeight: 700, padding: '4px 8px',
                 }}>
-                  قراءة الكل
+                  {tl(language, 'قراءة الكل', 'סמן הכל כנקרא', 'Mark all read')}
                 </button>
               )}
               {notifications.length > 0 && (
@@ -102,7 +105,7 @@ export default function NotificationsPanel({ open, onClose, notifications, unrea
                   fontSize: 11, color: C.textDim, background: 'none',
                   border: 'none', cursor: 'pointer', padding: '4px 8px',
                 }}>
-                  مسح الكل
+                  {tl(language, 'مسح الكل', 'מחק הכל', 'Clear all')}
                 </button>
               )}
               <button onClick={onClose} style={{
@@ -121,7 +124,7 @@ export default function NotificationsPanel({ open, onClose, notifications, unrea
             {notifications.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '52px 0', color: C.textDim }}>
                 <Bell size={42} style={{ margin: '0 auto 10px', display: 'block', color: C.textDim }} />
-                <div style={{ fontSize: 13 }}>ما في إشعارات</div>
+                <div style={{ fontSize: 13 }}>{tl(language, 'ما في إشعارات', 'אין התראות', 'No notifications')}</div>
               </div>
             ) : notifications.map(n => (
               <button
@@ -173,7 +176,7 @@ export default function NotificationsPanel({ open, onClose, notifications, unrea
                         {n.title}
                       </span>
                       <span style={{ fontSize: 10, color: C.textDim, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                        {timeAgo(n.created_at)}
+                        {timeAgo(n.created_at, language)}
                       </span>
                     </div>
                     {/* Body */}

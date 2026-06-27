@@ -186,7 +186,7 @@ export default function WelcomePage() {
           marginBottom:  10,
           animation:     'slideUpFade 0.55s 0.45s cubic-bezier(0.22,1,0.36,1) both',
         }}>
-          Contractor Pro
+          كبلان
         </div>
 
         {/* Personalised greeting */}

@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
 
     const record = (body.record ?? body) as Record<string, unknown>
     const userId = record.user_id as string
-    const title  = (record.title as string) || 'Contractor Pro'
+    const title  = (record.title as string) || 'كبلان'
     const text   = (record.body  as string) || ''
     const tag    = (record.type  as string) || 'general'
     if (!userId) return new Response('no user_id', { status: 400, headers: cors })
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     let body: Record<string, unknown>
     try { body = await req.json() } catch { return new Response('bad json', { status: 400, headers: cors }) }
 
-    const title   = (body.title as string) || 'Contractor Pro'
+    const title   = (body.title as string) || 'كبلان'
     const text    = (body.body  as string) || ''
     const tag     = (body.tag   as string) || 'test'
     const userIds: string[] = Array.isArray(body.user_ids)

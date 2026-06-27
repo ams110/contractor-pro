@@ -14,7 +14,7 @@ import { PremiumCard, IconChip, InsightRow, useCountUp } from '../ui/Premium.jsx
 import { fmt } from '../lib/helpers.js'
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  AD STUDIO — محرّك بوسترات تسويقية بهوية Contractor Pro
+//  AD STUDIO — محرّك بوسترات تسويقية بهوية كبلان
 //  30 فكرة × 3 مقاسات. يعيد استخدام kit الفخامة (PremiumCard/IconChip/...) +
 //  ألوان C/GRAD، فالموكاب طالع مطابق للتطبيق الحقيقي.
 //  المسار: /adstudio?idea=N&size=square|portrait|story
@@ -377,9 +377,9 @@ function Block({ b, start }) {
 // ═══════════════════════════════════════════════════════════════════════════
 //  الموبايل (إطار + شاشة)
 // ═══════════════════════════════════════════════════════════════════════════
-function Phone({ screen = 'dashboard', focus, scale = 1 }) {
+function Phone({ screen = 'dashboard', focus, scale = 1, lang }) {
   const SCREEN_H = 668, BAR_H = 30
-  const src = `/demoshot?screen=${screen}${focus ? `&focus=${encodeURIComponent(focus)}` : ''}`
+  const src = `/demoshot?screen=${screen}${focus ? `&focus=${encodeURIComponent(focus)}` : ''}${lang ? `&lang=${lang}` : ''}`
   return (
     <div style={{ width: 372, transform: `scale(${scale})`, transformOrigin: 'top center', filter: 'drop-shadow(0 40px 80px rgba(0,0,0,0.6))' }}>
       <div style={{ position: 'relative', borderRadius: 46, padding: 11, background: 'linear-gradient(160deg,#23262f,#0a0b12)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -492,19 +492,19 @@ const IDEAS = [
   { tag: 'يشتغل بلا نت', tone: 'cyan', kw: 'حتى بالورشة', head: 'بلا إنترنت', sub: 'تطبيق PWA كامل يخزّن بياناتك ويزامنها أوّل ما يرجع النت — ما يوقفك شي.',
     blocks: [{ type: 'header', title: 'وضع عدم الاتصال' }, { type: 'confirm', icon: WifiOff, title: 'تعمل بلا اتصال', sub: 'كل تسجيلاتك محفوظة محلياً\nوتتزامن تلقائياً عند عودة الشبكة', tone: 'cyan' }] },
 
-  { tag: 'متعدّد المصالح', tone: 'brand', kw: 'كل مصالحك', head: 'بتطبيق واحد', sub: 'עוסק פטור، עוסק מורשה، وחברה — بدّل بين مصالحك وكلٌّ بضرائبه الخاصّة.',
+  { tag: 'متعدّد المصالح', tone: 'brand', kw: 'كل مصالحك', head: 'بتطبيق واحد', sub: 'עוסק פטור ، עוסק מורשה ، و חברה — بدّل بين مصالحك وكلٌّ بضرائبه الخاصّة.',
     blocks: [{ type: 'header', title: 'مصالحي' }, { type: 'sectionTitle', text: 'بدّل المصلحة النشطة', icon: Building2 }, { type: 'biz' }] },
 
   { tag: 'جاهزية الحساب', tone: 'gold', kw: 'حسابك', head: 'جاهز 100%', sub: 'مؤشّر ذكي يرشدك لإكمال إعداد مصلحتك خطوة بخطوة حتى تستفيد من كل ميزة.',
     blocks: [{ type: 'header', title: 'جاهزية الحساب' }, { type: 'statRow', stats: [{ icon: BadgeCheck, label: 'اكتمال الإعداد', value: '86%', tone: 'gold' }, { icon: ClipboardList, label: 'خطوات باقية', value: 2, tone: 'cyan' }] }, { type: 'insights', rows: [{ icon: CheckCircle2, color: C.success, text: 'أضفت مشاريعك وعمّالك' }, { icon: AlertTriangle, color: C.gold, text: 'أكمل بيانات الضرائب لتفعيل التقارير' }] }] },
 
   { tag: 'كل شي بمكان واحد', tone: 'brand', kw: 'مقاولتك كلها', head: 'بجيبك', sub: 'مشاريع، عمّال، مالية، ضرائب، فريق، وبوّابة عامل — تطبيق واحد يدير كل شي.',
-    blocks: [{ type: 'header', title: 'Contractor Pro' }, { type: 'grid' }] },
+    blocks: [{ type: 'header', title: 'كبلان' }, { type: 'grid' }] },
 
   { tag: 'بطّل دفتر الورق', tone: 'brand', kw: 'انسى الدفتر', head: 'كل شي صار رقمي', sub: 'لا أوراق ضايعة ولا حسابات بالراس — كل عامل ومشروع ومصروف محفوظ ومرتّب.',
     blocks: [{ type: 'header', title: 'كل مصلحتك' }, { type: 'insights', rows: [{ icon: CheckCircle2, color: C.success, text: 'ودّع دفتر الورق والحسابات اليدوية' }, { icon: Sparkles, color: C.cyan, text: 'كل أرقامك محفوظة ومتزامنة لحظياً' }] }, { type: 'statRow', stats: [{ icon: Building2, label: 'مشاريع', value: DEMO.projects, tone: 'brand' }, { icon: Users, label: 'عمّال', value: DEMO.workers, tone: 'cyan' }] }] },
 
-  { tag: 'وفّر على المحاسب', tone: 'premium', kw: 'محاسبك', head: 'صار بجيبك', sub: 'מע"מ، ضريبة دخل، وביטוח לאומי محسوبين تلقائياً — وفّر آلاف الشواكل سنوياً.',
+  { tag: 'وفّر على المحاسب', tone: 'premium', kw: 'محاسبك', head: 'صار بجيبك', sub: 'מע"מ ، ضريبة دخل، و ביטוח לאומי محسوبين تلقائياً — وفّر آلاف الشواكل سنوياً.',
     blocks: [{ type: 'header', title: 'ملخّص الضرائب' }, { type: 'heroMoney', icon: Calculator, label: 'كل ضرائبك — محسوبة تلقائياً', value: DEMO.vat + DEMO.incomeTax + DEMO.bituach, tone: 'premium', sub: 'بلا محاسب' }, { type: 'insights', rows: [{ icon: CheckCircle2, color: C.success, text: 'بشريحتين دقيقة — مش نسبة مسطّحة' }, { icon: PiggyBank, color: C.cyan, text: 'وفّر آلاف الشواكل أتعاب محاسبة' }] }] },
 
   { tag: 'نام وانت مرتاح', tone: 'success', kw: 'أرقامك مظبوطة', head: 'وانت نايم', sub: 'مؤشّر صحّة مالية يراقب مصلحتك على مدار الساعة ويحذّرك قبل أي مشكلة.',
@@ -523,7 +523,30 @@ const IDEAS = [
     blocks: [{ type: 'header', title: 'بوّابة العامل' }, { type: 'list', items: [{ icon: CalendarDays, name: 'أيام العمل', meta: 'هذا الشهر', amount: '24 يوم', money: false, tone: 'cyan' }, { icon: HandCoins, name: 'المستحق', meta: 'محسوب تلقائياً', amount: 6400, tone: 'success' }, { icon: Coins, name: 'السلف', meta: 'مخصومة', amount: 1500, tone: 'gold' }] }] },
 
   { tag: 'جرّب مجاناً', tone: 'brand', kw: '14 يوم', head: 'مجاناً — بلا بطاقة', sub: 'كل الميزات مفتوحة 14 يوم — بلا التزام وبلا بطاقة ائتمان. ابدأ بدقيقة.',
-    blocks: [{ type: 'header', title: 'Contractor Pro' }, { type: 'grid' }] },
+    blocks: [{ type: 'header', title: 'كبلان' }, { type: 'grid' }] },
+]
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  IDEAS_HE — نسخة عبرية (سوق المقاولين الإسرائيلي) · زاوية «עובדים, לא חשבוניות»
+//  مولّدة ومُتحقّق منها عداوياً (نقاء عبري 100% + مطابقة استراتيجية). تُعرض عبر:
+//    /adstudio?lang=he&idea=0..2&size=story|square|portrait
+//  كل فكرة تحمل screen خاصّها، والشاشة جوّا الموبايل تُرندَر بالعبري عبر demoshot?lang=he
+// ═══════════════════════════════════════════════════════════════════════════
+const IDEAS_HE = [
+  // 0 · المواجهة المباشرة مع تطبيقات الفواتير (الزاوية الأقوى)
+  { tag: 'ניהול עובדים', tone: 'brand', screen: 'workers',
+    kw: 'החשבונית כבר מסודרת.', head: 'מי מסדר את העובדים?',
+    sub: 'גרין אינבויס ו-iCount מנהלים לך את החשבוניות. כבלאן מנהל לך את העובדים, הפרויקטים והשכר.' },
+
+  // 1 · بوّابة العامل (المالك بالعبري، العامل بالعربي)
+  { tag: 'פורטל לעובד', tone: 'cyan', screen: 'workers',
+    kw: 'כל עובד רואה', head: 'את החשבון שלו',
+    sub: 'לכל עובד פורטל משלו בערבית: רואה כמה הרוויח ומבקש מקדמה לבד. נגמרו השאלות.' },
+
+  // 2 · متابعة مستحقّات كل عامل
+  { tag: 'מעקב חובות', tone: 'success', screen: 'workers',
+    kw: 'כמה אתה חייב', head: 'לכל עובד?',
+    sub: 'ימי עבודה פחות מקדמות, מחושב אוטומטית לכל עובד. תמיד יודע בדיוק כמה נשאר לשלם.' },
 ]
 
 // ─── خريطة كل فكرة → شاشة حقيقية من التطبيق (تُعرض داخل الموبايل عبر iframe) ──
@@ -568,12 +591,17 @@ const SCREEN_MAP = [
   { s: 'workers' },                         // 36 بلا خلافات مع عمّالك
   { s: 'dashboard', f: 'نبض' },            // 37 جرّب مجاناً
 ]
-function Poster({ idea, ideaIndex, size }) {
+function Poster({ idea, ideaIndex, size, lang = 'ar' }) {
   const { w, h } = SIZES[size] || SIZES.portrait
   const [start, setStart] = useState(false)
   useEffect(() => { const t = setTimeout(() => setStart(true), 120); return () => clearTimeout(t) }, [])
   const t = TONE[idea.tone] || TONE.brand
-  const map = SCREEN_MAP[ideaIndex] || { s: 'dashboard' }
+  const he = lang === 'he'
+  // الأفكار العبرية تحمل screen خاصّها؛ العربية تستعمل SCREEN_MAP حسب الفهرس
+  const map = idea.screen ? { s: idea.screen, f: idea.focus } : (SCREEN_MAP[ideaIndex] || { s: 'dashboard' })
+  const L = he
+    ? { cta: 'נסה 14 יום חינם', tagline: 'ניהול קבלנות מהנייד', font: "'Heebo', system-ui, sans-serif" }
+    : { cta: 'جرّب 14 يوم مجاناً', tagline: 'إدارة مقاولاتك من جيبك', font: "'Noto Sans Arabic', system-ui, sans-serif" }
 
   // مقياس الموبايل حسب المساحة المتاحة
   const phoneScale = size === 'story' ? 1.16 : size === 'square' ? 0.82 : 1.0
@@ -583,7 +611,7 @@ function Poster({ idea, ideaIndex, size }) {
     <div style={{
       width: w, height: h, position: 'relative', overflow: 'hidden',
       background: `radial-gradient(120% 80% at 80% -10%, ${t.c}24, transparent 55%), radial-gradient(100% 70% at -10% 110%, ${t.glow.replace('0.45', '0.18')}, transparent 50%), ${C.bg}`,
-      fontFamily: "'Noto Sans Arabic', system-ui, sans-serif", direction: 'rtl', color: C.text,
+      fontFamily: L.font, direction: 'rtl', color: C.text,
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       padding: size === 'story' ? '92px 72px 80px' : size === 'square' ? '54px 70px' : '72px 72px 64px',
     }}>
@@ -615,20 +643,22 @@ function Poster({ idea, ideaIndex, size }) {
       {/* الموبايل — flex:1 + overflow hidden: ينقص بأناقة ويبقى الفوتر ظاهراً */}
       <motion.div initial={{ opacity: 0, y: 36, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
         style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', alignItems: size === 'story' ? 'center' : 'flex-start', justifyContent: 'center', marginTop: size === 'square' ? 24 : 40, width: '100%' }}>
-        <Phone screen={map.s} focus={map.f} scale={phoneScale} />
+        <Phone screen={map.s} focus={map.f} scale={phoneScale} lang={he ? 'he' : undefined} />
       </motion.div>
 
       {/* الشريط السفلي */}
       <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 28 }}>
         <motion.div initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 9, padding: '13px 22px', borderRadius: 16, background: GRAD.success, boxShadow: `0 12px 30px ${C.success}44` }}>
-          <span style={{ fontSize: 18, fontWeight: 900, color: '#062b14' }}>جرّب 14 يوم مجاناً</span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: '#062b14' }}>{L.cta}</span>
           <ArrowLeft size={19} color="#062b14" strokeWidth={2.6} />
         </motion.div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em', color: C.text }}>Contractor <span style={{ color: C.primary }}>Pro</span></div>
-            <div style={{ fontSize: 12.5, color: C.textDim, fontWeight: 600 }}>إدارة مقاولاتك من جيبك</div>
+            <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em', color: C.text }}>
+              {he ? <span>כבלאן</span> : <>Contractor <span style={{ color: C.primary }}>Pro</span></>}
+            </div>
+            <div style={{ fontSize: 12.5, color: C.textDim, fontWeight: 600 }}>{L.tagline}</div>
           </div>
           <div style={{ width: 50, height: 50, borderRadius: 15, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 22px ${C.primary}55` }}>
             <HardHat size={26} color="#fff" strokeWidth={2.4} />
@@ -640,14 +670,16 @@ function Poster({ idea, ideaIndex, size }) {
 }
 
 // شبكة فهرس لكل الأفكار (للمعاينة) عند /adstudio بلا idea
-function Index() {
+function Index({ list = IDEAS, lang = 'ar' }) {
+  const he = lang === 'he'
+  const q = he ? '&lang=he' : ''
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: "'Noto Sans Arabic', sans-serif", direction: 'rtl', padding: 30 }}>
-      <h1 style={{ fontWeight: 900, marginBottom: 6 }}>Ad Studio — {IDEAS.length} فكرة</h1>
-      <p style={{ color: C.textDim, marginBottom: 20 }}>افتح <code>?idea=0..{IDEAS.length - 1}&size=square|portrait|story</code></p>
+    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: he ? "'Heebo', sans-serif" : "'Noto Sans Arabic', sans-serif", direction: 'rtl', padding: 30 }}>
+      <h1 style={{ fontWeight: 900, marginBottom: 6 }}>Ad Studio {he ? '· עברית' : ''} — {list.length} {he ? 'רעיונות' : 'فكرة'}</h1>
+      <p style={{ color: C.textDim, marginBottom: 20 }}>افتح <code>?idea=0..{list.length - 1}&size=square|portrait|story{q}</code></p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
-        {IDEAS.map((it, i) => (
-          <a key={i} href={`/adstudio?idea=${i}&size=portrait`} style={{ display: 'block', padding: 14, borderRadius: 14, background: C.card, border: `1px solid ${C.border}`, color: C.text, textDecoration: 'none' }}>
+        {list.map((it, i) => (
+          <a key={i} href={`/adstudio?idea=${i}&size=portrait${q}`} style={{ display: 'block', padding: 14, borderRadius: 14, background: C.card, border: `1px solid ${C.border}`, color: C.text, textDecoration: 'none' }}>
             <div style={{ fontSize: 12, color: TONE[it.tone]?.c, fontWeight: 800 }}>#{i} · {it.tag}</div>
             <div style={{ fontWeight: 900, marginTop: 4 }}>{it.kw} {it.head}</div>
           </a>
@@ -661,10 +693,12 @@ export default function AdStudio() {
   const params = new URLSearchParams(window.location.search)
   const ideaParam = params.get('idea')
   const size = params.get('size') || 'portrait'
-  if (ideaParam === null) return <Index />
+  const lang = params.get('lang') === 'he' ? 'he' : 'ar'
+  const list = lang === 'he' ? IDEAS_HE : IDEAS
+  if (ideaParam === null) return <Index list={list} lang={lang} />
   const i = Number(ideaParam)
-  const idea = IDEAS[i] || IDEAS[0]
-  return <Poster idea={idea} ideaIndex={i} size={size} />
+  const idea = list[i] || list[0]
+  return <Poster idea={idea} ideaIndex={i} size={size} lang={lang} />
 }
 
-export { IDEAS, SIZES, SCREEN_MAP, Phone }
+export { IDEAS, IDEAS_HE, SIZES, SCREEN_MAP, Phone }

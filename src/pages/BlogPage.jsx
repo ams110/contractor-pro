@@ -33,7 +33,7 @@ function TopBar() {
           <div style={{ width: 38, height: 38, borderRadius: 12, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <HardHat size={19} color="#fff" strokeWidth={2.5} />
           </div>
-          <span style={{ fontSize: 15, fontWeight: 900, color: C.text }}>Contractor Pro</span>
+          <span style={{ fontSize: 15, fontWeight: 900, color: C.text }}>كبلان</span>
         </div>
         <button onClick={() => navigate('/')} className="bl-btn"
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: `1px solid ${C.borderMid}`, color: C.textDim, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '8px 16px', borderRadius: 12 }}>

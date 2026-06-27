@@ -1,8 +1,8 @@
 {
   "packageId": "app.linko.services",
   "host": "app.linko.services",
-  "name": "Contractor Pro",
-  "launcherName": "Contractor Pro",
+  "name": "كبلان",
+  "launcherName": "كبلان",
   "display": "standalone",
   "themeColor": "#F59E0B",
   "themeColorDark": "#0B1117",
