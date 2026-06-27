@@ -648,6 +648,10 @@ function BlueprintHero() {
                 style={{ background: `${C.primary}10`, border: `1px solid ${C.primary}40`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '15px 26px', borderRadius: 14 }}>
                 احسب راتب عامل مجاناً
               </button>
+              <button onClick={() => goCta('landing_vat_calculator', '/vat-calculator')} className="lp-btn"
+                style={{ background: `${C.primary}10`, border: `1px solid ${C.primary}40`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '15px 26px', borderRadius: 14 }}>
+                احسب {'מע"מ'} مجاناً
+              </button>
             </motion.div>
 
             <motion.div {...fadeIn(gradDelay + 0.32)}
