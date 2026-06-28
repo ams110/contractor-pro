@@ -93,7 +93,7 @@ export const PROJECT_STATUS = ['عرض سعر', 'موافق عليه', 'نشط',
 export const VAT     = 0.18
 export const VAT_OLD = 0.17
 
-export const OSEK_PATUR_THRESHOLD = 120000
+export const OSEK_PATUR_THRESHOLD = 122833 // حدّ עוסק פטור السنوي 2026 (كان 120,000 في 2024–2025)
 // ملاحظة: ביטוח לאומי للعمل الحر يُحسب بشريحتين (مخفّضة/كاملة) في helpers.calcBituachLeumiAnnual —
 // لا تستعمل نسبة مسطّحة واحدة.
 

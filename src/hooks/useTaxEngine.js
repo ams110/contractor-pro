@@ -10,7 +10,7 @@ import { calcBituachLeumiAnnual } from '../lib/helpers.js'
 // ─── ثوابت 2025 ─────────────────────────────────────────────────────────────
 
 export const VAT_RATE         = 0.18         // מע"מ 18% من يناير 2025
-export const OSEK_PATUR_CAP  = 120_000      // تقرير سنوي (עוסק פטור) ₪120k
+export const OSEK_PATUR_CAP  = 122_833      // تقرير سنوي (עוסק פטור) 2026 ₪122,833 (كان ₪120k في 2024–2025)
 const IT_CREDIT_PER_POINT     = 2_904        // زيكوي אחת ₪2,904/سنة (2025)
 const DEFAULT_POINTS_ISRAELI  = 2.25         // نقاط أساسية: مقيم عزب
 

@@ -94,6 +94,14 @@ export default function SalaryCalculator({ mode = 'public', onCta, ctaLabel, bus
           : tl(language, 'سجّل مجاناً واحفظ عمّالك', 'הירשם בחינם ושמור את העובדים שלך', 'Sign up free and save your workers'))}
         <ArrowLeft size={18} strokeWidth={2.5} />
       </button>
+
+      {/* تنويه: الحاسبة المجانية أداة إرشادية، ليست استشارة محاسبية */}
+      <div style={{ marginTop: 10, fontSize: 10, color: C.textDim, textAlign: 'center', lineHeight: 1.5 }}>
+        {tl(language,
+          'النتيجة تقديرية للإرشاد فقط، وليست استشارة محاسبية رسمية.',
+          'התוצאה משוערת להכוונה בלבד ואינה ייעוץ חשבונאי רשמי.',
+          'Result is an estimate for guidance only, not formal accounting advice.')}
+      </div>
     </div>
   )
 }

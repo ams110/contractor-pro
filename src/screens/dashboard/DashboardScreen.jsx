@@ -560,8 +560,8 @@ export default function DashboardScreen({
         </div>
       )}
 
-      {/* ─── Empty state — تفعيل: وجّه لأول عامل (لحظة القيمة الحقيقية، مش لوحة فاضية) ─── */}
-      {projects.length === 0 && employees.length === 0 && (
+      {/* ─── Empty state — تفعيل: وجّه لأول عامل ما دام ما في عامل (حتى لو عنده مشروع) ─── */}
+      {employees.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <PremiumShell accent={C.primary} radius={22} padding="32px 22px" style={{ textAlign: 'center' }}>
             <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 12px 32px rgba(249,115,22,0.3)' }}>

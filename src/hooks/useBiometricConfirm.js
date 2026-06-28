@@ -12,6 +12,14 @@ export function useBiometricConfirm() {
   function hasAnyMethod()        { return isPasskeyRegistered() || isPinSet() }
 
   async function confirm(description, tbl = 'unknown') {
+    // ما في وسيلة تحقّق مُعدّة (لا بصمة ولا PIN) → لا نحجب العملية.
+    // الحماية البيومترية تبقى إجبارية فقط لمن فعّلها من الإعدادات. إجبار مستخدم
+    // جديد على إعداد بصمة/PIN قبل إضافة أوّل عامل أو مصروف كان يقتل التفعيل
+    // (مودال «لا توجد وسيلة تحقق» بزرّ إغلاق فقط → العملية تُحجب). انظر docs/founder/AUDIT_50.md
+    if (!hasAnyMethod()) {
+      const { signerName, signerRole } = useAppStore.getState()
+      return { signed: true, name: signerName, role: signerRole, auto: true }
+    }
     try {
       const result = await requestBioConfirm({ description, tbl })
       if (!result) return null

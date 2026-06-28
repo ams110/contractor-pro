@@ -648,7 +648,7 @@ const monthName = (idx, lang = 'ar') => (MONTH_NAMES[lang] || MONTH_NAMES.ar)[id
  */
 export function computeTaxRunway(a = {}, lang = 'ar') {
   const {
-    isOsekPatur = false, cap = 120000,
+    isOsekPatur = false, cap = 122833,
     yearIncome = 0, monthsElapsed = 1, annualTax = 0,
   } = a
 

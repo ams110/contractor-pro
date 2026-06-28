@@ -434,9 +434,9 @@ export default function TaxSummaryTab({ pensionMonthly = 0 }) {
             <Info size={13} color={C.textDim} style={{ flexShrink: 0, marginTop: 1 }} />
             <div style={{ fontSize: 10, color: C.textDim, lineHeight: 1.6 }}>
               {tl(language,
-                'الأرقام الضريبية مبنية على شرائح ضريبة الدخل الإسرائيلية لعام 2024 وهي تقديرية. يُنصح بمراجعة محاسب معتمد للحصول على الحساب الرسمي الدقيق.',
-                'נתוני המס מבוססים על מדרגות מס הכנסה הישראליות לשנת 2024 והם משוערים. מומלץ להתייעץ עם רואה חשבון מוסמך לקבלת החישוב הרשמי המדויק.',
-                'The tax figures are based on the 2024 Israeli income tax brackets and are estimates. Consulting a certified accountant for the exact official calculation is recommended.')}
+                'الأرقام الضريبية مبنية على شرائح ضريبة الدخل الإسرائيلية لعام 2025 وهي تقديرية. يُنصح بمراجعة محاسب معتمد للحصول على الحساب الرسمي الدقيق.',
+                'נתוני המס מבוססים על מדרגות מס הכנסה הישראליות לשנת 2025 והם משוערים. מומלץ להתייעץ עם רואה חשבון מוסמך לקבלת החישוב הרשמי המדויק.',
+                'The tax figures are based on the 2025 Israeli income tax brackets and are estimates. Consulting a certified accountant for the exact official calculation is recommended.')}
             </div>
           </div>
         </>
