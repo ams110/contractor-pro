@@ -3,6 +3,10 @@
 -- المشروع: rvhjrzbhugvytvktdhor
 -- قاعدة: تستثني كل الحسابات الداخلية (المؤسس + الديمو + QA + أعضاء الفريق tm_)
 -- كل رقم من هون = حقيقي. ممنوع اختراع أي رقم خارج هالاستعلامات.
+-- ملاحظتان أمنيّتان:
+--   • فلتر tm_ صار case-insensitive (lower) فما يمرق TM_/Tm_.
+--   • الفلتر يستثني الحسابات الداخلية لكنه ليس كاشف بوتات كاملاً — اعتبر الأرقام
+--     «حدّاً أعلى». لكشف البوتات الكامل راجع is_bot_email في وكيل الواتشتاور.
 -- ════════════════════════════════════════════════════════════════════
 
 -- فلتر الحسابات الداخلية المشترك (استعمله بكل استعلام):
@@ -20,7 +24,7 @@ WITH ext AS (
     AND email NOT ILIKE 'demo.reel@%'
     AND email NOT ILIKE 'qa.admin@%'
     AND email NOT ILIKE 'qa.tester@%'
-    AND split_part(email,'@',1) NOT LIKE 'tm_%'
+    AND lower(split_part(email,'@',1)) NOT LIKE 'tm_%'
 )
 SELECT
   (SELECT COUNT(*) FROM ext WHERE created_at > now() - interval '24 hours')           AS signups_24h,
@@ -40,7 +44,7 @@ WITH ext AS (
   SELECT id FROM auth.users
   WHERE email NOT ILIKE 'a.m.shaqra20100@%' AND email NOT ILIKE 'demo.reel@%'
     AND email NOT ILIKE 'qa.admin@%' AND email NOT ILIKE 'qa.tester@%'
-    AND split_part(email,'@',1) NOT LIKE 'tm_%'
+    AND lower(split_part(email,'@',1)) NOT LIKE 'tm_%'
 )
 SELECT
   (SELECT COUNT(*) FROM ext)                                                                       AS step0_signed_up,
@@ -55,7 +59,7 @@ WITH ext AS (
   SELECT id, email, created_at, email_confirmed_at FROM auth.users
   WHERE email NOT ILIKE 'a.m.shaqra20100@%' AND email NOT ILIKE 'demo.reel@%'
     AND email NOT ILIKE 'qa.admin@%' AND email NOT ILIKE 'qa.tester@%'
-    AND split_part(email,'@',1) NOT LIKE 'tm_%'
+    AND lower(split_part(email,'@',1)) NOT LIKE 'tm_%'
 )
 SELECT ext.email, p.full_name, ext.created_at,
        date_part('day', now() - ext.created_at) AS days_since_signup,
@@ -72,6 +76,6 @@ SELECT u.email, p.full_name, u.created_at, u.email_confirmed_at IS NOT NULL AS c
 FROM auth.users u LEFT JOIN profiles p ON p.id=u.id
 WHERE u.email NOT ILIKE 'a.m.shaqra20100@%' AND u.email NOT ILIKE 'demo.reel@%'
   AND u.email NOT ILIKE 'qa.admin@%' AND u.email NOT ILIKE 'qa.tester@%'
-  AND split_part(u.email,'@',1) NOT LIKE 'tm_%'
+  AND lower(split_part(u.email,'@',1)) NOT LIKE 'tm_%'
   AND u.created_at > now() - interval '14 days'
 ORDER BY u.created_at DESC;
