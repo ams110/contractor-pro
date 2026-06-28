@@ -52,6 +52,8 @@ Apply these prompt engineering techniques (pick the ones that fit — don't forc
 - Set length expectations if important
 - Request the response in a specific language if the user's prompt implies one
 
+> **Role check:** if a role assignment would meaningfully help, don't decide it alone — propose 1–2 options and ask the user to pick (see the role rule above) before finalizing.
+
 ### Step 3: Present the Improved Prompt
 
 Show the improved prompt to the user in a clear, labeled block. Use this format:
@@ -86,7 +88,7 @@ When you do execute, show the result clearly:
 - Don't over-engineer simple prompts. A short request like "translate this to French" doesn't need XML tags and role assignment — just minor refinements.
 - Match the complexity of the improvement to the complexity of the task.
 - Preserve the user's intent exactly. Never change what they're asking for — only improve how they're asking for it.
-- Never replace the user's framing of who Claude is. Keeping "you are the app owner" as written beats inventing a narrower expert role. When in doubt, keep the user's wording.
+- When a role would improve the prompt, suggest it and ask the user to choose — don't impose one silently. Never replace the user's own framing without asking first.
 - Default to NOT auto-running. Show the improved prompt, then wait for the user's go-ahead — unless they explicitly asked you to run it in the same message.
 - If the prompt references uploaded files, images, or context from the conversation, make sure the improved prompt preserves those references.
 - If other skills are more appropriate for the execution step (e.g., docx, xlsx, pptx, pdf), use them during execution.
