@@ -628,7 +628,7 @@ function BlueprintHero() {
 
             <motion.p {...fadeIn(gradDelay + 0.12)}
               style={{ fontSize: 'clamp(13.5px,1.6vw,16.5px)', color: C.textDim, lineHeight: 1.75, marginBottom: 'clamp(16px, 2.8vh, 26px)', maxWidth: 520 }}>
-              كبلان يحفظ أيام العمل، يحسب الرواتب، يتابع المصاريف، ويحسب ضريبة القيمة المضافة — كل شي في جيبك.
+              بطّل تخسر فلوس بالنسيان والحساب الغلط: كبلان بيحسب راتب كل عامل صح وتلقائياً، ويتابع مصاريفك وضريبتك — وكلّه محفوظ بجيبك.
             </motion.p>
 
             <motion.div {...fadeIn(gradDelay + 0.2)}

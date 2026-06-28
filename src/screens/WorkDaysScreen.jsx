@@ -38,6 +38,7 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
   const [approving,   setApproving]   = useState(null)
   const [multiMode,   setMultiMode]   = useState(false)
   const [rangeMode,   setRangeMode]   = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false) // طيّ مفاتيح «عدة عمال/نطاق» — الافتراضي يوم مفرد بسيط (تقليل حِمل أول نظرة)
   const [dateFrom,    setDateFrom]    = useState(todayStr())
   const [dateTo,      setDateTo]      = useState(todayStr())
   const [multiEmps,   setMultiEmps]   = useState(new Set())
@@ -690,8 +691,17 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               <div style={{ fontSize:14, color:C.textDim, lineHeight:1.8 }}>{tl(language, 'لازم تضيف عمال ومشاريع أول!', 'צריך להוסיף עובדים ופרויקטים קודם!', 'You need to add workers and projects first!')}</div>
             </div>
           : <>
-              {/* Toggles — hidden in edit mode */}
-              {!editingDay && (
+              {/* زر «خيارات متقدمة» — يطوي المفاتيح فالنموذج الافتراضي = يوم مفرد بسيط */}
+              {!editingDay && !showAdvanced && (
+                <button onClick={() => setShowAdvanced(true)}
+                  style={{ display:'flex', alignItems:'center', gap:8, width:'100%', marginBottom:18, padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.03)', border:`1px dashed ${C.borderMid}`, color:C.textDim, fontSize:12.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+                  <Users size={14} strokeWidth={2} />
+                  {tl(language, 'عدة عمال أو نطاق تواريخ', 'מספר עובדים או טווח תאריכים', 'Multiple workers or date range')}
+                  <ChevronDown size={15} style={{ marginInlineStart:'auto' }} />
+                </button>
+              )}
+              {/* Toggles — hidden in edit mode + خلف «خيارات متقدمة» */}
+              {!editingDay && showAdvanced && (
                 <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:18 }}>
                   {/* Multi-worker toggle */}
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:`1px solid ${multiMode ? C.secondary + '55' : C.border}` }}>
