@@ -56,8 +56,6 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
   const [mode,     setMode]     = useState(null)  // null | 'manual'
   const [creating, setCreating] = useState(false)
   const [err,      setErr]      = useState('')
-  const [step,       setStep]       = useState('calc')   // 'calc' | 'name'
-  const [workerVals, setWorkerVals] = useState(null)
   const [workerName, setWorkerName] = useState('')
   // جسر القيمة: قيم الحاسبة المحفوظة من الصفحة العامة قبل التسجيل (تُعبّأ تلقائياً)
   const [initialCalc] = useState(() => {
@@ -79,12 +77,12 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
   }
 
   // حفظ القيم المُدخلة في الحاسبة كأول عامل حقيقي (ينشئ مصلحة عامة إن لزم)
-  async function handleSaveWorker() {
-    if (!workerName.trim()) { setErr(tl(language, 'اكتب اسم العامل', 'הכנס שם עובד', 'Enter the worker name')); return }
+  async function handleSaveWorker(vals) {
+    if (!workerName.trim()) { setErr(tl(language, 'اكتب اسم العامل أول', 'הכנס קודם שם עובד', 'Enter the worker name first')); return }
     setCreating(true); setErr('')
     try {
       await create({ name: t.default_name, business_type: 'osek_patur' })
-      await addEmployee({ name: workerName.trim(), daily_rate: workerVals?.dailyWage || 0 })
+      await addEmployee({ name: workerName.trim(), daily_rate: vals?.dailyWage || 0 })
       await load()
       try { sessionStorage.removeItem('kbl_calc_vals') } catch {}
       useAppStore.getState().celebrate('win', { label: tl(language, 'تمام! عاملك جاهز', 'מצוין! העובד שלך מוכן', 'Done! Your worker is ready') })
@@ -152,29 +150,19 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
           </div>
         </div>
 
-        {/* الحاسبة الذكية = أول لحظة قيمة (راتب محسوب فوراً) ثم تتحوّل لأول عامل حقيقي */}
-        {step === 'calc' && (
+        {/* لحظة القيمة بخطوة واحدة: اسم العامل فوق الحاسبة، وضغطة الزر تحفظ مباشرة */}
+        <div style={{ width: '100%', maxWidth: 440, margin: '0 auto' }}>
+          <label style={{ fontSize: 13, fontWeight: 700, color: C.textDim, marginBottom: 8, display: 'block' }}>{tl(language, 'اسم عاملك الأول', 'שם העובד הראשון', 'Your first worker')}</label>
+          <input value={workerName} onChange={e => { setWorkerName(e.target.value); if (err) setErr('') }} placeholder={tl(language, 'مثلاً: محمود', 'לדוגמה: מחמוד', 'e.g. Mahmoud')}
+            style={{ width: '100%', padding: '14px 16px', borderRadius: 14, background: C.surface, border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 16, fontWeight: 700, fontFamily: 'inherit', outline: 'none', marginBottom: 14 }} />
           <SalaryCalculator
             mode="onboarding"
             initialValues={initialCalc}
-            ctaLabel={tl(language, 'احفظ كعامل حقيقي وابدأ', 'שמור כעובד אמיתי והתחל', 'Save as a real worker and start')}
+            ctaLabel={tl(language, 'احفظ عاملك وابدأ', 'שמור את העובד והתחל', 'Save your worker and start')}
             busy={creating}
-            onCta={(vals) => { setWorkerVals(vals); setStep('name') }}
+            onCta={(vals) => handleSaveWorker(vals)}
           />
-        )}
-
-        {step === 'name' && (
-          <div style={{ width: '100%', maxWidth: 440, margin: '0 auto' }}>
-            <label style={{ fontSize: 13, fontWeight: 700, color: C.textDim, marginBottom: 8, display: 'block' }}>{tl(language, 'اسم العامل', 'שם העובד', 'Worker name')}</label>
-            <input autoFocus value={workerName} onChange={e => setWorkerName(e.target.value)} placeholder={tl(language, 'مثلاً: محمود', 'לדוגמה: מחמוד', 'e.g. Mahmoud')}
-              style={{ width: '100%', padding: '14px 16px', borderRadius: 14, background: C.surface, border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 16, fontWeight: 700, fontFamily: 'inherit', outline: 'none', marginBottom: 12 }} />
-            <button onClick={handleSaveWorker} disabled={creating}
-              style={{ width: '100%', padding: '16px', borderRadius: 16, border: 'none', background: creating ? `${C.primary}40` : GRAD.primary, color: '#000', fontSize: 15, fontWeight: 800, fontFamily: 'inherit', cursor: creating ? 'not-allowed' : 'pointer' }}>
-              {creating ? tl(language, 'جاري الحفظ...', '...שומר', 'Saving...') : tl(language, 'تمام، ابدأ', 'מצוין, התחל', 'Done, start')}
-            </button>
-            <button onClick={() => { setStep('calc'); setErr('') }} style={{ width: '100%', marginTop: 8, background: 'none', border: 'none', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t.back}</button>
-          </div>
-        )}
+        </div>
 
         {err && <div style={{ color: C.accent, fontSize: 13, textAlign: 'center', marginTop: 12 }}>{err}</div>}
 

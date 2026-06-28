@@ -1085,16 +1085,16 @@ export default function WorkersScreen({
                 <Lock size={27} color={C.secondary} strokeWidth={2} />
               </div>
               <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>
-                {isTrialLimit ? 'التجربة المجانية تسمح بعامل واحد' : 'وصلت حدّ خطة Starter'}
+                {isTrialLimit ? 'أنت على التجربة المجانية' : 'وصلت حدّ خطة Starter'}
               </div>
               <p style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7, marginBottom: 22 }}>
                 {isTrialLimit
-                  ? 'خلال التجربة المجانية يمكنك إضافة عامل واحد. اشترك بخطة مدفوعة لإضافة المزيد من العمّال.'
+                  ? 'التجربة بتسمح بعامل واحد عشان تجرّب كل شي. لمّا تكون جاهز تضيف باقي طاقمك، رقّي بأي وقت — وبياناتك بتظل محفوظة.'
                   : `خطة Starter تسمح بحتى ${workerLimit} عمّال. رقِّ إلى خطة Pro لإضافة عمّال غير محدودين.`}
               </p>
               <button onClick={() => navigate('/pricing')}
                 style={{ width: '100%', background: GRAD.premium, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', padding: '13px', borderRadius: 14, marginBottom: 10 }}>
-                عرض الخطط والترقية
+                {isTrialLimit ? 'شوف الخطط' : 'عرض الخطط والترقية'}
               </button>
               <button onClick={() => setShowLimit(false)}
                 style={{ width: '100%', background: 'transparent', border: 'none', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '6px' }}>
