@@ -79,3 +79,29 @@ WHERE u.email NOT ILIKE 'a.m.shaqra20100@%' AND u.email NOT ILIKE 'demo.reel@%'
   AND lower(split_part(u.email,'@',1)) NOT LIKE 'tm_%'
   AND u.created_at > now() - interval '14 days'
 ORDER BY u.created_at DESC;
+
+-- ── ⑤ المال: الاشتراكات حسب الحالة (للإيراد والتحويل والـchurn) ───────
+SELECT
+  (SELECT count(*) FROM subscriptions WHERE status='active')   AS subs_active,
+  (SELECT count(*) FROM subscriptions WHERE status='trialing') AS subs_trialing,
+  (SELECT count(*) FROM subscriptions WHERE status='canceled') AS subs_canceled,
+  (SELECT count(*) FROM subscriptions WHERE status='past_due') AS subs_past_due;
+-- MRR التقديري = اجمع (الاشتراكات النشطة × سعر خطتها الشهري من PLAN_PRICES في src/lib/paddle.js).
+-- تحويل التجربة→دفع = subs_active ÷ (إجمالي من بدأ تجربة). churn اشتراكات = subs_canceled ÷ (active+canceled).
+-- ⚠️ CAC/LTV ما إلهم مصدر هون (يحتاجوا بيانات صرف إعلان) — ارصدهم كفجوة ووصِّ ببنائها، لا تخترع رقماً.
+
+-- ── ⑥ الاحتفاظ والخمول (من auth.users — هل المستخدم بيرجع؟) ──────────
+WITH ext AS (
+  SELECT id, created_at, email_confirmed_at, last_sign_in_at FROM auth.users
+  WHERE email NOT ILIKE 'a.m.shaqra20100@%' AND email NOT ILIKE 'demo.reel@%'
+    AND email NOT ILIKE 'qa.admin@%' AND email NOT ILIKE 'qa.tester@%'
+    AND lower(split_part(email,'@',1)) NOT LIKE 'tm_%'
+)
+SELECT
+  count(*)                                                                          AS total,
+  count(*) FILTER (WHERE last_sign_in_at > created_at + interval '1 day')           AS returned_after_day1,
+  count(*) FILTER (WHERE last_sign_in_at > now() - interval '7 days')               AS active_last_7d,
+  count(*) FILTER (WHERE email_confirmed_at IS NOT NULL
+                     AND last_sign_in_at < now() - interval '14 days')              AS dormant_14d
+FROM ext;
+-- الاحتفاظ% = returned_after_day1 ÷ total (هل رجعوا بعد أول يوم). churn proxy = dormant_14d ÷ المؤكَّدين.
