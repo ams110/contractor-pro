@@ -32,7 +32,7 @@ Apply these prompt engineering techniques (pick the ones that fit — don't forc
 **Structure**
 - Use XML tags to separate instructions, context, and input when the prompt has multiple parts
 - Break complex tasks into numbered steps if order matters
-- Add role assignment if it helps focus the response (e.g., "You are a senior data analyst...")
+- ⚠️ Do NOT invent, add, or impose a role on Claude. Keep the user's own framing of who Claude is, exactly as written. If the user says "you are the app owner" / "أنت مالك التطبيق", leave it as-is — never narrow it into "you are a senior developer", "you're responsible for programming", or any specific expert role they didn't ask for. Only add a role assignment if the user explicitly requested one.
 
 **Context & Motivation**
 - Add the "why" behind the request — this helps Claude understand the goal and generalize
@@ -64,9 +64,13 @@ Show the improved prompt to the user in a clear, labeled block. Use this format:
 
 Keep the language of the improved prompt matching the user's original language. If the user wrote in Arabic, improve in Arabic. If in English, improve in English.
 
-### Step 4: Execute the Improved Prompt
+### Step 4: Wait for Approval, Then Execute
 
-Immediately after presenting the improved prompt, execute it as if the user had typed it. Show the result clearly:
+Do NOT execute automatically. After presenting the improved prompt, STOP and ask the user to confirm before running it — e.g. «نفّذها زي ما هي؟ أو بدّك تعدّل عليها؟». Only execute after the user agrees.
+
+**The one exception:** if the user's original message already told you to run it too (e.g. "حسّنه ونفّذه", "imp this and run it", "make it better and execute"), skip the question and execute directly.
+
+When you do execute, show the result clearly:
 
 ```
 📋 النتيجة / Result:
@@ -81,6 +85,8 @@ Immediately after presenting the improved prompt, execute it as if the user had 
 - Don't over-engineer simple prompts. A short request like "translate this to French" doesn't need XML tags and role assignment — just minor refinements.
 - Match the complexity of the improvement to the complexity of the task.
 - Preserve the user's intent exactly. Never change what they're asking for — only improve how they're asking for it.
+- Never replace the user's framing of who Claude is. Keeping "you are the app owner" as written beats inventing a narrower expert role. When in doubt, keep the user's wording.
+- Default to NOT auto-running. Show the improved prompt, then wait for the user's go-ahead — unless they explicitly asked you to run it in the same message.
 - If the prompt references uploaded files, images, or context from the conversation, make sure the improved prompt preserves those references.
 - If other skills are more appropriate for the execution step (e.g., docx, xlsx, pptx, pdf), use them during execution.
 
