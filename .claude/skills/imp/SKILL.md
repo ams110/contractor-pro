@@ -32,7 +32,8 @@ Apply these prompt engineering techniques (pick the ones that fit — don't forc
 **Structure**
 - Use XML tags to separate instructions, context, and input when the prompt has multiple parts
 - Break complex tasks into numbered steps if order matters
-- ⚠️ Do NOT invent, add, or impose a role on Claude. Keep the user's own framing of who Claude is, exactly as written. If the user says "you are the app owner" / "أنت مالك التطبيق", leave it as-is — never narrow it into "you are a senior developer", "you're responsible for programming", or any specific expert role they didn't ask for. Only add a role assignment if the user explicitly requested one.
+- A well-chosen role can sharpen the output, and you're often better at phrasing it than the user — but NEVER inject or override a role silently. When a role would help, PROPOSE 1–2 concrete role options and ASK the user to pick one (or approve yours) before you finalize the improved prompt. Example question: «أي دور بتفضّل أعطيه لكلود؟ ١) مطوّر واجهات senior  ٢) مستشار منتج — أو اكتب دورك.»
+- If the user already gave their own framing (e.g. "you are the app owner" / "أنت مالك التطبيق"), keep it as the default — never silently replace it with a narrower expert role. You MAY offer a sharper phrasing and let the user choose, but only lock in the role the user picked or approved.
 
 **Context & Motivation**
 - Add the "why" behind the request — this helps Claude understand the goal and generalize
