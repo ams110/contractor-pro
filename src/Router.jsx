@@ -8,6 +8,7 @@ import ThankYouPage from './pages/ThankYouPage.jsx'
 import CalculatorPage from './pages/CalculatorPage.jsx'
 import VatCalculatorPage from './pages/VatCalculatorPage.jsx'
 import CityCalculatorPage from './pages/CityCalculatorPage.jsx'
+import CityTradeCalculatorPage from './pages/CityTradeCalculatorPage.jsx'
 import CookieConsent from './components/CookieConsent.jsx'
 import Celebration from './components/Celebration.jsx'
 import { ttPage } from './lib/tiktok.js'
@@ -69,7 +70,12 @@ export default function Router() {
   else if (path === '/pricing')  page = <PricingPage />
   else if (path === '/calculator') page = <CalculatorPage />
   else if (path === '/vat-calculator') page = <VatCalculatorPage />
-  else if (path.startsWith('/calculator/')) page = <CityCalculatorPage slug={path.slice(12)} />
+  else if (path.startsWith('/calculator/')) {
+    const parts = path.slice(12).split('/').filter(Boolean)
+    page = parts.length >= 2
+      ? <CityTradeCalculatorPage city={parts[0]} trade={parts[1]} />
+      : <CityCalculatorPage slug={parts[0] || ''} />
+  }
   else if (path === '/welcome')  page = <WelcomePage />
   else if (path === '/terms')    page = <LegalPage type="terms" />
   else if (path === '/privacy')  page = <LegalPage type="privacy" />

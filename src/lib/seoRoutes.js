@@ -5,6 +5,7 @@
 // هيك ما يصير تكرار/انحراف بين النسختين.
 
 import { CALC_CITIES } from './calcCities.js'
+import { CITY_TRADE_PAGES, cityTradeFaqSchema } from './cityTradePages.js'
 
 export const ORIGIN = 'https://app.linko.services'
 // صورة مشاركة مخصّصة 1200×630 (بانر) — أفضل بكثير من الأيقونة المربّعة للمعاينات
@@ -71,10 +72,22 @@ const CITY_CALC_SEO = Object.fromEntries(
   }]),
 )
 
+// صفحات الحاسبة (مدينة × تخصّص) — تُولَّد من CITY_TRADE_PAGES (SEO محلّي + FAQ schema).
+// كل صفحة تحمل schema=FAQPage فيظهرها prerender ووقت التشغيل (AEO + نتائج غنية).
+const CITY_TRADE_SEO = Object.fromEntries(
+  Object.entries(CITY_TRADE_PAGES).map(([key, p]) => [`/calculator/${key}`, {
+    title: `حاسبة راتب عامل ${p.tradeAr} في ${p.cityAr} | كبلان — مجاناً`,
+    description: `احسب راتب عامل ${p.tradeArFull} في ${p.cityAr} (${p.cityHe}) بالساعات الإضافية (125%/150%) حسب قانون العمل الإسرائيلي. أجرة الساعة غالباً ₪${p.lo}–₪${p.hi}. حاسبة مجانية بلا تسجيل من كبلان.`,
+    crumb: `${p.tradeAr} ${p.cityAr}`,
+    schema: cityTradeFaqSchema(p),
+  }]),
+)
+
 // مسار → عنوان/وصف/علامات. الصفحات والـprerender يقرؤون من هون.
 // breadcrumb: يُبنى تلقائياً (الرئيسية ← الصفحة) لكل ما عدا '/'.
 export const ROUTE_SEO = {
   ...CITY_CALC_SEO,
+  ...CITY_TRADE_SEO,
   '/': {
     title: DEFAULT_TITLE,
     description: DEFAULT_DESC,
