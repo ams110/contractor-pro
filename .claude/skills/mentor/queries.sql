@@ -105,3 +105,24 @@ SELECT
                      AND last_sign_in_at < now() - interval '14 days')              AS dormant_14d
 FROM ext;
 -- الاحتفاظ% = returned_after_day1 ÷ total (هل رجعوا بعد أول يوم). churn proxy = dormant_14d ÷ المؤكَّدين.
+
+-- ── ⑦ مصدر المستخدمين (UTM/referrer) — أي قناة بتجيب مين وبتفعّل مين ───
+-- يعتمد على جدول user_attribution (يُملأ تلقائياً من الكود عند أول جلسة).
+-- المستخدمون القدامى قبل التتبّع بيطلعوا «(غير متتبّع)». الداتا تبدأ من تفعيل التتبّع.
+WITH ext AS (
+  SELECT id FROM auth.users
+  WHERE email NOT ILIKE 'a.m.shaqra20100@%' AND email NOT ILIKE 'demo.reel@%'
+    AND email NOT ILIKE 'qa.admin@%' AND email NOT ILIKE 'qa.tester@%'
+    AND lower(split_part(email,'@',1)) NOT LIKE 'tm_%'
+)
+SELECT
+  COALESCE(a.utm_source, '(غير متتبّع)')                                             AS source,
+  COALESCE(a.utm_campaign, '—')                                                      AS campaign,
+  count(*)                                                                            AS signups,
+  count(*) FILTER (WHERE EXISTS(SELECT 1 FROM employees e WHERE e.user_id=ext.id))    AS activated,
+  count(*) FILTER (WHERE EXISTS(SELECT 1 FROM subscriptions s WHERE s.user_id=ext.id
+                                  AND s.status IN ('active','trialing')))             AS paying
+FROM ext LEFT JOIN public.user_attribution a ON a.user_id = ext.id
+GROUP BY 1, 2
+ORDER BY signups DESC;
+-- هكذا تعرف: أي قناة بتجيب أكثر تسجيلات؟ وأيها بتجيب ناس **بتفعّل وبتدفع** فعلاً (الأهم)؟

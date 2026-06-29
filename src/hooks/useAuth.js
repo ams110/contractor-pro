@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 import { supabase, SUPABASE_URL } from '../lib/supabase.js'
 import { savePinPayload, readPinPayload, hasPin, clearPin } from '../lib/pinCrypto.js'
+import { persistAttribution } from '../lib/attribution.js'
 
 const PASSKEY_KEY  = 'cpro_passkey_cred'  // JSON { credentialId, rpId }
 
@@ -29,6 +30,7 @@ export function useAuth() {
       .then(({ data: { session } }) => {
         setUser(session?.user ?? null)
         setLoading(false)
+        if (session?.user) persistAttribution(session.user.id)  // احفظ مصدر الاكتساب مرّة
       })
       // لو فشل جلب الجلسة (شبكة/تعذّر Supabase) لا نترك التطبيق عالقاً على
       // شاشة البداية للأبد — نوقف التحميل ونعرض شاشة الدخول.
@@ -39,6 +41,7 @@ export function useAuth() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      if (session?.user) persistAttribution(session.user.id)  // يلتقط مصدر التسجيل الجديد
     })
 
     return () => subscription.unsubscribe()
