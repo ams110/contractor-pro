@@ -1,6 +1,6 @@
 {
   "name": "contractor-pro",
-  "version": "2.0.204",
+  "version": "2.0.205",
   "private": true,
   "scripts": {
     "dev": "vite",

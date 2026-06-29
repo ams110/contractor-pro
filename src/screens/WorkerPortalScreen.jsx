@@ -1021,6 +1021,7 @@ function SubmitMaterialForm({ worker, projects }) {
     try {
       await workerAddMaterialLog({
         employeeId: worker.id,
+        token:      worker.token,
         projectId:  form.projectId || null,
         date:       form.date,
         itemName:   form.itemName.trim(),
