@@ -21,12 +21,10 @@ import MaterialsScreen from '../screens/MaterialsScreen.jsx'
 //  مصدر البيانات الموحّد: src/lib/demoData.js (يشاركه الديمو العام /demo).
 // ═══════════════════════════════════════════════════════════════════════════
 
-const DEMO = buildDemo()
-
-function Screen({ name, lang }) {
+function Screen({ name, lang, demo }) {
   // نمرّر language صريحاً من بارامتر الـURL حتى تُرندَر الشاشات بلغة الإعلان
   // بشكل حتمي (الشاشات تعتمد على prop اسمه language) — بلا انتظار توقيت i18n.
-  const props = makeDemoBag(DEMO, { extra: { language: lang || undefined } })
+  const props = makeDemoBag(demo, { extra: { language: lang || undefined } })
   switch (name) {
     case 'workdays':  return <WorkDaysScreen {...props} />
     case 'workers':   return <WorkersScreen {...props} />
@@ -47,6 +45,9 @@ export default function DemoShot() {
   const y = params.get('y')                 // أو إزاحة تمرير بالبكسل
   const lang = params.get('lang')           // ar | he | en — لشاشة بلغة الإعلان (موكاب البوسترات العبرية)
 
+  // ابنِ الديمو باللغة المطلوبة مرّة واحدة (الأسماء الحرّة تُعرَّب للعبري).
+  const [demo] = useState(() => buildDemo(lang === 'he' || lang === 'en' ? lang : 'ar'))
+
   // اضبط اللغة مرّة واحدة قبل أوّل رسم (synchronous — الموارد مُجمّعة) حتى يلتقطها السكرينشوت.
   // نضبط i18n + مخزن التطبيق معاً حتى تُرندَر المكوّنات التي تقرأ اللغة من useAppStore بشكل صحيح.
   useState(() => {
@@ -58,7 +59,7 @@ export default function DemoShot() {
   })
 
   useEffect(() => {
-    seedDemoStores(DEMO)
+    seedDemoStores(demo)
     // تمرير لإظهار البطاقة المطلوبة. نمرّر عدّة مرّات لأن البطاقات الفخمة
     // تتحرّك للداخل (Framer) فيزيح موضعها — وحتى يلتقطه التسجيل (reel) مبكراً.
     if (!focus && !y) return
@@ -75,7 +76,7 @@ export default function DemoShot() {
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, color: C.text, direction: 'rtl', paddingBottom: 24 }}>
       <ErrorBoundary key={name}>
-        <Screen name={name} lang={lang} />
+        <Screen name={name} lang={lang} demo={demo} />
       </ErrorBoundary>
     </div>
   )

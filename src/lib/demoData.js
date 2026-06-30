@@ -1,6 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 //  DEMO DATA — بيانات وهمية متماسكة (مقاول تشطيبات) لتشغيل التطبيق بلا باكند.
 //  مصدر واحد يشاركه: /demoshot (سكرينشوتات) و/demo (الديمو العام التفاعلي).
+//
+//  🌐 ثنائي اللغة: buildDemo(lang). القيم المخزّنة كـ enum (تخصّص/حالة/نوع/فئة/
+//  طريقة دفع) تبقى **عربية canonical دائماً** لأنّها تُترجَم للعرض عبر tEnum
+//  (labels.js). فقط الحقول **الحرّة** (أسماء العمّال/المشاريع/العملاء/المصلحة/
+//  المالك/الموردين) تُعرَّب يدوياً للعبري حتى لا تتعارض مع واجهة عبرية.
+//  أسماء عبرية مناسبة للمجتمع اليهودي الإسرائيلي (سوق المقاولات).
 // ═══════════════════════════════════════════════════════════════════════════
 import { SPECS, EXP_CATS, PAY_METHODS } from '../constants/index.js'
 import { OWNER_PERMS } from '../hooks/useTeam.js'
@@ -9,27 +15,32 @@ import { useDataStore } from '../store/useDataStore.js'
 import { useBusinessStore } from '../store/useBusinessStore.js'
 
 // ─── مولّد بيانات تجريبية متماسكة (مقاول تشطيبات) ─────────────────────────────
-export function buildDemo() {
+// lang: 'ar' (افتراضي) | 'he' — يبدّل الأسماء الحرّة فقط (الـenum يبقى عربي للترجمة).
+export function buildDemo(lang = 'ar') {
+  const he = lang === 'he'
+  const t = (ar, hv) => (he ? hv : ar)   // اختيار سلسلة حرّة حسب اللغة
   const M = (n) => Math.round(n)
+
   const projects = [
-    { id: 'p1', name: 'فيلا الياسمين', status: 'نشط',    type: 'مقاولة مغلقة', client_name: 'سمير حدّاد', client_phone: '0521234567', total_amount: 380000, created_at: '2026-02-01' },
-    { id: 'p2', name: 'عمارة الورد',  status: 'نشط',    type: 'يومي',         client_name: 'شركة البناء الحديث', client_phone: '0539876543', total_amount: 0, created_at: '2026-03-05' },
-    { id: 'p3', name: 'محل النور',    status: 'نشط',    type: 'مقاولة مغلقة', client_name: 'خالد عثمان', client_phone: '0501112233', total_amount: 96000, created_at: '2026-04-10' },
-    { id: 'p4', name: 'شقة الزيتون',  status: 'مكتمل',  type: 'مقاولة مغلقة', client_name: 'ليلى ناصر', client_phone: '0524445566', total_amount: 142000, created_at: '2026-01-12' },
-    { id: 'p5', name: 'مكاتب الأمل',  status: 'موافق عليه', type: 'مقاولة مغلقة', client_name: 'مجموعة الأمل', client_phone: '0537778899', total_amount: 210000, created_at: '2026-05-20' },
+    { id: 'p1', name: t('فيلا الياسمين', 'וילה ברעננה'),  status: 'نشط',    type: 'مقاولة مغلقة', client_name: t('سمير حدّاد', 'משה פרידמן'),         client_phone: '0521234567', total_amount: 380000, created_at: '2026-02-01' },
+    { id: 'p2', name: t('عمارة الورد', 'בניין מגורים תל אביב'), status: 'نشط', type: 'يومي',      client_name: t('شركة البناء الحديث', 'חברת בוני המרכז'), client_phone: '0539876543', total_amount: 0,      created_at: '2026-03-05' },
+    { id: 'p3', name: t('محل النور', 'חנות ברמת גן'),     status: 'نشط',    type: 'مقاولة مغلقة', client_name: t('خالد عثمان', 'דוד שמש'),            client_phone: '0501112233', total_amount: 96000,  created_at: '2026-04-10' },
+    { id: 'p4', name: t('شقة الزيتون', 'דירה בגבעתיים'),  status: 'مكتمل',  type: 'مقاولة مغلقة', client_name: t('ليلى ناصر', 'לאה ניסים'),           client_phone: '0524445566', total_amount: 142000, created_at: '2026-01-12' },
+    { id: 'p5', name: t('مكاتب الأمل', 'משרדים בפתח תקווה'), status: 'موافق عليه', type: 'مقاولة مغلقة', client_name: t('مجموعة الأمل', 'קבוצת אופק'),    client_phone: '0537778899', total_amount: 210000, created_at: '2026-05-20' },
   ]
   // كل المشاريع تتبع المصلحة الوهمية (لتعمل وحدة المالية في الديمو)
   projects.forEach(p => { p.business_id = 'biz1' })
 
+  // [id, الاسم (حرّ → يُعرَّب), الأجر اليومي, التخصّص (enum عربي → يُترجَم بـtEnum)]
   const empNames = [
-    ['e1', 'محمد العبد', 420, 'بناء / تشطيبات'],
-    ['e2', 'سامر خليل',  380, 'بلاط'],
-    ['e3', 'أحمد ياسين', 400, 'كهرباء'],
-    ['e4', 'خالد عمر',   350, 'سباكة'],
-    ['e5', 'يوسف حسن',   440, 'دهان / صبغ'],
-    ['e6', 'إبراهيم سعيد',360, 'جبص'],
-    ['e7', 'عمر فارس',   390, 'بناء / تشطيبات'],
-    ['e8', 'ماهر زيد',   410, 'ألمنيوم'],
+    ['e1', t('محمد العبد', 'מוטי ביטון'),  420, 'بناء / تشطيبات'],
+    ['e2', t('سامر خليل', 'יוסי כהן'),     380, 'بلاط'],
+    ['e3', t('أحمد ياسين', 'משה לוי'),     400, 'كهرباء'],
+    ['e4', t('خالد عمر', 'דוד פרץ'),       350, 'سباكة'],
+    ['e5', t('يوسف حسن', 'איציק דהן'),     440, 'دهان / صبغ'],
+    ['e6', t('إبراهيم سعيد', 'רוני אזולאי'),360, 'جبص'],
+    ['e7', t('عمر فارس', 'ניר חדד'),       390, 'بناء / تشطيبات'],
+    ['e8', t('ماهر زيد', 'שי מזרחי'),      410, 'ألمنيوم'],
   ]
   const employees = empNames.map(([id, name, wage, spec], i) => ({
     id, name, phone: '05' + (20000000 + i * 1111111),
@@ -56,7 +67,7 @@ export function buildDemo() {
     }
   })
 
-  // مقبوضات العملاء
+  // مقبوضات العملاء (method = enum عربي يُترجَم)
   const clientReceipts = [
     { id: 'r1', project_id: 'p1', amount: 120000, date: '2026-03-10', method: 'تحويل بنكي', ref_number: 'RCP-1001' },
     { id: 'r2', project_id: 'p1', amount: 90000,  date: '2026-04-22', method: 'شيك',        ref_number: 'RCP-1002' },
@@ -66,20 +77,20 @@ export function buildDemo() {
     { id: 'r6', project_id: 'p1', amount: 54000,  date: '2026-05-12', method: 'تحويل بنكي', ref_number: 'RCP-1006' },
   ]
 
-  // مصاريف (مشروع + عامة + بعض مصاريف عمال)
+  // مصاريف (category = enum عربي يُترجَم · vendor = حرّ يُعرَّب)
   const expenses = [
-    { id: 'x1', project_id: 'p1', amount: 12400, category: 'مواد بناء / خامات', status: 'approved', is_general: false, vat_amount: 1892, date: '2026-04-05', vendor: 'مخزن البناء' },
-    { id: 'x2', project_id: 'p1', amount: 3600,  category: 'إيجار معدات',        status: 'approved', is_general: false, vat_amount: 549,  date: '2026-04-09', vendor: 'تأجير الرافعات' },
-    { id: 'x3', project_id: 'p2', amount: 5400,  category: 'بضاعة',             status: 'approved', is_general: false, vat_amount: 824,  date: '2026-04-14', vendor: 'بلاط الشرق' },
-    { id: 'x4', project_id: 'p3', amount: 2100,  category: 'عدد وأدوات',         status: 'approved', is_general: false, vat_amount: 320,  date: '2026-05-01', vendor: 'أدوات المحترف' },
-    { id: 'x5', project_id: null, amount: 1800,  category: 'وقود وتنقلات',       status: 'approved', is_general: true,  vat_amount: 183,  date: '2026-05-03', vendor: 'محطة الوقود' },
-    { id: 'x6', project_id: null, amount: 950,   category: 'صيانة مركبات',       status: 'approved', is_general: true,  vat_amount: 97,   date: '2026-05-06', vendor: 'كراج النور' },
-    { id: 'x7', project_id: 'p1', amount: 7800,  category: 'مواد بناء / خامات', status: 'approved', is_general: false, vat_amount: 1190, date: '2026-05-08', vendor: 'مخزن البناء' },
-    { id: 'x8', project_id: 'p2', amount: 4200,  category: 'خدمات مهنية',        status: 'pending',  is_general: false, vat_amount: 641,  date: '2026-05-10', vendor: 'مكتب هندسي' },
-    { id: 'x9', project_id: 'p1', employee_id: 'e1', amount: 600, category: 'عدد وأدوات', status: 'approved', is_general: false, date: '2026-04-20', vendor: 'أدوات' },
+    { id: 'x1', project_id: 'p1', amount: 12400, category: 'مواد بناء / خامات', status: 'approved', is_general: false, vat_amount: 1892, date: '2026-04-05', vendor: t('مخزن البناء', 'מחסני בנייה') },
+    { id: 'x2', project_id: 'p1', amount: 3600,  category: 'إيجار معدات',        status: 'approved', is_general: false, vat_amount: 549,  date: '2026-04-09', vendor: t('تأجير الرافعات', 'השכרת מנופים') },
+    { id: 'x3', project_id: 'p2', amount: 5400,  category: 'بضاعة',             status: 'approved', is_general: false, vat_amount: 824,  date: '2026-04-14', vendor: t('بلاط الشرق', 'ריצוף המזרח') },
+    { id: 'x4', project_id: 'p3', amount: 2100,  category: 'عدد وأدوات',         status: 'approved', is_general: false, vat_amount: 320,  date: '2026-05-01', vendor: t('أدوات المحترف', 'כלי עבודה פרו') },
+    { id: 'x5', project_id: null, amount: 1800,  category: 'وقود وتنقلات',       status: 'approved', is_general: true,  vat_amount: 183,  date: '2026-05-03', vendor: t('محطة الوقود', 'תחנת דלק פז') },
+    { id: 'x6', project_id: null, amount: 950,   category: 'صيانة مركبات',       status: 'approved', is_general: true,  vat_amount: 97,   date: '2026-05-06', vendor: t('كراج النور', 'מוסך אורן') },
+    { id: 'x7', project_id: 'p1', amount: 7800,  category: 'مواد بناء / خامات', status: 'approved', is_general: false, vat_amount: 1190, date: '2026-05-08', vendor: t('مخزن البناء', 'מחסני בנייה') },
+    { id: 'x8', project_id: 'p2', amount: 4200,  category: 'خدمات مهنية',        status: 'pending',  is_general: false, vat_amount: 641,  date: '2026-05-10', vendor: t('مكتب هندسي', 'משרד הנדסה') },
+    { id: 'x9', project_id: 'p1', employee_id: 'e1', amount: 600, category: 'عدد وأدوات', status: 'approved', is_general: false, date: '2026-04-20', vendor: t('أدوات', 'כלי עבודה') },
   ]
 
-  // مدفوعات الرواتب
+  // مدفوعات الرواتب (method = enum عربي يُترجَم)
   const payments = [
     { id: 'y1', employee_id: 'e1', amount: 5200, date: '2026-04-30', status: 'approved', method: 'تحويل بنكي' },
     { id: 'y2', employee_id: 'e2', amount: 4800, date: '2026-04-30', status: 'approved', method: 'كاش' },
@@ -90,12 +101,12 @@ export function buildDemo() {
   ]
 
   const advances = [
-    { id: 'a1', employee_id: 'e3', amount: 1500, date: '2026-04-12', note: 'سلفة' },
-    { id: 'a2', employee_id: 'e4', amount: 2000, date: '2026-04-25', note: 'سلفة' },
-    { id: 'a3', employee_id: 'e7', amount: 1200, date: '2026-05-04', note: 'سلفة' },
+    { id: 'a1', employee_id: 'e3', amount: 1500, date: '2026-04-12', note: t('سلفة', 'מקדמה') },
+    { id: 'a2', employee_id: 'e4', amount: 2000, date: '2026-04-25', note: t('سلفة', 'מקדמה') },
+    { id: 'a3', employee_id: 'e7', amount: 1200, date: '2026-05-04', note: t('سلفة', 'מקדמה') },
   ]
 
-  return { projects, employees, workDays, clientReceipts, expenses, payments, advances }
+  return { projects, employees, workDays, clientReceipts, expenses, payments, advances, _lang: lang }
 }
 
 const noop = () => {}
@@ -115,18 +126,25 @@ export const DEMO_APPCFG = {
   saveConfig: noopAsync, reload: noop,
 }
 
-export const DEMO_PROFILE = { name: 'أبو محمد', contractor_number: '512345678', avatar_url: null }
-
-export const DEMO_BUSINESS = {
-  id: 'biz1', name: 'مقاولات النور', business_type: 'osek_moreh',
-  sort_order: 0, created_at: '2026-01-01',
-}
+// البروفايل والمصلحة — حرّان يُعرَّبان (اسم المالك + اسم المصلحة) حسب اللغة.
+export const demoProfile = (lang = 'ar') => ({
+  name: lang === 'he' ? 'אבי גולן' : 'أبو محمد',
+  contractor_number: '512345678', avatar_url: null,
+})
+export const demoBusiness = (lang = 'ar') => ({
+  id: 'biz1', name: lang === 'he' ? 'גולן בנייה' : 'مقاولات النور',
+  business_type: 'osek_moreh', sort_order: 0, created_at: '2026-01-01',
+})
+// ثوابت عربية للتوافق الرجعي (الافتراضي)
+export const DEMO_PROFILE = demoProfile('ar')
+export const DEMO_BUSINESS = demoBusiness('ar')
 
 // حقيبة props شاملة — كل شاشة تاخد ما يلزمها والباقي يُتجاهل.
 // تمرّر DEMO (نتيجة buildDemo) + onAction اختياري يُستدعى عند أي محاولة تعديل.
 export function makeDemoBag(DEMO, { onAction = noop, extra = {} } = {}) {
   // دالة CRUD وهمية: تستدعي onAction (لتنبيه «سجّل مجاناً») بدل ما تحفظ.
   const block = (...a) => { onAction(...a) }
+  const lang = DEMO?._lang || extra.language || 'ar'
   return {
     ...DEMO,
     permissions: OWNER_PERMS,
@@ -135,7 +153,7 @@ export function makeDemoBag(DEMO, { onAction = noop, extra = {} } = {}) {
     holidays: [], taxAdvances: [],
     pensionMonthly: 0, setPensionMonthly: noop,
     taxEnabled: true, setTaxEnabled: noop, taxModules: { vat: true, income: true, bituach: true }, setTaxModule: noop,
-    profile: DEMO_PROFILE, appCfg: DEMO_APPCFG,
+    profile: demoProfile(lang), appCfg: DEMO_APPCFG,
     teamMembers: [],
     onNav: noop,
     // دوال CRUD — في الديمو تنبّه «سجّل مجاناً» بدل الحفظ
@@ -157,15 +175,16 @@ export function makeDemoBag(DEMO, { onAction = noop, extra = {} } = {}) {
 }
 
 // بذر المخازن المشتركة (خطة كاملة + مرآة البيانات + مصلحة عوسك مورشيه)
-// حتى تعمل البطاقات الفخمة بلا باكند.
+// حتى تعمل البطاقات الفخمة بلا باكند. تقرأ لغة البيانات من DEMO._lang لتعريب اسم المصلحة.
 export function seedDemoStores(DEMO) {
+  const business = demoBusiness(DEMO?._lang || 'ar')
   setPlanInfo({ plan: 'business', trialActive: true, paddleEnabled: false })
   useDataStore.getState().setData({
     projects: DEMO.projects, employees: DEMO.employees, workDays: DEMO.workDays,
     expenses: DEMO.expenses, payments: DEMO.payments, clientReceipts: DEMO.clientReceipts, advances: DEMO.advances,
   })
   useBusinessStore.setState({
-    businesses: [DEMO_BUSINESS], activeBusinessId: 'biz1', activeBusiness: DEMO_BUSINESS,
+    businesses: [business], activeBusinessId: 'biz1', activeBusiness: business,
     initialized: true, loading: false, error: null,
     // 🔒 حاسم: عدّة شاشات (ProjectsScreen/FinanceScreen) تستدعي load() عند التركيب،
     // وهي تجلب businesses من Supabase. بلا جلسة (الديمو anon) ترجع [] فتمسح المصلحة

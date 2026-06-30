@@ -72,12 +72,18 @@ async function captureSeek(browser, id) {
   if (LANG) await ctx.addInitScript((l) => { try { localStorage.setItem('cp_lang', l) } catch (e) {} }, LANG)
   const page = await ctx.newPage()
   await page.goto(`${BASE}/adreel?idea=${id}&dur=${DUR}&seek=1${LANG ? `&lang=${LANG}` : ''}`, { waitUntil: 'networkidle' })
-  await page.waitForFunction(() => window.__seekReady === true, { timeout: 15000 })
+  // ننتظر وجود الدالة نفسها (لا مجرّد __seekReady) — StrictMode/HMR قد يمسحها لحظياً
+  // بعد ضبط العَلَم، فالاعتماد على العَلَم وحده يسبّب "window.__seekTo is not a function".
+  const seekReady = () => page.waitForFunction(() => typeof window.__seekTo === 'function', { timeout: 20000 })
+  await seekReady()
   await page.waitForTimeout(SETTLE)   // دع شاشة الموبايل (عدّادات/مخططات/سكرول) تستقرّ
+  await seekReady()                    // تأكّد ثانية بعد الاستقرار (قد يكون أُعيد التحميل)
 
   for (let f = 0; f < frames; f++) {
     const ms = (f / FPS) * 1000
-    await page.evaluate(t => window.__seekTo(t), ms)
+    // حارس: لو غابت الدالة لإطار (إعادة تحميل عابرة) لا نرمي — نعيد الانتظار ونكمل
+    const ok = await page.evaluate(t => { if (typeof window.__seekTo === 'function') { window.__seekTo(t); return true } return false }, ms)
+    if (!ok) { await seekReady(); await page.evaluate(t => window.__seekTo(t), ms) }
     // انتظر تثبيت React + رسمة الإطار (rAF مزدوج)
     await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))))
     await page.screenshot({ path: join(fdir, String(f).padStart(5, '0') + '.png'), clip: { x: 0, y: 0, width: W, height: H } })
