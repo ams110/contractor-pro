@@ -13,6 +13,7 @@ import { PremiumCard, IconChip, HolographicSheen, useCountUp, TONES } from '../u
 import { supabase } from '../lib/supabase.js'
 import { navigate } from '../Router.jsx'
 import { trackCtaClick } from '../lib/track.js'
+import { useRouteSeo } from '../lib/seo.js'
 import { landingStringsFor } from './landingStrings.js'
 
 // تنقّل مع تتبّع نقر CTA على القناتين (GA4 cta_click + TikTok ClickButton).
@@ -1435,6 +1436,8 @@ function Footer() {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
+  // عنوان/وصف الصفحة حسب اللغة الحالية (عبري عند ?lang=he) — يحدّث <title> وقت التشغيل
+  useRouteSeo('/')
   const [loggedIn, setLoggedIn] = useState(false)
   const reduce = useReducedMotion()
   // شاشة الإقلاع — مرة واحدة بالجلسة، وتُتخطّى مع تقليل الحركة

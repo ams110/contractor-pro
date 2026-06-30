@@ -300,6 +300,11 @@ function OwnerApp() {
 
   const dir = (language === 'ar' || language === 'he') ? 'rtl' : 'ltr'
 
+  // عنوان تبويب المتصفّح داخل التطبيق المسجَّل حسب اللغة (لا يوجد route SEO للتطبيق)
+  useEffect(() => {
+    document.title = tl(language, 'كبلان — إدارة مقاولات', 'קבלאן — ניהול קבלנות', 'Kabblan — Contracting')
+  }, [language])
+
   useEffect(() => {
     const on  = () => setOnline(true)
     const off = () => setOnline(false)

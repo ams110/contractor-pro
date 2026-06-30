@@ -1,8 +1,16 @@
 import { useEffect } from 'react'
 import {
-  ORIGIN, OG_IMAGE, DEFAULT_TITLE, DEFAULT_DESC,
+  ORIGIN, OG_IMAGE,
   ROUTE_SEO, breadcrumbFor,
+  seoField, defaultTitleFor, defaultDescFor,
 } from './seoRoutes.js'
+
+// اللغة الحالية من سمة <html lang> (يضبطها setLanguage في i18n حسب ?lang=). نقرأها
+// من الـDOM بدل استيراد i18n حتى تبقى seo.js بلا أثر جانبي (localStorage) فتُختبر في node.
+function currentLang() {
+  if (typeof document === 'undefined') return 'ar'
+  return document.documentElement.getAttribute('lang') || 'ar'
+}
 
 // ─── محرّك SEO لكل مسار (SPA) ──────────────────────────────────────────────────
 // التطبيق Single-Page، فـ index.html يحمل ميتا ثابتة لكل المسارات. هذا الـhook
@@ -80,8 +88,9 @@ export function faqLd(items) {
 export function applySeo(opts = {}) {
   const { title, description, path = '/', image, jsonLd, noindex } = opts
   const url = ORIGIN + path
-  const t = title || DEFAULT_TITLE
-  const d = description || DEFAULT_DESC
+  const lang = currentLang()
+  const t = title || defaultTitleFor(lang)
+  const d = description || defaultDescFor(lang)
   const img = image || DEFAULT_IMAGE
 
   document.title = t
@@ -122,14 +131,16 @@ export function useSeo(opts = {}) {
  */
 export function useRouteSeo(path, extraSchema = null) {
   const meta = ROUTE_SEO[path] || {}
+  const lang = currentLang()
   const crumb = breadcrumbFor(path)
   const own = meta.schema || extraSchema
   const schemas = [crumb, own].filter(Boolean)
   const jsonLd = schemas.length === 0 ? null : schemas.length === 1 ? schemas[0] : schemas
   useSeo({
     path,
-    title: meta.title,
-    description: meta.description,
+    // العنوان/الوصف حسب اللغة الحالية (he/en) مع رجوع للعربي الافتراضي
+    title: seoField(meta, 'title', lang),
+    description: seoField(meta, 'description', lang),
     noindex: meta.noindex,
     jsonLd,
   })
