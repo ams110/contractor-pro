@@ -7,16 +7,25 @@ import {
   Activity, Clock, ChevronLeft, Sparkles,
 } from 'lucide-react'
 import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue, useReducedMotion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { C, GRAD } from '../constants/index.js'
 import { PremiumCard, IconChip, HolographicSheen, useCountUp, TONES } from '../ui/Premium.jsx'
 import { supabase } from '../lib/supabase.js'
 import { navigate } from '../Router.jsx'
 import { trackCtaClick } from '../lib/track.js'
+import { landingStringsFor } from './landingStrings.js'
 
 // تنقّل مع تتبّع نقر CTA على القناتين (GA4 cta_click + TikTok ClickButton).
 function goCta(location, path) {
   trackCtaClick(location)
   navigate(path)
+}
+
+// نصوص الصفحة حسب اللغة الحالية (ar افتراضي · he للحملات العبرية عبر ?lang=he).
+// كل مكوّن يستدعي useLang() ليقرأ نسخته — بلا prop drilling. تفاعلي مع i18n.
+function useLang() {
+  const { i18n } = useTranslation()
+  return landingStringsFor(i18n.language)
 }
 
 // نستعمل نفس توكنات الهوية (C/GRAD) ومكوّنات kit الفخامة (PremiumCard/IconChip)
@@ -192,6 +201,7 @@ function FloatChip({ icon: Icon, color, text, style = {}, dur = 3.5, delay = 0 }
 // ─── Boot Intro — شاشة إقلاع سينمائية (مرة بالجلسة) ──────────────────────────
 // لوغو ينبثق بـspring + شريط تحميل يتعبّى، ثم الستارة تنسحب لفوق وتكشف المسرح.
 function BootIntro({ onDone }) {
+  const t = useLang()
   return (
     <motion.div
       exit={{ y: '-100%' }}
@@ -206,8 +216,8 @@ function BootIntro({ onDone }) {
       </motion.div>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22, duration: 0.4 }}
         style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 19, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>كبلان</div>
-        <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 3, letterSpacing: '0.08em' }}>إدارة مقاولات</div>
+        <div style={{ fontSize: 19, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{t.brand}</div>
+        <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 3, letterSpacing: '0.08em' }}>{t.brandSub}</div>
       </motion.div>
       <div style={{ width: 150, height: 3, background: C.card, borderRadius: 2, overflow: 'hidden' }}>
         <motion.div
@@ -222,6 +232,7 @@ function BootIntro({ onDone }) {
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 function Navbar({ loggedIn }) {
+  const t = useLang()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -247,8 +258,8 @@ function Navbar({ loggedIn }) {
             <HardHat size={20} color="#fff" strokeWidth={2.5} />
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>كبلان</div>
-            <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.06em' }}>إدارة مقاولات</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: C.text, lineHeight: 1.1 }}>{t.brand}</div>
+            <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.06em' }}>{t.brandSub}</div>
           </div>
         </div>
 
@@ -256,29 +267,29 @@ function Navbar({ loggedIn }) {
         <div className="lp-nav-actions">
           <button onClick={() => goCta('nav_pricing', '/pricing')} className="lp-btn"
             style={{ background: 'transparent', border: 'none', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '8px 14px', borderRadius: 10 }}>
-            الأسعار
+            {t.nav.pricing}
           </button>
           {loggedIn ? (
             <button onClick={() => navigate('/app')} className="lp-btn"
               style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', padding: '9px 20px', borderRadius: 12, boxShadow: '0 4px 18px rgba(249,115,22,0.4)' }}>
-              الدخول للتطبيق
+              {t.nav.enterApp}
             </button>
           ) : (
             <>
               <button onClick={() => navigate('/login')} className="lp-btn"
                 style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '8px 18px', borderRadius: 12 }}>
-                تسجيل الدخول
+                {t.nav.login}
               </button>
               <button onClick={() => goCta('nav_register', '/register')} className="lp-btn"
                 style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', padding: '9px 20px', borderRadius: 12, boxShadow: '0 4px 18px rgba(249,115,22,0.4)' }}>
-                ابدأ مجاناً
+                {t.nav.startFree}
               </button>
             </>
           )}
         </div>
 
         {/* Mobile hamburger (shown ≤640px) */}
-        <button className="lp-burger lp-btn" onClick={() => setMenuOpen(o => !o)} aria-label="القائمة"
+        <button className="lp-burger lp-btn" onClick={() => setMenuOpen(o => !o)} aria-label={t.nav.menu}
           style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, cursor: 'pointer', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           {menuOpen ? <X size={20} strokeWidth={2.4} /> : <Menu size={20} strokeWidth={2.4} />}
         </button>
@@ -289,22 +300,22 @@ function Navbar({ loggedIn }) {
         <div className="lp-burger" style={{ maxWidth: 1120, margin: '0 auto', flexDirection: 'column', gap: 10, padding: '6px 0 18px', direction: 'rtl' }}>
           <button onClick={() => { setMenuOpen(false); navigate('/pricing') }} className="lp-btn"
             style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '13px', borderRadius: 13 }}>
-            الأسعار
+            {t.nav.pricing}
           </button>
           {loggedIn ? (
             <button onClick={() => { setMenuOpen(false); navigate('/app') }} className="lp-btn"
               style={{ width: '100%', background: GRAD.brand, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', padding: '13px', borderRadius: 13, boxShadow: '0 4px 18px rgba(249,115,22,0.4)' }}>
-              الدخول للتطبيق
+              {t.nav.enterApp}
             </button>
           ) : (
             <>
               <button onClick={() => { setMenuOpen(false); navigate('/login') }} className="lp-btn"
                 style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '13px', borderRadius: 13 }}>
-                تسجيل الدخول
+                {t.nav.login}
               </button>
               <button onClick={() => { setMenuOpen(false); goCta('nav_mobile_register', '/register') }} className="lp-btn"
                 style={{ width: '100%', background: GRAD.brand, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', padding: '13px', borderRadius: 13, boxShadow: '0 4px 18px rgba(249,115,22,0.4)' }}>
-                ابدأ مجاناً
+                {t.nav.startFree}
               </button>
             </>
           )}
@@ -335,6 +346,7 @@ function MiniNav({ active = 0 }) {
 }
 
 function PhoneMockup({ float = true }) {
+  const tx = useLang()
   const score = 87
   const R = 26
   const CIRC = 2 * Math.PI * R
@@ -350,13 +362,13 @@ function PhoneMockup({ float = true }) {
   const k2 = useCountUp(31, 1300, live)
   const k3 = useCountUp(12, 1300, live)
   const kpis = [
-    { label: 'صافي الربح', value: `₪${k1}K`, color: C.success },
-    { label: 'نقد بالجيب', value: `₪${k2}K`, color: C.cyan    },
-    { label: 'مستحق',      value: `₪${k3}K`, color: C.gold    },
+    { label: tx.phone.netProfit,  value: `₪${k1}K`, color: C.success },
+    { label: tx.phone.cashInHand, value: `₪${k2}K`, color: C.cyan    },
+    { label: tx.phone.owed,       value: `₪${k3}K`, color: C.gold    },
   ]
   const mockProjects = [
-    { name: 'فيلا رهط',    amount: '₪42,500', pct: 68,  active: true  },
-    { name: 'شقة الناصرة', amount: '₪18,000', pct: 100, active: false },
+    { name: tx.phone.projVilla, amount: '₪42,500', pct: 68,  active: true  },
+    { name: tx.phone.projApt,   amount: '₪18,000', pct: 100, active: false },
   ]
   return (
     <div className={float ? 'float' : undefined} style={{ width: 268, background: C.surface, borderRadius: 42, border: `2px solid rgba(249,115,22,0.15)`, overflow: 'hidden', boxShadow: '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(249,115,22,0.06)' }}>
@@ -370,7 +382,7 @@ function PhoneMockup({ float = true }) {
           <div style={{ width: 28, height: 28, borderRadius: 9, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <HardHat size={14} color="#fff" strokeWidth={2.5} />
           </div>
-          <span style={{ fontSize: 10, fontWeight: 800, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>كبلان</span>
+          <span style={{ fontSize: 10, fontWeight: 800, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tx.brand}</span>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <div style={{ width: 22, height: 22, borderRadius: 7, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -403,16 +415,16 @@ function PhoneMockup({ float = true }) {
             </svg>
             <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 16, fontWeight: 900, color: C.text, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{liveScore}</span>
-              <span style={{ fontSize: 6, color: C.textDim, marginTop: 1 }}>من 100</span>
+              <span style={{ fontSize: 6, color: C.textDim, marginTop: 1 }}>{tx.phone.of100}</span>
             </div>
           </div>
           {/* text */}
           <div style={{ position: 'relative', flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 900, color: C.text }}>نبض المصلحة</div>
-            <div style={{ fontSize: 8, color: C.textDim, marginTop: 2 }}>صحة مالية ممتازة</div>
+            <div style={{ fontSize: 11, fontWeight: 900, color: C.text }}>{tx.phone.pulseTitle}</div>
+            <div style={{ fontSize: 8, color: C.textDim, marginTop: 2 }}>{tx.phone.pulseSub}</div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 6, background: `${C.success}1c`, border: `1px solid ${C.success}3a`, borderRadius: 7, padding: '2px 7px' }}>
               <TrendingUp size={9} color={C.success} strokeWidth={2.5} />
-              <span style={{ fontSize: 8, fontWeight: 800, color: C.success }}>+12% هذا الشهر</span>
+              <span style={{ fontSize: 8, fontWeight: 800, color: C.success }}>{tx.phone.pulseDelta}</span>
             </div>
           </div>
         </div>
@@ -432,7 +444,7 @@ function PhoneMockup({ float = true }) {
       <div style={{ padding: '10px 10px 0', background: C.bg }}>
         <div style={{ background: C.card, borderRadius: 12, padding: '9px 10px', border: `1px solid ${C.border}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
-            <span style={{ fontSize: 8, fontWeight: 700, color: C.textDim }}>الدخل الشهري</span>
+            <span style={{ fontSize: 8, fontWeight: 700, color: C.textDim }}>{tx.phone.monthlyIncome}</span>
             <span style={{ fontSize: 8, fontWeight: 800, color: C.primary }}>₪88K</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 4, height: 34 }}>
@@ -448,7 +460,7 @@ function PhoneMockup({ float = true }) {
       </div>
       {/* Projects */}
       <div style={{ padding: '10px 10px 10px', background: C.bg }}>
-        <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, marginBottom: 7 }}>المشاريع النشطة</div>
+        <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, marginBottom: 7 }}>{tx.phone.activeProjects}</div>
         {mockProjects.map((proj, i) => (
           <div key={i} style={{ background: C.card, borderRadius: 11, padding: '9px 10px', marginBottom: 5, border: `1px solid ${C.border}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
@@ -473,25 +485,12 @@ function PhoneMockup({ float = true }) {
 // بشبكة سماوية، رسمة موقع (مبنى + رافعة) بخط المخططات ترسم حالها قدام
 // الزائر (SVG pathLength)، خطوط أبعاد ذهبية، عنوان «مُقاس» بشرطات أبعاد،
 // وختم أحمر «جاهز للتنفيذ» يُطبع لما تكتمل الرسمة. بلا تثبيت سكرول.
-const STORY = [
-  {
-    Icon: CalendarDays, color: C.primary,
-    title: 'سجّل أيام الشغل بلمسة',
-    desc:  'كل يوم عمل لكل عامل — موافقة أو رفض فوري. بلا دفاتر، بلا واتساب ضايع، بلا نسيان.',
-  },
-  {
-    Icon: Wallet, color: C.secondary,
-    title: 'الرواتب والسلف محسوبة لحالها',
-    desc:  'ساعات إضافية، سلف، خصومات — الحساب جاهز قبل ما تسأل، وكشف حساب لكل عامل.',
-  },
-  {
-    Icon: TrendingUp, color: C.success,
-    title: 'أرباحك قدامك لحظة بلحظة',
-    desc:  'صافي الربح، نقد الجيب، وضريبة القيمة المضافة — كل شي محتاجه بلوحة واحدة.',
-  },
+// أيقونة/لون كل قصّة — النصوص (title/desc) تأتي من قاموس اللغة (t.story[i]).
+const STORY_META = [
+  { Icon: CalendarDays, color: C.primary   },
+  { Icon: Wallet,       color: C.secondary },
+  { Icon: TrendingUp,   color: C.success   },
 ]
-
-const HEADLINE_WORDS = ['كل', 'يوم', 'شغل،', 'كل', 'دفعة،', '\n', 'كل', 'مصروف', '—']
 
 // خلفية شبكة المخطط (تُستعمل بورقة الهيرو وأوراق الأقسام)
 const BP_GRID_BG = `
@@ -511,6 +510,7 @@ function SheetCorners() {
 
 // ورقة مخطط — إطار موحّد للأقسام: رقم ورقة + شبكة + زوايا + جدول عنوان مصغّر
 function Sheet({ no, title, children, style = {} }) {
+  const t = useLang()
   return (
     <div style={{
       position: 'relative', borderRadius: 18, overflow: 'hidden',
@@ -523,7 +523,7 @@ function Sheet({ no, title, children, style = {} }) {
       {/* شريط رقم الورقة */}
       <div style={{ position: 'absolute', top: 12, insetInlineStart: 38, zIndex: 2, display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 10, fontWeight: 800, color: `${C.cyan}BB`, letterSpacing: '0.14em' }}>
         <span style={{ width: 7, height: 7, borderRadius: '50%', background: C.cyan, boxShadow: `0 0 8px ${C.cyan}` }} />
-        ورقة {no} — {title}
+        {t.sheetWord} {no} — {title}
       </div>
       {children}
     </div>
@@ -552,6 +552,8 @@ const HERO_PATHS = [
   { d: 'M444 210 h40 v28 h-40 Z', w: 1.4 },                                                   // الحمولة
 ]
 function BlueprintHero() {
+  const t = useLang()
+  const words = t.hero.words
   const reduce = useReducedMotion()
   const draw = (i, dur = 1.0) => reduce ? {} : {
     initial: { pathLength: 0, opacity: 0 },
@@ -579,7 +581,7 @@ function BlueprintHero() {
       </motion.span>
     )
   }
-  const gradDelay = 0.15 + HEADLINE_WORDS.filter(w => w !== '\n').length * 0.07 + 0.1
+  const gradDelay = 0.15 + words.filter(w => w !== '\n').length * 0.07 + 0.1
 
   return (
     <section style={{ padding: 'clamp(10px, 2vw, 24px)', direction: 'rtl' }}>
@@ -593,7 +595,7 @@ function BlueprintHero() {
         <SheetCorners />
         <div style={{ position: 'absolute', top: 12, insetInlineStart: 38, zIndex: 2, display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 10, fontWeight: 800, color: `${C.cyan}BB`, letterSpacing: '0.14em' }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: C.cyan, boxShadow: `0 0 8px ${C.cyan}` }} />
-          ورقة CP-00 — الغلاف · مشروع: مصلحتك
+          {t.hero.sheetLabel}
         </div>
 
         <div className="lp-hero-grid" style={{ position: 'relative', width: '100%' }}>
@@ -602,33 +604,33 @@ function BlueprintHero() {
             <motion.div {...fadeIn(0)}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${C.cyan}14`, border: `1px solid ${C.cyan}40`, borderRadius: 8, padding: '6px 14px', marginBottom: 'clamp(14px, 2.6vh, 24px)', fontSize: 11.5, color: C.cyan, fontWeight: 800, letterSpacing: '0.06em' }}>
               <CircleDot size={10} strokeWidth={3} />
-              التطبيق الأول للمقاول العربي في إسرائيل
+              {t.hero.badge}
             </motion.div>
 
             {/* خط بُعد فوق العنوان */}
             <motion.div {...fadeIn(0.1)} aria-hidden style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <span style={{ width: 1.5, height: 12, background: `${C.gold}99` }} />
               <span style={{ flex: 1, maxWidth: 300, height: 1.5, background: `${C.gold}66` }} />
-              <span style={{ fontSize: 10, fontWeight: 800, color: C.gold, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.08em' }}>المقياس 1:1 — شغلك الحقيقي</span>
+              <span style={{ fontSize: 10, fontWeight: 800, color: C.gold, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.08em' }}>{t.hero.scale}</span>
               <span style={{ flex: 1, maxWidth: 300, height: 1.5, background: `${C.gold}66` }} />
               <span style={{ width: 1.5, height: 12, background: `${C.gold}99` }} />
             </motion.div>
 
             <h1 style={{ fontSize: 'clamp(26px,4.4vw,48px)', fontWeight: 900, color: C.text, lineHeight: 1.2, marginBottom: 14, letterSpacing: '-0.02em' }}>
-              {HEADLINE_WORDS.map(word)}
+              {words.map(word)}
               <br />
               <motion.span className="grad-text"
                 initial={reduce ? false : { opacity: 0, y: 18, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.7, delay: gradDelay, ease: [0.22, 1, 0.36, 1] }}
                 style={{ display: 'inline-block' }}>
-                محفوظ. مش في دماغك.
+                {t.hero.finish}
               </motion.span>
             </h1>
 
             <motion.p {...fadeIn(gradDelay + 0.12)}
               style={{ fontSize: 'clamp(13.5px,1.6vw,16.5px)', color: C.textDim, lineHeight: 1.75, marginBottom: 'clamp(16px, 2.8vh, 26px)', maxWidth: 520 }}>
-              بطّل تخسر فلوس بالنسيان والحساب الغلط: كبلان بيحسب راتب كل عامل صح وتلقائياً، ويتابع مصاريفك وضريبتك — وكلّه محفوظ بجيبك.
+              {t.hero.para}
             </motion.p>
 
             <motion.div {...fadeIn(gradDelay + 0.2)}
@@ -636,31 +638,27 @@ function BlueprintHero() {
               <Magnetic>
                 <button onClick={() => goCta('landing_hero', '/register')} className="lp-btn"
                   style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', padding: '15px 36px', borderRadius: 14, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  جرّب مجاناً 14 يوم
+                  {t.hero.ctaTry}
                   <ArrowLeft size={18} strokeWidth={2.5} />
                 </button>
               </Magnetic>
               <button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }) }} className="lp-btn"
                 style={{ background: `${C.cyan}10`, border: `1px solid ${C.cyan}40`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '15px 26px', borderRadius: 14 }}>
-                شاهد كيف يعمل
+                {t.hero.ctaWatch}
               </button>
               <button onClick={() => goCta('landing_calculator', '/calculator')} className="lp-btn"
                 style={{ background: `${C.primary}10`, border: `1px solid ${C.primary}40`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '15px 26px', borderRadius: 14 }}>
-                احسب راتب عامل مجاناً
+                {t.hero.ctaSalary}
               </button>
               <button onClick={() => goCta('landing_vat_calculator', '/vat-calculator')} className="lp-btn"
                 style={{ background: `${C.primary}10`, border: `1px solid ${C.primary}40`, color: C.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '15px 26px', borderRadius: 14 }}>
-                احسب {'מע"מ'} مجاناً
+                {t.hero.ctaVat}
               </button>
             </motion.div>
 
             <motion.div {...fadeIn(gradDelay + 0.32)}
               style={{ marginTop: 'clamp(14px, 2.6vh, 24px)', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              {[
-                { icon: Shield,       label: 'آمن ومشفّر' },
-                { icon: Smartphone,   label: 'يعمل بدون إنترنت' },
-                { icon: CheckCircle2, label: 'بدون بطاقة ائتمان' },
-              ].map(({ icon: Icon, label }, i) => (
+              {[Shield, Smartphone, CheckCircle2].map((Icon, i) => ({ icon: Icon, label: t.hero.trust[i] })).map(({ icon: Icon, label }, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <Icon size={15} color={C.cyan} strokeWidth={2.2} />
                   <span style={{ fontSize: 13, color: C.textDim }}>{label}</span>
@@ -679,15 +677,15 @@ function BlueprintHero() {
               {/* خطوط الأبعاد الذهبية */}
               <motion.g {...(reduce ? {} : { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { delay: 2.9, duration: 0.6 } })}>
                 <path d="M64 96 L304 96 M64 88 L64 104 M304 88 L304 104" stroke={`${C.gold}99`} strokeWidth="1.2" fill="none" />
-                <text x="184" y="86" textAnchor="middle" fill={C.gold} fontSize="12" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>24.00 م</text>
+                <text x="184" y="86" textAnchor="middle" fill={C.gold} fontSize="12" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{t.hero.dimW}</text>
                 <path d="M30 172 L30 388 M22 172 L38 172 M22 388 L38 388" stroke={`${C.gold}99`} strokeWidth="1.2" fill="none" />
-                <text x="30" y="284" textAnchor="middle" fill={C.gold} fontSize="11" fontWeight="700" transform="rotate(-90 22 284)" style={{ fontVariantNumeric: 'tabular-nums' }}>14.40 م</text>
+                <text x="30" y="284" textAnchor="middle" fill={C.gold} fontSize="11" fontWeight="700" transform="rotate(-90 22 284)" style={{ fontVariantNumeric: 'tabular-nums' }}>{t.hero.dimH}</text>
               </motion.g>
               {/* وردة الشمال */}
               <motion.g {...(reduce ? {} : { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { delay: 3.2, duration: 0.5 } })}>
                 <circle cx="478" cy="38" r="17" stroke={`${C.cyan}77`} strokeWidth="1.2" fill="none" />
                 <path d="M478 26 L483 43 L478 39 L473 43 Z" fill={C.cyan} opacity="0.85" />
-                <text x="478" y="68" textAnchor="middle" fill={`${C.cyan}AA`} fontSize="9" fontWeight="700">N</text>
+                <text x="478" y="68" textAnchor="middle" fill={`${C.cyan}AA`} fontSize="9" fontWeight="700">{t.hero.north}</text>
               </motion.g>
             </svg>
 
@@ -702,7 +700,7 @@ function BlueprintHero() {
                 boxShadow: `inset 0 0 0 2px transparent, 0 0 0 3px ${C.accent}22`,
                 textAlign: 'center', background: `${C.accent}0d`, backdropFilter: 'blur(2px)',
               }}>
-              <div style={{ fontSize: 16, fontWeight: 900, color: C.accent, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>جاهز للتنفيذ ✓</div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: C.accent, letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{t.hero.stamp}</div>
               <div style={{ fontSize: 8.5, fontWeight: 800, color: `${C.accent}BB`, letterSpacing: '0.18em', marginTop: 2 }}>CONTRACTOR PRO — CP-00</div>
             </motion.div>
           </div>
@@ -710,12 +708,7 @@ function BlueprintHero() {
 
         {/* جدول العنوان أسفل ورقة الغلاف */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', flexWrap: 'wrap', borderTop: `1px solid ${C.cyan}33`, background: 'rgba(10,15,34,0.72)', backdropFilter: 'blur(6px)' }}>
-          {[
-            ['المشروع', 'مصلحتك — بنظام'],
-            ['رسم', 'كبلان'],
-            ['التاريخ', 'اليوم'],
-            ['المراجعة', 'تجربة 14 يوم مجاناً'],
-          ].map(([k, v], i) => (
+          {t.hero.titleBlock.map(([k, v], i) => (
             <div key={i} className="lp-titleblock-cell" style={{ flex: '1 1 120px', padding: '8px 16px', borderInlineStart: i ? `1px solid ${C.cyan}22` : 'none' }}>
               <div style={{ fontSize: 8.5, color: `${C.cyan}AA`, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 2 }}>{k}</div>
               <div style={{ fontSize: 11.5, color: C.text, fontWeight: 800 }}>{v}</div>
@@ -728,9 +721,10 @@ function BlueprintHero() {
 }
 
 function LandingTicket({ day, month, weekday, name, project, type, color, grad, TypeIcon, chips = [], amount, status, notch = C.bg, width = 330 }) {
+  const t = useLang()
   const st = status === 'pending'
-    ? { color: C.warning, label: 'بانتظار', Icon: Hourglass }
-    : { color: C.success, label: 'معتمد', Icon: Check }
+    ? { color: C.warning, label: t.ticket.pending, Icon: Hourglass }
+    : { color: C.success, label: t.ticket.approved, Icon: Check }
   return (
     <div dir="rtl" style={{
       position: 'relative', display: 'flex', alignItems: 'stretch', minHeight: 86, width, maxWidth: '88vw',
@@ -767,7 +761,7 @@ function LandingTicket({ day, month, weekday, name, project, type, color, grad, 
       <div aria-hidden style={{ position: 'absolute', insetInlineEnd: 80, bottom: -8, width: 16, height: 16, borderRadius: '50%', background: notch }} />
       {/* كعب الأجر + ختم الحالة */}
       <div style={{ width: 80, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 5px' }}>
-        <div style={{ fontSize: 8, fontWeight: 700, color: C.textDim }}>الأجر</div>
+        <div style={{ fontSize: 8, fontWeight: 700, color: C.textDim }}>{t.ticket.wage}</div>
         <div style={{ fontSize: 15, fontWeight: 900, color, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>₪{amount}</div>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontWeight: 800, color: st.color, background: `${st.color}1a`, border: `1px solid ${st.color}40`, borderRadius: 20, padding: '2px 7px' }}>
           <st.Icon size={8} strokeWidth={2.8} /> {st.label}
@@ -777,7 +771,9 @@ function LandingTicket({ day, month, weekday, name, project, type, color, grad, 
   )
 }
 
-function LandingProjectCard({ name, client, status = 'نشط', profit, margin, stats = [], width = 310 }) {
+function LandingProjectCard({ name, client, status, profit, margin, stats = [], width = 310 }) {
+  const t = useLang()
+  const statusLabel = status || t.project.active
   // تدرّج «نشط» الحقيقي من ProjectCard: أخضر → أزرق → سماوي
   const gradient = `linear-gradient(135deg, ${C.success} 0%, #0EA5E9 58%, ${C.cyan} 115%)`
   return (
@@ -794,7 +790,7 @@ function LandingProjectCard({ name, client, status = 'نشط', profit, margin, s
         <div style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(255,255,255,0.20)', border: '1px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
           <Building2 size={17} color="#fff" strokeWidth={1.9} />
         </div>
-        <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', padding: '3px 9px', borderRadius: 999, background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.28)' }}>{status}</span>
+        <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', padding: '3px 9px', borderRadius: 999, background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.28)' }}>{statusLabel}</span>
       </div>
       <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ minWidth: 0 }}>
@@ -804,7 +800,7 @@ function LandingProjectCard({ name, client, status = 'نشط', profit, margin, s
         </div>
         <div style={{ textAlign: 'end', flexShrink: 0 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.78)' }}>
-            <TrendingUp size={10} color="#fff" strokeWidth={2.4} /> الربح
+            <TrendingUp size={10} color="#fff" strokeWidth={2.4} /> {t.project.profit}
           </div>
           <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.28)', fontVariantNumeric: 'tabular-nums' }}>₪{profit}</div>
           {margin && <div style={{ fontSize: 8.5, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{margin}%</div>}
@@ -864,29 +860,33 @@ function NoteCard({ Icon, color, title, sub, amt, width = 280 }) {
 // ومع السكرول التلفون الحي يطلع وكلها تنشفط جوّاه + ختم «محفوظ. مرتّب. محسوب.».
 const TICKET_GRAD_FULL = `linear-gradient(160deg, ${C.primary}, ${C.gold})`
 const TICKET_GRAD_HALF = `linear-gradient(160deg, ${C.warning}, ${C.gold})`
-const CHAOS_CARDS = [
-  { sx: '-33vw', sy: '-26vh', rot: -14, dur: 5.2, render: () => (
-    <LandingTicket day={8} month="يونيو" weekday="الثلاثاء" name="محمد ع." project="فيلا رهط" type="كامل"
-      color={C.primary} grad={TICKET_GRAD_FULL} TypeIcon={Sun} chips={['8 ساعات']} amount="450" status="approved" />
-  ) },
-  { sx: '32vw', sy: '-27vh', rot: 12, dur: 6.0, render: () => (
-    <LandingTicket day={9} month="يونيو" weekday="الأربعاء" name="أحمد س." project="شقة الناصرة" type="نص يوم"
-      color={C.warning} grad={TICKET_GRAD_HALF} TypeIcon={CloudSun} chips={['4 ساعات']} amount="225" status="pending" />
-  ) },
-  { sx: '-36vw', sy: '7vh', rot: 10, dur: 4.8, render: () => (
-    <LandingProjectCard name="فيلا رهط" client="أبو يوسف" profit="42,500" margin={28}
-      stats={[{ label: 'إيرادات', value: '₪150K' }, { label: 'التكاليف', value: '₪108K' }, { label: 'أيام', value: '64' }]} />
-  ) },
-  { sx: '35vw', sy: '9vh', rot: -12, dur: 5.6, render: () => (
-    <LandingPayRow init="أ" name="راتب أحمد" sub="نيسان · PAY-1043" amt="₪3,800" color={C.secondary} status="مدفوع" grad={GRAD.premium} />
-  ) },
-  { sx: '-25vw', sy: '31vh', rot: 17, dur: 5.0, hideM: true, render: () => (
-    <NoteCard Icon={Receipt} color={C.cyan} title={'מע"מ للاسترداد'} sub="فاتورة INV-1042" amt="₪357" />
-  ) },
-  { sx: '26vw', sy: '30vh', rot: -16, dur: 5.8, hideM: true, render: () => (
-    <NoteCard Icon={Receipt} color={C.accent} title="فاتورة مواد" sub="حديد + إسمنت" amt="₪2,340" />
-  ) },
-]
+// بطاقات الفوضى — مواضعها ثابتة، ونصوصها (أسماء/مشاريع/أنواع...) من قاموس اللغة.
+function makeChaosCards(t) {
+  const d = t.chaosData
+  return [
+    { sx: '-33vw', sy: '-26vh', rot: -14, dur: 5.2, render: () => (
+      <LandingTicket day={8} month={d.monthJun} weekday={d.weekdayTue} name={d.worker1} project={t.phone.projVilla} type={d.typeFull}
+        color={C.primary} grad={TICKET_GRAD_FULL} TypeIcon={Sun} chips={[d.hours8]} amount="450" status="approved" />
+    ) },
+    { sx: '32vw', sy: '-27vh', rot: 12, dur: 6.0, render: () => (
+      <LandingTicket day={9} month={d.monthJun} weekday={d.weekdayWed} name={d.worker2} project={t.phone.projApt} type={d.typeHalf}
+        color={C.warning} grad={TICKET_GRAD_HALF} TypeIcon={CloudSun} chips={[d.hours4]} amount="225" status="pending" />
+    ) },
+    { sx: '-36vw', sy: '7vh', rot: 10, dur: 4.8, render: () => (
+      <LandingProjectCard name={t.phone.projVilla} client={d.client} profit="42,500" margin={28}
+        stats={[{ label: t.project.revenue, value: '₪150K' }, { label: t.project.costs, value: '₪108K' }, { label: t.project.days, value: '64' }]} />
+    ) },
+    { sx: '35vw', sy: '9vh', rot: -12, dur: 5.6, render: () => (
+      <LandingPayRow init={d.initAhmad} name={d.salaryAhmad} sub={d.salarySub} amt="₪3,800" color={C.secondary} status={d.paid} grad={GRAD.premium} />
+    ) },
+    { sx: '-25vw', sy: '31vh', rot: 17, dur: 5.0, hideM: true, render: () => (
+      <NoteCard Icon={Receipt} color={C.cyan} title={d.vatRefund} sub={d.invoice} amt="₪357" />
+    ) },
+    { sx: '26vw', sy: '30vh', rot: -16, dur: 5.8, hideM: true, render: () => (
+      <NoteCard Icon={Receipt} color={C.accent} title={d.materialsInvoice} sub={d.materialsSub} amt="₪2,340" />
+    ) },
+  ]
+}
 
 function ChaosCard({ c, i, p }) {
   const a = 0.26 + i * 0.055
@@ -907,6 +907,8 @@ function ChaosCard({ c, i, p }) {
 }
 
 function ChaosToOrder() {
+  const t = useLang()
+  const cards = makeChaosCards(t)
   const ref = useRef(null)
   const reduce = useReducedMotion()
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
@@ -923,11 +925,11 @@ function ChaosToOrder() {
       <section id="features" style={{ padding: '72px 24px', direction: 'rtl' }}>
         <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 10 }}>
-            كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
+            {t.chaos.titlePre} <span className="grad-text">{t.chaos.titleHi}</span>
           </h2>
-          <p style={{ fontSize: 15, color: C.textDim, marginBottom: 28 }}>تذاكر الشِفتات، كروت المشاريع، الرواتب — كلها محفوظة لحالها.</p>
+          <p style={{ fontSize: 15, color: C.textDim, marginBottom: 28 }}>{t.chaos.sub}</p>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            {CHAOS_CARDS.filter(c => !c.hideM).map((c, i) => <div key={i}>{c.render()}</div>)}
+            {cards.filter(c => !c.hideM).map((c, i) => <div key={i}>{c.render()}</div>)}
           </div>
         </div>
       </section>
@@ -943,16 +945,16 @@ function ChaosToOrder() {
         {/* العنوان */}
         <div style={{ position: 'absolute', top: 'clamp(74px, 9.6vh, 100px)', left: 0, right: 0, textAlign: 'center', padding: '0 18px', zIndex: 7, pointerEvents: 'none' }}>
           <motion.div style={{ opacity: chaosLabelOp, fontSize: 11, color: C.accent, fontWeight: 800, letterSpacing: '0.12em', marginBottom: 7 }}>
-            هاي مش رسومات — هاي شاشاتك الحقيقية، بس مبعثرة
+            {t.chaos.label}
           </motion.div>
           <motion.h2 style={{ opacity: headOp, fontSize: 'clamp(19px,3vw,30px)', fontWeight: 900, color: C.text, lineHeight: 1.25, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>
-            كل شي محتاجه <span className="grad-text">في شاشة واحدة</span>
+            {t.chaos.titlePre} <span className="grad-text">{t.chaos.titleHi}</span>
           </motion.h2>
         </div>
 
         {/* المكوّنات الحقيقية الطايرة */}
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 6, pointerEvents: 'none' }}>
-          {CHAOS_CARDS.map((c, i) => <ChaosCard key={i} c={c} i={i} p={p} />)}
+          {cards.map((c, i) => <ChaosCard key={i} c={c} i={i} p={p} />)}
         </div>
 
         {/* التلفون الحي — اللاقط */}
@@ -970,7 +972,7 @@ function ChaosToOrder() {
             boxShadow: `0 10px 30px rgba(0,0,0,0.45), 0 0 24px ${C.success}33`, backdropFilter: 'blur(6px)', whiteSpace: 'nowrap',
           }}>
             <CheckCircle2 size={15} strokeWidth={2.6} />
-            محفوظ. مرتّب. محسوب.
+            {t.chaos.done}
           </motion.div>
         </motion.div>
       </div>
@@ -982,52 +984,54 @@ function ChaosToOrder() {
 // ─── ورقة CP-01 — نماذج حية من شاشاتك ────────────────────────────────────────
 // التذاكر والكروت بالحجم الكامل كما تبدو فعلاً بالتطبيق + التلفون الحي.
 function AppShowcase() {
+  const t = useLang()
+  const d = t.chaosData
   const SHEET_BG = '#0A1226'   // أرضية ورقة المخطط — لحفر التثقيب بالتذاكر
   return (
     <section style={{ padding: '36px 24px 72px', direction: 'rtl' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-        <Sheet no="CP-01" title="نماذج حية من شاشاتك">
+        <Sheet no="CP-01" title={t.sheetTitles.samples}>
           <div style={{ padding: '54px 22px 36px' }}>
             <Depth tilt={16} lift={60}>
               <div style={{ textAlign: 'center', marginBottom: 42 }}>
                 <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
-                  هيك رح تشوف <span className="grad-text">شغلك بالضبط</span>
+                  {t.showcase.titlePre} <span className="grad-text">{t.showcase.titleHi}</span>
                 </h2>
-                <p style={{ fontSize: 16, color: C.textDim }}>مش موك-أب — نفس تذاكر الشِفت وكروت المشاريع اللي جوّا التطبيق.</p>
+                <p style={{ fontSize: 16, color: C.textDim }}>{t.showcase.sub}</p>
               </div>
             </Depth>
             <div className="lp-cinema-grid" style={{ margin: '0 auto', alignItems: 'start' }}>
               {/* عمود التذاكر + الراتب */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
-                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.primary, letterSpacing: '0.1em' }}>أيام العمل — تذاكر الشِفت</div>
+                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.primary, letterSpacing: '0.1em' }}>{t.showcase.colDays}</div>
                 <Flip3D delay={0} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
-                  <LandingTicket day={8} month="يونيو" weekday="الثلاثاء" name="محمد ع." project="فيلا رهط" type="كامل"
-                    color={C.primary} grad={TICKET_GRAD_FULL} TypeIcon={Sun} chips={['8 ساعات']} amount="450" status="approved" notch={SHEET_BG} width={440} />
+                  <LandingTicket day={8} month={d.monthJun} weekday={d.weekdayTue} name={d.worker1} project={t.phone.projVilla} type={d.typeFull}
+                    color={C.primary} grad={TICKET_GRAD_FULL} TypeIcon={Sun} chips={[d.hours8]} amount="450" status="approved" notch={SHEET_BG} width={440} />
                 </Flip3D>
                 <Flip3D delay={0.12} dir={-1} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
-                  <LandingTicket day={9} month="يونيو" weekday="الأربعاء" name="أحمد س." project="شقة الناصرة" type="نص يوم"
-                    color={C.warning} grad={TICKET_GRAD_HALF} TypeIcon={CloudSun} chips={['4 ساعات']} amount="225" status="pending" notch={SHEET_BG} width={440} />
+                  <LandingTicket day={9} month={d.monthJun} weekday={d.weekdayWed} name={d.worker2} project={t.phone.projApt} type={d.typeHalf}
+                    color={C.warning} grad={TICKET_GRAD_HALF} TypeIcon={CloudSun} chips={[d.hours4]} amount="225" status="pending" notch={SHEET_BG} width={440} />
                 </Flip3D>
-                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.secondary, letterSpacing: '0.1em', marginTop: 8 }}>الرواتب</div>
+                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.secondary, letterSpacing: '0.1em', marginTop: 8 }}>{t.showcase.colPay}</div>
                 <Flip3D delay={0.2} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
-                  <LandingPayRow init="أ" name="راتب أحمد" sub="نيسان · PAY-1043" amt="₪3,800" color={C.secondary} status="مدفوع" grad={GRAD.premium} width={440} />
+                  <LandingPayRow init={d.initAhmad} name={d.salaryAhmad} sub={d.salarySub} amt="₪3,800" color={C.secondary} status={d.paid} grad={GRAD.premium} width={440} />
                 </Flip3D>
               </div>
               {/* عمود كرت المشروع + قصّة الميزات */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
-                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.success, letterSpacing: '0.1em' }}>المشاريع — كروت Wallet</div>
+                <div style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, color: C.success, letterSpacing: '0.1em' }}>{t.showcase.colProjects}</div>
                 <Flip3D delay={0.1} dir={-1} style={{ height: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
-                  <LandingProjectCard name="فيلا رهط" client="أبو يوسف" profit="42,500" margin={28} width={400}
-                    stats={[{ label: 'إيرادات', value: '₪150K' }, { label: 'التكاليف', value: '₪108K' }, { label: 'أيام', value: '64' }]} />
+                  <LandingProjectCard name={t.phone.projVilla} client={d.client} profit="42,500" margin={28} width={400}
+                    stats={[{ label: t.project.revenue, value: '₪150K' }, { label: t.project.costs, value: '₪108K' }, { label: t.project.days, value: '64' }]} />
                 </Flip3D>
                 <div style={{ width: '100%', maxWidth: 440, marginTop: 6 }}>
-                  {STORY.map((s, i) => (
+                  {STORY_META.map((m, i) => (
                     <Flip3D key={i} delay={0.2 + i * 0.1} dir={i % 2 ? -1 : 1} style={{ height: 'auto' }}>
                       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
-                        <IconChip icon={s.Icon} color={s.color} size={36} radius={11} iconSize={17} strokeWidth={2.2} />
+                        <IconChip icon={m.Icon} color={m.color} size={36} radius={11} iconSize={17} strokeWidth={2.2} />
                         <div>
-                          <div style={{ fontSize: 14.5, fontWeight: 900, color: C.text, marginBottom: 4 }}>{s.title}</div>
-                          <p style={{ fontSize: 12.5, color: C.textDim, lineHeight: 1.65 }}>{s.desc}</p>
+                          <div style={{ fontSize: 14.5, fontWeight: 900, color: C.text, marginBottom: 4 }}>{t.story[i].title}</div>
+                          <p style={{ fontSize: 12.5, color: C.textDim, lineHeight: 1.65 }}>{t.story[i].desc}</p>
                         </div>
                       </div>
                     </Flip3D>
@@ -1045,24 +1049,25 @@ function AppShowcase() {
 
 
 // ─── Stats strip ─────────────────────────────────────────────────────────────
-const STATS = [
-  { value: '3 لغات', label: 'عربي · عبري · إنجليزي', icon: Users,       color: C.primary   },
-  { value: '18%',    label: 'حساب ضريبة القيمة المضافة', icon: Receipt,  color: C.cyan      },
-  { value: '100%',   label: 'بياناتك مشفّرة وآمنة',     icon: Shield,      color: C.secondary },
-  { value: '14 يوم', label: 'تجربة مجانية بلا بطاقة',  icon: TrendingUp,  color: C.gold      },
+const STATS_META = [
+  { icon: Users,      color: C.primary   },
+  { icon: Receipt,    color: C.cyan      },
+  { icon: Shield,     color: C.secondary },
+  { icon: TrendingUp, color: C.gold      },
 ]
 function StatsStrip() {
+  const t = useLang()
   return (
     <div style={{ padding: '64px 24px 72px' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-        {STATS.map((s, i) => (
+        {STATS_META.map((s, i) => (
           <Flip3D key={i} delay={i * 0.08} dir={i % 2 ? -1 : 1}>
             <PremiumCard color={s.color} animate={false} padding="20px" style={{ height: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <IconChip icon={s.icon} color={s.color} size={44} radius={13} iconSize={20} strokeWidth={2} />
                 <div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: C.text, lineHeight: 1, letterSpacing: '-0.02em' }}>{s.value}</div>
-                  <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{s.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: C.text, lineHeight: 1, letterSpacing: '-0.02em' }}>{t.stats[i].value}</div>
+                  <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{t.stats[i].label}</div>
                 </div>
               </div>
             </PremiumCard>
@@ -1074,48 +1079,34 @@ function StatsStrip() {
 }
 
 // ─── Pain Points ──────────────────────────────────────────────────────────────
-const PAIN_POINTS = [
-  {
-    Icon:     CalendarDays,
-    problem:  'تضيع أيام العمل بدون توثيق',
-    solution: 'سجّل كل يوم عمل في 3 ثواني — وافق أو ارفض بلمسة.',
-    color:    C.primary,
-  },
-  {
-    Icon:     Wallet,
-    problem:  'الفلوس بتروح بدون حساب',
-    solution: 'كل مصروف وكل دفعة مدوّنة. استرد ضريبة القيمة المضافة تلقائياً.',
-    color:    C.secondary,
-  },
-  {
-    Icon:     BarChart3,
-    problem:  'ما تعرف إيش رابح وإيش خسران',
-    solution: 'أرباح كل مشروع أمامك دايم — بدون ورق وبدون حاسبة.',
-    color:    C.gold,
-  },
+const PAIN_POINTS_META = [
+  { Icon: CalendarDays, color: C.primary   },
+  { Icon: Wallet,       color: C.secondary },
+  { Icon: BarChart3,    color: C.gold      },
 ]
 function PainPoints() {
+  const t = useLang()
   return (
     <section style={{ padding: '64px 24px', direction: 'rtl' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
         <Depth tilt={16} lift={60}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
-              شايف نفسك هنا؟
+              {t.painHead.title}
             </h2>
-            <p style={{ fontSize: 16, color: C.textDim }}>هذه المشاكل اليومية لها حل واحد.</p>
+            <p style={{ fontSize: 16, color: C.textDim }}>{t.painHead.sub}</p>
           </div>
         </Depth>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          {PAIN_POINTS.map((p, i) => (
+          {PAIN_POINTS_META.map((p, i) => (
             <Flip3D key={i} delay={i * 0.1} dir={i === 1 ? -1 : 1}>
               <PremiumCard color={p.color} animate={false} radius={22} padding="28px" style={{ height: '100%' }}>
                 <IconChip icon={p.Icon} color={p.color} size={52} radius={16} iconSize={24} strokeWidth={1.8} style={{ marginBottom: 20 }} />
                 <h3 style={{ fontSize: 16, fontWeight: 800, color: C.accent, marginBottom: 12, lineHeight: 1.4 }}>
-                  {p.problem}
+                  {t.pains[i].problem}
                 </h3>
                 <p style={{ fontSize: 14, color: C.textDim, lineHeight: 1.75 }}>
-                  {p.solution}
+                  {t.pains[i].solution}
                 </p>
               </PremiumCard>
             </Flip3D>
@@ -1130,13 +1121,13 @@ function PainPoints() {
 // ورقة مخطط معماري بشبكة سماوية: واجهة مبنى ترسم حالها خط-خط (SVG pathLength)
 // مع خطوط أبعاد، وكل ميزة callout موصول بالرسمة — وجدول عنوان مثل المخططات
 // الحقيقية. useReducedMotion → كل الخطوط مرسومة من البداية.
-const FEATURES = [
-  { Icon: CalendarDays, text: 'تسجيل أيام العمل بالموافقة والرفض',          color: C.primary   },
-  { Icon: Users,        text: 'متابعة الرواتب والسلف لكل عامل',              color: C.secondary },
-  { Icon: Receipt,      text: 'تتبع المصاريف واسترداد ضريبة القيمة المضافة', color: C.cyan      },
-  { Icon: BarChart3,    text: 'تقارير PDF وExcel بلمسة',                      color: C.gold      },
-  { Icon: Shield,       text: 'فريق عمل مع صلاحيات مخصصة',                   color: C.success   },
-  { Icon: Bell,         text: 'إشعارات فورية لكل طلب وتغيير',                 color: C.accent    },
+const FEATURES_META = [
+  { Icon: CalendarDays, color: C.primary   },
+  { Icon: Users,        color: C.secondary },
+  { Icon: Receipt,      color: C.cyan      },
+  { Icon: BarChart3,    color: C.gold      },
+  { Icon: Shield,       color: C.success   },
+  { Icon: Bell,         color: C.accent    },
 ]
 // واجهة المبنى: 4 طوابق + باب + رافعة جانبية — مسارات منفصلة حتى تترسم تباعاً
 const BP_PATHS = [
@@ -1149,6 +1140,7 @@ const BP_PATHS = [
   'M288 330 L288 86 L288 86 L228 64 M288 96 L316 88',                         // الرافعة
 ]
 function BlueprintFeatures() {
+  const t = useLang()
   const reduce = useReducedMotion()
   const draw = (i) => reduce ? {} : {
     initial: { pathLength: 0, opacity: 0 },
@@ -1161,11 +1153,11 @@ function BlueprintFeatures() {
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
         <Depth tilt={14} lift={50}>
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{ fontSize: 11, color: C.cyan, fontWeight: 800, letterSpacing: '0.14em', marginBottom: 8 }}>BLUEPRINT — ورقة CP-02</div>
+            <div style={{ fontSize: 11, color: C.cyan, fontWeight: 800, letterSpacing: '0.14em', marginBottom: 8 }}>{t.blueprint.label}</div>
             <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 10 }}>
-              مخطط <span style={{ color: C.cyan }}>مصلحتك الجديدة</span>
+              {t.blueprint.titlePre} <span style={{ color: C.cyan }}>{t.blueprint.titleHi}</span>
             </h2>
-            <p style={{ fontSize: 15, color: C.textDim }}>كل ميزة مرسومة بمكانها — مثل ما بترسم مشاريعك.</p>
+            <p style={{ fontSize: 15, color: C.textDim }}>{t.blueprint.sub}</p>
           </div>
         </Depth>
 
@@ -1200,7 +1192,7 @@ function BlueprintFeatures() {
                 {/* خط الأبعاد العلوي */}
                 <motion.g {...(reduce ? {} : { initial: { opacity: 0 }, whileInView: { opacity: 1 }, viewport: { once: true }, transition: { delay: 2.4, duration: 0.6 } })}>
                   <path d="M40 46 L260 46 M40 40 L40 52 M260 40 L260 52" stroke={`${C.gold}99`} strokeWidth="1.2" fill="none" />
-                  <text x="150" y="38" textAnchor="middle" fill={C.gold} fontSize="11" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>22.00 م</text>
+                  <text x="150" y="38" textAnchor="middle" fill={C.gold} fontSize="11" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{t.blueprint.dim}</text>
                   <path d="M306 110 L306 330 M300 110 L312 110 M300 330 L312 330" stroke={`${C.gold}99`} strokeWidth="1.2" fill="none" />
                 </motion.g>
               </svg>
@@ -1208,7 +1200,7 @@ function BlueprintFeatures() {
 
             {/* الـcallouts — كل ميزة بخط واصل يكبر */}
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12, padding: '28px 22px' }}>
-              {FEATURES.map(({ Icon, text, color }, i) => (
+              {FEATURES_META.map(({ Icon, color }, i) => (
                 <motion.div key={i}
                   {...(reduce ? {} : {
                     initial: { opacity: 0, x: -28 },
@@ -1233,7 +1225,7 @@ function BlueprintFeatures() {
                     border: `1px solid ${color}30`, borderRadius: 13,
                   }}>
                     <IconChip icon={Icon} color={color} size={32} radius={10} iconSize={15} strokeWidth={2.2} />
-                    <span style={{ fontSize: 13.5, fontWeight: 700, color: C.text }}>{text}</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: C.text }}>{t.features[i]}</span>
                   </div>
                 </motion.div>
               ))}
@@ -1242,12 +1234,7 @@ function BlueprintFeatures() {
 
           {/* جدول العنوان (Title Block) */}
           <div style={{ display: 'flex', flexWrap: 'wrap', borderTop: `1px solid ${C.cyan}33` }}>
-            {[
-              ['المشروع', 'مصلحتك — بنظام'],
-              ['المقياس', '1 : 1'],
-              ['رسم', 'كبلان'],
-              ['الحالة', 'جاهز للتنفيذ ✓'],
-            ].map(([k, v], i) => (
+            {t.blueprint.titleBlock.map(([k, v], i) => (
               <div key={i} style={{ flex: '1 1 140px', padding: '10px 16px', borderInlineStart: i ? `1px solid ${C.cyan}22` : 'none' }}>
                 <div style={{ fontSize: 9, color: `${C.cyan}AA`, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 3 }}>{k}</div>
                 <div style={{ fontSize: 12, color: C.text, fontWeight: 800 }}>{v}</div>
@@ -1262,45 +1249,31 @@ function BlueprintFeatures() {
 
 // ─── Why contractors ──────────────────────────────────────────────────────────
 // بطاقات قيمة صادقة (بلا شهادات أو أسماء مُختلَقة).
-const VALUE_CARDS = [
-  {
-    icon:  Receipt,
-    color: C.primary,
-    title: 'وفّر على الضريبة',
-    text:  'يحسب لك ضريبة القيمة المضافة والخصم الضريبي على كل مصروف تلقائياً حسب الفئة — ما بتضيّع شيكل تقدر تستردّه.',
-  },
-  {
-    icon:  CalendarDays,
-    color: C.secondary,
-    title: 'خلص الخلافات على الأيام',
-    text:  'العامل بيسجّل حضوره من بوّابته وأنت بتوافق. كل يوم شغل وكل دفعة موثّقة — بلا أوراق وبلا نسيان.',
-  },
-  {
-    icon:  BarChart3,
-    color: C.gold,
-    title: 'شوف وضعك بثانية',
-    text:  'صافي الربح، النقد بالجيب، المستحقّ للعمال والعملاء — كله أمامك بلوحة واحدة بدل ما تحسب براسك.',
-  },
+const VALUE_CARDS_META = [
+  { icon: Receipt,      color: C.primary   },
+  { icon: CalendarDays, color: C.secondary },
+  { icon: BarChart3,    color: C.gold      },
 ]
 function Testimonials() {
+  const t = useLang()
   return (
     <section style={{ padding: '64px 24px', direction: 'rtl', background: C.surface, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
         <Depth tilt={16} lift={60}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
-              مبني خصّيصاً لشغل المقاول
+              {t.valuesHead.title}
             </h2>
-            <p style={{ fontSize: 16, color: C.textDim }}>كل ميزة حلّ لمشكلة حقيقية بتواجهك كل يوم.</p>
+            <p style={{ fontSize: 16, color: C.textDim }}>{t.valuesHead.sub}</p>
           </div>
         </Depth>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 20 }}>
-          {VALUE_CARDS.map((c, i) => (
+          {VALUE_CARDS_META.map((c, i) => (
             <Flip3D key={i} delay={i * 0.1} dir={i === 1 ? -1 : 1}>
               <PremiumCard color={c.color} animate={false} radius={22} padding="28px" style={{ height: '100%' }}>
                 <IconChip icon={c.icon} color={c.color} size={48} radius={14} iconSize={24} strokeWidth={2} style={{ marginBottom: 18 }} />
-                <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>{c.title}</div>
-                <p style={{ fontSize: 14, color: C.textDim, lineHeight: 1.8 }}>{c.text}</p>
+                <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>{t.values[i].title}</div>
+                <p style={{ fontSize: 14, color: C.textDim, lineHeight: 1.8 }}>{t.values[i].text}</p>
               </PremiumCard>
             </Flip3D>
           ))}
@@ -1312,37 +1285,38 @@ function Testimonials() {
 
 // ─── Pricing teaser ───────────────────────────────────────────────────────────
 const PLANS = [
-  { name: 'Starter',  price: 129, desc: 'للمقاول المستقل',             color: C.primary,   highlight: false },
-  { name: 'Pro',      price: 249, desc: 'لفريق حتى 5 أشخاص',          color: C.secondary, highlight: true  },
-  { name: 'Business', price: 499, desc: 'غير محدود + تقارير متقدمة',   color: C.gold,      highlight: false },
+  { name: 'Starter',  price: 129, color: C.primary,   highlight: false },
+  { name: 'Pro',      price: 249, color: C.secondary, highlight: true  },
+  { name: 'Business', price: 499, color: C.gold,      highlight: false },
 ]
 function PricingTeaser() {
+  const t = useLang()
   const [cycle, setCycle] = useState('month')   // 'month' | 'year'
   const isYear = cycle === 'year'
   return (
     <section style={{ padding: '36px 24px 72px', direction: 'rtl' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-        <Sheet no="CP-03" title="جدول الأسعار">
+        <Sheet no="CP-03" title={t.sheetTitles.pricing}>
         <div style={{ padding: '52px 22px 36px' }}>
         <Depth tilt={16} lift={60}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <h2 style={{ fontSize: 'clamp(22px,4vw,38px)', fontWeight: 900, color: C.text, marginBottom: 12 }}>
-              خطط بسيطة وواضحة
+              {t.pricing.title}
             </h2>
-            <p style={{ fontSize: 16, color: C.textDim }}>كل الخطط تبدأ بتجربة مجانية 14 يوم — بدون بطاقة ائتمان.</p>
+            <p style={{ fontSize: 16, color: C.textDim }}>{t.pricing.sub}</p>
           </div>
 
           {/* مبدّل دورة الفوترة */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
             <div style={{ display: 'inline-flex', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: 4, gap: 4 }}>
-              {[{ key: 'month', label: 'شهري' }, { key: 'year', label: 'سنوي' }].map(opt => {
+              {[{ key: 'month', label: t.pricing.monthly }, { key: 'year', label: t.pricing.yearly }].map(opt => {
                 const active = cycle === opt.key
                 return (
                   <button key={opt.key} onClick={() => setCycle(opt.key)} className="lp-btn"
                     style={{ position: 'relative', background: active ? GRAD.brand : 'transparent', border: 'none', color: active ? '#fff' : C.textDim, fontSize: 13, fontWeight: 800, cursor: 'pointer', padding: '8px 22px', borderRadius: 11 }}>
                     {opt.label}
                     {opt.key === 'year' && (
-                      <span style={{ marginInlineStart: 6, fontSize: 9, fontWeight: 800, color: active ? '#fff' : C.success }}>وفّر شهرين</span>
+                      <span style={{ marginInlineStart: 6, fontSize: 9, fontWeight: 800, color: active ? '#fff' : C.success }}>{t.pricing.save2}</span>
                     )}
                   </button>
                 )
@@ -1365,23 +1339,23 @@ function PricingTeaser() {
                   }}>
                   {plan.highlight && (
                     <div style={{ position: 'absolute', top: 0, insetInlineStart: 0, background: GRAD.premium, borderRadius: 8, padding: '3px 10px', fontSize: 10, fontWeight: 800, color: '#fff' }}>
-                      الأكثر شيوعاً
+                      {t.pricing.popular}
                     </div>
                   )}
                   <div style={{ fontSize: 15, fontWeight: 800, color: plan.color, marginBottom: 8, marginTop: plan.highlight ? 18 : 0 }}>{plan.name}</div>
                   <div style={{ fontSize: 28, fontWeight: 900, color: C.text, lineHeight: 1, marginBottom: 6, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
                     ₪{isYear ? effMonthly : plan.price}
                   </div>
-                  <div style={{ fontSize: 11, color: C.textDim, marginBottom: isYear ? 6 : 20 }}>/ شهر</div>
+                  <div style={{ fontSize: 11, color: C.textDim, marginBottom: isYear ? 6 : 20 }}>{t.pricing.perMonth}</div>
                   {isYear && (
                     <div style={{ fontSize: 11, color: C.success, fontWeight: 700, marginBottom: 20, lineHeight: 1.5 }}>
-                      يُدفع ₪{annual} سنوياً · وفّر ₪{plan.price * 2}
+                      {t.pricing.annualNote.replace('{annual}', annual).replace('{save}', plan.price * 2)}
                     </div>
                   )}
-                  <div style={{ fontSize: 13, color: C.textDim, marginBottom: 24, lineHeight: 1.5 }}>{plan.desc}</div>
+                  <div style={{ fontSize: 13, color: C.textDim, marginBottom: 24, lineHeight: 1.5 }}>{t.plansDesc[i]}</div>
                   <button onClick={() => goCta('landing_pricing_card', '/register')} className="lp-btn"
                     style={{ width: '100%', background: plan.highlight ? `linear-gradient(135deg, ${plan.color}, ${plan.color}CC)` : `${plan.color}15`, border: `1px solid ${plan.color}30`, color: plan.highlight ? '#fff' : plan.color, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '10px', borderRadius: 12 }}>
-                    ابدأ مجاناً
+                    {t.pricing.startFree}
                   </button>
                 </PremiumCard>
               </Flip3D>
@@ -1397,6 +1371,7 @@ function PricingTeaser() {
 
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 function FinalCTA() {
+  const t = useLang()
   return (
     <section style={{ padding: '80px 24px', textAlign: 'center', direction: 'rtl', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(249,115,22,0.08) 0%, transparent 65%)', pointerEvents: 'none' }} />
@@ -1406,26 +1381,26 @@ function FinalCTA() {
             <HardHat size={36} color="#fff" strokeWidth={2} />
           </div>
           <h2 style={{ fontSize: 'clamp(24px,5vw,44px)', fontWeight: 900, color: C.text, lineHeight: 1.2, marginBottom: 18 }}>
-            ابدأ اليوم — مجاناً لمدة 14 يوم
+            {t.finalCta.title}
           </h2>
           <p style={{ fontSize: 17, color: C.textDim, lineHeight: 1.7, marginBottom: 40 }}>
-            بدون بطاقة ائتمان. بدون التزام.<br />فقط تطبيق يخفف عنك.
+            {t.finalCta.sub1}<br />{t.finalCta.sub2}
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Magnetic>
               <button onClick={() => goCta('landing_final_cta', '/register')} className="lp-btn"
                 style={{ background: GRAD.brand, border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', padding: '16px 44px', borderRadius: 16, boxShadow: '0 8px 32px rgba(249,115,22,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                ابدأ التجربة المجانية
+                {t.finalCta.start}
                 <ArrowLeft size={18} strokeWidth={2.5} />
               </button>
             </Magnetic>
             <button onClick={() => goCta('landing_final_pricing', '/pricing')} className="lp-btn"
               style={{ background: 'transparent', border: `1px solid ${C.borderMid}`, color: C.textDim, fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: '16px 30px', borderRadius: 16 }}>
-              شاهد الأسعار
+              {t.finalCta.seePricing}
             </button>
           </div>
           <p style={{ marginTop: 24, fontSize: 12, color: C.textDim }}>
-            Starter ₪129 · Pro ₪249 · Business ₪499
+            {t.finalCta.plansLine}
           </p>
         </div>
       </Depth>
@@ -1434,7 +1409,9 @@ function FinalCTA() {
 }
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
+const FOOTER_PATHS = ['/blog', '/privacy', '/terms', '/refund', '/contact']
 function Footer() {
+  const t = useLang()
   return (
     <footer style={{ background: C.surface, borderTop: `1px solid ${C.border}`, padding: '32px 24px', direction: 'rtl' }}>
       <motion.div {...rise()} style={{ maxWidth: 1120, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
@@ -1442,19 +1419,13 @@ function Footer() {
           <div style={{ width: 32, height: 32, borderRadius: 10, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <HardHat size={16} color="#fff" strokeWidth={2.5} />
           </div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>كبلان</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t.brand}</span>
           <span style={{ fontSize: 11, color: C.textDim }}>© {new Date().getFullYear()}</span>
         </div>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-          {[
-            { l: 'المدوّنة',       path: '/blog'    },
-            { l: 'الخصوصية',       path: '/privacy' },
-            { l: 'شروط الاستخدام', path: '/terms'   },
-            { l: 'الإلغاء والاسترجاع', path: '/refund' },
-            { l: 'تواصل معنا',     path: '/contact' },
-          ].map(({ l, path }) => (
-            <span key={l} onClick={() => navigate(path)}
-              style={{ fontSize: 12, color: C.textDim, cursor: 'pointer' }}>{l}</span>
+          {FOOTER_PATHS.map((path, i) => (
+            <span key={path} onClick={() => navigate(path)}
+              style={{ fontSize: 12, color: C.textDim, cursor: 'pointer' }}>{t.footerLinks[i]}</span>
           ))}
         </div>
       </motion.div>

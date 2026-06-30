@@ -7,7 +7,19 @@ import en from './locales/en.json'
 
 const STORAGE_KEY = 'cp_lang'
 
-const savedLang = localStorage.getItem(STORAGE_KEY) || 'ar'
+// اللغة الابتدائية: رابط الحملة `?lang=he/ar/en` يتقدّم على المحفوظ، حتى يصل
+// الباحث العبري لصفحة عبرية مباشرة. بلا param → المحفوظ أو العربي الافتراضي.
+// يُحسب هنا (أول import في main.jsx) قبل تهيئة أي مخزن يقرأ اللغة، فيراها الجميع
+// (i18n + useAppStore) موحّدة من أول رندر.
+function resolveInitialLang() {
+  try {
+    const urlLang = new URLSearchParams(window.location.search).get('lang')
+    if (urlLang && ['ar', 'he', 'en'].includes(urlLang)) return urlLang
+  } catch { /* تجاهل: قراءة الرابط غير متاحة */ }
+  return localStorage.getItem(STORAGE_KEY) || 'ar'
+}
+
+const savedLang = resolveInitialLang()
 
 i18n
   .use(initReactI18next)
