@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Building2, Users, Wallet, Settings,
   Sparkles, ArrowLeft, Rocket,
   Receipt, Percent, FileText, ShieldCheck,
 } from 'lucide-react'
-import { C, GRAD, NAV } from '../constants/index.js'
+import { C, GRAD, NAV, navLabel } from '../constants/index.js'
 import { buildDemo, makeDemoBag, seedDemoStores } from '../lib/demoData.js'
+import { tl } from '../lib/labels.js'
 import { trackEvent } from '../lib/analytics.js'
 import { trackCtaClick, trackDemoView } from '../lib/track.js'
 import { useAppStore } from '../store/useAppStore.js'
