@@ -29,7 +29,6 @@ import ProjectsScreen  from '../screens/projects/ProjectsScreen.jsx'
 //  مصدر البيانات الموحّد: src/lib/demoData.js (يشاركه /demoshot).
 // ═══════════════════════════════════════════════════════════════════════════
 
-const DEMO = buildDemo()
 const NAV_ICONS = { dashboard: LayoutDashboard, projects: Building2, workers: Users, finance: Wallet, settings: Settings }
 
 function goRegister(from) {
@@ -37,36 +36,45 @@ function goRegister(from) {
   navigate('/register')
 }
 
-// لوحة محجوبة في الديمو = معاينة ميزات + دعوة تسجيل.
+// لوحة محجوبة في الديمو = معاينة ميزات + دعوة تسجيل (ثنائية اللغة — ar/he/en).
 // تُستعمل للمالية (تحتاج بياناتك الحقيقية لتحسب على أرقامك) وللإعدادات (حسّاسة).
-const LOCKED_TABS = {
-  finance: {
-    icon: Wallet,
-    title: 'المحاسبة والضرائب — على أرقامك أنت',
-    desc: 'وحدة المالية بتحسب لك الضرائب الإسرائيلية تلقائياً من مدخولاتك ومصاريفك الحقيقية. سجّل مجاناً وشغّلها على مصلحتك.',
-    feats: [
-      { icon: Percent,     label: 'מע״מ تلقائي 18% — داخل وخارج، حسب فئة كل مصروف' },
-      { icon: FileText,    label: 'ضريبة دخل + ביטוח לאומי محسوبة بالشرائح' },
-      { icon: Receipt,     label: 'أرشيف فواتير وإيصالات + تقرير فترة قابل للتصدير' },
-      { icon: ShieldCheck, label: 'P&L لكل مشروع: إيراد − مصاريف − عمالة = ربح وهامش' },
-    ],
-    from: 'demo_finance',
-  },
-  settings: {
-    icon: Rocket,
-    title: 'جاهز تبدأ بمصلحتك؟',
-    desc: 'هاي البيانات تجريبية. سجّل مجاناً بثوانٍ وابدأ تضيف مشاريعك وعمّالك الحقيقيين — 14 يوماً تجربة، بدون بطاقة ائتمان.',
-    feats: [
-      { icon: Building2,   label: 'مشاريعك وعمّالك الحقيقيين — تُحفظ وتتزامن' },
-      { icon: ShieldCheck, label: 'فريق متعدّد الصلاحيات + بوّابة عامل ذاتية' },
-      { icon: Sparkles,    label: 'كل التحليلات الذكية تشتغل على بياناتك' },
-    ],
-    from: 'demo_settings',
-  },
+function getLockedTab(kind, language) {
+  const tabs = {
+    finance: {
+      icon: Wallet,
+      title: tl(language, 'المحاسبة والضرائب — على أرقامك أنت', 'הנהלת חשבונות ומסים — על המספרים שלך', 'Accounting & taxes — on your own numbers'),
+      desc: tl(language,
+        'وحدة المالية بتحسب لك الضرائب الإسرائيلية تلقائياً من مدخولاتك ومصاريفك الحقيقية. سجّل مجاناً وشغّلها على مصلحتك.',
+        'מודול הכספים מחשב לך את המסים בישראל אוטומטית מההכנסות וההוצאות האמיתיות שלך. הירשם בחינם והפעל אותו על העסק שלך.',
+        'The finance module computes Israeli taxes automatically from your real income and expenses. Sign up free and run it on your business.'),
+      feats: [
+        { icon: Percent,     label: tl(language, 'מע"מ تلقائي 18% — داخل وخارج، حسب فئة كل مصروف', 'מע"מ אוטומטי 18% — תשומות ועסקאות, לפי קטגוריית כל הוצאה', 'Automatic VAT 18% — input & output, per expense category') },
+        { icon: FileText,    label: tl(language, 'ضريبة دخل + ביטוח לאומי محسوبة بالشرائح', 'מס הכנסה + ביטוח לאומי מחושבים לפי מדרגות', 'Income tax + National Insurance by brackets') },
+        { icon: Receipt,     label: tl(language, 'أرشيف فواتير وإيصالات + تقرير فترة قابل للتصدير', 'ארכיון חשבוניות וקבלות + דוח תקופה לייצוא', 'Invoice & receipt archive + exportable period report') },
+        { icon: ShieldCheck, label: tl(language, 'P&L لكل مشروع: إيراد − مصاريف − عمالة = ربح وهامش', 'רווח והפסד לכל פרויקט: הכנסה − הוצאות − עבודה = רווח ואחוז', 'P&L per project: revenue − expenses − labor = profit & margin') },
+      ],
+      from: 'demo_finance',
+    },
+    settings: {
+      icon: Rocket,
+      title: tl(language, 'جاهز تبدأ بمصلحتك؟', 'מוכן להתחיל עם העסק שלך?', 'Ready to start with your business?'),
+      desc: tl(language,
+        'هاي البيانات تجريبية. سجّل مجاناً بثوانٍ وابدأ تضيف مشاريعك وعمّالك الحقيقيين — 14 يوماً تجربة، بدون بطاقة ائتمان.',
+        'הנתונים האלה הם לדוגמה. הירשם בחינם תוך שניות והתחל להוסיף את הפרויקטים והעובדים האמיתיים שלך — 14 ימי ניסיון, בלי כרטיס אשראי.',
+        'This is sample data. Sign up free in seconds and start adding your real projects and workers — 14-day trial, no credit card.'),
+      feats: [
+        { icon: Building2,   label: tl(language, 'مشاريعك وعمّالك الحقيقيين — تُحفظ وتتزامن', 'הפרויקטים והעובדים האמיתיים שלך — נשמרים ומסתנכרנים', 'Your real projects & workers — saved and synced') },
+        { icon: ShieldCheck, label: tl(language, 'فريق متعدّد الصلاحيات + بوّابة عامل ذاتية', 'צוות עם הרשאות + פורטל עובד עצמאי', 'Permission-based team + self-service worker portal') },
+        { icon: Sparkles,    label: tl(language, 'كل التحليلات الذكية تشتغل على بياناتك', 'כל הניתוחים החכמים עובדים על הנתונים שלך', 'All smart analytics run on your data') },
+      ],
+      from: 'demo_settings',
+    },
+  }
+  return tabs[kind]
 }
 
-function DemoLockedTab({ kind }) {
-  const cfg = LOCKED_TABS[kind]
+function DemoLockedTab({ kind, language }) {
+  const cfg = getLockedTab(kind, language)
   const Icon = cfg.icon
   return (
     <div style={{ padding: '34px 18px', maxWidth: 480, margin: '0 auto' }}>
@@ -98,14 +106,18 @@ function DemoLockedTab({ kind }) {
 
       <button onClick={() => goRegister(cfg.from)}
         style={{ width: '100%', padding: '14px', borderRadius: 16, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 8px 28px rgba(249,115,22,0.4)' }}>
-        سجّل مجاناً وابدأ <ArrowLeft size={18} strokeWidth={2.5} />
+        {tl(language, 'سجّل مجاناً وابدأ', 'הירשם בחינם והתחל', 'Sign up free & start')} <ArrowLeft size={18} strokeWidth={2.5} />
       </button>
     </div>
   )
 }
 
 export default function DemoApp() {
+  const language = useAppStore(s => s.language)   // ar | he | en (من cp_lang) — يحدّد لغة الديمو
   const [screen, setScreen] = useState('dashboard')
+
+  // بيانات الديمو بلغة الزائر: الأسماء الحرّة (عمّال/مشاريع/مصلحة) تُعرَّب للعبري.
+  const demo = useMemo(() => buildDemo(language === 'he' || language === 'en' ? language : 'ar'), [language])
 
   // أي محاولة تعديل/حفظ في الديمو = نيّة قويّة → نوجّه فوراً للتسجيل (لحظة التحويل).
   const onAction = useCallback(() => {
@@ -113,9 +125,13 @@ export default function DemoApp() {
     goRegister('demo_action')
   }, [])
 
+  // بذر المخازن المشتركة عند تغيّر البيانات/اللغة (اسم المصلحة يُعرَّب من demo._lang)
   useEffect(() => {
-    seedDemoStores(DEMO)
-    document.documentElement.dir = 'rtl'
+    seedDemoStores(demo)
+    document.documentElement.dir = language === 'en' ? 'ltr' : 'rtl'
+  }, [demo, language])
+
+  useEffect(() => {
     trackDemoView()   // GA4 demo_view + TikTok ViewContent (إشارة اهتمام قويّة)
     // بعض شاشات الإنشاء/الحذف تنتظر تأكيد بصمة (مودالها في App لا الديمو) فتعلق.
     // نتجاوزها في الديمو: أي طلب تأكيد = تحويل للتسجيل. نستعيد الأصل عند المغادرة.
@@ -125,7 +141,8 @@ export default function DemoApp() {
     return () => useAppStore.setState({ requestBioConfirm: ORIGINAL_BIO })
   }, [onAction])
 
-  const props = makeDemoBag(DEMO, { onAction, extra: { onNav: setScreen } })
+  // نمرّر language صريحاً للشاشات لتُرندَر بلغة الزائر حتمياً (مطابقة لبيانات الأسماء)
+  const props = makeDemoBag(demo, { onAction, extra: { onNav: setScreen, language } })
 
   function renderScreen() {
     switch (screen) {
@@ -133,8 +150,8 @@ export default function DemoApp() {
       case 'workers':   return <WorkersScreen   {...props} />
       case 'workdays':  return <WorkDaysScreen  {...props} />
       // المالية والإعدادات مرتبطتان بالباكند/حسّاستان — نعرض معاينة + دعوة تسجيل بدل شاشة فارغة
-      case 'finance':   return <DemoLockedTab kind="finance" />
-      case 'settings':  return <DemoLockedTab kind="settings" />
+      case 'finance':   return <DemoLockedTab kind="finance" language={language} />
+      case 'settings':  return <DemoLockedTab kind="settings" language={language} />
       case 'dashboard':
       default:          return <DashboardScreen {...props} />
     }
@@ -152,12 +169,12 @@ export default function DemoApp() {
             <Sparkles size={14} color={C.primary} />
           </div>
           <span style={{ fontSize: 12, fontWeight: 700, color: C.text, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            نسخة تجريبية · سجّل مجاناً لتبدأ بمصلحتك
+            {tl(language, 'نسخة تجريبية · سجّل مجاناً لتبدأ بمصلحتك', 'גרסת דמו · הירשם בחינם והתחל עם העסק שלך', 'Demo · Sign up free to start your business')}
           </span>
         </div>
         <button onClick={() => goRegister('demo_topbar')}
           style={{ padding: '7px 16px', borderRadius: 10, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit', flexShrink: 0, boxShadow: '0 4px 16px rgba(249,115,22,0.35)' }}>
-          سجّل مجاناً
+          {tl(language, 'سجّل مجاناً', 'הירשם בחינם', 'Sign up free')}
         </button>
       </div>
 
@@ -185,7 +202,7 @@ export default function DemoApp() {
                 {Icon && <Icon size={active ? 21 : 18} color={active ? C.primary : 'rgba(255,255,255,0.28)'} strokeWidth={active ? 2.3 : 1.8} style={{ filter: active ? `drop-shadow(0 0 6px ${C.primary}88)` : 'none', display: 'block' }} />}
               </div>
               <span style={{ fontSize: 8.5, fontWeight: active ? 800 : 500, color: active ? C.primary : 'rgba(255,255,255,0.25)', position: 'relative', zIndex: 1, letterSpacing: '0.01em', lineHeight: 1 }}>
-                {n.label}
+                {navLabel(n, language)}
               </span>
               {active && <div style={{ width: 18, height: 2, borderRadius: 2, background: GRAD.primary, marginTop: 1, boxShadow: '0 0 8px rgba(249,115,22,0.7)' }} />}
             </motion.button>
