@@ -12,7 +12,7 @@ import {
   RotateCw, QrCode, Copy, ArrowRight, MessageCircle, AlertTriangle,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
-import { C, GRAD, MORE_SCREENS } from '../../constants/index.js'
+import { C, GRAD, MORE_SCREENS, navLabel } from '../../constants/index.js'
 import { HolographicSheen } from '../../ui/Premium.jsx'
 import { useAppStore } from '../../store/useAppStore.js'
 import { lockOnBackgroundEnabled, LOCK_ON_BG_KEY } from '../../lib/sessionLock.js'
@@ -1066,7 +1066,7 @@ export default function SettingsScreen({
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                كبلان v{__APP_VERSION__}
+                {tl(language, 'كبلان', 'קבלאן', 'Kabblan')} v{__APP_VERSION__}
               </div>
               <div style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>
                 {updateStatus === 'upToDate'
@@ -1123,7 +1123,7 @@ export default function SettingsScreen({
           <Row
             key={item.id}
             icon={item.IconComp}
-            label={item.label}
+            label={navLabel(item, language)}
             color={[C.primary, C.secondary, C.gold, C.cyan, C.success, C.warning, C.accent][i % 7]}
             onClick={() => onNav?.(item.id)}
             last={i === MORE_WITH_ICONS.length - 1}
@@ -1528,7 +1528,7 @@ export default function SettingsScreen({
 
       {/* App version */}
       <div style={{ textAlign: 'center', padding: '20px 0 8px', fontSize: 10, color: C.textDim }}>
-        كبلان v{__APP_VERSION__} · {__BUILD_DATE__}
+        {tl(language, 'كبلان', 'קבלאן', 'Kabblan')} v{__APP_VERSION__} · {__BUILD_DATE__}
         <br />
         {language === 'he' ? 'כל הזכויות שמורות' : language === 'en' ? 'All rights reserved' : 'جميع الحقوق محفوظة'}
       </div>

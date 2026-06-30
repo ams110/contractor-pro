@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, X, AlertTriangle } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
-import { tl } from '../lib/labels.js'
+import { tl, tEnum } from '../lib/labels.js'
 
 // ─── SmartList ────────────────────────────────────────────────────────────────
 // قائمة إدارة ذكية بلغة تصميم «جاهزية الحساب»: كل عنصر يعرض بصمته الحقيقية.
@@ -74,7 +74,7 @@ export default function SmartList({
                     opacity: active ? 1 : 0.5,
                   }}
                 >
-                  <span style={{ fontSize: 12 + intensity * 2, fontWeight: active ? 800 : 600, color: active ? accent : C.textDim }}>{r.label}</span>
+                  <span style={{ fontSize: 12 + intensity * 2, fontWeight: active ? 800 : 600, color: active ? accent : C.textDim }}>{tEnum(r.label, language)}</span>
                   <span style={{ fontSize: 10, fontWeight: 800, color: active ? accent : C.textDim, background: active ? `${accent}26` : 'rgba(255,255,255,0.06)', borderRadius: 6, padding: '1px 6px', minWidth: 16, textAlign: 'center' }}>
                     {r.count}
                   </span>
@@ -105,7 +105,7 @@ export default function SmartList({
                   style={{ background: C.card, border: `1px solid ${isConfirm ? C.accent + '55' : C.border}`, borderRadius: 12, padding: '9px 11px' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: active ? 6 : 0 }}>
-                    <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: active ? C.text : C.textDim }}>{r.label}</span>
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: active ? C.text : C.textDim }}>{tEnum(r.label, language)}</span>
                     {active && <span style={{ fontSize: 11, fontWeight: 800, color: accent, fontFamily: 'monospace' }}>{val(r)}</span>}
                     {active && <span style={{ fontSize: 9, color: C.textDim, minWidth: 30, textAlign: 'end' }}>{share}%</span>}
                     {!active && <span style={{ fontSize: 9, color: C.textDim }}>{tl(language, 'غير مستخدم', 'לא בשימוש', 'Unused')}</span>}
@@ -133,7 +133,7 @@ export default function SmartList({
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
             style={{ overflow: 'hidden' }}>
             <div style={{ fontSize: 10, color: C.accent, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <AlertTriangle size={11} /> «{confirm}» {tl(language, 'مستخدم فعلاً — اضغط ✕ مرة ثانية للحذف.', 'בשימוש בפועל — לחץ ✕ פעם נוספת למחיקה.', 'is in use — press ✕ again to delete.')}
+              <AlertTriangle size={11} /> «{tEnum(confirm, language)}» {tl(language, 'مستخدم فعلاً — اضغط ✕ مرة ثانية للحذف.', 'בשימוש בפועל — לחץ ✕ פעם נוספת למחיקה.', 'is in use — press ✕ again to delete.')}
             </div>
           </motion.div>
         )}
