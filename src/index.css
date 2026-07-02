@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,400..900&family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&family=Noto+Sans+Hebrew:wght@400;500;600;700;800;900&display=swap');
+/* الخطوط تُحمَّل من index.html فقط (غير حاجب للرسم) — لا تعيد @import هنا */
 
 @theme {
   /* ── Orange Primary ── */
