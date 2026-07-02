@@ -36,6 +36,16 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
     e.stopPropagation()
     openWhatsApp(worker.phone, waMessages.portalInvite({ workerName: worker.name, url }))
   }
+  function shareStatement(e) {
+    e.stopPropagation()
+    openWhatsApp(worker.phone, waMessages.workerStatement({
+      workerName: worker.name,
+      earned: stats.earned || 0,
+      paid: stats.paid || 0,
+      advances: stats.adv || 0,
+      balance: stats.balance || 0,
+    }))
+  }
 
   const miniStats = [
     { label: L('المستحق', 'הרוויח', 'Earned'), value: showAmounts ? `₪${fmt(stats.earned || 0)}` : '•••' },
@@ -89,6 +99,13 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
                   <span style={{ fontSize: 11, fontWeight: 900, color: '#fff', direction: 'ltr' }}>{dna.score}</span>
                   <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{dna.tier}</span>
                 </span>
+              )}
+              {worker.phone && showAmounts && (
+                <button onClick={shareStatement} title={L('كشف حساب واتساب', 'דוח חשבון בוואטסאפ', 'WhatsApp statement')}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(255,255,255,0.28)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <MessageCircle size={12} color="#fff" strokeWidth={2.5} />
+                  <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{L('كشف', 'דוח', 'Bill')}</span>
+                </button>
               )}
               <button onClick={flip} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(255,255,255,0.28)', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <RotateCw size={12} color="#fff" strokeWidth={2.5} />
