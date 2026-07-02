@@ -104,6 +104,67 @@ export function trackPurchase({ plan, cycle, value, email, userId } = {}) {
   })
 }
 
+// ─── التفعيل (Activation) — لحظات القيمة الأولى داخل التطبيق ──────────────────────
+// أحداث «أول مرة» تقيس عبور المستخدم لجدار التفعيل:
+//   سجّل → أضاف أوّل عامل → سجّل أوّل يوم → صرف أوّل دفعة → سجّل أوّل مقبوض.
+// هي المقياس الأهم حالياً (نسبة التفعيل = 0%، راجع docs/founder/PLAN.md): بدونها
+// ما منعرف عند أي زرّ بالضبط يتسرّب المستخدمون. كل حدث يُطلق **مرّة واحدة فقط لكل
+// مستخدم** عبر حارس localStorage، فلا يتكرّر مع كل إضافة ولا عند إعادة الإضافة بعد
+// حذف في نفس المتصفح. يُرسَل على القناتين (GA4 حدث قمع مخصّص + TikTok حدث مخصّص).
+const ACT_PREFIX = 'cp_act_'
+
+/**
+ * يطلق دالة `fire` مرّة واحدة فقط لكل (خطوة، مستخدم) عبر حارس localStorage.
+ * يُرجع true إن أُطلق فعلاً هذه المرّة. آمن تماماً: إن غاب localStorage (SSR/محجوب)
+ * يطلق بلا حارس بدل أن يكسر. غياب userId (نادر) يطلق كذلك دون تخزين.
+ * @param {string} step اسم الخطوة (employee/workday/payment/receipt)
+ * @param {string} userId هوية صاحب الحساب (eid)
+ * @param {() => void} fire ما يُطلق فعلياً على القناتين
+ */
+function fireOnce(step, userId, fire) {
+  const key = userId ? `${ACT_PREFIX}${step}_${userId}` : null
+  try {
+    if (key && typeof localStorage !== 'undefined') {
+      if (localStorage.getItem(key)) return false
+      localStorage.setItem(key, '1')
+    }
+  } catch { /* localStorage محجوب — نطلق مرّة على الأقل بدل الكسر */ }
+  fire()
+  return true
+}
+
+/** أوّل عامل يُضاف — لحظة التفعيل #1 (الجدار الحالي). GA4 first_employee + TikTok. */
+export function trackFirstEmployee(userId) {
+  return fireOnce('employee', userId, () => {
+    trackEvent('first_employee')
+    ttTrack('first_employee', { content_name: 'first_employee' })
+  })
+}
+
+/** أوّل يوم عمل يُسجَّل — لحظة التفعيل #2. GA4 first_workday + TikTok. */
+export function trackFirstWorkday(userId) {
+  return fireOnce('workday', userId, () => {
+    trackEvent('first_workday')
+    ttTrack('first_workday', { content_name: 'first_workday' })
+  })
+}
+
+/** أوّل دفعة راتب تُصرَف — لحظة التفعيل #3. GA4 first_payment + TikTok. */
+export function trackFirstPayment(userId) {
+  return fireOnce('payment', userId, () => {
+    trackEvent('first_payment')
+    ttTrack('first_payment', { content_name: 'first_payment' })
+  })
+}
+
+/** أوّل مقبوض/فاتورة يُسجَّل — لحظة التفعيل #4. GA4 first_receipt + TikTok. */
+export function trackFirstReceipt(userId) {
+  return fireOnce('receipt', userId, () => {
+    trackEvent('first_receipt')
+    ttTrack('first_receipt', { content_name: 'first_receipt' })
+  })
+}
+
 // ─── ربط الهوية ────────────────────────────────────────────────────────────────
 /**
  * يربط هوية المستخدم بالقناتين: GA4 user_id + TikTok identify (بريد مجزّأ تلقائياً

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { trackFirstEmployee, trackFirstWorkday, trackFirstPayment, trackFirstReceipt } from '../lib/track.js'
 
 function useTable(table, userId) {
   const [data,    setData]    = useState([])
@@ -110,6 +111,7 @@ export function useEmployees(userId) {
     const { data: inserted, error } = await supabase.from('employees').insert({ ...form, user_id: userId }).select().single()
     if (error) throw error
     if (!inserted?.id) throw new Error('فشل إنشاء العامل — حاول مجدداً')
+    trackFirstEmployee(userId)  // لحظة التفعيل #1 (حارس مرّة-واحدة داخل track.js)
     await refetch()
     return inserted  // يُرجع العامل المُنشأ (مع الـ ID) لمن يحتاجه — مطابقة لـ addProject
   }
@@ -136,6 +138,7 @@ export function useWorkDays(userId) {
   async function addWorkDay(form) {
     const { error } = await supabase.from('work_days').insert({ ...form, user_id: userId })
     if (error) throw error
+    trackFirstWorkday(userId)  // لحظة التفعيل #2 (حارس مرّة-واحدة داخل track.js)
     await refetch()
   }
 
@@ -143,6 +146,7 @@ export function useWorkDays(userId) {
     const rows = forms.map(f => ({ ...f, user_id: userId }))
     const { error } = await supabase.from('work_days').insert(rows)
     if (error) throw error
+    trackFirstWorkday(userId)  // لحظة التفعيل #2 (حارس مرّة-واحدة داخل track.js)
     await refetch()
   }
 
@@ -221,6 +225,7 @@ export function usePayments(userId) {
   async function addPayment(form) {
     const { error } = await supabase.from('payments').insert({ ...form, user_id: userId })
     if (error) throw error
+    trackFirstPayment(userId)  // لحظة التفعيل #3 (حارس مرّة-واحدة داخل track.js)
     await refetch()
   }
 
@@ -315,6 +320,7 @@ export function useClientReceipts(userId) {
   async function addReceipt(form) {
     const { error } = await supabase.from('client_receipts').insert({ ...form, user_id: userId })
     if (error) throw error
+    trackFirstReceipt(userId)  // لحظة التفعيل #4 (حارس مرّة-واحدة داخل track.js)
     await refetch()
   }
 

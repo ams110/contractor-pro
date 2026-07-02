@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   trackCtaClick, trackViewPricing, trackBeginCheckout,
   trackSignUp, trackLogin, trackPurchase, trackDemoView, identifyUser, CURRENCY,
+  trackFirstEmployee, trackFirstWorkday, trackFirstPayment, trackFirstReceipt,
 } from './track.js'
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -15,11 +16,20 @@ beforeEach(() => {
   if (typeof globalThis.window === 'undefined') globalThis.window = globalThis
   globalThis.window.dataLayer = []
   globalThis.window.ttq = { track: vi.fn(), identify: vi.fn(), page: vi.fn() }
+  // مخزن محلّي وهمي (لا jsdom) — يختبر حارس «مرّة واحدة» لأحداث التفعيل
+  const store = new Map()
+  globalThis.localStorage = {
+    getItem: k => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v)),
+    removeItem: k => store.delete(k),
+    clear: () => store.clear(),
+  }
 })
 
 afterEach(() => {
   delete globalThis.window?.ttq
   delete globalThis.window?.dataLayer
+  delete globalThis.localStorage
 })
 
 /** أحداث GA4 المدفوعة (gtag('event', name, params)) كمصفوفات. */
@@ -106,6 +116,45 @@ describe('trackPurchase — شراء (القناتان مع value)', () => {
     const ga = gaEvents().find(a => a[1] === 'purchase')
     expect(ga[2]).toMatchObject({ currency: 'ILS', value: 4990 })
     expect(ttCalls().map(c => c[0])).toContain('CompletePayment')
+  })
+})
+
+describe('أحداث التفعيل (Activation) — القناتان + حارس مرّة واحدة', () => {
+  it('trackFirstEmployee يطلق GA first_employee + TikTok على القناتين', () => {
+    const fired = trackFirstEmployee('u1')
+    expect(fired).toBe(true)
+    expect(gaEventNames()).toContain('first_employee')
+    expect(ttCalls().map(c => c[0])).toContain('first_employee')
+  })
+
+  it('كل الأحداث الأربعة تُطلق أسماءها الصحيحة على GA4', () => {
+    trackFirstEmployee('u1')
+    trackFirstWorkday('u1')
+    trackFirstPayment('u1')
+    trackFirstReceipt('u1')
+    const names = gaEventNames()
+    expect(names).toEqual(expect.arrayContaining([
+      'first_employee', 'first_workday', 'first_payment', 'first_receipt',
+    ]))
+  })
+
+  it('لا يتكرّر لنفس المستخدم (يُطلق مرّة واحدة فقط)', () => {
+    expect(trackFirstEmployee('u1')).toBe(true)
+    expect(trackFirstEmployee('u1')).toBe(false)  // المرّة الثانية محجوبة بالحارس
+    const count = gaEventNames().filter(n => n === 'first_employee').length
+    expect(count).toBe(1)
+  })
+
+  it('يُطلق مرّة لكل مستخدم مختلف (الحارس مفتاحه userId)', () => {
+    expect(trackFirstEmployee('u1')).toBe(true)
+    expect(trackFirstEmployee('u2')).toBe(true)
+    expect(gaEventNames().filter(n => n === 'first_employee').length).toBe(2)
+  })
+
+  it('لا يرمي إن غاب localStorage (بيئة محجوبة)', () => {
+    delete globalThis.localStorage
+    expect(() => trackFirstWorkday('u1')).not.toThrow()
+    expect(gaEventNames()).toContain('first_workday')
   })
 })
 
