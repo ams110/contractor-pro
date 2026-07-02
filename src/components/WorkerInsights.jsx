@@ -239,7 +239,7 @@ export function FleetLeaderboard({ rows = [], onSelect, lang = 'ar', max = 5 }) 
                   {r.star && <Star size={11} color={C.gold} fill={C.gold} />}
                 </div>
                 {/* شريط النتيجة */}
-                <div style={{ height: 4, borderRadius: 3, background: C.bg, marginTop: 5, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', height: 4, borderRadius: 3, background: C.bg, marginTop: 5, overflow: 'hidden' }}>
                   <motion.div initial={{ width: 0 }} animate={{ width: `${r.score}%` }} transition={{ delay: 0.1 + i * 0.06, duration: 0.5 }}
                     style={{ height: '100%', borderRadius: 3, background: md ? md.color : C.secondary }} />
                 </div>

@@ -71,7 +71,8 @@ function FactorBar({ label, score, delay, animate }) {
         <span style={{ fontSize: 11, fontWeight: 700, color: C.textDim }}>{label}</span>
         <span style={{ fontSize: 11, fontWeight: 800, color }}>{score}</span>
       </div>
-      <div style={{ height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+      {/* display:flex → التعبئة من بداية السطر (يمين بـRTL) بدل الالتصاق باليسار */}
+      <div style={{ display: 'flex', height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: animate ? `${score}%` : 0 }}
