@@ -820,6 +820,7 @@ export default function WorkersScreen({
   const isTrialLimit = workerLimit === 1
   const [confirmDelete, setConfirmDelete] = useState(null) // worker to delete
   const [portalQr, setPortalQr] = useState('')             // QR رابط البوّابة (مشترك للبطاقات)
+  const [autoOpenLog, setAutoOpenLog] = useState(false)    // نيّة «سجّل اليوم» من الرئيسية → افتح فورم اليوم فوراً
 
   useEffect(() => {
     QRCode.toDataURL(PORTAL_URL, { margin: 1, width: 320, color: { dark: '#0D0F1C', light: '#ffffff' } })
@@ -833,9 +834,11 @@ export default function WorkersScreen({
         sessionStorage.removeItem('kbl_intent_add_worker')
         if (permissions?.addWorkers !== false) setShowAdd(true)
       }
-      if (sessionStorage.getItem('kbl_intent_log_workday') === '1') {
+      const logIntent = sessionStorage.getItem('kbl_intent_log_workday')
+      if (logIntent) {
         sessionStorage.removeItem('kbl_intent_log_workday')
-        setMainTab('workdays')   // وجّه لتبويب أيام العمل لتسجيل أول يوم
+        setMainTab('workdays')                    // وجّه لتبويب أيام العمل
+        if (logIntent === '2') setAutoOpenLog(true) // '2' = افتح فورم التسجيل فوراً (زر الرئيسية)
       }
     } catch {}
   }, [])
@@ -956,6 +959,7 @@ export default function WorkersScreen({
           updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays}
           deleteWorkDay={deleteWorkDay} approveWorkDay={approveWorkDay}
           rejectWorkDay={rejectWorkDay} permissions={permissions} holidays={holidays}
+          autoOpenForm={autoOpenLog} onAutoOpenConsumed={() => setAutoOpenLog(false)}
         />
       </div>
     )

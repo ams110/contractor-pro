@@ -5,7 +5,7 @@ import {
   ComposedChart, Area, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import {
-  TrendingUp, TrendingDown, Building2, Users, Wallet,
+  TrendingUp, TrendingDown, Building2, Users, Wallet, HardHat,
   AlertTriangle, Trophy, Clock, ChevronLeft,
   DollarSign, CreditCard, BarChart3, Crown, Sparkles, Lock,
 } from 'lucide-react'
@@ -409,6 +409,27 @@ export default function DashboardScreen({
         </div>
         {permissions?.isOwner && <PlanBadge lang={language} />}
       </motion.div>
+
+      {/* ─── الفعل الأساسي: «سجّل اليوم» بلمسة من الرئيسية (يفتح فورم اليوم بطاقم أمس جاهزاً) ─── */}
+      {employees.length > 0 && workDays.length > 0 && permissions?.viewWorkers !== false && (
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 14 }}>
+          <PremiumShell accent={C.primary} radius={20} padding="15px 15px"
+            onClick={() => { try { sessionStorage.setItem('kbl_intent_log_workday', '2') } catch {}; onNav?.('workers') }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <IconChip icon={HardHat} accent={C.primary} size={40} r={13} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 900, color: C.text, marginBottom: 3 }}>
+                  {language === 'he' ? 'סמן את היום' : language === 'en' ? 'Log today' : 'سجّل اليوم'}
+                </div>
+                <div style={{ fontSize: 11.5, color: C.textDim, lineHeight: 1.5 }}>
+                  {language === 'he' ? 'הצוות והפרויקט של אתמול כבר מוכנים — רק אשר' : language === 'en' ? "Yesterday's crew and project are preselected — just confirm" : 'طاقم أمس ومشروعه جاهزين — بس أكّد'}
+                </div>
+              </div>
+              <ChevronLeft size={18} color={C.primary} style={{ flexShrink: 0 }} />
+            </div>
+          </PremiumShell>
+        </motion.div>
+      )}
 
       {/* ─── تفعيل المرحلة 2: عنده عامل بلا أيام عمل → وجّهه لتسجيل أول يوم (لحظة «شفت الفلوس») ─── */}
       {employees.length > 0 && workDays.length === 0 && (
