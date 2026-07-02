@@ -60,6 +60,8 @@ export const useAppStore = create((set, get) => ({
   // ─── Online state ─────────────────────────────────────────────────────────
   isOnline: navigator.onLine,
   setOnline: (v) => set({ isOnline: v }),
+  queueCount: 0,                                  // تسجيلات بانتظار المزامنة (offlineQueue)
+  setQueueCount: (v) => set({ queueCount: v }),
 
   // ─── Language ─────────────────────────────────────────────────────────────
   language: getCurrentLang(),

@@ -57,6 +57,7 @@ function useElapsed(since) {
 export default function ConnectionStatus() {
   const { t } = useTranslation()
   const isOnline = useAppStore(s => s.isOnline)
+  const queueCount = useAppStore(s => s.queueCount)
 
   // idle | offline | reconnecting | synced
   const [phase, setPhase] = useState(isOnline ? 'idle' : 'offline')
@@ -107,7 +108,10 @@ export default function ConnectionStatus() {
       spin: false,
       pulse: true,
       label: t('offline.message'),
-      sub: elapsed ? t('offline.offlineFor', { time: elapsed }) : '',
+      sub: [
+        queueCount > 0 ? t('offline.queued', { count: queueCount }) : '',
+        elapsed ? t('offline.offlineFor', { time: elapsed }) : '',
+      ].filter(Boolean).join(' · '),
     },
     reconnecting: {
       Icon: RefreshCw,

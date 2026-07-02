@@ -1,5 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { enqueue, isNetworkError, newRowId } from '../lib/offlineQueue.js'
+import { useAppStore } from '../store/useAppStore.js'
+import { tl } from '../lib/labels.js'
+
+// إدراج مع شبكة أمان offline: فشل شبكي → طابور محلي + toast، وأي خطأ آخر يُرمى كالمعتاد.
+// (نطاق الطابور: work_days وexpenses فقط — انظر lib/offlineQueue.js)
+async function insertOrQueue(table, rows, userId, refetch) {
+  let error = null
+  try { ({ error } = await supabase.from(table).insert(rows)) } catch (e) { error = e }
+  if (!error) { await refetch(); return }
+  if (!isNetworkError(error)) throw error
+  enqueue(userId, table, rows) // يرمي إذا الطابور ممتلئ → يظهر الفشل المعتاد
+  const { language, showToast } = useAppStore.getState()
+  showToast(tl(language, 'انحفظ محلياً — بيتزامن لما يرجع النت', 'נשמר מקומית — יסונכרן כשהחיבור יחזור', 'Saved locally — syncs when back online'), 'success')
+  return { queued: true }
+}
 
 function useTable(table, userId) {
   const [data,    setData]    = useState([])
@@ -134,16 +150,12 @@ export function useWorkDays(userId) {
   const { data, loading, error, refetch } = useTable('work_days', userId)
 
   async function addWorkDay(form) {
-    const { error } = await supabase.from('work_days').insert({ ...form, user_id: userId })
-    if (error) throw error
-    await refetch()
+    return insertOrQueue('work_days', [{ ...form, user_id: userId, id: newRowId() }], userId, refetch)
   }
 
   async function bulkAddWorkDays(forms) {
-    const rows = forms.map(f => ({ ...f, user_id: userId }))
-    const { error } = await supabase.from('work_days').insert(rows)
-    if (error) throw error
-    await refetch()
+    const rows = forms.map(f => ({ ...f, user_id: userId, id: newRowId() }))
+    return insertOrQueue('work_days', rows, userId, refetch)
   }
 
   async function deleteWorkDay(id) {
@@ -186,9 +198,7 @@ export function useExpenses(userId) {
   const { data, loading, error, refetch } = useTable('expenses', userId)
 
   async function addExpense(form) {
-    const { error } = await supabase.from('expenses').insert({ ...form, user_id: userId })
-    if (error) throw error
-    await refetch()
+    return insertOrQueue('expenses', [{ ...form, user_id: userId, id: newRowId() }], userId, refetch)
   }
 
   async function deleteExpense(id) {

@@ -45,6 +45,7 @@ import { LoadingSpinner }       from './components/index.jsx'
 import { usePushNotifications } from './hooks/usePushNotifications.js'
 import { useAppConfig }        from './hooks/useAppConfig.js'
 import { idleTimeoutMs, lockOnBackgroundEnabled, LOCK_ON_BG_KEY } from './lib/sessionLock.js'
+import { flush as flushOfflineQueue, queueCount as offlineQueueCount } from './lib/offlineQueue.js'
 
 // ── New screens ───────────────────────────────────────────────────────────────
 const LoginScreen    = lazy(() => import('./screens/auth/LoginScreen.jsx'))
@@ -292,7 +293,7 @@ function OwnerApp() {
     showNotifs, setShowNotifs,
     showMore, setShowMore,
     toast, showToast,
-    setOnline,
+    setOnline, isOnline,
     language, setLanguage: setLang,
     setSigner,
     lockSession, isReadOnly, setReadOnly, setDailySpendLimit,
@@ -339,6 +340,17 @@ function OwnerApp() {
 
   const { teamMembers, permissions, effectiveOwnerId, allowedProjectIds, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
   const eid = effectiveOwnerId || uid
+
+  // ─── طابور الكتابة offline: صرّفه عند الإقلاع وعند عودة الاتصال (المفتاح eid → لا تسريب بين حسابات) ───
+  useEffect(() => {
+    if (!eid || !isOnline) return
+    useAppStore.getState().setQueueCount(offlineQueueCount(eid))
+    flushOfflineQueue(supabase, eid).then(({ synced, failed }) => {
+      if (synced > 0) showToast(tl(language, `تمّت مزامنة ${synced} تسجيل`, `סונכרנו ${synced} רשומות`, `Synced ${synced} entries`), 'success')
+      if (failed > 0) showToast(tl(language, `${failed} تسجيل فشلت مزامنته — راجع البيانات`, `${failed} רשומות נכשלו בסנכרון`, `${failed} entries failed to sync`), 'error')
+    }).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eid, isOnline])
 
   const { projects,       loading: pLoad,  addProject,    updateProject,    deleteProject, archiveProject, restoreProject, deleteProjectWithAll } = useProjects(eid)
   const { employees,      loading: eLoad,  addEmployee,   updateEmployee,   deleteEmployee  } = useEmployees(eid)
