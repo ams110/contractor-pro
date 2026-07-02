@@ -37,6 +37,16 @@ export function WorkerDNABadge({ dna }) {
 }
 
 // ─── البطاقة الكاملة (تبويب ملخّص العامل) ─────────────────────────────────────────
+
+// tick مخصّص: يدفع التسمية للخارج قطرياً حتى لا تتلاصق تسميات المحاور السفلية
+function RadarTick({ payload, x, y, cx, cy }) {
+  const dx = (x - cx) * 0.18, dy = (y - cy) * 0.18
+  return (
+    <text x={x + dx} y={y + dy} fill={C.textDim} fontSize={9.5} fontWeight={700}
+      textAnchor="middle" dominantBaseline="central">{payload.value}</text>
+  )
+}
+
 export default function WorkerDNA({ dna }) {
   const language = useAppStore(s => s.language)
   const ref = useRef(null)
@@ -92,10 +102,7 @@ export default function WorkerDNA({ dna }) {
                 </linearGradient>
               </defs>
               <PolarGrid stroke="rgba(255,255,255,0.08)" />
-              <PolarAngleAxis
-                dataKey="axis"
-                tick={{ fill: C.textDim, fontSize: 9.5, fontWeight: 700 }}
-              />
+              <PolarAngleAxis dataKey="axis" tick={RadarTick} />
               <Radar
                 dataKey="score"
                 stroke={t.main}

@@ -87,6 +87,16 @@ export function AttendanceHeatmap({ heatmap, lang = 'ar' }) {
 // ════════════════════════════════════════════════════════════════════════════
 //  رادار الأداء مقابل الأسطول
 // ════════════════════════════════════════════════════════════════════════════
+
+// tick مخصّص: يدفع التسمية للخارج قطرياً حتى لا تتلاصق تسميات المحاور السفلية
+function RadarTick({ payload, x, y, cx, cy }) {
+  const dx = (x - cx) * 0.18, dy = (y - cy) * 0.18
+  return (
+    <text x={x + dx} y={y + dy} fill={C.textDim} fontSize={9.5} fontWeight={700}
+      textAnchor="middle" dominantBaseline="central">{payload.value}</text>
+  )
+}
+
 export function PerformanceRadar({ data, lang = 'ar' }) {
   if (!data?.length) return null
   return (
@@ -95,7 +105,7 @@ export function PerformanceRadar({ data, lang = 'ar' }) {
       <ResponsiveContainer width="100%" height={230}>
         <RadarChart data={data} outerRadius="62%">
           <PolarGrid stroke={C.border} />
-          <PolarAngleAxis dataKey="axis" tick={{ fill: C.textDim, fontSize: 10, fontWeight: 700 }} />
+          <PolarAngleAxis dataKey="axis" tick={RadarTick} />
           <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
           <Radar name="fleet" dataKey="fleet" stroke={C.textDim} fill={C.textDim} fillOpacity={0.12} strokeWidth={1} strokeDasharray="4 3" />
           <Radar name="worker" dataKey="worker" stroke={C.secondary} fill={C.secondary} fillOpacity={0.34} strokeWidth={2} />
