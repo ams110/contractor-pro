@@ -1042,11 +1042,6 @@ export default function WorkersScreen({
         </div>
       )}
 
-      {/* لوحة شرف الأسطول — تظهر بلا بحث/فلترة */}
-      {!search && specFilter === 'all' && (
-        <FleetLeaderboard rows={leaderboard} onSelect={(id) => setSelected(employees.find(e => e.id === id))} lang={language} />
-      )}
-
       {/* Worker list */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -1070,6 +1065,13 @@ export default function WorkersScreen({
               delay={Math.min(i * 0.04, 0.3)}
             />
           ))}
+        </div>
+      )}
+
+      {/* لوحة شرف الأسطول — تحليل، فبتيجي بعد بطاقات العمّال (فعل-أولاً) */}
+      {!search && specFilter === 'all' && (
+        <div style={{ marginTop: 14 }}>
+          <FleetLeaderboard rows={leaderboard} onSelect={(id) => setSelected(employees.find(e => e.id === id))} lang={language} />
         </div>
       )}
 
