@@ -69,8 +69,8 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
           style={{
             position: 'absolute', inset: 0, borderRadius: 20, overflow: 'hidden',
             backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
-            background: `linear-gradient(135deg, ${C.secondary} 0%, #6D28D9 28%, ${C.primary} 92%, ${C.gold} 118%)`,
-            boxShadow: '0 12px 36px rgba(124,58,237,0.38), inset 0 1px 0 rgba(255,255,255,0.22)',
+            background: `linear-gradient(135deg, ${C.primary} 0%, #DC2626 60%, ${C.gold} 120%)`,
+            boxShadow: '0 12px 36px rgba(249,115,22,0.32), inset 0 1px 0 rgba(255,255,255,0.22)',
             padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
           }}>
           <HolographicSheen />
@@ -117,7 +117,7 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
           {/* الاسم + الرصيد */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginTop: 4 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.7)', marginBottom: 3 }}>CONTRACTOR&nbsp;PRO</div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.72)', marginBottom: 3 }}>كبلان</div>
               <div style={{ fontSize: 19, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.25)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{worker.name}</div>
               {worker.phone && (
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.85)', fontFamily: 'monospace', letterSpacing: '0.08em', marginTop: 2, direction: 'ltr', textAlign: 'start' }}>{worker.phone}</div>

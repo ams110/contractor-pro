@@ -14,18 +14,19 @@ import { HolographicSheen } from '../ui/Premium.jsx'
 //  بصرية بحتة: تقرأ من stats المحسوبة مسبقاً دون أي تغيير في الحسابات.
 // ════════════════════════════════════════════════════════════════════════
 
-// تدرّج حسب حالة المشروع — مع تمييز المشاريع النشطة الخاسرة (متعثّرة) بالأحمر.
+// تدرّج حسب حالة المشروع — كله من العائلة الدافئة للهوية (برتقالي/ذهبي/أحمر)
+// + أخضر هادئ للمكتمل ورماديات للمغلق. (كانت سماوي/أزرق/بنفسجي خارج الهوية.)
 function projectGradient(status, profit) {
   if ((status === 'نشط' || status === 'موافق عليه') && profit < 0)
     return `linear-gradient(135deg, ${C.accent} 0%, ${C.primary} 70%, ${C.gold} 118%)`
   switch (status) {
-    case 'نشط':       return `linear-gradient(135deg, ${C.success} 0%, #0EA5E9 58%, ${C.cyan} 115%)`
-    case 'موافق عليه': return `linear-gradient(135deg, ${C.cyan} 0%, #2563EB 60%, ${C.secondary} 118%)`
+    case 'نشط':       return `linear-gradient(135deg, ${C.primary} 0%, #DC2626 70%, ${C.gold} 118%)`
+    case 'موافق عليه': return `linear-gradient(135deg, ${C.gold} 0%, ${C.primary} 60%, #DC2626 118%)`
     case 'عرض سعر':   return `linear-gradient(135deg, ${C.gold} 0%, ${C.warning} 52%, ${C.primary} 115%)`
-    case 'مكتمل':     return `linear-gradient(135deg, ${C.secondary} 0%, #2563EB 60%, ${C.cyan} 118%)`
+    case 'مكتمل':     return `linear-gradient(135deg, ${C.success} 0%, #0F766E 70%, #134E4A 118%)`
     case 'ملغي':      return `linear-gradient(135deg, #64748B 0%, ${C.accent} 95%)`
     case 'مؤرشف':     return `linear-gradient(135deg, #475569 0%, #1E293B 110%)`
-    default:          return `linear-gradient(135deg, ${C.primary} 0%, ${C.gold} 50%, ${C.secondary} 115%)`
+    default:          return `linear-gradient(135deg, ${C.primary} 0%, ${C.gold} 60%, #DC2626 118%)`
   }
 }
 
@@ -92,7 +93,7 @@ export default function ProjectCard({ project, stats = {}, businessName, lang = 
           {/* الاسم + العميل + الربح */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.7)', marginBottom: 3 }}>PROJECT</div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.72)', marginBottom: 3 }}>مشروع</div>
               <div style={{ fontSize: 19, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.25)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</div>
               {project.client_name && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 700, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>
