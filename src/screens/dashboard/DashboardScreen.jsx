@@ -76,7 +76,7 @@ function StatTile({ icon, accent, value, label, sub, money = true, trend, onClic
           : <span style={{ fontSize: big ? 28 : 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{v}</span>}
       </div>
       <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600, marginTop: 5, lineHeight: 1.3 }}>{label}</div>
-      {sub && <div style={{ fontSize: 10, color: accent, marginTop: 4, fontWeight: 800 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11, color: accent, marginTop: 4, fontWeight: 800 }}>{sub}</div>}
     </PremiumShell>
   )
 }
@@ -115,7 +115,7 @@ function MiniTotal({ label, value, color }) {
       <div style={{ fontSize: 13, fontWeight: 900, color, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
         {value < 0 ? '−' : ''}₪{fmt(Math.abs(value))}
       </div>
-      <div style={{ fontSize: 9, color: C.textDim, fontWeight: 600, marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 10.5, color: C.textDim, fontWeight: 600, marginTop: 2 }}>{label}</div>
     </div>
   )
 }
@@ -141,7 +141,7 @@ function PerformanceCard({ data, totals, lang, delay }) {
             </motion.div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{L.title}</div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{L.sub}</div>
+              <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>{L.sub}</div>
             </div>
           </div>
           <div style={{ padding: '4px 10px', background: `${accent}1f`, border: `1px solid ${accent}3a`, borderRadius: 9, fontSize: 10, fontWeight: 900, color: accent, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -222,7 +222,7 @@ function ProjectRow({ project, revenue, expenses, rank, onClick, lang }) {
         <div style={{ fontSize: 13, fontWeight: 900, color: accent, fontVariantNumeric: 'tabular-nums' }}>
           {isGood ? '+' : '−'}₪{fmt(Math.abs(profit))}
         </div>
-        {margin !== null && <div style={{ fontSize: 9, color: C.textDim, marginTop: 2, fontWeight: 700 }}>{margin}%</div>}
+        {margin !== null && <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, fontWeight: 700 }}>{margin}%</div>}
       </div>
       <ChevronLeft size={15} color={C.textDim} style={{ flexShrink: 0 }} />
     </motion.div>
@@ -469,14 +469,14 @@ export default function DashboardScreen({
               <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
                 {language === 'he' ? 'מזומן ביד עכשיו' : language === 'en' ? 'Cash on hand now' : 'نقد بالجيب الآن'}
               </div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
+              <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>
                 {language === 'he' ? 'תזרים בפועל, לא רווח על הנייר' : language === 'en' ? 'Real cash flow, not paper profit' : 'تدفّق نقدي فعلي، مش ربح دفتري'}
               </div>
             </div>
             {stats.netTrend != null && <TrendChip trend={stats.netTrend} />}
           </div>
           <CashHero value={stats.cashOnHand} accent={cashAccent} />
-          <div style={{ fontSize: 10, color: C.textDim, marginTop: 7 }}>
+          <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 7 }}>
             {language === 'he' ? 'כל מה שנכנס פחות כל מה ששולם בפועל' : language === 'en' ? 'All received minus all actually paid out' : 'كل المقبوض ناقص كل المدفوع فعلياً'}
           </div>
         </PremiumShell>
@@ -572,7 +572,7 @@ export default function DashboardScreen({
                   <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>
                     {language === 'he' ? 'פרויקטים מובילים' : language === 'en' ? 'Top Projects' : 'أفضل المشاريع'}
                   </div>
-                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
+                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>
                     {language === 'he' ? 'לפי רווח' : language === 'en' ? 'By profit' : 'حسب الربح'}
                   </div>
                 </div>

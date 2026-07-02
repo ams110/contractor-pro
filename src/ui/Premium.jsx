@@ -111,7 +111,7 @@ export function PremiumStat({ label, value, sub, icon, tone = 'brand', color, on
         {money ? `₪${value}` : value}
       </div>
       <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>{label}</div>
-      {sub && <div style={{ fontSize: 10, color: t.main, marginTop: 4, fontWeight: 700 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11, color: t.main, marginTop: 4, fontWeight: 700 }}>{sub}</div>}
     </PremiumCard>
   )
 }

@@ -93,7 +93,7 @@ export function PerformanceRadar({ data, lang = 'ar' }) {
     <Wrap>
       <Head icon={Activity} color={C.secondary} title={L(lang, 'رادار الأداء مقابل الأسطول', 'מכ"ם ביצועים', 'Performance Radar')} />
       <ResponsiveContainer width="100%" height={230}>
-        <RadarChart data={data} outerRadius="72%">
+        <RadarChart data={data} outerRadius="62%">
           <PolarGrid stroke={C.border} />
           <PolarAngleAxis dataKey="axis" tick={{ fill: C.textDim, fontSize: 10, fontWeight: 700 }} />
           <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
