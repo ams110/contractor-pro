@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useMemo, useRef, Suspense, lazy } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
@@ -16,10 +16,20 @@ import { usePlanStore } from '../../store/usePlanStore.js'
 import { navigate } from '../../Router.jsx'
 import { calcEarned, calcPaid, calcAdvances, calcRevenue, calcProjectStats, calcMutabqi } from '../../lib/calculations.js'
 import { computeBusinessPulse, computeCashForecast, computeCommandCenter, computeNetWorth } from '../../lib/insights.js'
-import BusinessPulse from '../../components/BusinessPulse.jsx'
-import CashForecast from '../../components/CashForecast.jsx'
-import CommandCenter from '../../components/CommandCenter.jsx'
-import NetWorth from '../../components/NetWorth.jsx'
+// لوحات الرؤى الأربع ثقيلة — تُحمَّل كسولاً (chunks منفصلة) حتى يكون أول رسم للرئيسية خفيفاً
+const BusinessPulse = lazy(() => import('../../components/BusinessPulse.jsx'))
+const CashForecast = lazy(() => import('../../components/CashForecast.jsx'))
+const CommandCenter = lazy(() => import('../../components/CommandCenter.jsx'))
+const NetWorth = lazy(() => import('../../components/NetWorth.jsx'))
+
+// هيكل تحميل رفيع بنمط بطاقات الرؤى (يظهر لحظات ريثما يصل chunk اللوحات)
+function PanelSkeleton() {
+  return (
+    <div aria-hidden style={{ borderRadius: 20, border: `1px solid ${C.border}`, background: C.surface, height: 128, marginBottom: 12, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(100deg, transparent 30%, ${C.primary}0c 50%, transparent 70%)`, backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+    </div>
+  )
+}
 import { PremiumCard, IconChip as KitIconChip, useCountUp, Money } from '../../ui/Premium.jsx'
 import { tEnum } from '../../lib/labels.js'
 
@@ -429,18 +439,6 @@ export default function DashboardScreen({
       )}
 
       {showAmounts && (<>
-      {/* ─── مركز القيادة الذكي ─── */}
-      {hasData && <CommandCenter cc={commandCenter} onNav={onNav} />}
-
-      {/* ─── نبض المصلحة ─── */}
-      {hasData && <BusinessPulse pulse={pulse} onNav={onNav} />}
-
-      {/* ─── التوقّع الذكي للسيولة ─── */}
-      {hasData && forecast && <CashForecast forecast={forecast} onNav={onNav} />}
-
-      {/* ─── الذمّة الصافية ─── */}
-      {hasData && <NetWorth netWorth={netWorth} onNav={onNav} />}
-
       {/* ─── Cash on Hand (السيولة الحقيقية) — بطاقة بطل فخمة ─── */}
       <div style={{ marginBottom: 12 }}>
         <PremiumShell accent={cashAccent} radius={22} padding="18px 16px" delay={0.04} onClick={() => onNav?.('finance')}>
@@ -477,6 +475,16 @@ export default function DashboardScreen({
           onClick={() => onNav?.('projects')}
         />
       </div>
+
+      {/* ─── لوحات الرؤى الذكية (كسولة — chunks منفصلة) ─── */}
+      {hasData && (
+        <Suspense fallback={<PanelSkeleton />}>
+          <CommandCenter cc={commandCenter} onNav={onNav} />
+          <BusinessPulse pulse={pulse} onNav={onNav} />
+          {forecast && <CashForecast forecast={forecast} onNav={onNav} />}
+          <NetWorth netWorth={netWorth} onNav={onNav} />
+        </Suspense>
+      )}
 
       {/* ─── صافي الربح (عريض) ─── */}
       <div style={{ marginBottom: 12 }}>
