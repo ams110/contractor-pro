@@ -117,7 +117,7 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
           {/* الاسم + الرصيد */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginTop: 4 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.72)', marginBottom: 3 }}>كبلان</div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.72)', marginBottom: 3 }}>{L('كبلان', 'כבלאן', 'Kabblan')}</div>
               <div style={{ fontSize: 19, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.25)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{worker.name}</div>
               {worker.phone && (
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.85)', fontFamily: 'monospace', letterSpacing: '0.08em', marginTop: 2, direction: 'ltr', textAlign: 'start' }}>{worker.phone}</div>
