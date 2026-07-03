@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, Suspense, lazy } from 'react'
+import React, { useMemo, useRef, useState, Suspense, lazy } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
@@ -6,10 +6,11 @@ import {
 } from 'recharts'
 import {
   TrendingUp, TrendingDown, Building2, Users, Wallet, HardHat,
-  AlertTriangle, Trophy, Clock, ChevronLeft,
+  AlertTriangle, Trophy, Clock, ChevronLeft, ChevronDown,
   DollarSign, CreditCard, BarChart3, Crown, Sparkles, Lock,
 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
+import LifeNumberCard from '../../components/LifeNumberCard.jsx'
 import { fmt, fmtDateFull, isPaymentOverdue } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { usePlanStore } from '../../store/usePlanStore.js'
@@ -32,6 +33,38 @@ function PanelSkeleton() {
 }
 import { PremiumCard, IconChip as KitIconChip, useCountUp, Money } from '../../ui/Premium.jsx'
 import { tEnum } from '../../lib/labels.js'
+
+// ─── قسم «تحليلات» قابل للطي — الرسمات الذكية تحت الطلب بدل ما تحتلّ نص الشاشة ─────
+// (طلب المحاكاة: «الأرقام قدّام والرسمات ورا») — مسكّر افتراضياً، وحالته محفوظة.
+function AnalyticsSection({ lang, children }) {
+  const [open, setOpen] = useState(() => {
+    try { return localStorage.getItem('kbl_analytics_open') === '1' } catch { return false }
+  })
+  const toggle = () => setOpen(o => {
+    try { localStorage.setItem('kbl_analytics_open', o ? '0' : '1') } catch { /* private mode */ }
+    return !o
+  })
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <button onClick={toggle} aria-expanded={open}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 11, background: C.surface, border: `1px solid ${open ? C.borderMid : C.border}`, borderRadius: 18, padding: '13px 14px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start', marginBottom: open ? 12 : 0 }}>
+        <KitIconChip icon={BarChart3} color={C.secondary} size={34} radius={11} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 900, color: C.text }}>
+            {lang === 'he' ? 'ניתוחים חכמים' : lang === 'en' ? 'Smart analytics' : 'تحليلات ذكية'}
+          </div>
+          <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 2 }}>
+            {lang === 'he' ? 'דופק · תחזית מזומנים · מרכז פיקוד · שווי נקי' : lang === 'en' ? 'Pulse · Cash forecast · Command center · Net worth' : 'النبض · توقّع السيولة · مركز القيادة · الذمّة الصافية'}
+          </div>
+        </div>
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }} style={{ display: 'flex', flexShrink: 0 }}>
+          <ChevronDown size={17} color={C.textDim} />
+        </motion.span>
+      </button>
+      {open && children}
+    </div>
+  )
+}
 
 // شارة اتّجاه صغيرة (شهر مقابل شهر)
 function TrendChip({ trend }) {
@@ -497,14 +530,9 @@ export default function DashboardScreen({
         />
       </div>
 
-      {/* ─── لوحات الرؤى الذكية (كسولة — chunks منفصلة) ─── */}
-      {hasData && (
-        <Suspense fallback={<PanelSkeleton />}>
-          <CommandCenter cc={commandCenter} onNav={onNav} />
-          <BusinessPulse pulse={pulse} onNav={onNav} />
-          {forecast && <CashForecast forecast={forecast} onNav={onNav} />}
-          <NetWorth netWorth={netWorth} onNav={onNav} />
-        </Suspense>
+      {/* ─── بطاقة «رقم الحياة» — سقف פטור للـעוסק פטור / التحصيل لغيره ─── */}
+      {permissions?.isOwner && (
+        <LifeNumberCard projects={projects} clientReceipts={clientReceipts} onNav={onNav} />
       )}
 
       {/* ─── صافي الربح (عريض) ─── */}
@@ -587,6 +615,18 @@ export default function DashboardScreen({
             ))}
           </PremiumShell>
         </div>
+      )}
+
+      {/* ─── تحليلات ذكية — اللوحات الأربع مطوية آخر الشاشة (كسولة — chunks تُحمَّل عند الفتح) ─── */}
+      {showAmounts && hasData && (
+        <AnalyticsSection lang={language}>
+          <Suspense fallback={<PanelSkeleton />}>
+            <CommandCenter cc={commandCenter} onNav={onNav} />
+            <BusinessPulse pulse={pulse} onNav={onNav} />
+            {forecast && <CashForecast forecast={forecast} onNav={onNav} />}
+            <NetWorth netWorth={netWorth} onNav={onNav} />
+          </Suspense>
+        </AnalyticsSection>
       )}
 
       {/* ─── Empty state — تفعيل: وجّه لأول عامل ما دام ما في عامل (حتى لو عنده مشروع) ─── */}

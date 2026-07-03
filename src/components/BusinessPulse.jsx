@@ -105,7 +105,7 @@ export default function BusinessPulse({ pulse, onNav }) {
           </motion.div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'نبض المصلحة', 'דופק העסק', 'Business Pulse')}</div>
-            <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'تحليل ذكي لصحّة مصلحتك المالية', 'ניתוח חכם של בריאות העסק הפיננסית שלך', 'Smart analysis of your financial health')}</div>
+            <div style={{ fontSize: 10.5, color: C.textDim, lineHeight: 1.45 }}>{tl(language, 'علامة من 100 محسوبة من سيولتك وتحصيلك وربحك واتجاهك الشهري', 'ציון מתוך 100 המחושב מהמזומן, הגבייה, הרווח והמגמה החודשית שלך', 'A 0–100 score from your cash, collections, profit and monthly trend')}</div>
           </div>
         </div>
 

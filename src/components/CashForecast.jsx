@@ -69,7 +69,7 @@ export default function CashForecast({ forecast, onNav }) {
           </motion.div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'التوقّع الذكي للسيولة', 'תחזית מזומנים חכמה', 'Smart Cash Forecast')}</div>
-            <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'إلى أين يتّجه نقدك خلال ', 'לאן הולך המזומן שלך תוך ', 'Where your cash is heading over ')}{horizonLabel}</div>
+            <div style={{ fontSize: 10.5, color: C.textDim, lineHeight: 1.45 }}>{tl(language, 'توقّع مبني على متوسط دخلك ومصروفك بالأشهر الأخيرة — خلال ', 'תחזית לפי ממוצע ההכנסות וההוצאות שלך בחודשים האחרונים — תוך ', 'Projected from your recent avg income & spend — over ')}{horizonLabel}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 9, background: rising ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)', border: `1px solid ${rising ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.28)'}` }}>
             {rising ? <TrendingUp size={12} color={C.success} /> : <TrendingDown size={12} color={C.accent} />}
