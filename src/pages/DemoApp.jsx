@@ -114,6 +114,7 @@ function DemoLockedTab({ kind, language }) {
 
 export default function DemoApp() {
   const language = useAppStore(s => s.language)   // ar | he | en (من cp_lang) — يحدّد لغة الديمو
+  const theme = useAppStore(s => s.theme)         // إعادة تركيب كاملة عند تبديل «وضع الورشة» (زي App.jsx)
   const [screen, setScreen] = useState('dashboard')
 
   // بيانات الديمو بلغة الزائر: الأسماء الحرّة (عمّال/مشاريع/مصلحة) تُعرَّب للعبري.
@@ -158,7 +159,7 @@ export default function DemoApp() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', background: C.bg, color: C.text, direction: 'rtl', position: 'relative' }}>
+    <div key={theme} style={{ minHeight: '100dvh', background: C.bg, color: C.text, direction: 'rtl', position: 'relative' }}>
       {/* خلفية أورورا خفيفة */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 40% at 15% 0%, rgba(249,115,22,0.07) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 85% 100%, rgba(124,58,237,0.04) 0%, transparent 60%)' }} />
 
