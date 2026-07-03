@@ -6,16 +6,22 @@ import { fmt } from '../lib/helpers.js'
 
 // ─── نظام النبرة (Tone) — مستخرَج من أسلوب «مركز القيادة» ──────────────────────
 // كل نبرة = لون أساسي + خلفية ناعمة + توهّج، تُلوّن البطاقة حسب الحالة.
+// getters (مش قيم ثابتة) حتى تقرأ C وقت الاستعمال — فتتبع الثيم الحالي (وضع الورشة).
+const toneOf = (key) => ({
+  get main() { return C[key] },
+  get soft() { return `${C[key]}24` },
+  get glow() { return `${C[key]}73` },
+})
 export const TONES = {
-  brand:     { main: C.primary,   soft: 'rgba(249,115,22,0.14)', glow: 'rgba(249,115,22,0.45)' },
-  premium:   { main: C.secondary, soft: 'rgba(124,58,237,0.14)', glow: 'rgba(124,58,237,0.45)' },
-  gold:      { main: C.gold,      soft: 'rgba(217,119,6,0.14)',  glow: 'rgba(217,119,6,0.45)'  },
-  cyan:      { main: C.cyan,      soft: 'rgba(6,182,212,0.14)',  glow: 'rgba(6,182,212,0.45)'  },
-  excellent: { main: C.success,   soft: 'rgba(34,197,94,0.14)',  glow: 'rgba(34,197,94,0.45)'  },
-  good:      { main: C.cyan,      soft: 'rgba(6,182,212,0.14)',  glow: 'rgba(6,182,212,0.45)'  },
-  fair:      { main: C.warning,   soft: 'rgba(234,179,8,0.14)',  glow: 'rgba(234,179,8,0.45)'  },
-  weak:      { main: C.primary,   soft: 'rgba(249,115,22,0.14)', glow: 'rgba(249,115,22,0.45)' },
-  critical:  { main: C.accent,    soft: 'rgba(239,68,68,0.14)',  glow: 'rgba(239,68,68,0.45)'  },
+  brand:     toneOf('primary'),
+  premium:   toneOf('secondary'),
+  gold:      toneOf('gold'),
+  cyan:      toneOf('cyan'),
+  excellent: toneOf('success'),
+  good:      toneOf('cyan'),
+  fair:      toneOf('warning'),
+  weak:      toneOf('primary'),
+  critical:  toneOf('accent'),
 }
 
 // نبرة من لون اعتباطي (للحالات اللي ما إلها نبرة جاهزة)
@@ -111,7 +117,7 @@ export function PremiumStat({ label, value, sub, icon, tone = 'brand', color, on
         {money ? `₪${value}` : value}
       </div>
       <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>{label}</div>
-      {sub && <div style={{ fontSize: 10, color: t.main, marginTop: 4, fontWeight: 700 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11, color: t.main, marginTop: 4, fontWeight: 700 }}>{sub}</div>}
     </PremiumCard>
   )
 }

@@ -138,7 +138,8 @@
     "message":  "All your data is saved. Subscribe to continue using Kabblan."
   },
   "offline": {
-    "message": "No connection — data saved locally",
+    "message": "No internet connection",
+    "queued": "Saved locally: {{count}} entries — will sync when back online",
     "reconnecting": "Back online — syncing…",
     "synced": "Synced successfully",
     "offlineFor": "Offline for {{time}}"

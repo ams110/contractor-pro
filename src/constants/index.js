@@ -1,5 +1,8 @@
 // ─── New Color System (Psychology-Based) ─────────────────────────────────────
-export const C = {
+// لوحتان: dark (الافتراضية) و site «وضع الورشة» — فاتحة بتباين عالٍ للشغل برا
+// بالشمس (طلب إجماعي 12/12 بمحاكاة الواجهات). C كائن قابل للتبديل بالمكان عبر
+// applyTheme — كل المكوّنات تقرأه وقت الرندر فتتلوّن تلقائياً بلا تعديلها.
+const PALETTE_DARK = {
   // Backgrounds
   bg:        '#07080F',
   surface:   '#0D0F1C',
@@ -30,6 +33,64 @@ export const C = {
   purple:    '#8B5CF6',
   orange:    '#F97316',
   pink:      '#EC4899',
+}
+
+// «وضع الورشة»: أسطح فاتحة، نصوص غامقة سميكة، وtextDim أغمق بكثير من نظيره
+// الغامق (جوهر شكوى «النص الرمادي بيختفي بالشمس») + ألوان حالة مغمّقة درجة
+// لتحافظ على تباين مقروء على الأبيض.
+const PALETTE_SITE = {
+  bg:        '#F2F3F6',
+  surface:   '#FFFFFF',
+  card:      '#FFFFFF',
+
+  primary:   '#EA6100',
+  secondary: '#6D28D9',
+  gold:      '#B45309',
+  cyan:      '#0E7490',
+
+  success:   '#15803D',
+  warning:   '#A16207',
+  accent:    '#DC2626',
+
+  text:      '#0B1220',
+  textDim:   '#3F4C63',
+  textMuted: '#E4E7EE',
+
+  border:    'rgba(234,97,0,0.18)',
+  borderMid: 'rgba(234,97,0,0.34)',
+
+  blue:      '#1D4ED8',
+  purple:    '#6D28D9',
+  orange:    '#EA6100',
+  pink:      '#BE185D',
+}
+
+export const PALETTES = { dark: PALETTE_DARK, site: PALETTE_SITE }
+
+export const C = { ...PALETTE_DARK }
+
+// تبديل الثيم بالمكان: كل قراءات C وقت الرندر بتلقط القيم الجديدة، وApp بيعيد
+// التركيب بـ key={theme}. بيحدّث كمان CSS vars (index.css) وmeta theme-color.
+export function applyTheme(mode = 'dark') {
+  const p = PALETTES[mode] || PALETTES.dark
+  Object.assign(C, p)
+  GRAD.dark = mode === 'site'
+    ? 'linear-gradient(180deg, #FFFFFF 0%, #F2F3F6 100%)'
+    : 'linear-gradient(180deg, #0D0F1C 0%, #07080F 100%)'
+  if (typeof document !== 'undefined') {
+    const r = document.documentElement
+    r.dataset.theme = mode
+    const vars = {
+      '--c-bg': p.bg, '--c-surface': p.surface, '--c-card': p.card,
+      '--c-primary': p.primary, '--c-secondary': p.secondary, '--c-gold': p.gold,
+      '--c-cyan': p.cyan, '--c-success': p.success, '--c-warning': p.warning,
+      '--c-danger': p.accent, '--c-text': p.text, '--c-text-dim': p.textDim,
+      '--c-border': p.border, '--c-border-mid': p.borderMid,
+    }
+    for (const [k, v] of Object.entries(vars)) r.style.setProperty(k, v)
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.setAttribute('content', p.bg)
+  }
 }
 
 export const GRAD = {

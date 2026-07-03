@@ -45,6 +45,7 @@ import { LoadingSpinner }       from './components/index.jsx'
 import { usePushNotifications } from './hooks/usePushNotifications.js'
 import { useAppConfig }        from './hooks/useAppConfig.js'
 import { idleTimeoutMs, lockOnBackgroundEnabled, LOCK_ON_BG_KEY } from './lib/sessionLock.js'
+import { flush as flushOfflineQueue, queueCount as offlineQueueCount } from './lib/offlineQueue.js'
 
 // ── New screens ───────────────────────────────────────────────────────────────
 const LoginScreen    = lazy(() => import('./screens/auth/LoginScreen.jsx'))
@@ -186,7 +187,7 @@ function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
 }
 
 // ─── Desktop Sidebar ─────────────────────────────────────────────────────────
-function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
+function DesktopSidebar({ screen, setScreen, permissions, pendingCount, nav = NAV }) {
   const p = permissions || {}
   const language = useAppStore(s => s.language)
   const moreScreenIds = MORE_SCREENS.map(s => s.id)
@@ -216,7 +217,7 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount }) {
       </div>
 
       <div style={{ padding: '12px 10px', flex: 1 }}>
-        {NAV.map(n => {
+        {nav.map(n => {
           const active = activeScreen === n.id
           const Icon = NAV_ICONS[n.id]
           return (
@@ -292,10 +293,11 @@ function OwnerApp() {
     showNotifs, setShowNotifs,
     showMore, setShowMore,
     toast, showToast,
-    setOnline,
+    setOnline, isOnline,
     language, setLanguage: setLang,
     setSigner,
     lockSession, isReadOnly, setReadOnly, setDailySpendLimit,
+    theme,
   } = useAppStore()
 
   const dir = (language === 'ar' || language === 'he') ? 'rtl' : 'ltr'
@@ -340,6 +342,17 @@ function OwnerApp() {
   const { teamMembers, permissions, effectiveOwnerId, allowedProjectIds, updateMember, removeMember, isBlocked, isExpired, teamLoadError, blockMember, getActivity, getAllActivity, addMember, resetMemberPassword, reload: reloadTeam } = useTeam(uid, user?.email)
   const eid = effectiveOwnerId || uid
 
+  // ─── طابور الكتابة offline: صرّفه عند الإقلاع وعند عودة الاتصال (المفتاح eid → لا تسريب بين حسابات) ───
+  useEffect(() => {
+    if (!eid || !isOnline) return
+    useAppStore.getState().setQueueCount(offlineQueueCount(eid))
+    flushOfflineQueue(supabase, eid).then(({ synced, failed }) => {
+      if (synced > 0) showToast(tl(language, `تمّت مزامنة ${synced} تسجيل`, `סונכרנו ${synced} רשומות`, `Synced ${synced} entries`), 'success')
+      if (failed > 0) showToast(tl(language, `${failed} تسجيل فشلت مزامنته — راجع البيانات`, `${failed} רשומות נכשלו בסנכרון`, `${failed} entries failed to sync`), 'error')
+    }).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eid, isOnline])
+
   const { projects,       loading: pLoad,  addProject,    updateProject,    deleteProject, archiveProject, restoreProject, deleteProjectWithAll } = useProjects(eid)
   const { employees,      loading: eLoad,  addEmployee,   updateEmployee,   deleteEmployee  } = useEmployees(eid)
   const { workDays,       loading: wLoad,  addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays, deleteWorkDay, approveWorkDay, rejectWorkDay } = useWorkDays(eid)
@@ -349,7 +362,7 @@ function OwnerApp() {
   const { taxAdvances,                     addTaxAdvance, deleteTaxAdvance } = useTaxAdvances(eid)
   const appCfg = useAppConfig(eid)
   const { clientReceipts, loading: crLoad, addReceipt, updateReceipt, deleteReceipt, refetch: refetchReceipts } = useClientReceipts(eid)
-  const { specs, expCats, payMethods, pensionMonthly, taxEnabled, taxModules, salaryAlerts, dailyDigest, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly, setTaxEnabled, setTaxModule, setSalaryAlerts, setDailyDigest } = useSettings(eid)
+  const { specs, expCats, payMethods, pensionMonthly, taxEnabled, taxModules, salaryAlerts, dailyDigest, soloMode, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly, setTaxEnabled, setTaxModule, setSalaryAlerts, setDailyDigest, setSoloMode } = useSettings(eid)
   const { holidays, addHoliday, deleteHoliday } = useHolidays(eid)
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar, saveContractorNumber } = useProfile(uid)
   const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
@@ -562,12 +575,12 @@ function OwnerApp() {
     let content
     const allData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts, advances: visibleAdvances }
     switch (screen) {
-      case 'dashboard':  content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} />; break
-      case 'finance':    content = (p?.viewAmounts === false) ? <NoAccess /> : <FinanceScreen {...allData} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} userId={uid} permissions={p} payMethods={payMethods} appCfg={appCfg} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} />; break
+      case 'dashboard':  content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} addAdvance={addAdvance} soloMode={soloMode} />; break
+      case 'finance':    content = (p?.viewAmounts === false) ? <NoAccess /> : <FinanceScreen {...allData} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} userId={uid} permissions={p} payMethods={payMethods} appCfg={appCfg} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} soloMode={soloMode} />; break
       case 'projects':   content = p?.viewProjects  ? <ProjectsScreen  addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} archiveProject={archiveProject} restoreProject={restoreProject} deleteProjectWithAll={deleteProjectWithAll} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addExpense={addExpense} deleteExpense={deleteExpense} expCats={expCats} userId={uid} permissions={p} payMethods={payMethods} holidays={holidays} /> : <NoAccess />; break
       case 'workers':    content = p?.viewWorkers   ? <WorkersScreen   {...allData} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} payMethods={payMethods} profile={profile} appCfg={appCfg} /> : <NoAccess />; break
       case 'workdays':   setScreen('workers'); content = null; break
-      case 'settings':   content = <SettingsScreen  {...allData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} setTaxEnabled={setTaxEnabled} taxModules={taxModules} setTaxModule={setTaxModule} salaryAlerts={salaryAlerts} setSalaryAlerts={setSalaryAlerts} dailyDigest={dailyDigest} setDailyDigest={setDailyDigest} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} saveContractorNumber={saveContractorNumber} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} onNav={setScreen} appCfg={appCfg} pushSubStatus={pushSubStatus} forceResubscribePush={forceResubscribePush} />; break
+      case 'settings':   content = <SettingsScreen  {...allData} userId={uid} specs={specs} expCats={expCats} payMethods={payMethods} addSpec={addSpec} removeSpec={removeSpec} addExpCat={addExpCat} removeExpCat={removeExpCat} addPayMethod={addPayMethod} removePayMethod={removePayMethod} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} taxEnabled={taxEnabled} setTaxEnabled={setTaxEnabled} taxModules={taxModules} setTaxModule={setTaxModule} salaryAlerts={salaryAlerts} setSalaryAlerts={setSalaryAlerts} dailyDigest={dailyDigest} setDailyDigest={setDailyDigest} soloMode={soloMode} setSoloMode={setSoloMode} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} profile={profile} profSaving={profSaving} uploading={uploading} saveName={saveName} uploadAvatar={uploadAvatar} saveContractorNumber={saveContractorNumber} permissions={p} teamMembers={teamMembers} addMember={addMember} resetMemberPassword={resetMemberPassword} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} getActivity={getActivity} reloadTeam={reloadTeam} onNav={setScreen} appCfg={appCfg} pushSubStatus={pushSubStatus} forceResubscribePush={forceResubscribePush} />; break
       case 'expenses':   content = p?.viewExpenses  ? <ExpensesScreen  expenses={visibleExpenses} projects={visibleProjects} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} employees={visibleEmployees} userId={uid} permissions={p} /> : <NoAccess />; break
       case 'payments':   content = p?.viewPayments  ? <PaymentsScreen  payments={visiblePayments} employees={visibleEmployees} workDays={visibleWorkDays} expenses={visibleExpenses} advances={visibleAdvances} projects={visibleProjects} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} userId={uid} permissions={p} payMethods={payMethods} /> : <NoAccess />; break
       case 'tracker':    content = p?.viewProjects  ? <UnitTrackerScreen projects={visibleProjects} /> : <NoAccess />; break
@@ -575,12 +588,15 @@ function OwnerApp() {
       case 'accounting': setScreen('finance'); content = null; break
       case 'activity':   content = (p?.viewActivity || p?.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />; break
       case 'team':       content = p?.isOwner ? <FeatureGate requiredPlan="pro" title={tl(language, 'إدارة الفريق', 'ניהול צוות', 'Team management')} description={tl(language, 'أضف أعضاء فريق بصلاحيات دقيقة وتابع نشاطهم. هذه الميزة متاحة في خطّتَي Pro و Business.', 'הוסף חברי צוות עם הרשאות מדויקות ועקוב אחר הפעילות שלהם. תכונה זו זמינה בתוכניות Pro ו-Business.', 'Add team members with fine-grained permissions and track their activity. Available on the Pro and Business plans.')}><TeamScreen projects={visibleProjects} teamMembers={teamMembers} permissions={p} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} getAllActivity={getAllActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} /></FeatureGate> : <NoAccess />; break
-      default:           content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} />
+      default:           content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} addAdvance={addAdvance} soloMode={soloMode} />
     }
     return <ErrorBoundary key={screen}>{content}</ErrorBoundary>
   }
 
   const pendingCount = workDays.filter(w => w.status === 'pending').length
+
+  // وضع «معلّم لحاله»: يخفي تبويب العمال من التنقّل (الشاشة تظل موجودة لو وصلها برابط قديم)
+  const visibleNav = soloMode ? NAV.filter(n => n.id !== 'workers') : NAV
 
   const moreScreenIds = MORE_SCREENS.map(s => s.id)
   const activeNav = moreScreenIds.includes(screen) ? 'settings'
@@ -617,15 +633,15 @@ function OwnerApp() {
     return (
       <>
         <style>{globalCSS}</style>
-        <FirstTimeSetup language={language} addEmployee={addEmployee} />
+        <FirstTimeSetup language={language} addEmployee={addEmployee} setSoloMode={setSoloMode} />
       </>
     )
   }
 
   return (
-    <div className="app-root" dir={dir} style={{ background: C.bg, position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingRight: isDesktop ? 240 : 0 }}>
+    <div key={theme} className="app-root" dir={dir} style={{ background: C.bg, position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingRight: isDesktop ? 240 : 0 }}>
       <style>{globalCSS}</style>
-      {isDesktop && <DesktopSidebar screen={screen} setScreen={setScreen} permissions={p} pendingCount={pendingCount} dir={dir} />}
+      {isDesktop && <DesktopSidebar screen={screen} setScreen={setScreen} permissions={p} pendingCount={pendingCount} dir={dir} nav={visibleNav} />}
 
       {/* ─── Aurora background ─── */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 40% at 15% 0%, rgba(249,115,22,0.07) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 85% 100%, rgba(124,58,237,0.04) 0%, transparent 60%)' }} />
@@ -741,7 +757,7 @@ function OwnerApp() {
 
       {/* ─── Bottom Nav (mobile only) ─── */}
       {!isDesktop && <div style={{ position: 'fixed', bottom: 'max(14px, calc(8px + env(safe-area-inset-bottom, 0px)))', left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: '1px solid rgba(245,158,11,0.1)', padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
-        {NAV.map(n => {
+        {visibleNav.map(n => {
           const active = activeNav === n.id
           const Icon = NAV_ICONS[n.id]
           const hasBadge = n.id === 'workers' && pendingCount > 0

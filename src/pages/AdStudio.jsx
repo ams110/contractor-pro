@@ -630,7 +630,7 @@ function Poster({ idea, ideaIndex, size, lang = 'ar' }) {
   // الأفكار العبرية تحمل screen خاصّها؛ العربية تستعمل SCREEN_MAP حسب الفهرس
   const map = idea.screen ? { s: idea.screen, f: idea.focus } : (SCREEN_MAP[ideaIndex] || { s: 'dashboard' })
   const L = he
-    ? { cta: 'נסה 14 יום חינם', tagline: 'ניהול קבלנות מהנייד', font: "'Heebo', system-ui, sans-serif" }
+    ? { cta: 'נסה 14 יום חינם', tagline: 'ניהול קבלנות מהנייד', font: "'Noto Sans Hebrew', system-ui, sans-serif" }
     : { cta: 'جرّب 14 يوم مجاناً', tagline: 'إدارة مقاولاتك من جيبك', font: "'Noto Sans Arabic', system-ui, sans-serif" }
 
   // مقياس الموبايل حسب المساحة المتاحة
@@ -704,7 +704,7 @@ function Index({ list = IDEAS, lang = 'ar' }) {
   const he = lang === 'he'
   const q = he ? '&lang=he' : ''
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: he ? "'Heebo', sans-serif" : "'Noto Sans Arabic', sans-serif", direction: 'rtl', padding: 30 }}>
+    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: he ? "'Noto Sans Hebrew', sans-serif" : "'Noto Sans Arabic', sans-serif", direction: 'rtl', padding: 30 }}>
       <h1 style={{ fontWeight: 900, marginBottom: 6 }}>Ad Studio {he ? '· עברית' : ''} — {list.length} {he ? 'רעיונות' : 'فكرة'}</h1>
       <p style={{ color: C.textDim, marginBottom: 20 }}>افتح <code>?idea=0..{list.length - 1}&size=square|portrait|story{q}</code></p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>

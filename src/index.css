@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,400..900&family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&family=Noto+Sans+Hebrew:wght@400;500;600;700;800;900&display=swap');
+/* الخطوط تُحمَّل من index.html فقط (غير حاجب للرسم) — لا تعيد @import هنا */
 
 @theme {
   /* ── Orange Primary ── */
@@ -126,6 +126,13 @@ button:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(249,115,22,0.07);
+}
+
+/* «وضع الورشة» (ثيم فاتح للشمس) — قيم الـvars تُحدَّث من applyTheme، وهنا فقط
+   الأصناف الثابتة اللي بتفترض خلفية غامقة */
+:root[data-theme="site"] .glass {
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(234,97,0,0.16);
 }
 
 .app-root { min-height: var(--actual-vh, 100dvh); }

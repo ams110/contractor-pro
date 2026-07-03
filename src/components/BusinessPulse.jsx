@@ -71,7 +71,8 @@ function FactorBar({ label, score, delay, animate }) {
         <span style={{ fontSize: 11, fontWeight: 700, color: C.textDim }}>{label}</span>
         <span style={{ fontSize: 11, fontWeight: 800, color }}>{score}</span>
       </div>
-      <div style={{ height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+      {/* display:flex → التعبئة من بداية السطر (يمين بـRTL) بدل الالتصاق باليسار */}
+      <div style={{ display: 'flex', height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: animate ? `${score}%` : 0 }}
@@ -104,7 +105,7 @@ export default function BusinessPulse({ pulse, onNav }) {
           </motion.div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{tl(language, 'نبض المصلحة', 'דופק העסק', 'Business Pulse')}</div>
-            <div style={{ fontSize: 10, color: C.textDim }}>{tl(language, 'تحليل ذكي لصحّة مصلحتك المالية', 'ניתוח חכם של בריאות העסק הפיננסית שלך', 'Smart analysis of your financial health')}</div>
+            <div style={{ fontSize: 10.5, color: C.textDim, lineHeight: 1.45 }}>{tl(language, 'علامة من 100 محسوبة من سيولتك وتحصيلك وربحك واتجاهك الشهري', 'ציון מתוך 100 המחושב מהמזומן, הגבייה, הרווח והמגמה החודשית שלך', 'A 0–100 score from your cash, collections, profit and monthly trend')}</div>
           </div>
         </div>
 
