@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, TrendingUp, AlertTriangle,
   Banknote, Smartphone, CreditCard, Building,
-  Trash2, Image, Calendar, FolderOpen,
+  Trash2, Image, Calendar, FolderOpen, Printer, X,
 } from 'lucide-react'
 import { C, GRAD, OSEK_PATUR_THRESHOLD } from '../../constants/index.js'
 import { fmt, fmtDate } from '../../lib/helpers.js'
 import { supabase } from '../../lib/supabase.js'
+import { openReceiptPrint } from '../../lib/receiptDoc.js'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { openSignedUrl } from '../../lib/storage.js'
@@ -40,14 +41,20 @@ function StatCard({ label, value, color, sub, icon: Icon }) {
   )
 }
 
-function EntryRow({ entry, projectName, onDelete }) {
+function EntryRow({ entry, projectName, onDelete, onPrint }) {
   const [delConfirm, setDelConfirm] = useState(false)
   const language = useAppStore(s => s.language)
   const chips = []
   if (entry.payment_method) chips.push({ label: methodLabel(entry.payment_method, language), color: C.cyan })
   if (entry.payer_name && projectName) chips.push({ label: entry.payer_name, color: C.textDim })
   const actions = !delConfirm
-    ? <button onClick={() => setDelConfirm(true)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}><Trash2 size={13} /></button>
+    ? <span style={{ display: 'flex', gap: 6 }}>
+        {onPrint && (
+          <button onClick={() => onPrint(entry)} title={tl(language, 'اطبع קבלה للزبون', 'הדפס קבלה ללקוח', 'Print client receipt')}
+            style={{ background: 'none', border: 'none', color: C.cyan, cursor: 'pointer', padding: 2, display: 'flex' }}><Printer size={13} /></button>
+        )}
+        <button onClick={() => setDelConfirm(true)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}><Trash2 size={13} /></button>
+      </span>
     : <span style={{ display: 'flex', gap: 4 }}>
         <button onClick={() => setDelConfirm(false)} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, color: C.textDim, cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontFamily: 'inherit' }}>{tl(language, 'لا', 'לא', 'No')}</button>
         <button onClick={() => onDelete(entry.id)} style={{ background: C.accent, border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', padding: '3px 7px', fontSize: 10, fontWeight: 700, fontFamily: 'inherit' }}>{tl(language, 'احذف', 'מחק', 'Delete')}</button>
@@ -95,6 +102,7 @@ export default function IncomeTab({
   const [addOpen,     setAddOpen]     = useState(false)
   const [filterMonth, setFilterMonth] = useState('')
   const [filterProj,  setFilterProj]  = useState('')
+  const [printPrompt, setPrintPrompt] = useState(null)   // القبضة المحفوظة للتو — عرض طباعة קבלה
 
   const projectMap = useMemo(() => {
     const m = {}
@@ -183,6 +191,20 @@ export default function IncomeTab({
     onMutate?.()
     showToast(tl(language, 'تم تسجيل القبضة', 'ההכנסה נרשמה', 'Income recorded'))
     celebrate('money')
+    // عرض طباعة קבלה للزبون بعد الحفظ (من محاكاة solo-plan — الطلب رقم 1)
+    setPrintPrompt(data)
+  }
+
+  // طباعة קבלה رسمية — رقم العוסק (reg_number) إلزامي قانونياً
+  function handlePrintReceipt(entry) {
+    if (!activeBusiness?.reg_number) {
+      showToast(tl(language,
+        'أضف رقم العוסק (ע.מ/ח.פ) بإعدادات المصلحة قبل إصدار קבלה',
+        'הוסף מספר עוסק (ע.מ/ח.פ) בהגדרות העסק לפני הפקת קבלה',
+        'Add your business registration number before issuing a receipt'), 'warning')
+      return
+    }
+    openReceiptPrint(entry, activeBusiness, { projectName: projectMap[entry.project_id] || '' })
   }
 
   async function handleDelete(id) {
@@ -206,6 +228,25 @@ export default function IncomeTab({
           <span style={{ fontSize: 11, fontWeight: 800, color: C.secondary }}>{filterProj === '__orphan__' ? tl(language, 'إخفاء', 'הסתר', 'Hide') : tl(language, 'عرضها', 'הצג', 'Show')}</span>
         </button>
       )}
+      {/* عرض طباعة קבלה بعد حفظ قبضة (غير معيق — ينقفل بكبسة) */}
+      <AnimatePresence>
+        {printPrompt && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', marginBottom: 12, borderRadius: 12, background: `${C.cyan}12`, border: `1px solid ${C.cyan}3a` }}>
+            <Printer size={15} color={C.cyan} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: C.text }}>
+              {tl(language, 'انحفظت القبضة — تطبع קבלה رسمية للزبون؟', 'ההכנסה נשמרה — להפיק קבלה ללקוח?', 'Saved — print an official client receipt?')}
+            </span>
+            <button onClick={() => { handlePrintReceipt(printPrompt); setPrintPrompt(null) }}
+              style={{ background: C.cyan, border: 'none', borderRadius: 8, color: '#000', cursor: 'pointer', padding: '6px 12px', fontSize: 11.5, fontWeight: 800, fontFamily: 'inherit' }}>
+              {tl(language, 'اطبع', 'הפק', 'Print')}
+            </button>
+            <button onClick={() => setPrintPrompt(null)}
+              style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 2, display: 'flex' }}><X size={14} /></button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Stats */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <StatCard label={tl(language, 'هذا الشهر', 'החודש', 'This month')} value={totalMonth} color={C.success} icon={TrendingUp} />
@@ -292,7 +333,7 @@ export default function IncomeTab({
       ) : (
         <AnimatePresence>
           {filtered.map(entry => (
-            <EntryRow key={entry.id} entry={entry} projectName={projectMap[entry.project_id]} onDelete={handleDelete} />
+            <EntryRow key={entry.id} entry={entry} projectName={projectMap[entry.project_id]} onDelete={handleDelete} onPrint={handlePrintReceipt} />
           ))}
         </AnimatePresence>
       )}

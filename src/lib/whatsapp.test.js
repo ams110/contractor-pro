@@ -77,4 +77,10 @@ describe('waMessages', () => {
     expect(msg).not.toContain('مكافأة')
     expect(msg).not.toContain('عمولة')
   })
+  it('clientReceipt يتضمّن المبلغ ورقم الקבלה', () => {
+    const msg = waMessages.clientReceipt({ clientName: 'أبو خالد', amount: 12500, refNumber: 'RCP-0042' })
+    expect(msg).toContain('أبو خالد')
+    expect(msg).toContain('12,500')
+    expect(msg).toContain('RCP-0042')
+  })
 })
