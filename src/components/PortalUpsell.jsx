@@ -24,7 +24,10 @@ export default function PortalUpsell({ lang = 'ar', style }) {
           </span>
         </div>
         <div style={{ fontSize: 10.5, color: C.textDim, lineHeight: 1.5, marginBottom: 8 }}>
-          {L('رقِّ خطتك إلى Pro لتفعيل بوّابة العامل الذاتية ومشاركتها.', 'שדרג ל-Pro כדי להפעיל את פורטל העובד ולשתף אותו.', 'Upgrade to Pro to enable and share the self-service worker portal.')}
+          {/* «اللحظتان الساحرتان» من محاكاة العمال: كشف مطابق قدام الورشة + سلفة من عالسلم */}
+          {L('عاملك بيشوف كشفه مظبوط شيكل بشيكل، وبيطلب سلفة من عالسقالة بلا ما يوقّفك — ولا هوشة آخر الشهر.',
+             'העובד רואה דוח מדויק שקל בשקל ומבקש מקדמה מהפיגום בלי לעצור אותך — בלי ויכוחים בסוף החודש.',
+             'Your worker sees an exact statement and requests an advance from the scaffold — no end-of-month fights.')}
         </div>
         <button onClick={(e) => { e.stopPropagation(); navigate('/pricing') }}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: GRAD.premium, border: 'none', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer', padding: '7px 14px', borderRadius: 10, fontFamily: 'inherit' }}>
