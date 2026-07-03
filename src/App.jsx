@@ -297,6 +297,7 @@ function OwnerApp() {
     language, setLanguage: setLang,
     setSigner,
     lockSession, isReadOnly, setReadOnly, setDailySpendLimit,
+    theme,
   } = useAppStore()
 
   const dir = (language === 'ar' || language === 'he') ? 'rtl' : 'ltr'
@@ -638,7 +639,7 @@ function OwnerApp() {
   }
 
   return (
-    <div className="app-root" dir={dir} style={{ background: C.bg, position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingRight: isDesktop ? 240 : 0 }}>
+    <div key={theme} className="app-root" dir={dir} style={{ background: C.bg, position: 'relative', maxWidth: isDesktop ? 'none' : 430, margin: isDesktop ? 0 : '0 auto', paddingRight: isDesktop ? 240 : 0 }}>
       <style>{globalCSS}</style>
       {isDesktop && <DesktopSidebar screen={screen} setScreen={setScreen} permissions={p} pendingCount={pendingCount} dir={dir} nav={visibleNav} />}
 

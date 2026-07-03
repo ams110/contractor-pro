@@ -18,7 +18,8 @@ import { fmt, fmtDate } from '../lib/helpers.js'
 import { tEnum } from '../lib/labels.js'
 
 const L = (lang, ar, he, en) => (lang === 'en' ? en : lang === 'he' ? he : ar)
-const HEAT = [C.card, `${C.primary}33`, `${C.primary}66`, `${C.primary}aa`, C.primary]
+// دالة حتى تلقط ألوان الثيم الحالي وقت الرندر (وضع الورشة)
+const HEAT = () => [C.card, `${C.primary}33`, `${C.primary}66`, `${C.primary}aa`, C.primary]
 const ANOM_ICONS = { AlertTriangle, Clock, Copy, TrendingUp, CreditCard, CalendarOff }
 const SEV = {
   high:   { color: C.accent,   bg: `${C.accent}12`,   bd: `${C.accent}30`,   label: { ar: 'خطر', he: 'סיכון', en: 'High' } },
@@ -65,7 +66,7 @@ export function AttendanceHeatmap({ heatmap, lang = 'ar' }) {
                   title={`${cell.date}${cell.count ? ` · ₪${fmt(cell.amount)}${cell.dayType ? ' · ' + tEnum(cell.dayType, lang) : ''}` : ''}`}
                   style={{
                     width: 12, height: 12, borderRadius: 3,
-                    background: cell.dayType === 'عطلة' ? `${C.gold}aa` : HEAT[cell.level],
+                    background: cell.dayType === 'عطلة' ? `${C.gold}aa` : HEAT()[cell.level],
                     border: cell.pending > 0 ? `1px solid ${C.warning}` : `1px solid ${cell.level === 0 ? C.border : 'transparent'}`,
                   }}
                 />
@@ -77,7 +78,7 @@ export function AttendanceHeatmap({ heatmap, lang = 'ar' }) {
       {/* مفتاح الألوان */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, justifyContent: 'flex-end' }}>
         <span style={{ fontSize: 9, color: C.textDim }}>{L(lang, 'أقل', 'פחות', 'less')}</span>
-        {HEAT.map((c, i) => <div key={i} style={{ width: 11, height: 11, borderRadius: 3, background: c, border: i === 0 ? `1px solid ${C.border}` : 'none' }} />)}
+        {HEAT().map((c, i) => <div key={i} style={{ width: 11, height: 11, borderRadius: 3, background: c, border: i === 0 ? `1px solid ${C.border}` : 'none' }} />)}
         <span style={{ fontSize: 9, color: C.textDim }}>{L(lang, 'أكثر', 'יותר', 'more')}</span>
       </div>
     </Wrap>

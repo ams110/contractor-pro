@@ -180,7 +180,8 @@ function Field({ label, children }) {
     </div>
   )
 }
-const inp = { width: '100%', padding: '9px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none' }
+// دالة (مش ثابت) حتى تلقط ألوان الثيم الحالية وقت الرندر — انظر applyTheme
+const inp = () => ({ width: '100%', padding: '9px 12px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, fontFamily: 'inherit', outline: 'none' })
 const sel = { ...inp, cursor: 'pointer' }
 
 // ─── Shared: BottomSheet ───────────────────────────────────────────────────────
@@ -410,7 +411,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
           <Search size={13} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder={lbl('ابحث...', 'חפש...', 'Search...', language)}
-            style={{ ...inp, paddingInlineStart: 32 }} />
+            style={{ ...inp(), paddingInlineStart: 32 }} />
         </div>
         {permissions?.addExpenses !== false && (
           <motion.button whileTap={{ scale: 0.94 }} onClick={() => { setForm(emptyForm); setFormErr(''); setShowForm(true) }}
@@ -526,10 +527,10 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
           </motion.button>
         }>
         <Field label={lbl('التاريخ', 'תאריך', 'Date', language)}>
-          <input type="date" value={form.date} onChange={e => f('date')(e.target.value)} style={inp} />
+          <input type="date" value={form.date} onChange={e => f('date')(e.target.value)} style={inp()} />
         </Field>
         <Field label={lbl('المبلغ (₪)', 'סכום (₪)', 'Amount (₪)', language)}>
-          <input type="number" value={form.amount} onChange={e => f('amount')(e.target.value)} placeholder="0" style={inp} />
+          <input type="number" value={form.amount} onChange={e => f('amount')(e.target.value)} placeholder="0" style={inp()} />
         </Field>
         <Field label={lbl('الفئة', 'קטגוריה', 'Category', language)}>
           <select value={form.category} onChange={e => f('category')(e.target.value)} style={sel}>
@@ -580,7 +581,7 @@ function ExpensesTab({ expenses = [], projects = [], employees = [], expCats = [
         </Field>
 
         <Field label={lbl('المورّد / الوصف', 'ספק / תיאור', 'Vendor / Description', language)}>
-          <input value={form.vendor} onChange={e => f('vendor')(e.target.value)} style={inp} />
+          <input value={form.vendor} onChange={e => f('vendor')(e.target.value)} style={inp()} />
         </Field>
         <Field label={lbl('طريقة الدفع', 'אמצעי תשלום', 'Payment Method', language)}>
           <select value={form.payment_method} onChange={e => f('payment_method')(e.target.value)} style={sel}>
@@ -794,7 +795,7 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
         <Search size={13} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder={lbl('ابحث عن عامل...', 'חפש עובד...', 'Search worker...', language)}
-          style={{ ...inp, paddingInlineStart: 32 }} />
+          style={{ ...inp(), paddingInlineStart: 32 }} />
       </div>
 
       {/* Worker Cards */}
@@ -931,10 +932,10 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
           </select>
         </Field>
         <Field label={lbl('المبلغ (₪)', 'סכום (₪)', 'Amount (₪)', language)}>
-          <input type="number" value={form.amount} onChange={e => f('amount')(e.target.value)} placeholder="0" style={inp} />
+          <input type="number" value={form.amount} onChange={e => f('amount')(e.target.value)} placeholder="0" style={inp()} />
         </Field>
         <Field label={lbl('التاريخ', 'תאריך', 'Date', language)}>
-          <input type="date" value={form.date} onChange={e => f('date')(e.target.value)} style={inp} />
+          <input type="date" value={form.date} onChange={e => f('date')(e.target.value)} style={inp()} />
         </Field>
         <Field label={lbl('طريقة الدفع', 'אמצעי תשלום', 'Method', language)}>
           <select value={form.method} onChange={e => f('method')(e.target.value)} style={sel}>

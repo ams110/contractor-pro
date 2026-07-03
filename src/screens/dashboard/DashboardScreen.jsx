@@ -7,7 +7,7 @@ import {
 import {
   TrendingUp, TrendingDown, Building2, Users, Wallet, HardHat,
   AlertTriangle, Trophy, Clock, ChevronLeft, ChevronDown, HandCoins,
-  DollarSign, CreditCard, BarChart3, Crown, Sparkles, Lock,
+  DollarSign, CreditCard, BarChart3, Crown, Sparkles, Lock, Sun, Moon,
 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import LifeNumberCard from '../../components/LifeNumberCard.jsx'
@@ -364,6 +364,8 @@ export default function DashboardScreen({
   const { language } = useAppStore()
   const setPendingAction = useAppStore(s => s.setPendingAction)
   const showToast = useAppStore(s => s.showToast)
+  const theme = useAppStore(s => s.theme)
+  const toggleTheme = useAppStore(s => s.toggleTheme)
   const [advOpen, setAdvOpen] = useState(false)
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
@@ -511,7 +513,20 @@ export default function DashboardScreen({
             {language === 'he' ? 'סיכום כל הפעילות שלך' : language === 'en' ? 'Overview of all your activity' : 'نظرة شاملة على نشاطك'}
           </div>
         </div>
-        {permissions?.isOwner && <PlanBadge lang={language} />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {/* «وضع الورشة» — ثيم فاتح عالي التباين للشغل برا بالشمس (إجماع المحاكاة 12/12) */}
+          <button onClick={toggleTheme}
+            aria-label={theme === 'site'
+              ? (language === 'he' ? 'מצב כהה' : language === 'en' ? 'Dark mode' : 'الوضع الغامق')
+              : (language === 'he' ? 'מצב אתר (לשמש)' : language === 'en' ? 'Site mode (sunlight)' : 'وضع الورشة (للشمس)')}
+            title={theme === 'site'
+              ? (language === 'he' ? 'מצב כהה' : language === 'en' ? 'Dark mode' : 'الوضع الغامق')
+              : (language === 'he' ? 'מצב אתר (לשמש)' : language === 'en' ? 'Site mode (sunlight)' : 'وضع الورشة (للشمس)')}
+            style={{ width: 34, height: 34, borderRadius: 11, background: `${C.warning}14`, border: `1px solid ${C.warning}36`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            {theme === 'site' ? <Moon size={16} color={C.warning} /> : <Sun size={16} color={C.warning} />}
+          </button>
+          {permissions?.isOwner && <PlanBadge lang={language} />}
+        </div>
       </motion.div>
 
       {/* ─── الفعل الأساسي: «سجّل اليوم» بلمسة من الرئيسية (يفتح فورم اليوم بطاقم أمس جاهزاً) ─── */}
