@@ -49,11 +49,13 @@ const LANG = {
 
 const FEATURE_ICONS = [Building2, Users, Wallet]
 
-export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
+export default function FirstTimeSetup({ language = 'ar', addEmployee, setSoloMode }) {
   const t = LANG[language] ?? LANG.ar
   const dir = language === 'en' ? 'ltr' : 'rtl'
   const { create, load } = useBusinessStore()
   const [mode,     setMode]     = useState(null)  // null | 'manual'
+  // «كيف شغّال؟» — معلّم بطاقم أو لحاله (بيفعّل وضع الفردي: بلا واجهات عمال/رواتب)
+  const [crew, setCrew] = useState('crew')        // 'crew' | 'solo'
   const [creating, setCreating] = useState(false)
   const [err,      setErr]      = useState('')
   const [workerName, setWorkerName] = useState('')
@@ -66,6 +68,7 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
     setCreating(true)
     setErr('')
     try {
+      if (crew === 'solo') setSoloMode?.(true)
       await create({ name: t.default_name, business_type: 'osek_patur' })
       await load()
       useAppStore.getState().celebrate('win', { label: tl(language, 'مرحباً بك!', 'ברוך הבא!', 'Welcome!') })
@@ -104,7 +107,7 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
             <ChevronLeft size={16} />
             {t.back}
           </button>
-          <BusinessSetup onDone={() => { load(); useAppStore.getState().celebrate('win', { label: tl(language, 'مرحباً بك!', 'ברוך הבא!', 'Welcome!') }) }} />
+          <BusinessSetup onDone={() => { if (crew === 'solo') setSoloMode?.(true); load(); useAppStore.getState().celebrate('win', { label: tl(language, 'مرحباً بك!', 'ברוך הבא!', 'Welcome!') }) }} />
         </div>
       </div>
     )
@@ -150,8 +153,31 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
           </div>
         </div>
 
-        {/* لحظة القيمة بخطوة واحدة: اسم العامل فوق الحاسبة، وضغطة الزر تحفظ مباشرة */}
-        <div style={{ width: '100%', maxWidth: 440, margin: '0 auto' }}>
+        {/* «كيف شغّال؟» — بيحدّد شكل التطبيق: طاقم كامل أو واجهة معلّم فردي مبسّطة */}
+        <div style={{ marginBottom: 18 }}>
+          <label style={{ fontSize: 13, fontWeight: 700, color: C.textDim, marginBottom: 8, display: 'block' }}>
+            {tl(language, 'كيف شغّال؟', 'איך אתה עובד?', 'How do you work?')}
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {[
+              { key: 'crew', icon: Users,   title: tl(language, 'معي طاقم عمال', 'יש לי צוות עובדים', 'I have a crew'),   desc: tl(language, 'أيام عمل، رواتب، سلف', 'ימי עבודה, שכר, מקדמות', 'Work days, salaries, advances') },
+              { key: 'solo', icon: HardHat, title: tl(language, 'شغّال لحالي', 'עובד לבד', 'I work solo'),                 desc: tl(language, 'واجهة مبسّطة بلا عمال', 'ממשק פשוט בלי עובדים', 'Simple interface, no workers') },
+            ].map(o => {
+              const active = crew === o.key
+              return (
+                <button key={o.key} onClick={() => setCrew(o.key)}
+                  style={{ padding: '13px 12px', borderRadius: 16, background: active ? `${C.primary}14` : 'rgba(255,255,255,0.04)', border: `1.5px solid ${active ? C.primary : C.border}`, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start', transition: 'all .2s' }}>
+                  <o.icon size={17} color={active ? C.primary : C.textDim} strokeWidth={2} style={{ marginBottom: 6, display: 'block' }} />
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: active ? C.primary : C.text, marginBottom: 3 }}>{o.title}</div>
+                  <div style={{ fontSize: 10, color: C.textDim, lineHeight: 1.4 }}>{o.desc}</div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* لحظة القيمة بخطوة واحدة: اسم العامل فوق الحاسبة، وضغطة الزر تحفظ مباشرة (لأصحاب الطواقم) */}
+        {crew === 'crew' && <div style={{ width: '100%', maxWidth: 440, margin: '0 auto' }}>
           <label style={{ fontSize: 13, fontWeight: 700, color: C.textDim, marginBottom: 8, display: 'block' }}>{tl(language, 'اسم عاملك الأول', 'שם העובד הראשון', 'Your first worker')}</label>
           <input value={workerName} onChange={e => { setWorkerName(e.target.value); if (err) setErr('') }} placeholder={tl(language, 'مثلاً: محمود', 'לדוגמה: מחמוד', 'e.g. Mahmoud')}
             style={{ width: '100%', padding: '14px 16px', borderRadius: 14, background: C.surface, border: `1px solid ${C.borderMid}`, color: C.text, fontSize: 16, fontWeight: 700, fontFamily: 'inherit', outline: 'none', marginBottom: 14 }} />
@@ -162,11 +188,11 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee }) {
             busy={creating}
             onCta={(vals) => handleSaveWorker(vals)}
           />
-        </div>
+        </div>}
 
         {err && <div style={{ color: C.accent, fontSize: 13, textAlign: 'center', marginTop: 12 }}>{err}</div>}
 
-        <div style={{ textAlign: 'center', margin: '18px 0 8px', fontSize: 12, color: C.textDim }}>{tl(language, 'أو', 'או', 'or')}</div>
+        {crew === 'crew' && <div style={{ textAlign: 'center', margin: '18px 0 8px', fontSize: 12, color: C.textDim }}>{tl(language, 'أو', 'או', 'or')}</div>}
 
         {/* خيار 1: مصلحة عامة تلقائية */}
         <motion.button

@@ -358,7 +358,7 @@ function PlanBadge({ lang }) {
 
 export default function DashboardScreen({
   projects = [], employees = [], workDays = [], expenses = [],
-  payments = [], advances = [], clientReceipts = [], onNav, permissions, addAdvance,
+  payments = [], advances = [], clientReceipts = [], onNav, permissions, addAdvance, soloMode = false,
 }) {
   const { t } = useTranslation()
   const { language } = useAppStore()
@@ -515,7 +515,7 @@ export default function DashboardScreen({
       </motion.div>
 
       {/* ─── الفعل الأساسي: «سجّل اليوم» بلمسة من الرئيسية (يفتح فورم اليوم بطاقم أمس جاهزاً) ─── */}
-      {employees.length > 0 && workDays.length > 0 && permissions?.viewWorkers !== false && (
+      {!soloMode && employees.length > 0 && workDays.length > 0 && permissions?.viewWorkers !== false && (
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 14 }}>
           <PremiumShell accent={C.primary} radius={20} padding="15px 15px"
             onClick={() => { try { sessionStorage.setItem('kbl_intent_log_workday', '2') } catch {}; onNav?.('workers') }}>
@@ -536,7 +536,7 @@ export default function DashboardScreen({
       )}
 
       {/* ─── تفعيل المرحلة 2: عنده عامل بلا أيام عمل → وجّهه لتسجيل أول يوم (لحظة «شفت الفلوس») ─── */}
-      {employees.length > 0 && workDays.length === 0 && (
+      {!soloMode && employees.length > 0 && workDays.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 14 }}>
           <PremiumShell accent={C.cyan} radius={20} padding="15px 15px"
             onClick={() => { try { sessionStorage.setItem('kbl_intent_log_workday', '1') } catch {}; onNav?.('workers') }}>
@@ -563,7 +563,7 @@ export default function DashboardScreen({
           label: language === 'he' ? 'קבלה' : language === 'en' ? 'Receipt' : 'قبضة',
           onClick: () => { setPendingAction({ type: 'add_receipt' }); onNav?.('finance') },
         }] : []),
-        ...(employees.length > 0 && permissions?.viewWorkers !== false && addAdvance ? [{
+        ...(!soloMode && employees.length > 0 && permissions?.viewWorkers !== false && addAdvance ? [{
           key: 'advance', icon: HandCoins, color: C.warning,
           label: language === 'he' ? 'מקדמה' : language === 'en' ? 'Advance' : 'سلفة',
           onClick: () => setAdvOpen(true),
@@ -608,13 +608,13 @@ export default function DashboardScreen({
         </PremiumShell>
       </div>
 
-      {/* ─── مستحق للعمال + باقي لك عند العملاء ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
-        <StatTile
+      {/* ─── مستحق للعمال + باقي لك عند العملاء (بوضع الفردي: بطاقة العملاء وحدها بالعرض) ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: soloMode ? '1fr' : 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
+        {!soloMode && <StatTile
           icon={Users} accent={C.warning} value={stats.owedToWorkers} delay={0.06} glowSide="start"
           label={language === 'he' ? 'חוב לעובדים' : language === 'en' ? 'Owed to workers' : 'مستحق للعمال'}
           onClick={() => onNav?.('payments')}
-        />
+        />}
         <StatTile
           icon={DollarSign} accent={C.primary} value={stats.owedByClients} delay={0.08}
           label={language === 'he' ? 'נותר לגבות מלקוחות' : language === 'en' ? 'Owed by clients' : 'باقي لك عند العملاء'}
@@ -652,18 +652,18 @@ export default function DashboardScreen({
       </div>
       </>)}
 
-      {/* ─── الأرقام السريعة ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
+      {/* ─── الأرقام السريعة (بوضع الفردي: بلا عدّادات الطاقم) ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: soloMode ? '1fr' : 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
         <StatTile icon={Building2} accent={C.primary} value={stats.activeCount} money={false} delay={0.14}
           label={t('dashboard.activeProjects')} onClick={() => onNav?.('projects')} />
-        <StatTile icon={Users} accent={C.secondary} value={employees.length} money={false} delay={0.17} glowSide="start"
-          label={t('dashboard.totalWorkers')} onClick={() => onNav?.('workers')} />
-        <StatTile icon={Clock} accent={stats.pendingWD > 0 ? C.warning : C.textDim} value={stats.pendingWD} money={false} delay={0.2}
-          label={t('dashboard.pendingDays')} onClick={() => onNav?.('workdays')} />
+        {!soloMode && <StatTile icon={Users} accent={C.secondary} value={employees.length} money={false} delay={0.17} glowSide="start"
+          label={t('dashboard.totalWorkers')} onClick={() => onNav?.('workers')} />}
+        {!soloMode && <StatTile icon={Clock} accent={stats.pendingWD > 0 ? C.warning : C.textDim} value={stats.pendingWD} money={false} delay={0.2}
+          label={t('dashboard.pendingDays')} onClick={() => onNav?.('workdays')} />}
       </div>
 
       {/* ─── تنبيه ذكي: أيام بانتظار الموافقة ─── */}
-      {stats.pendingWD > 0 && (
+      {!soloMode && stats.pendingWD > 0 && (
         <div style={{ marginBottom: 12 }}>
           <PremiumShell accent={C.warning} radius={16} padding="12px 13px" delay={0.22} onClick={() => onNav?.('workdays')}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
@@ -722,8 +722,8 @@ export default function DashboardScreen({
         </AnalyticsSection>
       )}
 
-      {/* ─── Empty state — تفعيل: وجّه لأول عامل ما دام ما في عامل (حتى لو عنده مشروع) ─── */}
-      {employees.length === 0 && (
+      {/* ─── Empty state — تفعيل: وجّه لأول عامل ما دام ما في عامل (لا يظهر بوضع الفردي) ─── */}
+      {!soloMode && employees.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <PremiumShell accent={C.primary} radius={22} padding="32px 22px" style={{ textAlign: 'center' }}>
             <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 12px 32px rgba(249,115,22,0.3)' }}>

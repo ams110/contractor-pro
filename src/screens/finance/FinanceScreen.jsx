@@ -51,7 +51,7 @@ function SubTab({ active, label, icon: Icon, onClick }) {
 // ─── AccountingModuleTab ───────────────────────────────────────────────────────
 // يحتوي على BusinessSwitcher + الـ 5 تابات للمحاسبة
 // يُفلتر المشاريع مباشرةً بـ project.business_id === activeBusiness.id
-function AccountingModuleTab({ projects, employees, userId, refetchReceipts, refetchExpenses, pensionMonthly }) {
+function AccountingModuleTab({ projects, employees, userId, refetchReceipts, refetchExpenses, pensionMonthly, soloMode = false }) {
   const { businesses, initialized, load } = useBusinessStore()
   const language       = useAppStore(s => s.language)
   const activeBizId    = useBusinessStore(s => s.activeBusinessId)
@@ -107,7 +107,7 @@ function AccountingModuleTab({ projects, employees, userId, refetchReceipts, ref
     { id: 'income',     icon: TrendingUp,   label: lbl('مدخولات', 'הכנסות', 'Income', language)  },
     { id: 'bizexp',     icon: TrendingDown, label: lbl('مصاريف', 'הוצאות', 'Expenses', language)   },
     { id: 'archive',    icon: FolderOpen,   label: lbl('فواتير', 'חשבוניות', 'Invoices', language)   },
-    { id: 'payroll',    icon: Banknote,     label: lbl('رواتب', 'שכר', 'Salaries', language)    },
+    ...(soloMode ? [] : [{ id: 'payroll', icon: Banknote, label: lbl('رواتب', 'שכר', 'Salaries', language) }]),
     { id: 'taxsummary', icon: BarChart3,    label: lbl('ملخص', 'סיכום', 'Summary', language)     },
   ]
 
@@ -1072,7 +1072,7 @@ export default function FinanceScreen({
   taxAdvances = [], addTaxAdvance, deleteTaxAdvance,
   pensionMonthly, setPensionMonthly,
   userId, permissions, payMethods = [], appCfg,
-  refetchReceipts, refetchExpenses,
+  refetchReceipts, refetchExpenses, soloMode = false,
 }) {
   const { t } = useTranslation()
   const { language, isReadOnly } = useAppStore()
@@ -1109,7 +1109,8 @@ export default function FinanceScreen({
   const TABS = [
     { id: 'accounting', icon: Calculator,   label: lbl('محاسبة', 'חשבונות', 'Accounting', language) },
     { id: 'expenses',   icon: CreditCard,   label: lbl('مصاريف', 'הוצאות',  'Expenses',   language), badge: pendingExpenses },
-    { id: 'payments',   icon: Banknote,     label: lbl('رواتب',  'שכר',     'Salaries',   language), badge: pendingPayments },
+    // بوضع «معلّم لحاله» ما في طاقم — تبويب الرواتب يختفي
+    ...(soloMode ? [] : [{ id: 'payments', icon: Banknote, label: lbl('رواتب', 'שכר', 'Salaries', language), badge: pendingPayments }]),
   ]
 
   return (
@@ -1150,7 +1151,7 @@ export default function FinanceScreen({
       </div>
 
       {tab === 'accounting' && (
-        <AccountingModuleTab projects={projects} employees={employees} userId={userId} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} pensionMonthly={pensionMonthly} />
+        <AccountingModuleTab projects={projects} employees={employees} userId={userId} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} pensionMonthly={pensionMonthly} soloMode={soloMode} />
       )}
       {tab === 'expenses' && (
         <ExpensesTab expenses={expenses} projects={projects} employees={employees}

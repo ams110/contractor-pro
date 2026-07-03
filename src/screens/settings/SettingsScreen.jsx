@@ -327,6 +327,7 @@ export default function SettingsScreen({
   pensionMonthly, setPensionMonthly, taxEnabled,
   setTaxEnabled, taxModules, setTaxModule,
   salaryAlerts = true, setSalaryAlerts, dailyDigest = true, setDailyDigest,
+  soloMode = false, setSoloMode,
   holidays = [], addHoliday, deleteHoliday,
   permissions, teamMembers = [],
   addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, reloadTeam,
@@ -766,6 +767,18 @@ export default function SettingsScreen({
             <button onClick={() => setDailyDigest?.(!dailyDigest)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: dailyDigest ? C.success : C.textDim }}>
               {dailyDigest ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+            </button>
+          </div>
+
+          {/* وضع «معلّم لحاله» — يخفي واجهات الطاقم (تبويب عمال/رواتب) للشغّيل الفردي */}
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'وضع المعلّم اللي لحاله', 'מצב עצמאי בלי צוות', 'Solo mode')}</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{tl(language, 'شغّال بلا عمال؟ بنخفيلك تبويب العمال والرواتب — بترجع تفعّلهم من هون لما تكبر', 'עובד בלי צוות? נסתיר עובדים ושכר — אפשר להחזיר מכאן', 'Working alone? Hides workers & payroll — re-enable here anytime')}</div>
+            </div>
+            <button onClick={() => setSoloMode?.(!soloMode)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: soloMode ? C.success : C.textDim }}>
+              {soloMode ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
             </button>
           </div>
         </Section>

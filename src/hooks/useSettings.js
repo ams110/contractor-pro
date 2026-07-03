@@ -73,6 +73,8 @@ export function useSettings(userId) {
 
   function setSalaryAlerts(val) { save({ ...settings, salaryAlerts: !!val }) }
   function setDailyDigest(val) { save({ ...settings, dailyDigest: !!val }) }
+  // وضع «معلّم لحاله»: يخفي واجهات الطاقم (تبويب عمال/رواتب/بطاقات الطاقم) للشغّيل الفردي
+  function setSoloMode(val) { save({ ...settings, soloMode: !!val }) }
 
   function addPayMethod(method) {
     const m = method.trim()
@@ -90,6 +92,7 @@ export function useSettings(userId) {
     taxModules:     settings.taxModules || DEFAULT_TAX_MODULES,
     salaryAlerts:   settings.salaryAlerts !== false,
     dailyDigest:    settings.dailyDigest !== false,
+    soloMode:       settings.soloMode === true,
     addSpec,        removeSpec,
     addExpCat,      removeExpCat,
     addPayMethod,   removePayMethod,
@@ -98,5 +101,6 @@ export function useSettings(userId) {
     setTaxModule,
     setSalaryAlerts,
     setDailyDigest,
+    setSoloMode,
   }
 }
