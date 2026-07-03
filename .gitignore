@@ -80,3 +80,7 @@ dist-android/
 
 # Promo/ad generation artifacts (screens, cards, music, rendered video — sent to chat, not committed)
 promo-frames/
+
+# مخرجات ريلات مؤقّتة (لا تُلتزم)
+/reels-jul/
+reels-*/
