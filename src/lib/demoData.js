@@ -44,7 +44,8 @@ export function buildDemo(lang = 'ar') {
   ]
   const employees = empNames.map(([id, name, wage, spec], i) => ({
     id, name, phone: '05' + (20000000 + i * 1111111),
-    daily_wage: wage, spec, worker_type: 'israeli',
+    // status + daily_rate مطلوبان لفورم تسجيل اليوم (كان الديمو يعرض «أضف عمال أول» لغيابهما)
+    daily_wage: wage, daily_rate: wage, spec, worker_type: 'israeli', status: 'نشط',
     portal_enabled: i < 4, created_at: '2026-02-01',
   }))
 

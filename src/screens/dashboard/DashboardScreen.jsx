@@ -1,27 +1,138 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useMemo, useRef, useState, Suspense, lazy } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   ComposedChart, Area, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import {
-  TrendingUp, TrendingDown, Building2, Users, Wallet,
-  AlertTriangle, Trophy, Clock, ChevronLeft,
-  DollarSign, CreditCard, BarChart3, Crown, Sparkles, Lock,
+  TrendingUp, TrendingDown, Building2, Users, Wallet, HardHat,
+  AlertTriangle, Trophy, Clock, ChevronLeft, ChevronDown, HandCoins,
+  DollarSign, CreditCard, BarChart3, Crown, Sparkles, Lock, Sun, Moon,
 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
-import { fmt, fmtDateFull, isPaymentOverdue } from '../../lib/helpers.js'
+import LifeNumberCard from '../../components/LifeNumberCard.jsx'
+import { Modal, Input, Btn } from '../../components/index.jsx'
+import { fmt, fmtDateFull, isPaymentOverdue, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { usePlanStore } from '../../store/usePlanStore.js'
 import { navigate } from '../../Router.jsx'
 import { calcEarned, calcPaid, calcAdvances, calcRevenue, calcProjectStats, calcMutabqi } from '../../lib/calculations.js'
 import { computeBusinessPulse, computeCashForecast, computeCommandCenter, computeNetWorth } from '../../lib/insights.js'
-import BusinessPulse from '../../components/BusinessPulse.jsx'
-import CashForecast from '../../components/CashForecast.jsx'
-import CommandCenter from '../../components/CommandCenter.jsx'
-import NetWorth from '../../components/NetWorth.jsx'
+// لوحات الرؤى الأربع ثقيلة — تُحمَّل كسولاً (chunks منفصلة) حتى يكون أول رسم للرئيسية خفيفاً
+const BusinessPulse = lazy(() => import('../../components/BusinessPulse.jsx'))
+const CashForecast = lazy(() => import('../../components/CashForecast.jsx'))
+const CommandCenter = lazy(() => import('../../components/CommandCenter.jsx'))
+const NetWorth = lazy(() => import('../../components/NetWorth.jsx'))
+
+// هيكل تحميل رفيع بنمط بطاقات الرؤى (يظهر لحظات ريثما يصل chunk اللوحات)
+function PanelSkeleton() {
+  return (
+    <div aria-hidden style={{ borderRadius: 20, border: `1px solid ${C.border}`, background: C.surface, height: 128, marginBottom: 12, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(100deg, transparent 30%, ${C.primary}0c 50%, transparent 70%)`, backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+    </div>
+  )
+}
 import { PremiumCard, IconChip as KitIconChip, useCountUp, Money } from '../../ui/Premium.jsx'
 import { tEnum } from '../../lib/labels.js'
+
+// ─── قسم «تحليلات» قابل للطي — الرسمات الذكية تحت الطلب بدل ما تحتلّ نص الشاشة ─────
+// (طلب المحاكاة: «الأرقام قدّام والرسمات ورا») — مسكّر افتراضياً، وحالته محفوظة.
+function AnalyticsSection({ lang, children }) {
+  const [open, setOpen] = useState(() => {
+    try { return localStorage.getItem('kbl_analytics_open') === '1' } catch { return false }
+  })
+  const toggle = () => setOpen(o => {
+    try { localStorage.setItem('kbl_analytics_open', o ? '0' : '1') } catch { /* private mode */ }
+    return !o
+  })
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <button onClick={toggle} aria-expanded={open}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 11, background: C.surface, border: `1px solid ${open ? C.borderMid : C.border}`, borderRadius: 18, padding: '13px 14px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start', marginBottom: open ? 12 : 0 }}>
+        <KitIconChip icon={BarChart3} color={C.secondary} size={34} radius={11} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 900, color: C.text }}>
+            {lang === 'he' ? 'ניתוחים חכמים' : lang === 'en' ? 'Smart analytics' : 'تحليلات ذكية'}
+          </div>
+          <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 2 }}>
+            {lang === 'he' ? 'דופק · תחזית מזומנים · מרכז פיקוד · שווי נקי' : lang === 'en' ? 'Pulse · Cash forecast · Command center · Net worth' : 'النبض · توقّع السيولة · مركز القيادة · الذمّة الصافية'}
+          </div>
+        </div>
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }} style={{ display: 'flex', flexShrink: 0 }}>
+          <ChevronDown size={17} color={C.textDim} />
+        </motion.span>
+      </button>
+      {open && children}
+    </div>
+  )
+}
+
+// ─── زر الإدخال الموحّد: قبضة / سلفة / مصروف من مكان واحد (طلب المحاكاة رقم 3) ─────
+// القبضة والمصروف بيركبوا على آلية pendingAction القائمة (بتفتح التبويب والـsheet
+// الصحيحين بالمالية) — فما في مسار تسجيل جديد ولا ازدواجية بيانات.
+function QuickAddBar({ items }) {
+  if (!items.length) return null
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }}
+      style={{ display: 'grid', gridTemplateColumns: `repeat(${items.length}, 1fr)`, gap: 9, marginBottom: 14 }}>
+      {items.map(it => (
+        <button key={it.key} onClick={it.onClick}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, background: C.surface, border: `1px solid ${it.color}2e`, borderRadius: 16, padding: '12px 6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <KitIconChip icon={it.icon} color={it.color} size={34} radius={11} />
+          <span style={{ fontSize: 11.5, fontWeight: 800, color: C.text }}>{it.label}</span>
+        </button>
+      ))}
+    </motion.div>
+  )
+}
+
+// شيت سلفة سريعة — العامل بوقّفك عالسلم «أعطيني 500»: تسجّلها بأقل من 10 ثواني
+function AdvanceQuickSheet({ open, onClose, employees, projects, addAdvance, lang, showToast }) {
+  const [empId, setEmpId] = useState('')
+  const [amount, setAmount] = useState('')
+  const [projId, setProjId] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const L = (ar, he, en) => lang === 'he' ? he : lang === 'en' ? en : ar
+
+  async function submit() {
+    const amt = Number(amount)
+    if (!empId || !amt || amt <= 0) { showToast?.(L('اختر العامل واكتب المبلغ', 'בחר עובד והזן סכום', 'Pick a worker and enter an amount'), 'error'); return }
+    setSaving(true)
+    try {
+      await addAdvance({ employee_id: empId, amount: amt, notes: L('سلفة سريعة من الرئيسية', 'מקדמה מהירה מהדשבורד', 'Quick advance from dashboard'), date: todayStr(), project_id: projId || null })
+      showToast?.(L('انحفظت السلفة ✓', 'המקדמה נשמרה ✓', 'Advance saved ✓'), 'success')
+      setEmpId(''); setAmount(''); setProjId('')
+      onClose()
+    } catch (e) {
+      showToast?.(e?.message || L('صار خطأ — جرّب مرة ثانية', 'קרתה שגיאה — נסה שוב', 'Something went wrong — try again'), 'error')
+    } finally { setSaving(false) }
+  }
+
+  const selStyle = { width: '100%', padding: '13px 14px', background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, borderRadius: 14, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit', appearance: 'auto' }
+  const lblStyle = { fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6, display: 'block', letterSpacing: '0.03em' }
+
+  return (
+    <Modal open={open} onClose={onClose} title={L('سلفة سريعة', 'מקדמה מהירה', 'Quick advance')}
+      action={<Btn onClick={submit} disabled={saving} full>{saving ? L('جارٍ الحفظ…', 'שומר…', 'Saving…') : L('سجّل السلفة', 'רשום מקדמה', 'Log advance')}</Btn>}>
+      <div style={{ marginBottom: 14 }}>
+        <label style={lblStyle}>{L('العامل', 'עובד', 'Worker')} <span style={{ color: C.accent }}>*</span></label>
+        <select value={empId} onChange={e => setEmpId(e.target.value)} style={selStyle}>
+          <option value="">{L('اختر عامل…', 'בחר עובד…', 'Pick a worker…')}</option>
+          {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+        </select>
+      </div>
+      <Input label={L('المبلغ (₪)', 'סכום (₪)', 'Amount (₪)')} type="number" value={amount} onChange={setAmount} required min={1} placeholder="500" />
+      <div style={{ marginBottom: 14 }}>
+        <label style={lblStyle}>{L('المشروع (اختياري)', 'פרויקט (אופציונלי)', 'Project (optional)')}</label>
+        <select value={projId} onChange={e => setProjId(e.target.value)} style={selStyle}>
+          <option value="">{L('بدون مشروع', 'ללא פרויקט', 'No project')}</option>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </div>
+    </Modal>
+  )
+}
 
 // شارة اتّجاه صغيرة (شهر مقابل شهر)
 function TrendChip({ trend }) {
@@ -66,7 +177,7 @@ function StatTile({ icon, accent, value, label, sub, money = true, trend, onClic
           : <span style={{ fontSize: big ? 28 : 22, fontWeight: 900, color: C.text, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{v}</span>}
       </div>
       <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600, marginTop: 5, lineHeight: 1.3 }}>{label}</div>
-      {sub && <div style={{ fontSize: 10, color: accent, marginTop: 4, fontWeight: 800 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11, color: accent, marginTop: 4, fontWeight: 800 }}>{sub}</div>}
     </PremiumShell>
   )
 }
@@ -105,7 +216,7 @@ function MiniTotal({ label, value, color }) {
       <div style={{ fontSize: 13, fontWeight: 900, color, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
         {value < 0 ? '−' : ''}₪{fmt(Math.abs(value))}
       </div>
-      <div style={{ fontSize: 9, color: C.textDim, fontWeight: 600, marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 10.5, color: C.textDim, fontWeight: 600, marginTop: 2 }}>{label}</div>
     </div>
   )
 }
@@ -131,7 +242,7 @@ function PerformanceCard({ data, totals, lang, delay }) {
             </motion.div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{L.title}</div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{L.sub}</div>
+              <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>{L.sub}</div>
             </div>
           </div>
           <div style={{ padding: '4px 10px', background: `${accent}1f`, border: `1px solid ${accent}3a`, borderRadius: 9, fontSize: 10, fontWeight: 900, color: accent, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -212,7 +323,7 @@ function ProjectRow({ project, revenue, expenses, rank, onClick, lang }) {
         <div style={{ fontSize: 13, fontWeight: 900, color: accent, fontVariantNumeric: 'tabular-nums' }}>
           {isGood ? '+' : '−'}₪{fmt(Math.abs(profit))}
         </div>
-        {margin !== null && <div style={{ fontSize: 9, color: C.textDim, marginTop: 2, fontWeight: 700 }}>{margin}%</div>}
+        {margin !== null && <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, fontWeight: 700 }}>{margin}%</div>}
       </div>
       <ChevronLeft size={15} color={C.textDim} style={{ flexShrink: 0 }} />
     </motion.div>
@@ -247,10 +358,15 @@ function PlanBadge({ lang }) {
 
 export default function DashboardScreen({
   projects = [], employees = [], workDays = [], expenses = [],
-  payments = [], advances = [], clientReceipts = [], onNav, permissions,
+  payments = [], advances = [], clientReceipts = [], onNav, permissions, addAdvance, soloMode = false,
 }) {
   const { t } = useTranslation()
   const { language } = useAppStore()
+  const setPendingAction = useAppStore(s => s.setPendingAction)
+  const showToast = useAppStore(s => s.showToast)
+  const theme = useAppStore(s => s.theme)
+  const toggleTheme = useAppStore(s => s.toggleTheme)
+  const [advOpen, setAdvOpen] = useState(false)
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
   // ── Computed stats ──────────────────────────────────────────────────────────
@@ -397,11 +513,45 @@ export default function DashboardScreen({
             {language === 'he' ? 'סיכום כל הפעילות שלך' : language === 'en' ? 'Overview of all your activity' : 'نظرة شاملة على نشاطك'}
           </div>
         </div>
-        {permissions?.isOwner && <PlanBadge lang={language} />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {/* «وضع الورشة» — ثيم فاتح عالي التباين للشغل برا بالشمس (إجماع المحاكاة 12/12) */}
+          <button onClick={toggleTheme}
+            aria-label={theme === 'site'
+              ? (language === 'he' ? 'מצב כהה' : language === 'en' ? 'Dark mode' : 'الوضع الغامق')
+              : (language === 'he' ? 'מצב אתר (לשמש)' : language === 'en' ? 'Site mode (sunlight)' : 'وضع الورشة (للشمس)')}
+            title={theme === 'site'
+              ? (language === 'he' ? 'מצב כהה' : language === 'en' ? 'Dark mode' : 'الوضع الغامق')
+              : (language === 'he' ? 'מצב אתר (לשמש)' : language === 'en' ? 'Site mode (sunlight)' : 'وضع الورشة (للشمس)')}
+            style={{ width: 34, height: 34, borderRadius: 11, background: `${C.warning}14`, border: `1px solid ${C.warning}36`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            {theme === 'site' ? <Moon size={16} color={C.warning} /> : <Sun size={16} color={C.warning} />}
+          </button>
+          {permissions?.isOwner && <PlanBadge lang={language} />}
+        </div>
       </motion.div>
 
+      {/* ─── الفعل الأساسي: «سجّل اليوم» بلمسة من الرئيسية (يفتح فورم اليوم بطاقم أمس جاهزاً) ─── */}
+      {!soloMode && employees.length > 0 && workDays.length > 0 && permissions?.viewWorkers !== false && (
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 14 }}>
+          <PremiumShell accent={C.primary} radius={20} padding="15px 15px"
+            onClick={() => { try { sessionStorage.setItem('kbl_intent_log_workday', '2') } catch {}; onNav?.('workers') }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <IconChip icon={HardHat} accent={C.primary} size={40} r={13} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 900, color: C.text, marginBottom: 3 }}>
+                  {language === 'he' ? 'סמן את היום' : language === 'en' ? 'Log today' : 'سجّل اليوم'}
+                </div>
+                <div style={{ fontSize: 11.5, color: C.textDim, lineHeight: 1.5 }}>
+                  {language === 'he' ? 'הצוות והפרויקט של אתמול כבר מוכנים — רק אשר' : language === 'en' ? "Yesterday's crew and project are preselected — just confirm" : 'طاقم أمس ومشروعه جاهزين — بس أكّد'}
+                </div>
+              </div>
+              <ChevronLeft size={18} color={C.primary} style={{ flexShrink: 0 }} />
+            </div>
+          </PremiumShell>
+        </motion.div>
+      )}
+
       {/* ─── تفعيل المرحلة 2: عنده عامل بلا أيام عمل → وجّهه لتسجيل أول يوم (لحظة «شفت الفلوس») ─── */}
-      {employees.length > 0 && workDays.length === 0 && (
+      {!soloMode && employees.length > 0 && workDays.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 14 }}>
           <PremiumShell accent={C.cyan} radius={20} padding="15px 15px"
             onClick={() => { try { sessionStorage.setItem('kbl_intent_log_workday', '1') } catch {}; onNav?.('workers') }}>
@@ -421,6 +571,28 @@ export default function DashboardScreen({
         </motion.div>
       )}
 
+      {/* ─── الإدخال الموحّد: قبضة / سلفة / مصروف — مكان واحد بدل التوهان بين الشاشات ─── */}
+      <QuickAddBar items={[
+        ...(showAmounts ? [{
+          key: 'receipt', icon: DollarSign, color: C.success,
+          label: language === 'he' ? 'קבלה' : language === 'en' ? 'Receipt' : 'قبضة',
+          onClick: () => { setPendingAction({ type: 'add_receipt' }); onNav?.('finance') },
+        }] : []),
+        ...(!soloMode && employees.length > 0 && permissions?.viewWorkers !== false && addAdvance ? [{
+          key: 'advance', icon: HandCoins, color: C.warning,
+          label: language === 'he' ? 'מקדמה' : language === 'en' ? 'Advance' : 'سلفة',
+          onClick: () => setAdvOpen(true),
+        }] : []),
+        ...(permissions?.viewExpenses !== false ? [{
+          key: 'expense', icon: CreditCard, color: C.accent,
+          label: language === 'he' ? 'הוצאה' : language === 'en' ? 'Expense' : 'مصروف',
+          onClick: () => { setPendingAction({ type: 'add_expense' }); onNav?.('finance') },
+        }] : []),
+      ]} />
+
+      <AdvanceQuickSheet open={advOpen} onClose={() => setAdvOpen(false)} employees={employees} projects={projects}
+        addAdvance={addAdvance} lang={language} showToast={showToast} />
+
       {!showAmounts && (
         <div style={{ marginBottom: 12, padding: '12px 14px', borderRadius: 14, background: `${C.secondary}10`, border: `1px solid ${C.secondary}28`, display: 'flex', alignItems: 'center', gap: 10 }}>
           <Lock size={16} color={C.secondary} />
@@ -429,18 +601,6 @@ export default function DashboardScreen({
       )}
 
       {showAmounts && (<>
-      {/* ─── مركز القيادة الذكي ─── */}
-      {hasData && <CommandCenter cc={commandCenter} onNav={onNav} />}
-
-      {/* ─── نبض المصلحة ─── */}
-      {hasData && <BusinessPulse pulse={pulse} onNav={onNav} />}
-
-      {/* ─── التوقّع الذكي للسيولة ─── */}
-      {hasData && forecast && <CashForecast forecast={forecast} onNav={onNav} />}
-
-      {/* ─── الذمّة الصافية ─── */}
-      {hasData && <NetWorth netWorth={netWorth} onNav={onNav} />}
-
       {/* ─── Cash on Hand (السيولة الحقيقية) — بطاقة بطل فخمة ─── */}
       <div style={{ marginBottom: 12 }}>
         <PremiumShell accent={cashAccent} radius={22} padding="18px 16px" delay={0.04} onClick={() => onNav?.('finance')}>
@@ -450,26 +610,26 @@ export default function DashboardScreen({
               <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
                 {language === 'he' ? 'מזומן ביד עכשיו' : language === 'en' ? 'Cash on hand now' : 'نقد بالجيب الآن'}
               </div>
-              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
+              <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>
                 {language === 'he' ? 'תזרים בפועל, לא רווח על הנייר' : language === 'en' ? 'Real cash flow, not paper profit' : 'تدفّق نقدي فعلي، مش ربح دفتري'}
               </div>
             </div>
             {stats.netTrend != null && <TrendChip trend={stats.netTrend} />}
           </div>
           <CashHero value={stats.cashOnHand} accent={cashAccent} />
-          <div style={{ fontSize: 10, color: C.textDim, marginTop: 7 }}>
+          <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 7 }}>
             {language === 'he' ? 'כל מה שנכנס פחות כל מה ששולם בפועל' : language === 'en' ? 'All received minus all actually paid out' : 'كل المقبوض ناقص كل المدفوع فعلياً'}
           </div>
         </PremiumShell>
       </div>
 
-      {/* ─── مستحق للعمال + باقي لك عند العملاء ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
-        <StatTile
+      {/* ─── مستحق للعمال + باقي لك عند العملاء (بوضع الفردي: بطاقة العملاء وحدها بالعرض) ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: soloMode ? '1fr' : 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
+        {!soloMode && <StatTile
           icon={Users} accent={C.warning} value={stats.owedToWorkers} delay={0.06} glowSide="start"
           label={language === 'he' ? 'חוב לעובדים' : language === 'en' ? 'Owed to workers' : 'مستحق للعمال'}
           onClick={() => onNav?.('payments')}
-        />
+        />}
         <StatTile
           icon={DollarSign} accent={C.primary} value={stats.owedByClients} delay={0.08}
           label={language === 'he' ? 'נותר לגבות מלקוחות' : language === 'en' ? 'Owed by clients' : 'باقي لك عند العملاء'}
@@ -477,6 +637,11 @@ export default function DashboardScreen({
           onClick={() => onNav?.('projects')}
         />
       </div>
+
+      {/* ─── بطاقة «رقم الحياة» — سقف פטור للـעוסק פטור / التحصيل لغيره ─── */}
+      {permissions?.isOwner && (
+        <LifeNumberCard projects={projects} clientReceipts={clientReceipts} onNav={onNav} />
+      )}
 
       {/* ─── صافي الربح (عريض) ─── */}
       <div style={{ marginBottom: 12 }}>
@@ -502,18 +667,18 @@ export default function DashboardScreen({
       </div>
       </>)}
 
-      {/* ─── الأرقام السريعة ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
+      {/* ─── الأرقام السريعة (بوضع الفردي: بلا عدّادات الطاقم) ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: soloMode ? '1fr' : 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
         <StatTile icon={Building2} accent={C.primary} value={stats.activeCount} money={false} delay={0.14}
           label={t('dashboard.activeProjects')} onClick={() => onNav?.('projects')} />
-        <StatTile icon={Users} accent={C.secondary} value={employees.length} money={false} delay={0.17} glowSide="start"
-          label={t('dashboard.totalWorkers')} onClick={() => onNav?.('workers')} />
-        <StatTile icon={Clock} accent={stats.pendingWD > 0 ? C.warning : C.textDim} value={stats.pendingWD} money={false} delay={0.2}
-          label={t('dashboard.pendingDays')} onClick={() => onNav?.('workdays')} />
+        {!soloMode && <StatTile icon={Users} accent={C.secondary} value={employees.length} money={false} delay={0.17} glowSide="start"
+          label={t('dashboard.totalWorkers')} onClick={() => onNav?.('workers')} />}
+        {!soloMode && <StatTile icon={Clock} accent={stats.pendingWD > 0 ? C.warning : C.textDim} value={stats.pendingWD} money={false} delay={0.2}
+          label={t('dashboard.pendingDays')} onClick={() => onNav?.('workdays')} />}
       </div>
 
       {/* ─── تنبيه ذكي: أيام بانتظار الموافقة ─── */}
-      {stats.pendingWD > 0 && (
+      {!soloMode && stats.pendingWD > 0 && (
         <div style={{ marginBottom: 12 }}>
           <PremiumShell accent={C.warning} radius={16} padding="12px 13px" delay={0.22} onClick={() => onNav?.('workdays')}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
@@ -543,7 +708,7 @@ export default function DashboardScreen({
                   <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>
                     {language === 'he' ? 'פרויקטים מובילים' : language === 'en' ? 'Top Projects' : 'أفضل المشاريع'}
                   </div>
-                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
+                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 1 }}>
                     {language === 'he' ? 'לפי רווח' : language === 'en' ? 'By profit' : 'حسب الربح'}
                   </div>
                 </div>
@@ -560,8 +725,20 @@ export default function DashboardScreen({
         </div>
       )}
 
-      {/* ─── Empty state — تفعيل: وجّه لأول عامل ما دام ما في عامل (حتى لو عنده مشروع) ─── */}
-      {employees.length === 0 && (
+      {/* ─── تحليلات ذكية — اللوحات الأربع مطوية آخر الشاشة (كسولة — chunks تُحمَّل عند الفتح) ─── */}
+      {showAmounts && hasData && (
+        <AnalyticsSection lang={language}>
+          <Suspense fallback={<PanelSkeleton />}>
+            <CommandCenter cc={commandCenter} onNav={onNav} />
+            <BusinessPulse pulse={pulse} onNav={onNav} />
+            {forecast && <CashForecast forecast={forecast} onNav={onNav} />}
+            <NetWorth netWorth={netWorth} onNav={onNav} />
+          </Suspense>
+        </AnalyticsSection>
+      )}
+
+      {/* ─── Empty state — تفعيل: وجّه لأول عامل ما دام ما في عامل (لا يظهر بوضع الفردي) ─── */}
+      {!soloMode && employees.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <PremiumShell accent={C.primary} radius={22} padding="32px 22px" style={{ textAlign: 'center' }}>
             <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 12px 32px rgba(249,115,22,0.3)' }}>

@@ -1,12 +1,30 @@
 import { create } from 'zustand'
 import { setLanguage, getCurrentLang } from '../i18n/index.js'
 import { celebrationConfig } from '../lib/celebrations.js'
+import { applyTheme } from '../constants/index.js'
+
+// ثيم الجهاز (وليس الحساب): dark افتراضياً · site = «وضع الورشة» الفاتح للشمس
+const initialTheme = (() => {
+  try { return localStorage.getItem('cp_theme') === 'site' ? 'site' : 'dark' } catch { return 'dark' }
+})()
+// تطبيق مبكّر قبل أول رسم — يمنع وميض الثيم الغلط عند فتح التطبيق بوضع الورشة
+applyTheme(initialTheme)
 
 export const useAppStore = create((set, get) => ({
   // ─── Navigation ───────────────────────────────────────────────────────────
   screen:     'dashboard',
   prevScreen: null,
   setScreen:  (screen) => set(s => ({ screen, prevScreen: s.screen })),
+
+  // ─── Theme (وضع الورشة) ───────────────────────────────────────────────────
+  theme: initialTheme,
+  setTheme: (mode) => {
+    const m = mode === 'site' ? 'site' : 'dark'
+    try { localStorage.setItem('cp_theme', m) } catch { /* private mode */ }
+    applyTheme(m)
+    set({ theme: m })
+  },
+  toggleTheme: () => get().setTheme(get().theme === 'site' ? 'dark' : 'site'),
 
   // ─── Pending Action ───────────────────────────────────────────────────────
   // طريقة لتمرير "نية" بين الشاشات: مثلاً من ProjectsScreen → FinanceScreen
@@ -60,6 +78,8 @@ export const useAppStore = create((set, get) => ({
   // ─── Online state ─────────────────────────────────────────────────────────
   isOnline: navigator.onLine,
   setOnline: (v) => set({ isOnline: v }),
+  queueCount: 0,                                  // تسجيلات بانتظار المزامنة (offlineQueue)
+  setQueueCount: (v) => set({ queueCount: v }),
 
   // ─── Language ─────────────────────────────────────────────────────────────
   language: getCurrentLang(),

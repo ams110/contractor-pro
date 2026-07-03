@@ -26,7 +26,8 @@ if (typeof document !== 'undefined' && !document.getElementById('cp-skeleton-sty
   document.head.appendChild(el)
 }
 
-const SHIMMER_BG = `linear-gradient(90deg, ${C.card} 0%, ${C.card} 30%, rgba(249,115,22,0.18) 45%, rgba(249,115,22,0.26) 50%, rgba(249,115,22,0.18) 55%, ${C.card} 70%, ${C.card} 100%)`
+// دالة حتى تلقط لون السطح حسب الثيم الحالي وقت الرندر (وضع الورشة)
+const SHIMMER_BG = () => `linear-gradient(90deg, ${C.card} 0%, ${C.card} 30%, rgba(249,115,22,0.18) 45%, rgba(249,115,22,0.26) 50%, rgba(249,115,22,0.18) 55%, ${C.card} 70%, ${C.card} 100%)`
 
 export function Skeleton({ w = '100%', h = 14, radius = 8, circle = false, style = {} }) {
   const size = circle ? { width: h, height: h, borderRadius: '50%' } : { width: w, height: h, borderRadius: radius }
@@ -36,7 +37,7 @@ export function Skeleton({ w = '100%', h = 14, radius = 8, circle = false, style
       className="cp-skeleton"
       style={{
         display: 'block',
-        background: SHIMMER_BG,
+        background: SHIMMER_BG(),
         backgroundSize: '200% 100%',
         animation: 'cp-shimmer 1.3s ease-in-out infinite',
         flexShrink: 0,

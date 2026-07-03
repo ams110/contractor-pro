@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { CalendarDays, BarChart2, Search, ClipboardList, Clock, Gift, Pencil, Trash2, AlertTriangle, Users, MapPin, X, CheckSquare, Square, Sun, CloudSun, DollarSign, Star, Zap, BedDouble, HardHat, Check, ChevronDown, Plus, CheckCircle2, XCircle, FolderInput, Loader2, Building2 } from 'lucide-react'
 import { C, GRAD, DAY_TYPES } from '../constants/index.js'
 import { fmt, fmtDate, fmtDateFull, todayStr, calcSalary, validateWorkDay } from '../lib/helpers.js'
@@ -27,7 +27,7 @@ function MetaTag({ icon: Icon, label, color }) {
   )
 }
 
-export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [] }) {
+export default function WorkDaysScreen({ workDays, employees, projects, addWorkDay, bulkAddWorkDays, updateWorkDay, bulkUpdateWorkDays, deleteWorkDay, approveWorkDay, rejectWorkDay, holidays = [], autoOpenForm = false, onAutoOpenConsumed }) {
   const language = useAppStore(s => s.language)
   const holidayDates = new Set((holidays || []).map(h => String(h.date).slice(0, 10)))
   const [showForm,    setShowForm]    = useState(false)
@@ -111,18 +111,56 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
     return dates
   }
 
+  // ذاكرة الطاقم: آخر يوم مسجّل (غير مرفوض) → عمّاله + مشروعه جاهزين بالفورم
+  // بدل إعادة اختيار نفس الطاقم كل صباح. حُرّاس التكرار في save() يمنعون التسجيل المزدوج.
+  function lastCrew() {
+    let lastDate = ''
+    for (const w of workDays) {
+      if (w.status === 'rejected') continue
+      const d = String(w.date).slice(0, 10)
+      if (d > lastDate) lastDate = d
+    }
+    if (!lastDate) return { crew: [], projectId: '' }
+    const entries = workDays.filter(w => String(w.date).slice(0, 10) === lastDate && w.status !== 'rejected')
+    const crew = [...new Set(entries.map(w => w.employee_id))].filter(id => activeEmps.some(e => e.id === id))
+    // المشروع الأكثر تكراراً بذلك اليوم (إن ظل نشطاً)
+    const counts = {}
+    for (const w of entries) if (w.project_id) counts[w.project_id] = (counts[w.project_id] || 0) + 1
+    const projectId = Object.keys(counts).sort((a, b) => counts[b] - counts[a])
+      .find(id => activeProjs.some(p => p.id === id)) || ''
+    return { crew, projectId }
+  }
+
   function openForm() {
     setFormError('')
     setEditingDay(null)
-    setMultiEmps(new Set())
     setRangeMode(false)
     setDateFrom(todayStr())
     setDateTo(todayStr())
-    setForm(emptyForm)
     setHolidayWorked(false)
     setHolidaySubType('كامل')
+    const { crew, projectId } = lastCrew()
+    if (crew.length > 1) {
+      setMultiMode(true)
+      setMultiEmps(new Set(crew))
+      setForm({ ...emptyForm, project_id: projectId })
+    } else if (crew.length === 1) {
+      setMultiMode(false)
+      setMultiEmps(new Set())
+      setForm({ ...emptyForm, employee_id: crew[0], project_id: projectId })
+    } else {
+      setMultiMode(false)
+      setMultiEmps(new Set())
+      setForm(emptyForm)
+    }
     setShowForm(true)
   }
+
+  // نيّة «سجّل اليوم» القادمة من الرئيسية → افتح الفورم فور الوصول
+  useEffect(() => {
+    if (autoOpenForm) { openForm(); onAutoOpenConsumed?.() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenForm])
 
   function openEditDay(wd) {
     setFormError('')
@@ -691,40 +729,38 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
               <div style={{ fontSize:14, color:C.textDim, lineHeight:1.8 }}>{tl(language, 'لازم تضيف عمال ومشاريع أول!', 'צריך להוסיף עובדים ופרויקטים קודם!', 'You need to add workers and projects first!')}</div>
             </div>
           : <>
-              {/* زر «خيارات متقدمة» — يطوي المفاتيح فالنموذج الافتراضي = يوم مفرد بسيط */}
+              {/* مفتاح «عدة عمال» — دائم الظهور (الفعل الجماعي أساسي مش متقدّم) */}
+              {!editingDay && (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:14, marginBottom:10, background:'rgba(255,255,255,0.04)', border:`1px solid ${multiMode ? C.secondary + '55' : C.border}` }}>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color: multiMode ? C.secondary : C.text, display:'flex', alignItems:'center', gap:6 }}><Users size={14} strokeWidth={2} /> {tl(language, 'عدة عمال', 'מספר עובדים', 'Multiple workers')}</div>
+                    <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{tl(language, 'نفس المشروع لأكثر من عامل', 'אותו פרויקט ליותר מעובד אחד', 'Same project for several workers')}</div>
+                  </div>
+                  <button onClick={() => { setMultiMode(v => !v); setMultiEmps(new Set()); setForm(prev => ({ ...prev, employee_id: '' })) }}
+                    style={{ width:48, height:26, borderRadius:13, background: multiMode ? C.secondary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
+                    <div style={{ position:'absolute', top:3, left: multiMode ? 25 : 3, width:20, height:20, borderRadius:10, background:'#fff', transition:'all .25s', boxShadow:'0 2px 6px rgba(0,0,0,0.4)' }} />
+                  </button>
+                </div>
+              )}
+              {/* زر يطوي «نطاق تواريخ» — حالة أندر، تظل خلف الطيّة */}
               {!editingDay && !showAdvanced && (
                 <button onClick={() => setShowAdvanced(true)}
                   style={{ display:'flex', alignItems:'center', gap:8, width:'100%', marginBottom:18, padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.03)', border:`1px dashed ${C.borderMid}`, color:C.textDim, fontSize:12.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-                  <Users size={14} strokeWidth={2} />
-                  {tl(language, 'عدة عمال أو نطاق تواريخ', 'מספר עובדים או טווח תאריכים', 'Multiple workers or date range')}
+                  <CalendarDays size={14} strokeWidth={2} />
+                  {tl(language, 'نطاق تواريخ', 'טווח תאריכים', 'Date range')}
                   <ChevronDown size={15} style={{ marginInlineStart:'auto' }} />
                 </button>
               )}
-              {/* Toggles — hidden in edit mode + خلف «خيارات متقدمة» */}
               {!editingDay && showAdvanced && (
-                <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:18 }}>
-                  {/* Multi-worker toggle */}
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:`1px solid ${multiMode ? C.secondary + '55' : C.border}` }}>
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:700, color: multiMode ? C.secondary : C.text, display:'flex', alignItems:'center', gap:6 }}><Users size={14} strokeWidth={2} /> {tl(language, 'عدة عمال', 'מספר עובדים', 'Multiple workers')}</div>
-                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{tl(language, 'نفس المشروع لأكثر من عامل', 'אותו פרויקט ליותר מעובד אחד', 'Same project for several workers')}</div>
-                    </div>
-                    <button onClick={() => { setMultiMode(v => !v); setMultiEmps(new Set()); setForm(prev => ({ ...prev, employee_id: '' })) }}
-                      style={{ width:48, height:26, borderRadius:13, background: multiMode ? C.secondary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
-                      <div style={{ position:'absolute', top:3, left: multiMode ? 25 : 3, width:20, height:20, borderRadius:10, background:'#fff', transition:'all .25s', boxShadow:'0 2px 6px rgba(0,0,0,0.4)' }} />
-                    </button>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:14, marginBottom:18, background:'rgba(255,255,255,0.04)', border:`1px solid ${rangeMode ? C.primary + '55' : C.border}` }}>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color: rangeMode ? C.primary : C.text, display:'flex', alignItems:'center', gap:6 }}><CalendarDays size={14} strokeWidth={2} /> {tl(language, 'نطاق تواريخ', 'טווח תאריכים', 'Date range')}</div>
+                    <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{tl(language, 'من تاريخ إلى تاريخ دفعة واحدة', 'מתאריך עד תאריך בבת אחת', 'From date to date in one batch')}</div>
                   </div>
-                  {/* Date range toggle */}
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:14, background:'rgba(255,255,255,0.04)', border:`1px solid ${rangeMode ? C.primary + '55' : C.border}` }}>
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:700, color: rangeMode ? C.primary : C.text, display:'flex', alignItems:'center', gap:6 }}><CalendarDays size={14} strokeWidth={2} /> {tl(language, 'نطاق تواريخ', 'טווח תאריכים', 'Date range')}</div>
-                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{tl(language, 'من تاريخ إلى تاريخ دفعة واحدة', 'מתאריך עד תאריך בבת אחת', 'From date to date in one batch')}</div>
-                    </div>
-                    <button onClick={() => setRangeMode(v => !v)}
-                      style={{ width:48, height:26, borderRadius:13, background: rangeMode ? C.primary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
-                      <div style={{ position:'absolute', top:3, left: rangeMode ? 25 : 3, width:20, height:20, borderRadius:10, background:'#fff', transition:'all .25s', boxShadow:'0 2px 6px rgba(0,0,0,0.4)' }} />
-                    </button>
-                  </div>
+                  <button onClick={() => setRangeMode(v => !v)}
+                    style={{ width:48, height:26, borderRadius:13, background: rangeMode ? C.primary : C.border, border:'none', cursor:'pointer', position:'relative', transition:'all .25s', flexShrink:0 }}>
+                    <div style={{ position:'absolute', top:3, left: rangeMode ? 25 : 3, width:20, height:20, borderRadius:10, background:'#fff', transition:'all .25s', boxShadow:'0 2px 6px rgba(0,0,0,0.4)' }} />
+                  </button>
                 </div>
               )}
 

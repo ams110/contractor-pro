@@ -18,7 +18,8 @@ import { fmt, fmtDate } from '../lib/helpers.js'
 import { tEnum } from '../lib/labels.js'
 
 const L = (lang, ar, he, en) => (lang === 'en' ? en : lang === 'he' ? he : ar)
-const HEAT = [C.card, `${C.primary}33`, `${C.primary}66`, `${C.primary}aa`, C.primary]
+// دالة حتى تلقط ألوان الثيم الحالي وقت الرندر (وضع الورشة)
+const HEAT = () => [C.card, `${C.primary}33`, `${C.primary}66`, `${C.primary}aa`, C.primary]
 const ANOM_ICONS = { AlertTriangle, Clock, Copy, TrendingUp, CreditCard, CalendarOff }
 const SEV = {
   high:   { color: C.accent,   bg: `${C.accent}12`,   bd: `${C.accent}30`,   label: { ar: 'خطر', he: 'סיכון', en: 'High' } },
@@ -65,7 +66,7 @@ export function AttendanceHeatmap({ heatmap, lang = 'ar' }) {
                   title={`${cell.date}${cell.count ? ` · ₪${fmt(cell.amount)}${cell.dayType ? ' · ' + tEnum(cell.dayType, lang) : ''}` : ''}`}
                   style={{
                     width: 12, height: 12, borderRadius: 3,
-                    background: cell.dayType === 'عطلة' ? `${C.gold}aa` : HEAT[cell.level],
+                    background: cell.dayType === 'عطلة' ? `${C.gold}aa` : HEAT()[cell.level],
                     border: cell.pending > 0 ? `1px solid ${C.warning}` : `1px solid ${cell.level === 0 ? C.border : 'transparent'}`,
                   }}
                 />
@@ -77,7 +78,7 @@ export function AttendanceHeatmap({ heatmap, lang = 'ar' }) {
       {/* مفتاح الألوان */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, justifyContent: 'flex-end' }}>
         <span style={{ fontSize: 9, color: C.textDim }}>{L(lang, 'أقل', 'פחות', 'less')}</span>
-        {HEAT.map((c, i) => <div key={i} style={{ width: 11, height: 11, borderRadius: 3, background: c, border: i === 0 ? `1px solid ${C.border}` : 'none' }} />)}
+        {HEAT().map((c, i) => <div key={i} style={{ width: 11, height: 11, borderRadius: 3, background: c, border: i === 0 ? `1px solid ${C.border}` : 'none' }} />)}
         <span style={{ fontSize: 9, color: C.textDim }}>{L(lang, 'أكثر', 'יותר', 'more')}</span>
       </div>
     </Wrap>
@@ -87,15 +88,25 @@ export function AttendanceHeatmap({ heatmap, lang = 'ar' }) {
 // ════════════════════════════════════════════════════════════════════════════
 //  رادار الأداء مقابل الأسطول
 // ════════════════════════════════════════════════════════════════════════════
+
+// tick مخصّص: يدفع التسمية للخارج قطرياً حتى لا تتلاصق تسميات المحاور السفلية
+function RadarTick({ payload, x, y, cx, cy }) {
+  const dx = (x - cx) * 0.18, dy = (y - cy) * 0.18
+  return (
+    <text x={x + dx} y={y + dy} fill={C.textDim} fontSize={9.5} fontWeight={700}
+      textAnchor="middle" dominantBaseline="central">{payload.value}</text>
+  )
+}
+
 export function PerformanceRadar({ data, lang = 'ar' }) {
   if (!data?.length) return null
   return (
     <Wrap>
       <Head icon={Activity} color={C.secondary} title={L(lang, 'رادار الأداء مقابل الأسطول', 'מכ"ם ביצועים', 'Performance Radar')} />
       <ResponsiveContainer width="100%" height={230}>
-        <RadarChart data={data} outerRadius="72%">
+        <RadarChart data={data} outerRadius="62%">
           <PolarGrid stroke={C.border} />
-          <PolarAngleAxis dataKey="axis" tick={{ fill: C.textDim, fontSize: 10, fontWeight: 700 }} />
+          <PolarAngleAxis dataKey="axis" tick={RadarTick} />
           <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
           <Radar name="fleet" dataKey="fleet" stroke={C.textDim} fill={C.textDim} fillOpacity={0.12} strokeWidth={1} strokeDasharray="4 3" />
           <Radar name="worker" dataKey="worker" stroke={C.secondary} fill={C.secondary} fillOpacity={0.34} strokeWidth={2} />
@@ -239,7 +250,7 @@ export function FleetLeaderboard({ rows = [], onSelect, lang = 'ar', max = 5 }) 
                   {r.star && <Star size={11} color={C.gold} fill={C.gold} />}
                 </div>
                 {/* شريط النتيجة */}
-                <div style={{ height: 4, borderRadius: 3, background: C.bg, marginTop: 5, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', height: 4, borderRadius: 3, background: C.bg, marginTop: 5, overflow: 'hidden' }}>
                   <motion.div initial={{ width: 0 }} animate={{ width: `${r.score}%` }} transition={{ delay: 0.1 + i * 0.06, duration: 0.5 }}
                     style={{ height: '100%', borderRadius: 3, background: md ? md.color : C.secondary }} />
                 </div>

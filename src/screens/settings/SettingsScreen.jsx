@@ -9,7 +9,7 @@ import {
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
   Fingerprint, ShieldCheck, Clock, Lock, Eye, EyeOff, Smartphone, KeyRound,
   ToggleLeft, ToggleRight, Timer, CalendarOff, UserCheck, UserX, Wallet, SlidersHorizontal,
-  RotateCw, QrCode, Copy, ArrowRight, MessageCircle, AlertTriangle,
+  RotateCw, QrCode, Copy, ArrowRight, MessageCircle, AlertTriangle, Sun,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS, navLabel } from '../../constants/index.js'
@@ -327,6 +327,7 @@ export default function SettingsScreen({
   pensionMonthly, setPensionMonthly, taxEnabled,
   setTaxEnabled, taxModules, setTaxModule,
   salaryAlerts = true, setSalaryAlerts, dailyDigest = true, setDailyDigest,
+  soloMode = false, setSoloMode,
   holidays = [], addHoliday, deleteHoliday,
   permissions, teamMembers = [],
   addMember, updateMember, removeMember, blockMember, resetMemberPassword, getActivity, reloadTeam,
@@ -334,7 +335,7 @@ export default function SettingsScreen({
   pushSubStatus, forceResubscribePush,
 }) {
   const { t } = useTranslation()
-  const { language, setLanguage } = useAppStore()
+  const { language, setLanguage, theme, setTheme } = useAppStore()
   const activeBusiness = useBusinessStore(s => s.activeBusiness)
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
@@ -702,6 +703,23 @@ export default function SettingsScreen({
         </div>
       </Section>
 
+      {/* ── المظهر: «وضع الورشة» — ثيم فاتح عالي التباين للشغل برا بالشمس ── */}
+      <Section icon={Sun} accent={C.warning} title={tl(language, 'المظهر', 'תצוגה', 'Appearance')}>
+        <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 11, background: `${C.warning}15`, border: `1px solid ${C.warning}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Sun size={16} color={C.warning} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'وضع الورشة (للشمس)', 'מצב אתר (לשמש)', 'Site mode (sunlight)')}</div>
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{tl(language, 'خلفية فاتحة ونصوص غامقة بتباين عالٍ — للشاشة اللي بتصير مراية بشمس الورشة', 'רקע בהיר וטקסט כהה בניגודיות גבוהה — למסך שהופך למראה בשמש', 'Light background, high-contrast text — for screens that turn into mirrors in the sun')}</div>
+          </div>
+          <button onClick={() => setTheme?.(theme === 'site' ? 'dark' : 'site')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: theme === 'site' ? C.success : C.textDim }}>
+            {theme === 'site' ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+          </button>
+        </div>
+      </Section>
+
       {/* ── Specialties ── */}
       <Section icon={HardHat} accent={C.primary} title={t('settings.specs')}>
         <SmartList
@@ -766,6 +784,18 @@ export default function SettingsScreen({
             <button onClick={() => setDailyDigest?.(!dailyDigest)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: dailyDigest ? C.success : C.textDim }}>
               {dailyDigest ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+            </button>
+          </div>
+
+          {/* وضع «معلّم لحاله» — يخفي واجهات الطاقم (تبويب عمال/رواتب) للشغّيل الفردي */}
+          <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'وضع المعلّم اللي لحاله', 'מצב עצמאי בלי צוות', 'Solo mode')}</div>
+              <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{tl(language, 'شغّال بلا عمال؟ بنخفيلك تبويب العمال والرواتب — بترجع تفعّلهم من هون لما تكبر', 'עובד בלי צוות? נסתיר עובדים ושכר — אפשר להחזיר מכאן', 'Working alone? Hides workers & payroll — re-enable here anytime')}</div>
+            </div>
+            <button onClick={() => setSoloMode?.(!soloMode)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: soloMode ? C.success : C.textDim }}>
+              {soloMode ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
             </button>
           </div>
         </Section>

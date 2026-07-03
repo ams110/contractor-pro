@@ -19,7 +19,9 @@ if [ -d "$SKILLS_SRC" ]; then
 fi
 
 echo "Installing npm dependencies..."
-npm install
+# npm ci يثبّت من الـlockfile بلا ما يعدّله أبداً — npm install كان يولّد
+# فرق 500+ سطر بالساندبوكس، وhook نهاية الجلسة يرفعه commit نويز للبرانش.
+npm ci --no-audit --no-fund || npm install
 
 # بيئة معاينة للساندبوكس: supabase.js يرمي خطأ بدون env والصفحة تطلع سوداء.
 # قيم وهمية تكفي لعرض الواجهة محلياً (الملف ضمن .gitignore — لا يُرفع أبداً).
