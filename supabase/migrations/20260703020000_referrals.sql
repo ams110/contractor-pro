@@ -60,13 +60,15 @@ CREATE POLICY "referral_parties_read" ON public.referrals
   );
 
 -- ── 3. توسيع handle_new_user ─────────────────────────────────────────────────
--- (نسخة كاملة من phase1_001_organizations.sql + كود الإحالة + صف referrals)
+-- ⚠️ نسخة مدموجة من التعريف **الحي بالقاعدة** (يتضمن التقاط phone من
+-- 20260627154335_add_phone_to_profiles_from_signup — لا تُسقطه) + منطق الإحالة.
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public AS $$
 DECLARE
   new_org_id UUID;
   display_name TEXT;
+  signup_phone TEXT;
   v_ref_code TEXT;
   v_ref_text TEXT;
   v_referrer UUID;
@@ -76,13 +78,14 @@ BEGIN
     SPLIT_PART(NEW.email, '@', 1),
     'مقاول'
   );
+  signup_phone := NULLIF(TRIM(NEW.raw_user_meta_data->>'phone'), '');
 
   v_ref_code := upper(NULLIF(TRIM(NEW.raw_user_meta_data->>'ref_code'), ''));
   v_ref_text := NULLIF(TRIM(NEW.raw_user_meta_data->>'referred_by_text'), '');
 
   -- Create profile (ignore if exists from a manual insert)
-  INSERT INTO profiles (id, full_name, referral_code, referred_by)
-  VALUES (NEW.id, display_name, public.generate_referral_code(), v_ref_text)
+  INSERT INTO profiles (id, full_name, phone, referral_code, referred_by)
+  VALUES (NEW.id, display_name, signup_phone, public.generate_referral_code(), v_ref_text)
   ON CONFLICT (id) DO NOTHING;
 
   -- Create organization
