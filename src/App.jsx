@@ -31,6 +31,7 @@ import { useTeam, teamMemberSignIn } from './hooks/useTeam.js'
 import { useNotifications }    from './hooks/useNotifications.js'
 import { useSalaryAlerts }     from './hooks/useSalaryAlerts.js'
 import { useDailyDigest }      from './hooks/useDailyDigest.js'
+import { usePaturCapAlerts }   from './hooks/usePaturCapAlerts.js'
 
 import WorkerPortalScreen      from './screens/WorkerPortalScreen.jsx'
 import NotificationsPanel      from './components/NotificationsPanel.jsx'
@@ -369,9 +370,15 @@ function OwnerApp() {
   useSalaryAlerts(uid, employees, workDays, payments, advances, expenses, salaryAlerts)
   // الملخّص اليومي للمالك فقط (ليس عضو فريق)
   useDailyDigest(effectiveOwnerId ? null : uid, { workDays, expenses, payments }, dailyDigest)
+  // تنبيه push عند اقتراب مصلحة עוסק פטור من السقف السنوي — للمالك فقط
+  usePaturCapAlerts(effectiveOwnerId ? null : uid, clientReceipts, businesses)
   const { permission: pushPermission, requestPermission: requestPushPermission, subStatus: pushSubStatus, forceResubscribe: forceResubscribePush } = usePushNotifications(uid)
 
   const { org, loading: orgLoading, isPlanActive, isTrialActive, trialDaysLeft } = useOrganization(uid)
+
+  // باقة «معلّم» الفردية بلا ميزات عمال ← وضع solo قسري (بعد انتهاء التجربة).
+  // مفتاح soloMode بالإعدادات يظل مستقلاً لباقي الخطط.
+  const effectiveSolo = soloMode || (!!import.meta.env.VITE_PADDLE_CLIENT_TOKEN && !isTrialActive() && org?.plan === 'maalem')
 
   // ربط هوية المستخدم بتقارير الأخطاء (Sentry) + تحليلات القمع (GA4 user_id +
   // TikTok identify) — يغطّي كل الجلسات المصادَقة لقياس أدقّ عبر الأجهزة.
@@ -575,8 +582,8 @@ function OwnerApp() {
     let content
     const allData = { projects: visibleProjects, employees: visibleEmployees, workDays: visibleWorkDays, expenses: visibleExpenses, payments: visiblePayments, clientReceipts: visibleClientReceipts, advances: visibleAdvances }
     switch (screen) {
-      case 'dashboard':  content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} addAdvance={addAdvance} soloMode={soloMode} />; break
-      case 'finance':    content = (p?.viewAmounts === false) ? <NoAccess /> : <FinanceScreen {...allData} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} userId={uid} permissions={p} payMethods={payMethods} appCfg={appCfg} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} soloMode={soloMode} />; break
+      case 'dashboard':  content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} addAdvance={addAdvance} soloMode={effectiveSolo} />; break
+      case 'finance':    content = (p?.viewAmounts === false) ? <NoAccess /> : <FinanceScreen {...allData} expCats={expCats} addExpense={addExpense} deleteExpense={deleteExpense} approveExpense={_approveExpense} rejectExpense={_rejectExpense} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} approvePaymentRequest={_approvePayment} rejectPaymentRequest={_rejectPayment} taxAdvances={taxAdvances} addTaxAdvance={addTaxAdvance} deleteTaxAdvance={deleteTaxAdvance} pensionMonthly={pensionMonthly} setPensionMonthly={setPensionMonthly} userId={uid} permissions={p} payMethods={payMethods} appCfg={appCfg} refetchReceipts={refetchReceipts} refetchExpenses={refetchExpenses} soloMode={effectiveSolo} />; break
       case 'projects':   content = p?.viewProjects  ? <ProjectsScreen  addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} archiveProject={archiveProject} restoreProject={restoreProject} deleteProjectWithAll={deleteProjectWithAll} addReceipt={addReceipt} updateReceipt={updateReceipt} deleteReceipt={deleteReceipt} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addExpense={addExpense} deleteExpense={deleteExpense} expCats={expCats} userId={uid} permissions={p} payMethods={payMethods} holidays={holidays} /> : <NoAccess />; break
       case 'workers':    content = p?.viewWorkers   ? <WorkersScreen   {...allData} addAdvance={addAdvance} deleteAdvance={deleteAdvance} specs={specs} addEmployee={addEmployee} updateEmployee={updateEmployee} deleteEmployee={deleteEmployee} permissions={p} holidays={holidays} addHoliday={addHoliday} deleteHoliday={deleteHoliday} teamMembers={teamMembers} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} addWorkDay={addWorkDay} bulkAddWorkDays={bulkAddWorkDays} updateWorkDay={updateWorkDay} bulkUpdateWorkDays={bulkUpdateWorkDays} deleteWorkDay={deleteWorkDay} approveWorkDay={_approveWorkDay} rejectWorkDay={_rejectWorkDay} addPayment={_addPayment} updatePayment={updatePayment} deletePayment={deletePayment} payMethods={payMethods} profile={profile} appCfg={appCfg} /> : <NoAccess />; break
       case 'workdays':   setScreen('workers'); content = null; break
@@ -588,7 +595,7 @@ function OwnerApp() {
       case 'accounting': setScreen('finance'); content = null; break
       case 'activity':   content = (p?.viewActivity || p?.isOwner) ? <ActivityScreen getAllActivity={getAllActivity} getActivity={getActivity} teamMembers={teamMembers} permissions={p} /> : <NoAccess />; break
       case 'team':       content = p?.isOwner ? <FeatureGate requiredPlan="pro" title={tl(language, 'إدارة الفريق', 'ניהול צוות', 'Team management')} description={tl(language, 'أضف أعضاء فريق بصلاحيات دقيقة وتابع نشاطهم. هذه الميزة متاحة في خطّتَي Pro و Business.', 'הוסף חברי צוות עם הרשאות מדויקות ועקוב אחר הפעילות שלהם. תכונה זו זמינה בתוכניות Pro ו-Business.', 'Add team members with fine-grained permissions and track their activity. Available on the Pro and Business plans.')}><TeamScreen projects={visibleProjects} teamMembers={teamMembers} permissions={p} addMember={addMember} updateMember={updateMember} removeMember={removeMember} blockMember={blockMember} resetMemberPassword={resetMemberPassword} getActivity={getActivity} getAllActivity={getAllActivity} teamLoadError={teamLoadError} reloadTeam={reloadTeam} /></FeatureGate> : <NoAccess />; break
-      default:           content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} addAdvance={addAdvance} soloMode={soloMode} />
+      default:           content = <DashboardScreen {...allData} onNav={setScreen} permissions={p} addAdvance={addAdvance} soloMode={effectiveSolo} />
     }
     return <ErrorBoundary key={screen}>{content}</ErrorBoundary>
   }
@@ -596,7 +603,8 @@ function OwnerApp() {
   const pendingCount = workDays.filter(w => w.status === 'pending').length
 
   // وضع «معلّم لحاله»: يخفي تبويب العمال من التنقّل (الشاشة تظل موجودة لو وصلها برابط قديم)
-  const visibleNav = soloMode ? NAV.filter(n => n.id !== 'workers') : NAV
+  // effectiveSolo = المفتاح اليدوي أو خطة «معلّم» (بلا ميزات عمال بالتعريف)
+  const visibleNav = effectiveSolo ? NAV.filter(n => n.id !== 'workers') : NAV
 
   const moreScreenIds = MORE_SCREENS.map(s => s.id)
   const activeNav = moreScreenIds.includes(screen) ? 'settings'

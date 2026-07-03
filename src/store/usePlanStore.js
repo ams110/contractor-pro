@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 
-// ترتيب الخطط للمقارنة الهرمية
-const ORDER = { free: 0, starter: 1, pro: 2, business: 3 }
+// ترتيب الخطط للمقارنة الهرمية — المصدر الوحيد لهرمية الخطط في التطبيق
+// (maalem = باقة «معلّم» الفردية: فوق free وتحت starter، بلا ميزات عمال)
+export const PLAN_ORDER = { free: 0, maalem: 1, starter: 2, pro: 3, business: 4 }
+const ORDER = PLAN_ORDER
 
 /**
  * مخزن خفيف لمعلومات خطة المالك — يكتبه App.jsx ويقرأه أي شاشة تحتاج
@@ -40,11 +42,12 @@ export function useHasFeature(requiredPlan) {
 }
 
 // ─── حدّ عدد العمّال حسب الخطة ────────────────────────────────────────────────
-// تجربة مجانية → عامل واحد · Starter → 10 · Pro/Business → غير محدود.
-// دالة نقيّة قابلة للاختبار.
+// تجربة مجانية → عامل واحد · معلّم → صفر (باقة فردية بلا ميزات عمال) ·
+// Starter → 10 · Pro/Business → غير محدود. دالة نقيّة قابلة للاختبار.
 export function workerLimitFor({ plan, trialActive }) {
   if (plan === 'pro' || plan === 'business') return Infinity
   if (plan === 'starter') return 10
+  if (plan === 'maalem') return 0 // باقة المعلّم الفردي: العمال خارج الباقة بالتعريف
   if (trialActive) return 1     // خلال التجربة المجانية: عامل واحد فقط
   return 1                       // free منتهية التجربة (التطبيق يحجبها أصلاً)
 }

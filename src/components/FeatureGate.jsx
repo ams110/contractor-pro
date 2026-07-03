@@ -7,7 +7,7 @@ import { useAppStore } from '../store/useAppStore.js'
 import { tl } from '../lib/labels.js'
 import { navigate } from '../Router.jsx'
 
-const PLAN_LABEL = { starter: 'Starter', pro: 'Pro', business: 'Business' }
+const PLAN_LABEL = { maalem: 'معلّم', starter: 'Starter', pro: 'Pro', business: 'Business' }
 
 /**
  * يلفّ ميزة مدفوعة. إذا الخطة الحالية تكفي (أو خلال التجربة / الدفع غير مُفعّل)

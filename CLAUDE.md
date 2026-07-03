@@ -317,7 +317,7 @@ generate_icon.py             ← مولّد أيقونات التطبيق (يق�
 - **العمليات الأساسية**: `projects`، `employees` (+ بيانات بوّابة العامل: `worker_username/password_hash/session_token` + **صلاحيات/ضوابط**: `can_submit_workday/can_submit_expenses/can_log_materials/can_request_payment/can_access_portal` + `allowed_project_ids` (حصر مشاريع) + `max_advance_amount` + `require_expense_receipt` + `portal_access_until` (انتهاء صلاحية الوصول))، `work_days`، `holidays`.
 - **المالية**: `expenses` (قيد: `project_id NOT NULL OR is_general`)، `payments`، `client_receipts`، `advances`، `tax_advances`، `businesses`، `project_businesses`، و(وحدة المحاسبة) `income_entries`، `expense_entries`، `invoice_archive`، `payroll_slips`.
 - **البضاعة**: `material_logs`.
-- **المؤسسة/الاشتراك**: `organizations` (plan: free/starter/pro/business، `trial_ends_at`)، `user_organizations`، `subscriptions` (Paddle).
+- **المؤسسة/الاشتراك**: `organizations` (plan: free/**maalem**/starter/pro/business، `trial_ends_at`)، `user_organizations`، `subscriptions` (Paddle). maalem = باقة «معلّم» الفردية ₪35/شهر بلا ميزات عمال (تفرض وضع solo عبر `effectiveSolo` في App.jsx، وحدّ عمالها 0).
 - **الفريق/التدقيق**: `team_members` (صلاحيات دقيقة `can_*` + `allowed_project_ids` + `expires_at` + `is_blocked`)، `audit_log`، `signature_log`، `login_log`، `locked_periods`، `app_config`.
 - **الإشعارات**: `notifications`، `push_subscriptions`.
 - **المصادقة**: `passkey_credentials`، `passkey_challenges`، `rate_limits`، `profiles`.
@@ -373,8 +373,8 @@ generate_icon.py             ← مولّد أيقونات التطبيق (يق�
 
 ### تقييد الميزات حسب الخطة (Monetization) — `store/usePlanStore.js`
 - `App.jsx` يكتب `{plan, trialActive, paddleEnabled}` للمخزن من `useOrganization`.
-- `planHasFeature(reqPlan)` / `useHasFeature(reqPlan)`: **الدفع غير مُفعّل** (`!paddleEnabled`) أو **خلال التجربة** → وصول كامل؛ غير ذلك مقارنة هرمية (free<starter<pro<business).
-- `workerLimitFor({plan,trialActive})` / `useWorkerLimit()`: **تجربة → عامل واحد** · Starter → 10 · Pro/Business → غير محدود. مطبّق في `WorkersScreen` (نافذة ترقية + عدّاد `X/الحد`).
+- `planHasFeature(reqPlan)` / `useHasFeature(reqPlan)`: **الدفع غير مُفعّل** (`!paddleEnabled`) أو **خلال التجربة** → وصول كامل؛ غير ذلك مقارنة هرمية (free<maalem<starter<pro<business — `PLAN_ORDER` المُصدَّر هو المصدر الوحيد للهرمية، يستورده كذلك `useOrganization`).
+- `workerLimitFor({plan,trialActive})` / `useWorkerLimit()`: **تجربة → عامل واحد** · **معلّم → 0** (باقة فردية بلا عمال) · Starter → 10 · Pro/Business → غير محدود. مطبّق في `WorkersScreen` (نافذة ترقية + عدّاد `X/الحد`).
 - تقييدات فعلية حالياً: **شاشة الفريق** على Pro+ (`FeatureGate`) · **بوّابة العامل** على Pro (`PortalUpsell` — مشاركة الرابط/QR محجوبة عند خطة < Pro) · **حدّ العمّال**. (تصدير PDF/Excel موعود كـ Pro بالتسعير لكن غير مقيَّد بعد.)
 - **حساب المالك** مضبوط `plan=business` دائماً في `organizations` (لا يُقفل ولا يدفع).
 - **صلاحية «مشاهدة المبالغ»** (`can_view_amounts` في `team_members` → `permissions.viewAmounts`): عضو فريق بدونها تُخفى عنه كل الأرقام المالية. التطبيق: `App.jsx` يحجب تبويب **المالية** (`viewAmounts===false → NoAccess`)؛ و`DashboardScreen` يُخفي الكتلة المالية كاملةً (بطاقات الرؤى + النقد + الربح + الإيرادات/المصاريف + المخطّط + أفضل المشاريع) ويُبقي الأرقام غير المالية؛ و`WorkersScreen`/`WorkerCard`/`PaymentsScreen`/`FinanceScreen`/`ProjectsScreen`/`ProjectCard`/`ExpensesScreen` تقنّع المبالغ بـ`•••` عبر `showAmounts = permissions?.viewAmounts !== false` (المدخلات/رسائل التأكيد لا تُقنّع).
