@@ -120,7 +120,80 @@ function PortalTabs({ tabs, tab, setTab }) {
 
 const DAY_TYPE_COLORS = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange }
 
-function MonthRow({ month, data, payments, holidays = [], prevTotal = 0, isCurrent = false }) {
+// عمر الطلب بصيغة نسبية بسيطة («من 3 ساعات»)
+function agoText(ts, language) {
+  if (!ts) return ''
+  const mins = Math.max(0, Math.floor((Date.now() - new Date(ts).getTime()) / 60000))
+  if (mins < 60)   return tl(language, `من ${mins} دقيقة`, `לפני ${mins} דקות`, `${mins}m ago`)
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24)    return tl(language, `من ${hrs} ساعة`, `לפני ${hrs} שעות`, `${hrs}h ago`)
+  const days = Math.floor(hrs / 24)
+  return tl(language, `من ${days} يوم`, `לפני ${days} ימים`, `${days}d ago`)
+}
+
+// سبب الرفض + زر الاعتراض تحت تذكرة اليوم — قلب «مين بيراقب المعلم؟»
+function DayExtras({ r, onDispute }) {
+  const language = useAppStore(s => s.language)
+  const [open, setOpen] = useState(false)
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err,  setErr]  = useState('')
+
+  async function send() {
+    if (!note.trim()) { setErr(tl(language, 'اكتب سبب الاعتراض', 'כתוב את סיבת ההשגה', 'Write the reason')); return }
+    setBusy(true); setErr('')
+    try { await onDispute(r.id, note.trim()); setOpen(false); setNote('') }
+    catch (e) { setErr(e.message) }
+    finally { setBusy(false) }
+  }
+
+  if (!r.id || !onDispute) return null
+  return (
+    <div style={{ marginTop: -4, marginBottom: 6, paddingInline: 4 }}>
+      {r.status === 'rejected' && (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '7px 10px', background: `${C.accent}12`, border: `1px solid ${C.accent}33`, borderRadius: 9, marginBottom: 5 }}>
+          <XIcon size={13} color={C.accent} strokeWidth={2.4} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: 11, color: C.accent, fontWeight: 700, lineHeight: 1.5 }}>
+            {tl(language, 'مرفوض', 'נדחה', 'Rejected')}
+            {r.reject_reason
+              ? <span style={{ color: C.text, fontWeight: 600 }}> — {r.reject_reason}</span>
+              : <span style={{ color: C.textDim, fontWeight: 600 }}> — {tl(language, 'بلا سبب مكتوب', 'ללא סיבה כתובה', 'no written reason')}</span>}
+          </span>
+        </div>
+      )}
+      {r.dispute_at ? (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', background: `${C.cyan}14`, border: `1px solid ${C.cyan}33`, borderRadius: 8 }}>
+          <Check size={12} color={C.cyan} strokeWidth={2.6} />
+          <span style={{ fontSize: 10.5, color: C.cyan, fontWeight: 700 }}>{tl(language, 'اعتراضك وصل للمعلم', 'ההשגה שלך הגיעה למעסיק', 'Your objection reached the boss')}</span>
+        </div>
+      ) : open ? (
+        <div style={{ padding: '8px 10px', background: C.card, border: `1px solid ${C.cyan}33`, borderRadius: 10 }}>
+          <input value={note} onChange={e => setNote(e.target.value)} maxLength={300} autoFocus
+            placeholder={tl(language, 'شو الغلط بهذا اليوم؟ (مثلاً: اشتغلت يوم كامل مش نص)', 'מה הטעות ביום הזה?', 'What is wrong with this day?')}
+            style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 10px', color: C.text, fontSize: 12, marginBottom: 6, boxSizing: 'border-box' }} />
+          {err && <div style={{ fontSize: 10.5, color: C.accent, marginBottom: 6 }}>{err}</div>}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={send} disabled={busy}
+              style={{ flex: 1, padding: '7px 0', borderRadius: 8, background: C.cyan, border: 'none', color: '#000', fontSize: 12, fontWeight: 800, cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
+              {busy ? tl(language, 'جارٍ الإرسال...', 'שולח...', 'Sending...') : tl(language, 'أرسل الاعتراض', 'שלח השגה', 'Send objection')}
+            </button>
+            <button onClick={() => { setOpen(false); setErr('') }}
+              style={{ padding: '7px 14px', borderRadius: 8, background: 'none', border: `1px solid ${C.border}`, color: C.textDim, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              {tl(language, 'إلغاء', 'ביטול', 'Cancel')}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setOpen(true)}
+          style={{ background: 'none', border: 'none', color: C.textDim, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', padding: '2px 4px', textDecoration: 'underline' }}>
+          {tl(language, 'في غلط بهذا اليوم؟ اعترض', 'יש טעות ביום הזה? הגש השגה', 'Something wrong? Object')}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function MonthRow({ month, data, payments, holidays = [], prevTotal = 0, isCurrent = false, onDispute }) {
   const language = useAppStore(s => s.language)
   const [open, setOpen] = useState(false)
   const monthPayments = payments.filter(p => String(p.date).substring(0, 7) === month)
@@ -169,14 +242,17 @@ function MonthRow({ month, data, payments, holidays = [], prevTotal = 0, isCurre
           {records.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 10 }}>
               {records.map((r, i) => (
-                <WorkDayTicket key={i}
-                  wd={{ ...r, status: r.status || 'approved' }}
-                  hideName
-                  projectName={r.project_name || ''}
-                  holidayName={holidayMap[String(r.date).slice(0, 10)]?.name}
-                  notchColor={C.bg}
-                  delay={Math.min(i * 0.03, 0.2)}
-                />
+                <div key={r.id || i}>
+                  <WorkDayTicket
+                    wd={{ ...r, status: r.status || 'approved' }}
+                    hideName
+                    projectName={r.project_name || ''}
+                    holidayName={holidayMap[String(r.date).slice(0, 10)]?.name}
+                    notchColor={C.bg}
+                    delay={Math.min(i * 0.03, 0.2)}
+                  />
+                  <DayExtras r={r} onDispute={onDispute} />
+                </div>
               ))}
             </div>
           )}
@@ -213,6 +289,82 @@ function MonthRow({ month, data, payments, holidays = [], prevTotal = 0, isCurre
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── سطر طمأنة الخصوصية (مطلب محاكاة العمال: «مين بيشوف الرقم؟») ─────────────
+function PrivacyNote({ compact = false }) {
+  const language = useAppStore(s => s.language)
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: compact ? '10px 12px' : '12px 14px', background: `${C.success}0e`, border: `1px solid ${C.success}2a`, borderRadius: 12, marginTop: 12 }}>
+      <ShieldCheck size={16} color={C.success} strokeWidth={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
+      <div style={{ fontSize: 11.5, color: C.textDim, lineHeight: 1.7 }}>
+        <span style={{ color: C.success, fontWeight: 800 }}>{tl(language, 'بياناتك محمية:', 'הנתונים שלך מוגנים:', 'Your data is protected:')}</span>{' '}
+        {tl(language,
+          'كشفك بيشوفه بس انت والمعلم — ما بيروح لأي جهة رسمية ولا لباقي العمال، وما في تتبّع موقع.',
+          'את הדוח רואים רק אתה והמעסיק — הוא לא נשלח לשום גוף רשמי ולא לעובדים אחרים, ואין מעקב מיקום.',
+          'Only you and your boss see your statement — it goes to no official body and no other workers, and there is no location tracking.')}
+      </div>
+    </div>
+  )
+}
+
+// ─── سجل «تعديلات المعلم» — شفافية كاملة على أي تغيير بحساب العامل ──────────
+function EditLogList({ editLog }) {
+  const language = useAppStore(s => s.language)
+  if (!editLog?.length) return null
+
+  const ACTION_META = {
+    edit_day:         { label: tl(language, 'عدّل يوم',        'ערך יום',        'Edited day'),        color: C.warning },
+    approve_day:      { label: tl(language, 'وافق على يوم',    'אישר יום',       'Approved day'),      color: C.success },
+    reject_day:       { label: tl(language, 'رفض يوم',         'דחה יום',        'Rejected day'),      color: C.accent },
+    delete_day:       { label: tl(language, 'حذف يوم',         'מחק יום',        'Deleted day'),       color: C.accent },
+    payment_rejected: { label: tl(language, 'رفض طلب دفعة',    'דחה בקשת תשלום', 'Rejected payment'),  color: C.accent },
+  }
+
+  function detailText(row) {
+    const d = row.detail || {}
+    const parts = []
+    const FIELD = {
+      amount:   tl(language, 'المبلغ', 'הסכום', 'amount'),
+      hours:    tl(language, 'الساعات', 'השעות', 'hours'),
+      day_type: tl(language, 'نوع اليوم', 'סוג היום', 'day type'),
+      date:     tl(language, 'التاريخ', 'התאריך', 'date'),
+      status:   tl(language, 'الحالة', 'הסטטוס', 'status'),
+    }
+    for (const [k, label] of Object.entries(FIELD)) {
+      if (d[k]?.old !== undefined) parts.push(`${label}: ${d[k].old} ← ${d[k].new}`)
+    }
+    if (typeof d.amount === 'number') parts.push(`${fmt(d.amount)}₪`)
+    if (typeof d.day_type === 'string') parts.push(tEnum(d.day_type, language))
+    if (d.reason) parts.push(`${tl(language, 'السبب', 'הסיבה', 'reason')}: ${d.reason}`)
+    return parts.join(' · ')
+  }
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <FileText size={14} color={C.cyan} strokeWidth={2.2} /> {tl(language, 'تعديلات المعلم على حسابك', 'שינויים של המעסיק בחשבון שלך', 'Boss changes to your account')}
+      </div>
+      <div style={{ fontSize: 10.5, color: C.textDim, marginBottom: 10 }}>
+        {tl(language, 'أي تغيير بيعمله المعلم على أيامك بينسجل هون تلقائياً — ما في إشي بينمحى بصمت.', 'כל שינוי שהמעסיק עושה בימים שלך נרשם כאן אוטומטית.', 'Every change your boss makes to your days is logged here automatically.')}
+      </div>
+      {editLog.map(row => {
+        const meta = ACTION_META[row.action] || { label: row.action, color: C.textDim }
+        return (
+          <div key={row.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 12px', background: C.card, border: `1px solid ${meta.color}26`, borderRadius: 10, marginBottom: 6 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color, flexShrink: 0, marginTop: 5 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                {meta.label}{row.day_date ? ` — ${fmtDate(row.day_date)}` : ''}
+              </div>
+              {detailText(row) && <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 2, lineHeight: 1.6 }}>{detailText(row)}</div>}
+              <div style={{ fontSize: 9.5, color: C.textDim, opacity: 0.7, marginTop: 2 }}>{agoText(row.created_at, language)}</div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -300,6 +452,8 @@ function LoginScreen({ onLogin, error, loading, onPasskeyLogin, hasPasskey, pass
             </div>
           </div>
         )}
+
+        <PrivacyNote compact />
       </div>
     </div>
   )
@@ -1281,6 +1435,7 @@ export default function WorkerPortalScreen() {
     login, logout, submitWorkDay, submitExpense, changePassword, requestPayment, requestAdvance,
     loginWithPasskey, registerPasskey, removePasskey, passkeySupported, hasPasskey,
     monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalOwed, pendingDays,
+    disputeDay, editLog,
   } = useWorkerPortal()
 
   const holidaySet = new Set((holidays || []).map(h => String(h.date).slice(0, 10)))
@@ -1397,7 +1552,16 @@ export default function WorkerPortalScreen() {
                   <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: `${C.warning}11`, borderRadius: 10, border: `1px solid ${C.warning}33`, marginBottom: 6 }}>
                     <div>
                       <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{fmtDateFull(d.date)} • {tEnum(d.day_type, language)}</div>
-                      <div style={{ fontSize: 10, color: C.textDim }}>{d.project_name || '?'}</div>
+                      <div style={{ fontSize: 10, color: C.textDim }}>{d.project_name || '?'}{d.created_at ? ` • ${tl(language, 'انبعت', 'נשלח', 'sent')} ${agoText(d.created_at, language)}` : ''}</div>
+                      {/* حالة حقيقية: المعلم شاف الطلب (seen_at) ولا لسا */}
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, padding: '2px 8px', borderRadius: 6, background: d.seen_at ? `${C.cyan}16` : `${C.textDim}14`, border: `1px solid ${d.seen_at ? C.cyan + '33' : C.border}` }}>
+                        {d.seen_at ? <Eye size={10} color={C.cyan} strokeWidth={2.4} /> : <ClockIcon size={10} color={C.textDim} strokeWidth={2.2} />}
+                        <span style={{ fontSize: 9.5, fontWeight: 700, color: d.seen_at ? C.cyan : C.textDim }}>
+                          {d.seen_at
+                            ? tl(language, 'المعلم شاف طلبك', 'המעסיק ראה את הבקשה', 'Boss saw your request')
+                            : tl(language, 'ما انفتح بعد', 'טרם נצפה', 'Not seen yet')}
+                        </span>
+                      </div>
                     </div>
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.warning, fontFamily: 'monospace' }}>{fmt(d.amount)}₪</div>
@@ -1423,7 +1587,7 @@ export default function WorkerPortalScreen() {
                 const prevKey = `${pyy}-${String(pmm).padStart(2, '0')}`
                 return (
                   <MonthRow key={month} month={month} data={data} payments={payments} holidays={holidays}
-                    prevTotal={totalsByMonth[prevKey] || 0} isCurrent={month === curKey} />
+                    prevTotal={totalsByMonth[prevKey] || 0} isCurrent={month === curKey} onDispute={disputeDay} />
                 )
               })
             })()}
@@ -1461,6 +1625,8 @@ export default function WorkerPortalScreen() {
             <PasskeyCard supported={passkeySupported} enabled={hasPasskey}
               onRegister={registerPasskey} onRemove={removePasskey} />
             <ChangePasswordForm worker={worker} onChangePassword={changePassword} />
+            <EditLogList editLog={editLog} />
+            <PrivacyNote />
           </>
         )}
 

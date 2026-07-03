@@ -26,6 +26,20 @@ describe('planHasFeature', () => {
     expect(planHasFeature('business')).toBe(false)
   })
 
+  it('باقة معلّم → فوق free وتحت starter', () => {
+    setPlanInfo({ plan: 'maalem', trialActive: false, paddleEnabled: true })
+    expect(planHasFeature('maalem')).toBe(true)
+    expect(planHasFeature('free')).toBe(true)
+    expect(planHasFeature('starter')).toBe(false)
+    expect(planHasFeature('pro')).toBe(false)
+  })
+
+  it('خطة مجهولة → تسقط لـ free (كل شي مقفل)', () => {
+    setPlanInfo({ plan: 'weird_plan', trialActive: false, paddleEnabled: true })
+    expect(planHasFeature('maalem')).toBe(false)
+    expect(planHasFeature('starter')).toBe(false)
+  })
+
   it('خطة Pro → تفتح pro وما دونها، وتقفل business', () => {
     setPlanInfo({ plan: 'pro', trialActive: false, paddleEnabled: true })
     expect(planHasFeature('starter')).toBe(true)
@@ -54,6 +68,12 @@ describe('workerLimitFor', () => {
 
   it('خطة Starter → 10 عمّال', () => {
     expect(workerLimitFor({ plan: 'starter', trialActive: false })).toBe(10)
+  })
+
+  it('باقة معلّم → صفر عمّال (باقة فردية بلا ميزات عمال)', () => {
+    expect(workerLimitFor({ plan: 'maalem', trialActive: false })).toBe(0)
+    // حتى خلال التجربة: مين اختار خطة معلّم اختار بلا عمال
+    expect(workerLimitFor({ plan: 'maalem', trialActive: true })).toBe(0)
   })
 
   it('خطة Pro → غير محدود', () => {

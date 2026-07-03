@@ -64,6 +64,24 @@ function Navbar() {
 // ─── Pricing cards ────────────────────────────────────────────────────────────
 const PLANS = [
   {
+    key: 'maalem',
+    name: 'معلّم',
+    nameEn: 'Maalem',
+    price: 35,
+    period: 'شهر',
+    desc: 'للمعلّم الشغّال لحاله — بلا عمال وبلا تعقيد.',
+    color: C.cyan,
+    features: [
+      'مشاريع وزبائن بلا حدود',
+      'مصاريف ومقبوضات مع حساب מע"מ',
+      'عداد سقف עוסק פטור وتنبيه قبل الغرامة',
+      'كشف حساب للزبون عالواتساب بكبسة',
+      'تصدير كل شيء للمحاسب (Excel/PDF)',
+      'واجهة «معلّم لحاله» بلا شاشات فاضية',
+    ],
+    missing: ['إدارة العمال وأيام العمل والرواتب', 'بوابة العامل', 'أعضاء الفريق'],
+  },
+  {
     key: 'starter',
     name: 'المبتدئ',
     nameEn: 'Starter',
@@ -376,7 +394,7 @@ export default function PricingPage() {
 
         {/* ── Plans ── */}
         <section style={{ padding:'0 24px 64px', direction:'rtl' }}>
-          <div style={{ maxWidth:1000, margin:'0 auto', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:24, alignItems:'start' }}>
+          <div style={{ maxWidth:1240, margin:'0 auto', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:24, alignItems:'start' }}>
             {PLANS.map(plan => (
               <PricingCard
                 key={plan.key}

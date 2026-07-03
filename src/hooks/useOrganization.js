@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { PLAN_ORDER } from '../store/usePlanStore.js'
 
 /**
  * Fetches the current user's organization and exposes plan/trial helpers.
@@ -88,9 +89,8 @@ export function useOrganization(userId) {
    * Usage: hasFeature('pro') — true for pro + business plans.
    */
   function hasFeature(requiredPlan) {
-    const order = { free: 0, starter: 1, pro: 2, business: 3 }
-    const current = order[org?.plan ?? 'free'] ?? 0
-    const required = order[requiredPlan] ?? 0
+    const current = PLAN_ORDER[org?.plan ?? 'free'] ?? 0
+    const required = PLAN_ORDER[requiredPlan] ?? 0
     return current >= required
   }
 

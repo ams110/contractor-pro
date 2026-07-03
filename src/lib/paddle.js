@@ -27,12 +27,14 @@ export async function getPaddle() {
 // ─── Plan → Paddle price ID (set via Vite env vars) ──────────────────────────
 // الأسعار الشهرية
 export const PLAN_PRICES = {
+  maalem:   import.meta.env.VITE_PADDLE_PRICE_MAALEM    || '',
   starter:  import.meta.env.VITE_PADDLE_PRICE_STARTER  || '',
   pro:      import.meta.env.VITE_PADDLE_PRICE_PRO       || '',
   business: import.meta.env.VITE_PADDLE_PRICE_BUSINESS  || '',
 }
 // الأسعار السنوية (خصم ~شهرين)
 export const PLAN_PRICES_ANNUAL = {
+  maalem:   import.meta.env.VITE_PADDLE_PRICE_MAALEM_ANNUAL   || '',
   starter:  import.meta.env.VITE_PADDLE_PRICE_STARTER_ANNUAL  || '',
   pro:      import.meta.env.VITE_PADDLE_PRICE_PRO_ANNUAL      || '',
   business: import.meta.env.VITE_PADDLE_PRICE_BUSINESS_ANNUAL || '',
@@ -44,6 +46,14 @@ export function pricesFor(cycle) {
 }
 
 export const PLAN_META = {
+  maalem: {
+    name:       'Maalem',
+    nameAr:     'معلّم',
+    price:      35,
+    currency:   '₪',
+    period:     'شهر',
+    features:   ['للشغّال لحاله بلا عمال', 'مشاريع وزبائن بلا حدود', 'مصاريف ومقبوضات + מע"מ', 'عداد سقف עוסק פטור وتنبيه قبل الغرامة', 'كشف حساب للزبون عالواتساب', 'تصدير كل شيء للمحاسب'],
+  },
   starter: {
     name:       'Starter',
     nameAr:     'المبتدئ',
@@ -76,7 +86,7 @@ export const PLAN_META = {
  * Opens the Paddle Billing checkout overlay for a given plan.
  *
  * @param {object} opts
- * @param {'starter'|'pro'|'business'} opts.plan
+ * @param {'maalem'|'starter'|'pro'|'business'} opts.plan
  * @param {{ id: string, email: string }} opts.user  - Supabase auth user
  * @param {{ id: string }} opts.org                  - organization from useOrganization
  */

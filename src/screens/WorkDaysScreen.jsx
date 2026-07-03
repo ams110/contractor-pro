@@ -9,6 +9,7 @@ import { PremiumCard, IconChip } from '../ui/Premium.jsx'
 import WorkDayTicket from '../components/WorkDayTicket.jsx'
 import WorkMonthHeader from '../components/WorkMonthHeader.jsx'
 import WorkerMonthStrip from '../components/WorkerMonthStrip.jsx'
+import { useMarkSeen } from '../hooks/useMarkSeen.js'
 
 const DAY_TYPE_COLOR = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange, 'عطلة': C.textDim }
 const DAY_ICONS = { 'كامل': Sun, 'نص يوم': CloudSun, 'ساعات': Clock, 'مبلغ مسكر': DollarSign, 'عطلة': Star }
@@ -85,6 +86,8 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
 
   const pendingDays  = workDays.filter(wd => wd.status === 'pending')
   const approvedDays = workDays.filter(wd => wd.status !== 'pending')
+  // وسم المعلقات «شوهدت» عند فتح الطابور — بوّابة العامل تعرضها «المعلم شاف طلبك»
+  useMarkSeen('work_days', pendingDays)
 
   function setDayType(t) {
     const hours = t === 'كامل' ? '8' : t === 'نص يوم' ? '4' : form.hours
@@ -507,6 +510,14 @@ export default function WorkDaysScreen({ workDays, employees, projects, addWorkD
                   holidayName={holiday?.name}
                   notchColor={C.bg}
                 />
+                {wd.dispute_note && (
+                  <div style={{ display:'flex', alignItems:'flex-start', gap:6, padding:'8px 12px', marginTop:6, background:`${C.cyan}12`, border:`1px solid ${C.cyan}33`, borderRadius:10 }}>
+                    <AlertTriangle size={13} color={C.cyan} strokeWidth={2.2} style={{ flexShrink:0, marginTop:1 }} />
+                    <span style={{ fontSize:11.5, color:C.text, lineHeight:1.5 }}>
+                      <span style={{ color:C.cyan, fontWeight:800 }}>{tl(language, 'اعتراض العامل:', 'השגת העובד:', 'Worker objection:')}</span> {wd.dispute_note}
+                    </span>
+                  </div>
+                )}
                 <div style={{ display:'flex', gap:10, marginTop:8 }}>
                   <button onClick={() => handleApprove(wd.id)} disabled={busy}
                     style={{ flex:1, padding:'12px 0', borderRadius:14, background: busy ? C.border : GRAD.success, border:'none', color: busy ? C.textDim : '#fff', fontSize:14, fontWeight:800, cursor: busy ? 'default' : 'pointer', boxShadow: busy ? 'none' : `0 4px 18px ${C.success}44`, transition:'all .2s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>

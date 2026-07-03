@@ -34,6 +34,7 @@ function PanelSkeleton() {
 }
 import { PremiumCard, IconChip as KitIconChip, useCountUp, Money } from '../../ui/Premium.jsx'
 import { tEnum } from '../../lib/labels.js'
+import ReferralCard from '../../components/ReferralCard.jsx'
 
 // ─── قسم «تحليلات» قابل للطي — الرسمات الذكية تحت الطلب بدل ما تحتلّ نص الشاشة ─────
 // (طلب المحاكاة: «الأرقام قدّام والرسمات ورا») — مسكّر افتراضياً، وحالته محفوظة.
@@ -767,6 +768,9 @@ export default function DashboardScreen({
           </PremiumShell>
         </motion.div>
       )}
+
+      {/* ─── جيب صاحبك — للمدفوعين فقط (البطاقة تخفي حالها بغير ذلك) ─── */}
+      <ReferralCard />
     </div>
   )
 }

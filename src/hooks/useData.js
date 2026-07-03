@@ -170,10 +170,15 @@ export function useWorkDays(userId) {
     await refetch()
   }
 
-  async function rejectWorkDay(id) {
+  async function rejectWorkDay(id, reason = '') {
     // رفض = وضع حالة "مرفوض" (لا حذف نهائي) — يحفظ سجلّ العامل، والحالة مدعومة
     // أصلاً في WorkDayTicket/بوّابة العامل/تحليلات WorkerDNA. المالية تستثني غير المعتمد.
-    const { error } = await supabase.from('work_days').update({ status: 'rejected' }).eq('id', id).eq('user_id', userId)
+    // السبب يظهر للعامل في البوّابة (كان يُجمع بالواجهة ويُهدر).
+    let { error } = await supabase.from('work_days').update({ status: 'rejected', reject_reason: reason?.trim() || null }).eq('id', id).eq('user_id', userId)
+    if (error && /reject_reason/.test(error.message || '')) {
+      // migration ثقة البوّابة لم تُطبَّق بعد — ارفض بلا سبب بدل كسر الفلو
+      ;({ error } = await supabase.from('work_days').update({ status: 'rejected' }).eq('id', id).eq('user_id', userId))
+    }
     if (error) throw error
     await refetch()
   }
@@ -213,10 +218,13 @@ export function useExpenses(userId) {
     await refetch()
   }
 
-  async function rejectExpense(id) {
+  async function rejectExpense(id, reason = '') {
     // رفض = وضع حالة "مرفوض" (لا حذف) — يحفظ السجلّ للتدقيق؛ المالية وطابور
     // المعلّقات يستثنيان غير المعتمد، فلا يظهر المصروف المرفوض في الحسابات.
-    const { error } = await supabase.from('expenses').update({ status: 'rejected' }).eq('id', id).eq('user_id', userId)
+    let { error } = await supabase.from('expenses').update({ status: 'rejected', reject_reason: reason?.trim() || null }).eq('id', id).eq('user_id', userId)
+    if (error && /reject_reason/.test(error.message || '')) {
+      ;({ error } = await supabase.from('expenses').update({ status: 'rejected' }).eq('id', id).eq('user_id', userId))
+    }
     if (error) throw error
     await refetch()
   }
@@ -253,8 +261,14 @@ export function usePayments(userId) {
     await refetch()
   }
 
-  async function rejectPaymentRequest(paymentId) {
-    const { data, error } = await supabase.rpc('reject_payment_request', { p_payment_id: paymentId })
+  async function rejectPaymentRequest(paymentId, reason = '') {
+    // الرفض يحذف الصف (سلوك مالي مقصود) — لكن السبب يُسجَّل خادمياً
+    // في worker_visible_log فيظهر للعامل في «تعديلات المعلم».
+    let { data, error } = await supabase.rpc('reject_payment_request', { p_payment_id: paymentId, p_reason: reason?.trim() || null })
+    if (error && /p_reason|function/i.test(error.message || '')) {
+      // migration ثقة البوّابة لم تُطبَّق بعد — النسخة القديمة بمعامل واحد
+      ;({ data, error } = await supabase.rpc('reject_payment_request', { p_payment_id: paymentId }))
+    }
     if (error) throw error
     if (data?.error) throw new Error(data.error)
     await refetch()

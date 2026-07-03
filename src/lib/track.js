@@ -70,10 +70,10 @@ export function trackBeginCheckout({ plan, cycle, value } = {}) {
 /**
  * إنشاء حساب جديد (بدء تجربة): GA4 sign_up + generate_lead، وTikTok
  * CompleteRegistration + Lead — كلاهما client + server (deduplication بـ event_id).
- * @param {object} [o] { email, userId } لمطابقة أفضل على TikTok (يُجزّأ خادمياً)
+ * @param {object} [o] { email, userId, referralSource } لمطابقة أفضل على TikTok (يُجزّأ خادمياً)
  */
-export function trackSignUp({ email, userId } = {}) {
-  trackEvent('sign_up', { method: 'email' })
+export function trackSignUp({ email, userId, referralSource } = {}) {
+  trackEvent('sign_up', { method: 'email', ...(referralSource ? { referral_source: referralSource } : {}) })
   trackEvent('generate_lead', { currency: CUR })
   // تحويل Google Ads — إجراء التحويل المُنشأ في حساب الإعلانات (يُحتسب فقط إن
   // ضُبط GADS_ID؛ وإلا يبقى حدثاً عادياً في GA4 بلا كسر).
