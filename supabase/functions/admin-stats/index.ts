@@ -267,6 +267,13 @@ serve(async (req) => {
       if (error) return json({ error: error.message }, 500)
       return json({ user: data })
     }
+    if (action === 'list-referrals') {
+      // قائمة الإحالات: مين أحال مين + الحالة + النص الحر (الإحالات الشفهية)
+      // — لتنفيذ مكافآت reward_pending يدوياً حتى يُضبط PADDLE_API_KEY
+      const { data, error } = await admin.rpc('admin_list_referrals', { p_limit: Number(body?.limit || 200) })
+      if (error) return json({ error: error.message }, 500)
+      return json({ referrals: data })
+    }
     if (action === 'set-user-banned') {
       if (!body?.user_id) return json({ error: 'مطلوب user_id' }, 400)
       const { error } = await admin.auth.admin.updateUserById(body.user_id, { ban_duration: body?.banned ? '876000h' : 'none' })

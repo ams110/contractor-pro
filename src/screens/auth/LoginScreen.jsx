@@ -14,6 +14,7 @@ import { useAuth } from '../../hooks/useAuth.js'
 import { hasPin as hasPinStored } from '../../lib/pinCrypto.js'
 import { navigate } from '../../Router.jsx'
 import { trackSignUp, trackLogin } from '../../lib/track.js'
+import { getStoredRefCode, normalizeRefCode } from '../../lib/referral.js'
 
 const LANGS = [
   { code: 'ar', label: 'العربية', dir: 'rtl' },
@@ -48,7 +49,8 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
   const [teamPass,  setTeamPass]  = useState('')
 
   // ── Register state ─────────────────────────────────────────────────────────
-  const [regName,    setRegName]    = useState('')
+  const [regName,     setRegName]     = useState('')
+  const [regReferrer, setRegReferrer] = useState('')
   const [regEmail,   setRegEmail]   = useState('')
   const [regPass,    setRegPass]    = useState('')
   const [regShowPass,setRegShowPass]= useState(false)
@@ -222,13 +224,20 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     try {
       const email = regEmail.trim()
       // الاسم اختياري — نمرّر فارغاً ويُجمع لاحقاً في الإعداد إن تُرك
-      const { data } = await signUp(email, regPass, regName.trim() || null)
+      // الإحالة: كود ?ref= المخزّن له الأولوية؛ ولو كتب المستخدم كوداً صالحاً
+      // بحقل «مين نصحك؟» نعتمده — والنص الحر ينحفظ كما هو (إحالات شفهية للأدمن)
+      const refText = regReferrer.trim()
+      const refCode = getStoredRefCode() || normalizeRefCode(refText)
+      const { data } = await signUp(email, regPass, regName.trim() || null, {
+        ...(refCode ? { ref_code: refCode } : {}),
+        ...(refText ? { referred_by_text: refText } : {}),
+      })
       // تحويل تسجيل ناجح (المقياس الأساسي لتقييم الإعلانات) على القناتين:
       // GA4 (sign_up + generate_lead) وTikTok (CompleteRegistration + Lead،
       // client + server عبر Events API بنفس event_id → deduplication يصمد رغم
       // adblock/iOS). كله موحّد في trackSignUp.
       const userId = data?.user?.id || data?.session?.user?.id
-      trackSignUp({ email, userId })
+      trackSignUp({ email, userId, referralSource: refCode ? 'link' : (refText ? 'field' : undefined) })
       // دخول فوري: لو رجعت الجلسة من signUp (تأكيد الإيميل مطفأ) → ندخل مباشرة.
       // وإلا نحاول تسجيل دخول تلقائي بنفس البيانات (يشتغل لحظة إطفاء التأكيد بلوحة Supabase)،
       // فإن لم تنجح (التأكيد ما زال مطلوباً) نعرض رسالة لطيفة بدل حائط «تحقّق من بريدك».
@@ -385,6 +394,22 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
                         placeholder="example@email.com"
                         style={inputStyle}
                         required
+                      />
+                    </div>
+                  </div>
+
+                  {/* مين نصحك فينا؟ — يلتقط الإحالات الشفهية (من محاكاة الإحالة:
+                      جيل «قول لصاحبك يذكر اسمي» بلا روابط) */}
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: C.textDim, marginBottom: 7 }}>
+                      {language === 'en' ? 'Who recommended us? (optional)' : language === 'he' ? 'מי המליץ עלינו? (אופציונלי)' : 'مين نصحك فينا؟ (اختياري)'}
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <User size={15} color={C.textDim} style={{ position: 'absolute', insetInlineStart: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                      <input
+                        type="text" value={regReferrer} onChange={e => setRegReferrer(e.target.value)} maxLength={120}
+                        placeholder={language === 'en' ? 'A friend\'s name or code' : language === 'he' ? 'שם חבר או קוד' : 'اسم صاحبك أو الكود اللي عطاك ياه'}
+                        style={inputStyle}
                       />
                     </div>
                   </div>

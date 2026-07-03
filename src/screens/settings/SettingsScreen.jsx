@@ -31,6 +31,7 @@ import { useSubscription } from '../../hooks/useSubscription.js'
 import { usePlanStore, useHasFeature } from '../../store/usePlanStore.js'
 import { openCustomerPortal } from '../../lib/paddle.js'
 import PortalUpsell from '../../components/PortalUpsell.jsx'
+import ReferralCard from '../../components/ReferralCard.jsx'
 import { tl } from '../../lib/labels.js'
 
 const PLAN_META_UI = {
@@ -594,6 +595,9 @@ export default function SettingsScreen({
         >
           {/* ── بطاقة هوية المقاول (3D) ── */}
           <ContractorCard profile={profile} business={activeBusiness} lang={catLang} />
+
+          {/* ── جيب صاحبك — برنامج الإحالة (للمدفوعين فقط، تختفي ذاتياً) ── */}
+          <ReferralCard userId={userId} />
 
           {/* ── جاهزية الحساب (Hero) — مستثناة من التصميم الجديد ── */}
           <AccountReadiness readiness={readiness} onFix={fixReadiness} />

@@ -210,6 +210,19 @@ async function handleCreated(data: Record<string, unknown>) {
 
   if (orgErr) console.error('paddle-webhook: org update error', orgErr)
 
+  // مكافأة الإحالة: المُحال صار مشتركاً فعلياً → امنح الطرفين شهراً مجانياً.
+  // الدالة idempotent (إعادة إرسال الـwebhook لا تكرر المنح). لغير المشترك
+  // النشط المنح = تمديد trial_ends_at؛ للمشترك النشط تُعلَّم reward_pending
+  // (شهر Paddle حقيقي يحتاج Paddle API — يُنفَّذ من الأدمن حتى يُضبط PADDLE_API_KEY).
+  if (userId) {
+    const { data: grantRes, error: grantErr } = await supabase
+      .rpc('grant_referral_reward', { p_referee: userId })
+    if (grantErr) console.error('paddle-webhook: referral grant error', grantErr)
+    else if ((grantRes as { granted?: boolean } | null)?.granted) {
+      console.log('paddle-webhook: referral reward granted for referee', userId)
+    }
+  }
+
   // TikTok Events API — Subscribe (الأقوى إشارة لـoptimization إعلانات الاشتراك)
   // يعمل بالخلفية بلا انتظار. مصدره موثوق (Paddle) فلا يتأثّر بـadblock/iOS.
   // Paddle يرجع المبالغ بأقل وحدة (agorot لـILS) — نقسم على 100 لقيمة شيكل.

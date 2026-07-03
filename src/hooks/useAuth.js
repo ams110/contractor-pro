@@ -47,10 +47,11 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function signUp(email, password, fullName) {
+  async function signUp(email, password, fullName, extraMeta = {}) {
+    // extraMeta: بيانات إضافية تُقرأ في handle_new_user (مثل ref_code/referred_by_text للإحالة)
     const { data, error } = await supabase.auth.signUp({
       email, password,
-      options: { data: { full_name: fullName } },
+      options: { data: { full_name: fullName, ...extraMeta } },
     })
     if (error) throw error
     return data

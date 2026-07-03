@@ -68,4 +68,13 @@ describe('waMessages', () => {
     expect(msg).toContain('فيلا')
     expect(msg).toContain('12,000')
   })
+  it('referralInvite هدية للصاحب — بلا ذكر مكافأة المُرسِل', () => {
+    const msg = waMessages.referralInvite({ url: 'https://kabblan.app/?ref=AB3XK9' })
+    expect(msg).toContain('https://kabblan.app/?ref=AB3XK9')
+    expect(msg).toContain('شهر مجاني')
+    // «رسالة البيّاع» ممنوعة: لا ذكر لمكافأة/عمولة المُرسِل
+    expect(msg).not.toContain('بتاخد انت')
+    expect(msg).not.toContain('مكافأة')
+    expect(msg).not.toContain('عمولة')
+  })
 })
