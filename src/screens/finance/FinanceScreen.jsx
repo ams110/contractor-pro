@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useBusinessStore } from '../../store/useBusinessStore.js'
 import { supabase } from '../../lib/supabase.js'
+import { useMarkSeen } from '../../hooks/useMarkSeen.js'
 import BusinessSetup    from './BusinessSetup.jsx'
 import BusinessSwitcher from './BusinessSwitcher.jsx'
 import IncomeTab        from './IncomeTab.jsx'
@@ -723,6 +724,8 @@ function PaymentsTab({ payments = [], employees = [], workDays = [], expenses = 
 
   const pending  = payments.filter(p => p.status === 'pending')
   const approved = payments.filter(p => p.status !== 'pending')
+  // وسم طلبات الدفعات «شوهدت» — بوّابة العامل تعرضها «المعلم شاف طلبك»
+  useMarkSeen('payments', pending)
   const sorted   = useMemo(() => approved.filter(p => !search || employees.find(e => e.id === p.employee_id)?.name?.toLowerCase().includes(search.toLowerCase())).slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')), [approved, employees, search])
 
   const totalPaid = approved.reduce((s, p) => s + (p.amount || 0), 0)

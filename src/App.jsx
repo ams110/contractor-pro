@@ -32,6 +32,7 @@ import { useNotifications }    from './hooks/useNotifications.js'
 import { useSalaryAlerts }     from './hooks/useSalaryAlerts.js'
 import { useDailyDigest }      from './hooks/useDailyDigest.js'
 import { usePaturCapAlerts }   from './hooks/usePaturCapAlerts.js'
+import { usePendingReminders } from './hooks/usePendingReminders.js'
 
 import WorkerPortalScreen      from './screens/WorkerPortalScreen.jsx'
 import NotificationsPanel      from './components/NotificationsPanel.jsx'
@@ -372,6 +373,8 @@ function OwnerApp() {
   useDailyDigest(effectiveOwnerId ? null : uid, { workDays, expenses, payments }, dailyDigest)
   // تنبيه push عند اقتراب مصلحة עוסק פטור من السقف السنوي — للمالك فقط
   usePaturCapAlerts(effectiveOwnerId ? null : uid, clientReceipts, businesses)
+  // تذكير بطلبات العمال المعلّقة >24 ساعة بلا رد — للمالك فقط
+  usePendingReminders(effectiveOwnerId ? null : uid, { workDays, expenses, payments })
   const { permission: pushPermission, requestPermission: requestPushPermission, subStatus: pushSubStatus, forceResubscribe: forceResubscribePush } = usePushNotifications(uid)
 
   const { org, loading: orgLoading, isPlanActive, isTrialActive, trialDaysLeft } = useOrganization(uid)

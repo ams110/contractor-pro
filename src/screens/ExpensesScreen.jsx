@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase.js'
 import { useBusinessStore } from '../store/useBusinessStore.js'
 import { tl, tEnum } from '../lib/labels.js'
 import { useAppStore } from '../store/useAppStore.js'
+import { useMarkSeen } from '../hooks/useMarkSeen.js'
 
 const CAT_ICONS  = { 'بضاعة': ShoppingCart, 'مواد بناء / خامات': Layers, 'عدد وأدوات': Wrench, 'وقود وتنقلات': Fuel, 'إيجار معدات': Building2, 'خدمات مهنية': ClipboardList, 'صيانة مركبات': Car, 'رواتب عمال': HardHat, 'تأمين': Shield, 'أخرى': Package }
 const CAT_COLORS = { 'بضاعة':C.pink, 'مواد بناء / خامات':C.orange, 'عدد وأدوات':C.blue, 'وقود وتنقلات':C.cyan, 'إيجار معدات':C.purple, 'خدمات مهنية':C.secondary, 'صيانة مركبات':C.warning, 'رواتب عمال':C.primary, 'تأمين':C.success, 'أخرى':C.textDim }
@@ -120,6 +121,8 @@ export default function ExpensesScreen({ expenses, projects, expCats, addExpense
   }
 
   const pendingExpenses  = expenses.filter(e => e.status === 'pending')
+  // وسم المصاريف المعلّقة «شوهدت» — بوّابة العامل تعرضها «المعلم شاف طلبك»
+  useMarkSeen('expenses', pendingExpenses)
   const approvedExpenses = expenses.filter(e => e.status === 'approved')
   const total       = approvedExpenses.reduce((s, e) => s + e.amount, 0)
   const totalVATIn  = Math.round(approvedExpenses.reduce((s, e) => {

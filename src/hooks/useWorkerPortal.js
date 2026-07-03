@@ -58,13 +58,14 @@ export function useWorkerPortal() {
   const [submittingExp,    setSubmittingExp]    = useState(false)
   const [submitExpErr,     setSubmitExpErr]     = useState('')
   const [holidays,         setHolidays]         = useState([])
+  const [editLog,          setEditLog]          = useState([])
 
   const loadData = useCallback(async (empId) => {
     setLoading(true)
     try {
       const session = loadSession()
       const token = session?.token || ''
-      const [dRes, pyRes, prRes, exRes, holRes, advRes, selfRes] = await Promise.all([
+      const [dRes, pyRes, prRes, exRes, holRes, advRes, selfRes, logRes] = await Promise.all([
         supabase.rpc('get_worker_days',     { emp_id: empId, p_token: token }),
         supabase.rpc('get_worker_payments', { emp_id: empId, p_token: token }),
         supabase.rpc('get_worker_projects', { emp_id: empId, p_token: token }),
@@ -72,6 +73,7 @@ export function useWorkerPortal() {
         supabase.rpc('get_worker_holidays', { p_emp_id: empId, p_token: token }),
         supabase.rpc('get_worker_advances', { emp_id: empId, p_token: token }),
         supabase.rpc('get_worker_self',     { emp_id: empId, p_token: token }),
+        supabase.rpc('get_worker_edit_log', { emp_id: empId, p_token: token }),
       ])
       // دمج أعلام الصلاحيات الحالية في كائن العامل (يعكس تغييرات المالك عند كل تحميل)
       if (selfRes?.data && !selfRes.data.error) {
@@ -83,6 +85,8 @@ export function useWorkerPortal() {
       setWorkerExpenses(exRes.data || [])
       setHolidays(holRes.data || [])
       setWorkerAdvances(advRes.data || [])
+      // سجل تعديلات المعلم — RPC جديد؛ قد يغيب قبل تطبيق migration ثقة البوّابة
+      setEditLog(Array.isArray(logRes?.data) ? logRes.data : [])
     } finally {
       setLoading(false)
     }
@@ -265,15 +269,17 @@ export function useWorkerPortal() {
     return data
   }
 
-  // الملخص الشهري (الأيام الموافق عليها فقط)
+  // الملخص الشهري — الموافق عليه يدخل المجاميع، والمرفوض يظهر (بشارة وسبب) بلا دخول بالحساب
   const monthlyBreakdown = (() => {
     const map = {}
-    workDays.filter(d => d.status === 'approved').forEach(d => {
+    workDays.filter(d => d.status === 'approved' || d.status === 'rejected').forEach(d => {
       const month = String(d.date).substring(0, 7)
       if (!map[month]) map[month] = { days: 0, amount: 0, records: [] }
-      map[month].days++
-      map[month].amount += d.amount || 0
-      map[month].records.push({ date: d.date, day_type: d.day_type, amount: d.amount || 0, project_name: d.project_name || '', location: d.location || '' })
+      if (d.status !== 'rejected') {
+        map[month].days++
+        map[month].amount += d.amount || 0
+      }
+      map[month].records.push({ id: d.id, date: d.date, day_type: d.day_type, amount: d.amount || 0, project_name: d.project_name || '', location: d.location || '', status: d.status, reject_reason: d.reject_reason || '', dispute_note: d.dispute_note || '', dispute_at: d.dispute_at || null })
     })
     Object.values(map).forEach(m => m.records.sort((a, b) => b.date.localeCompare(a.date)))
     return Object.entries(map).sort(([a], [b]) => b.localeCompare(a))
@@ -287,6 +293,22 @@ export function useWorkerPortal() {
   const totalAdvances = calcAdvances(workerAdvances)
   const totalOwed     = Math.max(0, calcMutabqi(approvedDays, approvedExp, payments, workerAdvances))
   const pendingDays   = workDays.filter(d => d.status === 'pending')
+
+  // اعتراض العامل على يوم مسجّل — بيوصل إشعار push للمعلم فوراً
+  async function disputeDay(dayId, note) {
+    const session = loadSession()
+    if (!session?.token) throw new Error('جلسة منتهية، أعد تسجيل الدخول')
+    const { data, error } = await supabase.rpc('worker_dispute_day', {
+      p_emp_id: session.id,
+      p_token:  session.token,
+      p_day_id: dayId,
+      p_note:   note,
+    })
+    if (error) throw new Error(error.message)
+    if (data?.error) throw new Error(data.error)
+    await loadData(session.id)
+    return data
+  }
 
   async function requestAdvance({ amount, notes }) {
     const session = loadSession()
@@ -325,7 +347,7 @@ export function useWorkerPortal() {
     submitting, submitErr, setSubmitErr,
     workerExpenses, submittingExp, submitExpErr, setSubmitExpErr,
     login, logout, submitWorkDay, submitExpense, changePassword, requestPayment, requestAdvance,
-    loginWithPasskey, registerPasskey, removePasskey,
+    loginWithPasskey, registerPasskey, removePasskey, disputeDay, editLog,
     passkeySupported: isWorkerPasskeySupported(), hasPasskey: hasWorkerPasskey(),
     refetch: () => worker?.id && loadData(worker.id),
     monthlyBreakdown, totalEarned, totalExpenses, totalPaid, totalAdvances, totalOwed, pendingDays,
