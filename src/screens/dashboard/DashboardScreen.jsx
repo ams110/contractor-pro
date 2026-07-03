@@ -6,12 +6,13 @@ import {
 } from 'recharts'
 import {
   TrendingUp, TrendingDown, Building2, Users, Wallet, HardHat,
-  AlertTriangle, Trophy, Clock, ChevronLeft, ChevronDown,
+  AlertTriangle, Trophy, Clock, ChevronLeft, ChevronDown, HandCoins,
   DollarSign, CreditCard, BarChart3, Crown, Sparkles, Lock,
 } from 'lucide-react'
 import { C, GRAD } from '../../constants/index.js'
 import LifeNumberCard from '../../components/LifeNumberCard.jsx'
-import { fmt, fmtDateFull, isPaymentOverdue } from '../../lib/helpers.js'
+import { Modal, Input, Btn } from '../../components/index.jsx'
+import { fmt, fmtDateFull, isPaymentOverdue, todayStr } from '../../lib/helpers.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { usePlanStore } from '../../store/usePlanStore.js'
 import { navigate } from '../../Router.jsx'
@@ -63,6 +64,73 @@ function AnalyticsSection({ lang, children }) {
       </button>
       {open && children}
     </div>
+  )
+}
+
+// ─── زر الإدخال الموحّد: قبضة / سلفة / مصروف من مكان واحد (طلب المحاكاة رقم 3) ─────
+// القبضة والمصروف بيركبوا على آلية pendingAction القائمة (بتفتح التبويب والـsheet
+// الصحيحين بالمالية) — فما في مسار تسجيل جديد ولا ازدواجية بيانات.
+function QuickAddBar({ items }) {
+  if (!items.length) return null
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }}
+      style={{ display: 'grid', gridTemplateColumns: `repeat(${items.length}, 1fr)`, gap: 9, marginBottom: 14 }}>
+      {items.map(it => (
+        <button key={it.key} onClick={it.onClick}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, background: C.surface, border: `1px solid ${it.color}2e`, borderRadius: 16, padding: '12px 6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <KitIconChip icon={it.icon} color={it.color} size={34} radius={11} />
+          <span style={{ fontSize: 11.5, fontWeight: 800, color: C.text }}>{it.label}</span>
+        </button>
+      ))}
+    </motion.div>
+  )
+}
+
+// شيت سلفة سريعة — العامل بوقّفك عالسلم «أعطيني 500»: تسجّلها بأقل من 10 ثواني
+function AdvanceQuickSheet({ open, onClose, employees, projects, addAdvance, lang, showToast }) {
+  const [empId, setEmpId] = useState('')
+  const [amount, setAmount] = useState('')
+  const [projId, setProjId] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const L = (ar, he, en) => lang === 'he' ? he : lang === 'en' ? en : ar
+
+  async function submit() {
+    const amt = Number(amount)
+    if (!empId || !amt || amt <= 0) { showToast?.(L('اختر العامل واكتب المبلغ', 'בחר עובד והזן סכום', 'Pick a worker and enter an amount'), 'error'); return }
+    setSaving(true)
+    try {
+      await addAdvance({ employee_id: empId, amount: amt, notes: L('سلفة سريعة من الرئيسية', 'מקדמה מהירה מהדשבורד', 'Quick advance from dashboard'), date: todayStr(), project_id: projId || null })
+      showToast?.(L('انحفظت السلفة ✓', 'המקדמה נשמרה ✓', 'Advance saved ✓'), 'success')
+      setEmpId(''); setAmount(''); setProjId('')
+      onClose()
+    } catch (e) {
+      showToast?.(e?.message || L('صار خطأ — جرّب مرة ثانية', 'קרתה שגיאה — נסה שוב', 'Something went wrong — try again'), 'error')
+    } finally { setSaving(false) }
+  }
+
+  const selStyle = { width: '100%', padding: '13px 14px', background: 'rgba(255,255,255,0.05)', border: `1px solid ${C.border}`, borderRadius: 14, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit', appearance: 'auto' }
+  const lblStyle = { fontSize: 11, fontWeight: 700, color: C.textDim, marginBottom: 6, display: 'block', letterSpacing: '0.03em' }
+
+  return (
+    <Modal open={open} onClose={onClose} title={L('سلفة سريعة', 'מקדמה מהירה', 'Quick advance')}
+      action={<Btn onClick={submit} disabled={saving} full>{saving ? L('جارٍ الحفظ…', 'שומר…', 'Saving…') : L('سجّل السلفة', 'רשום מקדמה', 'Log advance')}</Btn>}>
+      <div style={{ marginBottom: 14 }}>
+        <label style={lblStyle}>{L('العامل', 'עובד', 'Worker')} <span style={{ color: C.accent }}>*</span></label>
+        <select value={empId} onChange={e => setEmpId(e.target.value)} style={selStyle}>
+          <option value="">{L('اختر عامل…', 'בחר עובד…', 'Pick a worker…')}</option>
+          {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+        </select>
+      </div>
+      <Input label={L('المبلغ (₪)', 'סכום (₪)', 'Amount (₪)')} type="number" value={amount} onChange={setAmount} required min={1} placeholder="500" />
+      <div style={{ marginBottom: 14 }}>
+        <label style={lblStyle}>{L('المشروع (اختياري)', 'פרויקט (אופציונלי)', 'Project (optional)')}</label>
+        <select value={projId} onChange={e => setProjId(e.target.value)} style={selStyle}>
+          <option value="">{L('بدون مشروع', 'ללא פרויקט', 'No project')}</option>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </div>
+    </Modal>
   )
 }
 
@@ -290,10 +358,13 @@ function PlanBadge({ lang }) {
 
 export default function DashboardScreen({
   projects = [], employees = [], workDays = [], expenses = [],
-  payments = [], advances = [], clientReceipts = [], onNav, permissions,
+  payments = [], advances = [], clientReceipts = [], onNav, permissions, addAdvance,
 }) {
   const { t } = useTranslation()
   const { language } = useAppStore()
+  const setPendingAction = useAppStore(s => s.setPendingAction)
+  const showToast = useAppStore(s => s.showToast)
+  const [advOpen, setAdvOpen] = useState(false)
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
   // ── Computed stats ──────────────────────────────────────────────────────────
@@ -484,6 +555,28 @@ export default function DashboardScreen({
           </PremiumShell>
         </motion.div>
       )}
+
+      {/* ─── الإدخال الموحّد: قبضة / سلفة / مصروف — مكان واحد بدل التوهان بين الشاشات ─── */}
+      <QuickAddBar items={[
+        ...(showAmounts ? [{
+          key: 'receipt', icon: DollarSign, color: C.success,
+          label: language === 'he' ? 'קבלה' : language === 'en' ? 'Receipt' : 'قبضة',
+          onClick: () => { setPendingAction({ type: 'add_receipt' }); onNav?.('finance') },
+        }] : []),
+        ...(employees.length > 0 && permissions?.viewWorkers !== false && addAdvance ? [{
+          key: 'advance', icon: HandCoins, color: C.warning,
+          label: language === 'he' ? 'מקדמה' : language === 'en' ? 'Advance' : 'سلفة',
+          onClick: () => setAdvOpen(true),
+        }] : []),
+        ...(permissions?.viewExpenses !== false ? [{
+          key: 'expense', icon: CreditCard, color: C.accent,
+          label: language === 'he' ? 'הוצאה' : language === 'en' ? 'Expense' : 'مصروف',
+          onClick: () => { setPendingAction({ type: 'add_expense' }); onNav?.('finance') },
+        }] : []),
+      ]} />
+
+      <AdvanceQuickSheet open={advOpen} onClose={() => setAdvOpen(false)} employees={employees} projects={projects}
+        addAdvance={addAdvance} lang={language} showToast={showToast} />
 
       {!showAmounts && (
         <div style={{ marginBottom: 12, padding: '12px 14px', borderRadius: 14, background: `${C.secondary}10`, border: `1px solid ${C.secondary}28`, display: 'flex', alignItems: 'center', gap: 10 }}>
