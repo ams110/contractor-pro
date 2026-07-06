@@ -41,7 +41,7 @@ export default function AdReel() {
   const i      = Number(params.get('idea') || 0)
   const idea   = list[i] || list[0]
   // الأفكار العبرية تحمل screen خاصّها؛ العربية تستعمل SCREEN_MAP حسب الفهرس
-  const map    = idea.screen ? { s: idea.screen, f: idea.focus } : (SCREEN_MAP[i] || { s: 'dashboard' })
+  const map    = idea.screen ? { s: idea.screen, f: idea.focus, c: idea.click } : (SCREEN_MAP[i] || { s: 'dashboard' })
   const t       = TONE[idea.tone] || TONE.brand
   const dur     = Number(params.get('dur') || 11000)
   const seekMode = params.has('seek')
@@ -119,7 +119,7 @@ export default function AdReel() {
 
       {/* الموبايل */}
       <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', marginTop: 44, width: '100%', opacity: phone.o, transform: `translateY(${phone.y}px)` }}>
-        <Phone screen={map.s} focus={map.f} scale={1.5} lang={he ? 'he' : undefined} />
+        <Phone screen={map.s} focus={map.f} click={map.c} scale={1.5} lang={he ? 'he' : undefined} />
       </div>
 
       {/* CTA السفلي */}
