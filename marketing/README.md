@@ -17,6 +17,7 @@
 | `contractor-pro-ugc-adam.mp4` | شهادة **Adam** (مقاول شاب) · ~26s · lip-sync عربي. |
 | `pain-advance.mp4` · `pain-profit.mp4` · `pain-vat.mp4` | **وجع←حل** · 15s لكل وحدة (السلف · الربح · الضرايب) — للإعلان المدفوع A/B. |
 | `before-after.mp4` | **قبل/بعد** · ~15s · فوضى الورق → التطبيق المنظّم + فلاش أبيض. |
+| `he-cinematic-paper.mp4` | 🇮🇱 **سينمائي עברي «בנית בניין שלם.»** · 10s · مقاول على سقالة وقت الغروب (Higgsfield) + بطاقات نص عبرية محروقة (`scripts/cinematic-he-cards.mjs`) — AD-015 بسجلّ الحملات. |
 
 كلها **عمودي 1080×1920**، مناسبة لـReels / TikTok / Shorts / Stories.
 

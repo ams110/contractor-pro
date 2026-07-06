@@ -377,9 +377,9 @@ function Block({ b, start }) {
 // ═══════════════════════════════════════════════════════════════════════════
 //  الموبايل (إطار + شاشة)
 // ═══════════════════════════════════════════════════════════════════════════
-function Phone({ screen = 'dashboard', focus, scale = 1, lang }) {
+function Phone({ screen = 'dashboard', focus, click, scale = 1, lang }) {
   const SCREEN_H = 668, BAR_H = 30
-  const src = `/demoshot?screen=${screen}${focus ? `&focus=${encodeURIComponent(focus)}` : ''}${lang ? `&lang=${lang}` : ''}`
+  const src = `/demoshot?screen=${screen}${focus ? `&focus=${encodeURIComponent(focus)}` : ''}${click ? `&click=${encodeURIComponent(click)}` : ''}${lang ? `&lang=${lang}` : ''}`
   return (
     <div style={{ width: 372, transform: `scale(${scale})`, transformOrigin: 'top center', filter: 'drop-shadow(0 40px 80px rgba(0,0,0,0.6))' }}>
       <div style={{ position: 'relative', borderRadius: 46, padding: 11, background: 'linear-gradient(160deg,#23262f,#0a0b12)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -577,6 +577,21 @@ const IDEAS_HE = [
   { tag: 'שכר מדויק', tone: 'gold', screen: 'payments',
     kw: 'שילמת לכל פועל', head: 'בדיוק מה שמגיע?',
     sub: 'ימי עבודה ושעות נוספות פחות מקדמות — השכר מחושב לבד. בלי ויכוחים ובלי טעויות בסוף החודש.' },
+
+  // 9 · مسح الإيصال OCR (توفير جهد/وقت — חוסך זמן) · شاشة المصاريف
+  { tag: 'סריקת קבלות', tone: 'premium', screen: 'expenses',
+    kw: 'עוד אוסף קבלות', head: 'בכיס של הרכב?',
+    sub: 'מצלם קבלה — כבלאן קורא לבד את הסכום, הספק והמע"מ, ומכניס להוצאות של הפרויקט. שנייה אחת במקום ערב שלם.' },
+
+  // 10 · الذمّة الصافية (فضول + سيطرة) · بطاقة ההון הנקי (داخل قسم التحليلات المطوي → click)
+  { tag: 'ההון הנקי', tone: 'success', screen: 'dashboard', click: 'ניתוחים חכמים', focus: 'ההון הנקי',
+    kw: 'כמה העסק שלך', head: 'שווה עכשיו?',
+    sub: 'מזומן ועוד חובות של לקוחות, פחות מה שאתה חייב לפועלים — ההון הנקי שלך, חי על המסך. רוב הקבלנים לא יודעים את המספר הזה.' },
+
+  // 11 · نبض المصلحة (فحص صحّة برقم — امتداد الفائز العربي 32K) · بطاقة דופק העסק (التحليلات المطوية → click)
+  { tag: 'דופק העסק', tone: 'cyan', screen: 'dashboard', click: 'ניתוחים חכמים', focus: 'דופק העסק',
+    kw: 'העסק שלך בריא?', head: 'יש לזה ציון.',
+    sub: 'כבלאן בודק את המזומן, הגבייה, הרווח והמגמה שלך — ונותן לעסק ציון מ-0 עד 100 עם המלצות מה לתקן. אוטומטי, מהנייד.' },
 ]
 
 // ─── خريطة كل فكرة → شاشة حقيقية من التطبيق (تُعرض داخل الموبايل عبر iframe) ──
@@ -628,7 +643,7 @@ function Poster({ idea, ideaIndex, size, lang = 'ar' }) {
   const t = TONE[idea.tone] || TONE.brand
   const he = lang === 'he'
   // الأفكار العبرية تحمل screen خاصّها؛ العربية تستعمل SCREEN_MAP حسب الفهرس
-  const map = idea.screen ? { s: idea.screen, f: idea.focus } : (SCREEN_MAP[ideaIndex] || { s: 'dashboard' })
+  const map = idea.screen ? { s: idea.screen, f: idea.focus, c: idea.click } : (SCREEN_MAP[ideaIndex] || { s: 'dashboard' })
   const L = he
     ? { cta: 'נסה 14 יום חינם', tagline: 'ניהול קבלנות מהנייד', font: "'Noto Sans Hebrew', system-ui, sans-serif" }
     : { cta: 'جرّب 14 يوم مجاناً', tagline: 'إدارة مقاولاتك من جيبك', font: "'Noto Sans Arabic', system-ui, sans-serif" }
@@ -673,7 +688,7 @@ function Poster({ idea, ideaIndex, size, lang = 'ar' }) {
       {/* الموبايل — flex:1 + overflow hidden: ينقص بأناقة ويبقى الفوتر ظاهراً */}
       <motion.div initial={{ opacity: 0, y: 36, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
         style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', alignItems: size === 'story' ? 'center' : 'flex-start', justifyContent: 'center', marginTop: size === 'square' ? 24 : 40, width: '100%' }}>
-        <Phone screen={map.s} focus={map.f} scale={phoneScale} lang={he ? 'he' : undefined} />
+        <Phone screen={map.s} focus={map.f} click={map.c} scale={phoneScale} lang={he ? 'he' : undefined} />
       </motion.div>
 
       {/* الشريط السفلي */}

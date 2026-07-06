@@ -43,6 +43,7 @@ export default function DemoShot() {
   const name = params.get('screen') || 'dashboard'
   const focus = params.get('focus')        // نصّ بطاقة لتمريرها لأعلى الشاشة
   const y = params.get('y')                 // أو إزاحة تمرير بالبكسل
+  const click = params.get('click')         // نصّ زر يُنقر مرّة قبل الـfocus (فتح قسم مطوي/تبويب)
   const lang = params.get('lang')           // ar | he | en — لشاشة بلغة الإعلان (موكاب البوسترات العبرية)
 
   // ابنِ الديمو باللغة المطلوبة مرّة واحدة (الأسماء الحرّة تُعرَّب للعبري).
@@ -62,16 +63,26 @@ export default function DemoShot() {
     seedDemoStores(demo)
     // تمرير لإظهار البطاقة المطلوبة. نمرّر عدّة مرّات لأن البطاقات الفخمة
     // تتحرّك للداخل (Framer) فيزيح موضعها — وحتى يلتقطه التسجيل (reel) مبكراً.
-    if (!focus && !y) return
+    if (!focus && !y && !click) return
+    // نقرة واحدة (بحارس) لفتح قسم مطوي أو تبويب قبل التمرير — click=<نصّ الزر>
+    let clicked = false
+    const doClick = () => {
+      if (!click || clicked) return
+      const el = [...document.querySelectorAll('button, [role="tab"], [role="button"]')]
+        .find(n => n.textContent && n.textContent.trim().includes(click))
+      if (el) { el.click(); clicked = true }
+    }
     const doScroll = () => {
+      doClick()
       if (y) { window.scrollTo({ top: Number(y), behavior: 'instant' }); return }
+      if (!focus) return
       const el = [...document.querySelectorAll('div, section, h1, h2, h3, span')]
         .find(n => n.children.length < 6 && n.textContent && n.textContent.trim().startsWith(focus))
       if (el) el.scrollIntoView({ block: 'start', behavior: 'instant' })
     }
-    const timers = [700, 1400, 2400, 3600].map(ms => setTimeout(doScroll, ms))
+    const timers = [700, 1400, 2400, 3600, 5200].map(ms => setTimeout(doScroll, ms))
     return () => timers.forEach(clearTimeout)
-  }, [focus, y])
+  }, [focus, y, click])
 
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, color: C.text, direction: 'rtl', paddingBottom: 24 }}>
