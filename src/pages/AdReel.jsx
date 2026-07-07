@@ -48,7 +48,7 @@ export default function AdReel() {
   // نصوص واجهة الريل حسب اللغة (CTA/تذييل/خط) — مطابقة لـPoster في AdStudio
   const L = he
     ? { cta: 'נסה 14 יום חינם', link: 'הקישור בביו', brand: 'כבלאן', tagline: 'ניהול קבלנות מהנייד', font: "'Noto Sans Hebrew', system-ui, sans-serif" }
-    : { cta: 'جرّب 14 يوم مجاناً', link: 'الرابط بالبايو', brand: null, tagline: 'إدارة مقاولاتك من جيبك', font: "'Noto Sans Arabic', system-ui, sans-serif" }
+    : { cta: 'جرّب 14 يوم مجاناً — بلا بطاقة', link: 'الرابط بالبايو', brand: null, tagline: 'إدارة مقاولاتك من جيبك', font: "'Noto Sans Arabic', system-ui, sans-serif" }
 
   const [tMs, setTMs] = useState(seekMode ? 0 : 0)
   const rafRef = useRef(0)
