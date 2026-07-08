@@ -202,10 +202,11 @@ export default function BoardDashboard({
           </div>
         </Panel>
 
-        {/* 08 — شريط التاغلاين (DNA اللوحة: سطر هادئ متباعد الأحرف) */}
-        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '10px 0 2px' }}>
-          <span style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.2em' }}>
-            {tl(language, 'مصلحتك كلها. بجيبك.', 'כל העסק שלך. בכיס.', 'YOUR WHOLE BUSINESS. IN YOUR POCKET.')}
+        {/* 08 — شريط التاغلاين بلونين (طابع بانل 04 باللوحة: أبيض + كلمة النهاية بالبرتقالي) */}
+        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '12px 0 2px' }}>
+          <span style={{ fontSize: 15, fontWeight: 900, letterSpacing: '-0.01em' }}>
+            <span style={{ color: C.text }}>{tl(language, 'مصلحتك كلها. ', 'כל העסק שלך. ', 'Your whole business. ')}</span>
+            <span style={{ color: C.primary }}>{tl(language, 'بجيبك.', 'בכיס.', 'In your pocket.')}</span>
           </span>
         </div>
       </div>
