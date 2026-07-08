@@ -5,11 +5,11 @@ afterEach(() => applyTheme('dark'))
 
 describe('نظام الثيمات', () => {
   it('يضم الثيمات الخمسة (داكن + ورشة + 3 شخصيات)', () => {
-    expect(Object.keys(PALETTES).sort()).toEqual(['dark', 'emerald', 'royal', 'site', 'steel'])
+    expect(Object.keys(PALETTES).sort()).toEqual(['dark', 'emerald', 'gold', 'royal', 'site', 'steel'])
   })
 
   it('THEME_META يعرض الثيمات الداكنة فقط (وضع الورشة مفتاح مستقل)', () => {
-    expect(THEME_META.map(t => t.id)).toEqual(['dark', 'steel', 'emerald', 'royal'])
+    expect(THEME_META.map(t => t.id)).toEqual(['dark', 'steel', 'emerald', 'royal', 'gold'])
     THEME_META.forEach(t => {
       expect(t.ar).toBeTruthy()
       expect(t.swatch).toHaveLength(2)
@@ -25,6 +25,8 @@ describe('نظام الثيمات', () => {
     expect(C.primary).toBe('#14B8A6')
     applyTheme('royal')
     expect(C.primary).toBe('#A855F7')
+    applyTheme('gold')
+    expect(C.primary).toBe('#E3A82B')
   })
 
   it('applyTheme يبدّل تدرّجات الهوية (primary/brand/dark) ويحافظ على الوظيفية', () => {
@@ -52,7 +54,7 @@ describe('نظام الثيمات', () => {
   })
 
   it('الدلالات الوظيفية ثابتة بكل الثيمات الداكنة', () => {
-    for (const id of ['steel', 'emerald', 'royal']) {
+    for (const id of ['steel', 'emerald', 'royal', 'gold']) {
       const p = PALETTES[id]
       expect(p.success).toBe('#22C55E')
       expect(p.accent).toBe('#EF4444')
@@ -62,7 +64,7 @@ describe('نظام الثيمات', () => {
   })
 
   it('حدود كل ثيم مشتقة من primary الخاص به', () => {
-    for (const id of ['steel', 'emerald', 'royal']) {
+    for (const id of ['steel', 'emerald', 'royal', 'gold']) {
       const p = PALETTES[id]
       const [r, g, b] = p.primary.slice(1).match(/../g).map(h => parseInt(h, 16))
       expect(p.border).toBe(`rgba(${r},${g},${b},0.08)`)

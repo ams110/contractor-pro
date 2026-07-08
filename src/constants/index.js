@@ -93,9 +93,19 @@ const PALETTE_ROYAL = {
   orange: '#A855F7',
 }
 
+const PALETTE_GOLD = {
+  ...PALETTE_DARK,
+  bg: '#0A0805', surface: '#131009', card: '#1B160D',
+  primary: '#E3A82B', secondary: '#B45309', cyan: '#22D3EE', textDim: '#8A7B5C',
+  textMuted: '#241D10',
+  border: 'rgba(227,168,43,0.08)', borderMid: 'rgba(227,168,43,0.18)',
+  orange: '#E3A82B',
+}
+
 export const PALETTES = {
   dark: PALETTE_DARK, site: PALETTE_SITE,
   steel: PALETTE_STEEL, emerald: PALETTE_EMERALD, royal: PALETTE_ROYAL,
+  gold: PALETTE_GOLD,
 }
 
 // تدرّجات لكل ثيم: primary/brand/dark تتبع شخصية الثيم، والوظيفية ثابتة.
@@ -122,6 +132,11 @@ const GRAD_THEMES = {
     brand:   'linear-gradient(135deg, #A855F7, #EC4899)',
     dark:    'linear-gradient(180deg, #110C21 0%, #0A0714 100%)',
   },
+  gold: {
+    primary: 'linear-gradient(135deg, #E3A82B, #B45309)',
+    brand:   'linear-gradient(135deg, #E3A82B, #B45309)',
+    dark:    'linear-gradient(180deg, #131009 0%, #0A0805 100%)',
+  },
 }
 
 // قائمة الثيمات لواجهة الاختيار (الإعدادات). «وضع الورشة» مفتاح مستقل لأنّه فاتح
@@ -131,6 +146,7 @@ export const THEME_META = [
   { id: 'steel',   ar: 'فولاذ — أزرق',      he: 'פלדה — כחול',    en: 'Steel — Blue',      swatch: ['#3B82F6', '#070A12'] },
   { id: 'emerald', ar: 'زمرّد — أخضر',      he: 'אזמרגד — ירוק',  en: 'Emerald — Green',   swatch: ['#14B8A6', '#060C09'] },
   { id: 'royal',   ar: 'ليل ملكي — بنفسجي', he: 'לילה מלכותי',    en: 'Royal — Violet',    swatch: ['#A855F7', '#0A0714'] },
+  { id: 'gold',    ar: 'ذهب — فاخر',        he: 'זהב — יוקרתי',   en: 'Gold — Luxe',       swatch: ['#E3A82B', '#0A0805'] },
 ]
 
 // ─── أنماط الواجهة (شكل الشاشة الرئيسية) — مستقلة عن ألوان الثيم ──────────────
