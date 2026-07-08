@@ -23,6 +23,9 @@ const BusinessPulse = lazy(() => import('../../components/BusinessPulse.jsx'))
 const CashForecast = lazy(() => import('../../components/CashForecast.jsx'))
 const CommandCenter = lazy(() => import('../../components/CommandCenter.jsx'))
 const NetWorth = lazy(() => import('../../components/NetWorth.jsx'))
+// واجهات بديلة كاملة للرئيسية (الإعدادات → المظهر → شكل الواجهة) — lazy حتى ما تثقّل الافتراضي
+const CompactDashboard = lazy(() => import('./CompactDashboard.jsx'))
+const SimpleDashboard = lazy(() => import('./SimpleDashboard.jsx'))
 
 // هيكل تحميل رفيع بنمط بطاقات الرؤى (يظهر لحظات ريثما يصل chunk اللوحات)
 function PanelSkeleton() {
@@ -357,7 +360,22 @@ function PlanBadge({ lang }) {
   )
 }
 
-export default function DashboardScreen({
+// المبدّل: يختار الواجهة حسب نمط «شكل الواجهة» (الإعدادات → المظهر).
+// wrapper منفصل حتى تبقى hooks كل واجهة ثابتة الترتيب داخلها.
+export default function DashboardScreen(props) {
+  const layout = useAppStore(s => s.layout)
+  if (layout === 'compact' || layout === 'simple') {
+    const Alt = layout === 'compact' ? CompactDashboard : SimpleDashboard
+    return (
+      <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
+        <Alt {...props} />
+      </Suspense>
+    )
+  }
+  return <ComfortDashboard {...props} />
+}
+
+function ComfortDashboard({
   projects = [], employees = [], workDays = [], expenses = [],
   payments = [], advances = [], clientReceipts = [], onNav, permissions, addAdvance, soloMode = false,
 }) {

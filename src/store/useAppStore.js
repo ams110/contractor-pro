@@ -41,6 +41,20 @@ export const useAppStore = create((set, get) => ({
     } else get().setTheme('site')
   },
 
+  // ─── Layout (شكل الواجهة الرئيسية) ─────────────────────────────────────────
+  // comfort (الفخم الافتراضي) · compact (مكثّف) · simple (الواضح الكبير)
+  layout: (() => {
+    try {
+      const l = localStorage.getItem('cp_layout')
+      return ['comfort', 'compact', 'simple'].includes(l) ? l : 'comfort'
+    } catch { return 'comfort' }
+  })(),
+  setLayout: (l) => {
+    const v = ['comfort', 'compact', 'simple'].includes(l) ? l : 'comfort'
+    try { localStorage.setItem('cp_layout', v) } catch { /* private mode */ }
+    set({ layout: v })
+  },
+
   // ─── Pending Action ───────────────────────────────────────────────────────
   // طريقة لتمرير "نية" بين الشاشات: مثلاً من ProjectsScreen → FinanceScreen
   // لفتح subTab محدد مع مشروع كفلتر مسبق + (اختياري) فتح فورم الإدخال.

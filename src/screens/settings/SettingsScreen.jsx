@@ -12,7 +12,7 @@ import {
   RotateCw, QrCode, Copy, ArrowRight, MessageCircle, AlertTriangle, Sun,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
-import { C, GRAD, MORE_SCREENS, navLabel, THEME_META } from '../../constants/index.js'
+import { C, GRAD, MORE_SCREENS, navLabel, THEME_META, LAYOUT_META } from '../../constants/index.js'
 import { HolographicSheen } from '../../ui/Premium.jsx'
 import { useAppStore } from '../../store/useAppStore.js'
 import { lockOnBackgroundEnabled, LOCK_ON_BG_KEY } from '../../lib/sessionLock.js'
@@ -336,7 +336,7 @@ export default function SettingsScreen({
   pushSubStatus, forceResubscribePush,
 }) {
   const { t } = useTranslation()
-  const { language, setLanguage, theme, setTheme } = useAppStore()
+  const { language, setLanguage, theme, setTheme, layout, setLayout } = useAppStore()
   const activeBusiness = useBusinessStore(s => s.activeBusiness)
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
@@ -753,6 +753,34 @@ export default function SettingsScreen({
               {tl(language, 'وضع الورشة شغّال حالياً — اختيار لون بيرجعك للوضع الداكن.', 'מצב אתר פעיל — בחירת צבע תחזיר למצב כהה.', 'Site mode is on — picking a color returns to dark mode.')}
             </div>
           )}
+        </div>
+
+        {/* ── شكل الواجهة: واجهات كاملة بديلة للشاشة الرئيسية ── */}
+        <div style={{ padding: '2px 16px 14px' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.textDim, marginBottom: 10 }}>
+            {tl(language, 'شكل الواجهة الرئيسية', 'סגנון המסך הראשי', 'Home screen style')}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {LAYOUT_META.map(l => {
+              const active = layout === l.id
+              return (
+                <motion.button key={l.id} whileTap={{ scale: 0.97 }} onClick={() => setLayout?.(l.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start',
+                    background: active ? `${C.primary}14` : C.card,
+                    border: `1.5px solid ${active ? C.primary : C.border}` }}>
+                  <span style={{ width: 34, height: 26, borderRadius: 7, flexShrink: 0, border: `1px solid ${C.borderMid}`, background: C.surface, display: 'flex', flexDirection: 'column', gap: 2, padding: 3 }}>
+                    {l.id === 'comfort' && (<><span style={{ flex: 1.6, borderRadius: 3, background: GRAD.primary, opacity: 0.85 }} /><span style={{ flex: 1, borderRadius: 3, background: `${C.primary}30` }} /></>)}
+                    {l.id === 'compact' && (<span style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>{[0, 1, 2, 3].map(i => <span key={i} style={{ borderRadius: 2, background: `${C.primary}${i === 0 ? '' : '30'}`, ...(i === 0 ? { backgroundImage: GRAD.primary } : {}) }} />)}</span>)}
+                    {l.id === 'simple' && (<><span style={{ flex: 1, borderRadius: 3, background: GRAD.primary, opacity: 0.85 }} /><span style={{ flex: 1, borderRadius: 3, background: `${C.primary}30` }} /></>)}
+                  </span>
+                  <span style={{ flex: 1, fontSize: 12, fontWeight: 800, color: active ? C.text : C.textDim, lineHeight: 1.3 }}>
+                    {language === 'he' ? l.he : language === 'en' ? l.en : l.ar}
+                  </span>
+                  {active && <Check size={14} color={C.primary} strokeWidth={3} />}
+                </motion.button>
+              )
+            })}
+          </div>
         </div>
       </Section>
 

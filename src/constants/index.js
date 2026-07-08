@@ -133,6 +133,15 @@ export const THEME_META = [
   { id: 'royal',   ar: 'ليل ملكي — بنفسجي', he: 'לילה מלכותי',    en: 'Royal — Violet',    swatch: ['#A855F7', '#0A0714'] },
 ]
 
+// ─── أنماط الواجهة (شكل الشاشة الرئيسية) — مستقلة عن ألوان الثيم ──────────────
+// comfort = الحالي الفخم (رؤى وبطاقات كبيرة) · compact = مكثّف أرقام أولاً ·
+// simple = «الواضح الكبير» خطوط ضخمة وأزرار عملاقة (لكبار السن/غير التقنيين).
+export const LAYOUT_META = [
+  { id: 'comfort', ar: 'الفخم — رؤى وبطاقات',   he: 'מפואר — תובנות',  en: 'Premium — insights' },
+  { id: 'compact', ar: 'مكثّف — أرقام أولاً',    he: 'דחוס — מספרים',   en: 'Compact — numbers first' },
+  { id: 'simple',  ar: 'الواضح الكبير — بسيط',  he: 'גדול וברור',      en: 'Big & clear — simple' },
+]
+
 export const C = { ...PALETTE_DARK }
 
 // تبديل الثيم بالمكان: كل قراءات C وقت الرندر بتلقط القيم الجديدة، وApp بيعيد

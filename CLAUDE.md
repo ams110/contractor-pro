@@ -35,6 +35,8 @@ npm run ads:shots     # بوسترات إعلانية من /adstudio (square/por
 المصدر الموثوق: `src/constants/index.js` (كائن `C` للألوان و`GRAD` للتدرّجات). **استعملهم دائماً بدل قيم hard-coded.**
 
 > 🎨 **نظام ثيمات متعدد** (المستخدم يبدّل من الإعدادات → المظهر): `PALETTES` = `dark` (الافتراضي، الهوية أدناه) · `site` («وضع الورشة» الفاتح للشمس — مفتاح مستقل) · `steel` (أزرق) · `emerald` (أخضر) · `royal` (بنفسجي). `applyTheme(id)` يبدّل `C` **و**تدرّجات الهوية (`GRAD.primary/brand/dark`) بالمكان + CSS vars (`--c-*`)، والتطبيق يعيد التركيب بـ`key={theme}`. القائمة للواجهة: `THEME_META`. التخزين: `localStorage cp_theme` (+`cp_theme_dark` = آخر ثيم داكن يرجعله مفتاح الورشة). **قواعد**: الدلالات الوظيفية ثابتة بكل ثيم (success أخضر · accent أحمر · warning أصفر) — لا تربط دلالة مالية بـ`primary`. وداخل التطبيق **ممنوع** توهّجات برتقالية مقسّاة `rgba(249,115,22,…)` — استعمل `color-mix(in srgb, var(--c-primary) N%, transparent)` (يتبع الثيم حتى داخل strings عادية). صفحات التسويق (`pages/`) تبقى بهوية البراند البرتقالية عمداً. مغطّى بـ`themes.test.js`.
+>
+> 🖥️ **أنماط الواجهة** (الإعدادات → المظهر → شكل الواجهة، مستقلة عن الثيم اللوني): `LAYOUT_META` = `comfort` (الافتراضي الفخم — الرؤى والبطاقات) · `compact` («مكثّف» — `dashboard/CompactDashboard.jsx`، شبكة أرقام كثيفة بلا أنيميشن) · `simple` («الواضح الكبير» — `dashboard/SimpleDashboard.jsx`، خطوط ضخمة وأزرار عملاقة لكبار السن). المبدّل wrapper في `DashboardScreen.jsx` (lazy للبديلين)، التخزين `localStorage cp_layout` عبر `useAppStore.layout/setLayout`. **البديلان يعيدان استخدام نفس دوال `calculations.js` النقيّة** — الأرقام متطابقة بكل الواجهات، ويحترمان `viewAmounts` (تقنيع `•••`) و`soloMode`.
 
 | دور | المتغيّر | القيمة |
 |-----|----------|--------|
