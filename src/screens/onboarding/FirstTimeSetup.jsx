@@ -128,7 +128,7 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee, setSoloMo
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             style={{ width: 72, height: 72, borderRadius: 22, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 16px 48px rgba(245,158,11,0.35), 0 0 0 1px rgba(255,255,255,0.1) inset', marginBottom: 20 }}
           >
-            <HardHat size={36} color="#000" strokeWidth={1.8} />
+            <HardHat size={36} color="#fff" strokeWidth={1.8} />
           </motion.div>
           <div style={{ fontSize: 22, fontWeight: 900, color: C.text, textAlign: 'center', letterSpacing: '-0.02em', marginBottom: 10 }}>
             {t.welcome}

@@ -212,7 +212,7 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount, nav = NA
       <div style={{ padding: '18px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 36, height: 36, borderRadius: 11, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(245,158,11,0.35)', flexShrink: 0 }}>
-            <HardHat size={18} color="#000" strokeWidth={2} />
+            <HardHat size={18} color="#fff" strokeWidth={2} />
           </div>
           <div style={{ fontSize: 14, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>{language === 'ar' ? 'كبلان' : 'Kabblan'}</div>
         </div>
@@ -515,10 +515,10 @@ function OwnerApp() {
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
           style={{ width: 96, height: 96, borderRadius: 30, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 26, boxShadow: '0 20px 60px rgba(245,158,11,0.4), 0 0 0 1px rgba(255,255,255,0.12) inset', position: 'relative', zIndex: 1 }}
         >
-          <HardHat size={48} color="#000" strokeWidth={1.5} />
+          <HardHat size={48} color="#fff" strokeWidth={1.5} />
         </motion.div>
         <div style={{ fontSize: 28, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6, letterSpacing: '-0.02em', position: 'relative', zIndex: 1 }}>{language === 'ar' ? 'كبلان' : 'Kabblan'}</div>
-        <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.15em', marginBottom: 44, textTransform: 'uppercase', fontWeight: 600, position: 'relative', zIndex: 1 }}>{tl(language, 'إدارة مشاريعك بذكاء', 'נהל את הפרויקטים שלך בחוכמה', 'Manage your projects smartly')}</div>
+        <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.15em', marginBottom: 44, textTransform: 'uppercase', fontWeight: 600, position: 'relative', zIndex: 1 }}>{tl(language, 'مصلحتك كلها. بجيبك.', 'כל העסק שלך. בכיס.', 'Your whole business. In your pocket.')}</div>
         <div style={{ position: 'relative', zIndex: 1 }}><LoadingSpinner /></div>
       </div>
     )
@@ -703,12 +703,12 @@ function OwnerApp() {
       <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(7,8,15,0.93)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(249,115,22,0.07)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 42, height: 42, borderRadius: 14, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(245,158,11,0.4), 0 1px 0 rgba(255,255,255,0.15) inset', flexShrink: 0 }}>
-            <HardHat size={22} color="#000" strokeWidth={2} />
+            <HardHat size={22} color="#fff" strokeWidth={2} />
           </div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.2, letterSpacing: '-0.02em' }}>{language === 'ar' ? 'كبلان' : 'Kabblan'}</div>
             <div style={{ fontSize: 9, color: C.primary, letterSpacing: '0.08em', fontWeight: 700, opacity: 0.75, textTransform: 'uppercase' }}>
-              {navLabel(NAV.find(n => n.id === activeNav), language) || navLabel(MORE_SCREENS.find(s => s.id === screen), language) || tl(language, 'إدارة مشاريعك بذكاء', 'נהל את הפרויקטים שלך בחוכמה', 'Manage your projects smartly')}
+              {navLabel(NAV.find(n => n.id === activeNav), language) || navLabel(MORE_SCREENS.find(s => s.id === screen), language) || tl(language, 'مصلحتك كلها. بجيبك.', 'כל העסק שלך. בכיס.', 'Your whole business. In your pocket.')}
             </div>
           </div>
         </div>
@@ -867,7 +867,7 @@ function OwnerApp() {
             >
               <div style={{ textAlign: 'center', marginBottom: 22 }}>
                 <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 8px 28px rgba(245,158,11,0.35)' }}>
-                  <HardHat size={32} color="#000" strokeWidth={1.8} />
+                  <HardHat size={32} color="#fff" strokeWidth={1.8} />
                 </div>
                 <div style={{ fontSize: 19, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tl(language, 'أهلاً بك في كبلان', 'ברוכים הבאים ל-Kabblan', 'Welcome to Kabblan')}</div>
                 <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>{tl(language, 'إليك أهم الميزات للبداية السريعة', 'הנה התכונות החשובות להתחלה מהירה', "Here are the key features to get you started")}</div>

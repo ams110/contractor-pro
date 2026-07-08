@@ -385,7 +385,7 @@ function LoginScreen({ onLogin, error, loading, onPasskeyLogin, hasPasskey, pass
       <div style={{ position: 'absolute', bottom: '-15%', left: '-15%', width: 280, height: 280, borderRadius: '50%', background: `radial-gradient(circle, ${C.secondary}22 0%, transparent 70%)`, pointerEvents: 'none' }} />
 
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 12px 36px rgba(245,158,11,0.35)', animation: 'float 3s ease-in-out infinite' }}><HardHat size={38} strokeWidth={1.8} color="#000" /></div>
+        <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 12px 36px rgba(245,158,11,0.35)', animation: 'float 3s ease-in-out infinite' }}><HardHat size={38} strokeWidth={1.8} color="#fff" /></div>
         <div style={{ fontSize: 24, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tl(language, 'بوابة العمال', 'פורטל העובדים', 'Worker Portal')}</div>
         <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, letterSpacing: '0.06em' }}>{tl(language, 'كبلان', 'כבלאן', 'Kabblan')}</div>
       </div>

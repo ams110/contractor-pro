@@ -318,7 +318,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
               كبلان
             </div>
             <div style={{ fontSize: 13, color: C.textDim, fontWeight: 500 }}>
-              {language === 'he' ? 'נהל את הפרויקטים שלך בחוכמה' : language === 'en' ? 'Manage your projects smartly' : 'إدارة مشاريعك بذكاء'}
+              {language === 'he' ? 'כל העסק שלך. בכיס.' : language === 'en' ? 'Your whole business. In your pocket.' : 'مصلحتك كلها. بجيبك.'}
             </div>
           </div>
 
