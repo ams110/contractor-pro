@@ -19,8 +19,21 @@ import { calcEarned, calcRevenue, calcPaid, calcAdvances, calcMutabqi, calcProje
 const NUM = { fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em', lineHeight: 1 }
 const EASE = [0.32, 0.72, 0, 1]
 
+// خطوط شعرية وظلال حسب فتحة الثيم — «وضع الورشة» الفاتح يحتاج حبر داكن بدل الأبيض
+const skinFor = (light) => light ? {
+  shellBg: 'rgba(11,18,32,0.035)', shellBorder: 'rgba(11,18,32,0.1)',
+  coreShadow: 'inset 0 1px 1px rgba(255,255,255,0.9), 0 12px 26px -14px rgba(11,18,32,0.22)',
+  hairline: 'rgba(11,18,32,0.1)', chipBg: 'rgba(11,18,32,0.05)', chipBorder: 'rgba(11,18,32,0.12)',
+  track: 'rgba(11,18,32,0.08)',
+} : {
+  shellBg: 'rgba(255,255,255,0.028)', shellBorder: 'rgba(255,255,255,0.07)',
+  coreShadow: 'inset 0 1px 1px rgba(255,255,255,0.07), 0 18px 40px -18px rgba(0,0,0,0.7)',
+  hairline: 'rgba(255,255,255,0.06)', chipBg: 'rgba(255,255,255,0.035)', chipBorder: 'rgba(255,255,255,0.08)',
+  track: 'rgba(255,255,255,0.05)',
+}
+
 // ─── Double-Bezel: غلاف hairline خارجي + قلب داخلي بإضاءة علوية (حرفة 2026) ────
-function Bezel({ no, label, span = 1, delay = 0, onClick, glow, children, coreStyle = {} }) {
+function Bezel({ no, label, span = 1, delay = 0, onClick, glow, children, coreStyle = {}, skin }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 26, filter: 'blur(6px)' }}
@@ -31,14 +44,14 @@ function Bezel({ no, label, span = 1, delay = 0, onClick, glow, children, coreSt
       style={{
         gridColumn: span === 2 ? '1 / -1' : 'auto',
         padding: 5, borderRadius: 26,
-        background: 'rgba(255,255,255,0.028)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: skin.shellBg,
+        border: `1px solid ${skin.shellBorder}`,
         cursor: onClick ? 'pointer' : 'default',
       }}>
       <div style={{
         position: 'relative', overflow: 'hidden', borderRadius: 21, height: '100%',
         background: `linear-gradient(160deg, ${C.surface} 0%, ${C.bg} 130%)`,
-        boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.07), 0 18px 40px -18px rgba(0,0,0,0.7)',
+        boxShadow: skin.coreShadow,
         padding: '14px 16px', ...coreStyle,
       }}>
         {glow && (
@@ -70,9 +83,11 @@ export default function BoardDashboard({
   payments = [], advances = [], clientReceipts = [], onNav, permissions, soloMode = false,
 }) {
   const { language } = useAppStore()
+  const theme = useAppStore(s => s.theme)
   const setPendingAction = useAppStore(s => s.setPendingAction)
   const showAmounts = permissions?.viewAmounts !== false
   const dir = language === 'en' ? 'ltr' : 'rtl'
+  const skin = skinFor(theme === 'site')
 
   const stats = useMemo(() => {
     const workerCosts   = calcEarned(workDays.filter(w => w.status === 'approved'))
@@ -129,7 +144,7 @@ export default function BoardDashboard({
             <div style={{ fontSize: 19, fontWeight: 900, color: C.text, letterSpacing: '-0.03em' }}>{tl(language, 'كبلان', 'כבלאן', 'Kabblan')}</div>
             <div style={{ fontSize: 10, color: C.textDim, fontWeight: 700, marginTop: 2 }}>{fmtDateFull(todayStr(), language)}</div>
           </div>
-          <span dir="ltr" style={{ fontSize: 9, fontWeight: 800, color: C.textDim, letterSpacing: '0.18em', border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.03)', borderRadius: 999, padding: '5px 11px', ...NUM }}>CP-01</span>
+          <span dir="ltr" style={{ fontSize: 9, fontWeight: 800, color: C.textDim, letterSpacing: '0.18em', border: `1px solid ${skin.chipBorder}`, background: skin.chipBg, borderRadius: 999, padding: '5px 11px', ...NUM }}>CP-01</span>
         </motion.div>
         <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.9, delay: 0.15, ease: EASE }}
           style={{ height: 1, background: `linear-gradient(90deg, transparent, color-mix(in srgb, var(--c-primary) 35%, transparent), transparent)`, margin: '12px 0 16px', transformOrigin: 'center' }} />
@@ -137,7 +152,7 @@ export default function BoardDashboard({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
 
           {/* 01 — بانل البطل: النقد بعدّاد ضخم + لمعة هولوغرافية */}
-          <Bezel no="01" span={2} delay={0.05} glow="var(--c-primary)"
+          <Bezel skin={skin} no="01" span={2} delay={0.05} glow="var(--c-primary)"
             label={tl(language, 'نقد بالجيب الآن', 'מזומן בכיס', 'CASH ON HAND')}
             coreStyle={{ padding: '18px 18px 20px', background: `linear-gradient(150deg, color-mix(in srgb, var(--c-primary) 10%, ${C.surface}) 0%, ${C.bg} 120%)` }}>
             <HolographicSheen />
@@ -153,7 +168,7 @@ export default function BoardDashboard({
           </Bezel>
 
           {/* 02 — الربح */}
-          <Bezel no="02" delay={0.14} label={tl(language, 'صافي الربح', 'רווח נקי', 'NET PROFIT')}>
+          <Bezel skin={skin} no="02" delay={0.14} label={tl(language, 'صافي الربح', 'רווח נקי', 'NET PROFIT')}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <IconChip icon={TrendingUp} color={C.cyan} size={30} radius={10} strokeWidth={1.8} />
               <CountMoney v={stats.netProfit} color={stats.netProfit >= 0 ? C.text : C.accent} show={showAmounts} />
@@ -162,14 +177,14 @@ export default function BoardDashboard({
 
           {/* 03 — للعمال / أيام معلّقة */}
           {soloMode ? (
-            <Bezel no="03" delay={0.2} onClick={() => onNav?.('workers')} label={tl(language, 'بانتظار موافقة', 'ממתינים', 'PENDING DAYS')}>
+            <Bezel skin={skin} no="03" delay={0.2} onClick={() => onNav?.('workers')} label={tl(language, 'بانتظار موافقة', 'ממתינים', 'PENDING DAYS')}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <IconChip icon={CalendarPlus} color={C.warning} size={30} radius={10} strokeWidth={1.8} />
                 <span dir="ltr" style={{ fontSize: 27, fontWeight: 900, color: stats.pendingWD ? C.warning : C.text, ...NUM }}>{stats.pendingWD}</span>
               </div>
             </Bezel>
           ) : (
-            <Bezel no="03" delay={0.2} onClick={() => onNav?.('workers')} label={tl(language, 'مستحق للعمال', 'מגיע לעובדים', 'OWED TO WORKERS')}>
+            <Bezel skin={skin} no="03" delay={0.2} onClick={() => onNav?.('workers')} label={tl(language, 'مستحق للعمال', 'מגיע לעובדים', 'OWED TO WORKERS')}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <IconChip icon={Users} color={C.gold} size={30} radius={10} strokeWidth={1.8} />
                 <CountMoney v={stats.owedToWorkers} color={stats.owedToWorkers > 0 ? C.gold : C.text} show={showAmounts} />
@@ -178,7 +193,7 @@ export default function BoardDashboard({
           )}
 
           {/* 04 — عند العملاء */}
-          <Bezel no="04" delay={0.26} onClick={() => onNav?.('finance')} label={tl(language, 'باقي عند العملاء', 'אצל לקוחות', 'OWED BY CLIENTS')}>
+          <Bezel skin={skin} no="04" delay={0.26} onClick={() => onNav?.('finance')} label={tl(language, 'باقي عند العملاء', 'אצל לקוחות', 'OWED BY CLIENTS')}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <IconChip icon={HandCoins} color={C.cyan} size={30} radius={10} strokeWidth={1.8} />
               <CountMoney v={stats.owedByClients} color={C.cyan} show={showAmounts} />
@@ -186,7 +201,7 @@ export default function BoardDashboard({
           </Bezel>
 
           {/* 05 — الحركة الكلية */}
-          <Bezel no="05" delay={0.32} label={tl(language, 'الحركة الكلية', 'תנועה כוללת', 'TOTALS')}>
+          <Bezel skin={skin} no="05" delay={0.32} label={tl(language, 'الحركة الكلية', 'תנועה כוללת', 'TOTALS')}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {[
                 [tl(language, 'إيرادات', 'הכנסות', 'Revenue'), stats.totalRevenue, C.success],
@@ -197,7 +212,7 @@ export default function BoardDashboard({
                   <span dir="ltr" style={{ fontSize: 14.5, fontWeight: 900, color: col, ...NUM }}>{showAmounts ? `₪${fmt(v)}` : '•••'}</span>
                 </div>
               ))}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+              <div style={{ height: 1, background: skin.hairline }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim }}>{tl(language, 'مشاريع نشطة', 'פרויקטים פעילים', 'Active')}</span>
                 <span dir="ltr" style={{ fontSize: 14.5, fontWeight: 900, color: C.text, ...NUM }}>{stats.activeCount}</span>
@@ -206,7 +221,7 @@ export default function BoardDashboard({
           </Bezel>
 
           {/* 06 — أفضل المشاريع بأشرطة تنمو بفيزياء spring */}
-          <Bezel no="06" span={2} delay={0.38} onClick={() => onNav?.('projects')} glow={C.secondary}
+          <Bezel skin={skin} no="06" span={2} delay={0.38} onClick={() => onNav?.('projects')} glow={C.secondary}
             label={tl(language, 'أفضل المشاريع', 'הפרויקטים המובילים', 'TOP PROJECTS')}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {stats.top.length === 0 && (
@@ -217,7 +232,7 @@ export default function BoardDashboard({
                   <span dir="ltr" style={{ fontSize: 9, fontWeight: 800, color: C.textDim, width: 15, opacity: 0.6, ...NUM }}>{String(i + 1).padStart(2, '0')}</span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 800, color: C.text, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
-                    <span style={{ display: 'block', height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.05)', marginTop: 5, overflow: 'hidden' }}>
+                    <span style={{ display: 'block', height: 5, borderRadius: 3, background: skin.track, marginTop: 5, overflow: 'hidden' }}>
                       <motion.span initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
                         transition={{ duration: 1, delay: 0.55 + i * 0.12, ease: EASE }}
                         style={{ display: 'block', height: '100%', transformOrigin: dir === 'rtl' ? 'right' : 'left', width: `${Math.max(7, Math.round(Math.abs(profit) / stats.maxProfit * 100))}%`, background: profit >= 0 ? GRAD.primary : C.accent, borderRadius: 3, boxShadow: '0 0 12px color-mix(in srgb, var(--c-primary) 45%, transparent)' }} />
@@ -233,16 +248,16 @@ export default function BoardDashboard({
           </Bezel>
 
           {/* 07 — الإجراءات: أزرار جزيرة بأيقونة داخل دائرتها (button-in-button) */}
-          <Bezel no="07" span={2} delay={0.46} label={tl(language, 'إجراءات سريعة', 'פעולות מהירות', 'QUICK ACTIONS')}>
+          <Bezel skin={skin} no="07" span={2} delay={0.46} label={tl(language, 'إجراءات سريعة', 'פעולות מהירות', 'QUICK ACTIONS')}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 9 }}>
               {quick.map(({ icon: Icon, label, hot, go }) => (
                 <motion.button key={label} onClick={go} whileTap={{ scale: 0.94 }}
                   style={{
                     fontFamily: 'inherit', cursor: 'pointer', borderRadius: 16, padding: '11px 4px 10px',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
-                    background: hot ? GRAD.primary : 'rgba(255,255,255,0.035)',
-                    border: hot ? '1px solid transparent' : '1px solid rgba(255,255,255,0.08)',
-                    boxShadow: hot ? '0 10px 26px color-mix(in srgb, var(--c-primary) 45%, transparent), inset 0 1px 1px rgba(255,255,255,0.3)' : 'inset 0 1px 1px rgba(255,255,255,0.05)',
+                    background: hot ? GRAD.primary : skin.chipBg,
+                    border: hot ? '1px solid transparent' : `1px solid ${skin.chipBorder}`,
+                    boxShadow: hot ? '0 10px 26px color-mix(in srgb, var(--c-primary) 45%, transparent), inset 0 1px 1px rgba(255,255,255,0.3)' : 'none',
                   }}>
                   <span style={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: hot ? 'rgba(255,255,255,0.22)' : 'color-mix(in srgb, var(--c-primary) 14%, transparent)' }}>
                     <Icon size={15} color={hot ? '#fff' : C.primary} strokeWidth={1.9} />
