@@ -230,7 +230,7 @@ export default function SignatureModal({ open, onClose, onConfirm, title, subtit
                 whileTap={{ scale: 0.97 }}
                 onClick={handleConfirm}
                 disabled={loading || (method === 'draw' && !sigData)}
-                style={{ flex: 2, padding: '12px', borderRadius: 14, background: (method === 'draw' && !sigData) ? 'rgba(249,115,22,0.3)' : GRAD.primary, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: (method === 'draw' && !sigData) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: (method === 'draw' && !sigData) ? 'none' : '0 6px 20px rgba(249,115,22,0.35)' }}
+                style={{ flex: 2, padding: '12px', borderRadius: 14, background: (method === 'draw' && !sigData) ? 'color-mix(in srgb, var(--c-primary) 30%, transparent)' : GRAD.primary, border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: (method === 'draw' && !sigData) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: (method === 'draw' && !sigData) ? 'none' : '0 6px 20px color-mix(in srgb, var(--c-primary) 35%, transparent)' }}
               >
                 {loading ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}><Check size={16} /></motion.div> : <Check size={16} />}
                 {tl(language, 'تأكيد وحفظ', 'אישור ושמירה', 'Confirm & save')}

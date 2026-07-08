@@ -86,7 +86,7 @@ export default function SalaryCalculator({ mode = 'public', onCta, ctaLabel, bus
           background: busy ? `${C.primary}40` : GRAD.brand, color: '#fff',
           fontSize: 15, fontWeight: 800, fontFamily: 'inherit', cursor: busy ? 'not-allowed' : 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          boxShadow: '0 8px 28px rgba(249,115,22,0.4)',
+          boxShadow: '0 8px 28px color-mix(in srgb, var(--c-primary) 40%, transparent)',
         }}>
         {mode === 'onboarding' ? <Sparkles size={18} strokeWidth={2.2} /> : <Calculator size={18} strokeWidth={2.2} />}
         {ctaLabel || (mode === 'onboarding'

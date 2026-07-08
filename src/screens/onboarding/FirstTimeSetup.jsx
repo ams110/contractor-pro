@@ -117,7 +117,7 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee, setSoloMo
     <div dir={dir} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px', overflowY: 'auto' }}>
 
       {/* Aurora */}
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 80% 50% at 50% 30%, rgba(245,158,11,0.1) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(124,58,237,0.06) 0%, transparent 60%)' }} />
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 80% 50% at 50% 30%, color-mix(in srgb, var(--c-primary) 10%, transparent) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(124,58,237,0.06) 0%, transparent 60%)' }} />
 
       <div style={{ width: '100%', maxWidth: 440, position: 'relative', zIndex: 1 }}>
 
@@ -126,7 +126,7 @@ export default function FirstTimeSetup({ language = 'ar', addEmployee, setSoloMo
           <motion.div
             animate={{ y: [0, -7, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ width: 72, height: 72, borderRadius: 22, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 16px 48px rgba(245,158,11,0.35), 0 0 0 1px rgba(255,255,255,0.1) inset', marginBottom: 20 }}
+            style={{ width: 72, height: 72, borderRadius: 22, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 16px 48px color-mix(in srgb, var(--c-primary) 35%, transparent), 0 0 0 1px rgba(255,255,255,0.1) inset', marginBottom: 20 }}
           >
             <HardHat size={36} color="#fff" strokeWidth={1.8} />
           </motion.div>

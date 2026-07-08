@@ -27,7 +27,7 @@ if (typeof document !== 'undefined' && !document.getElementById('cp-skeleton-sty
 }
 
 // دالة حتى تلقط لون السطح حسب الثيم الحالي وقت الرندر (وضع الورشة)
-const SHIMMER_BG = () => `linear-gradient(90deg, ${C.card} 0%, ${C.card} 30%, rgba(249,115,22,0.18) 45%, rgba(249,115,22,0.26) 50%, rgba(249,115,22,0.18) 55%, ${C.card} 70%, ${C.card} 100%)`
+const SHIMMER_BG = () => `linear-gradient(90deg, ${C.card} 0%, ${C.card} 30%, color-mix(in srgb, var(--c-primary) 18%, transparent) 45%, color-mix(in srgb, var(--c-primary) 26%, transparent) 50%, color-mix(in srgb, var(--c-primary) 18%, transparent) 55%, ${C.card} 70%, ${C.card} 100%)`
 
 export function Skeleton({ w = '100%', h = 14, radius = 8, circle = false, style = {} }) {
   const size = circle ? { width: h, height: h, borderRadius: '50%' } : { width: w, height: h, borderRadius: radius }

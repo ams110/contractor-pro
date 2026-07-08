@@ -145,7 +145,7 @@ export default function PaymentsScreen({ payments, employees, workDays, expenses
           )}
           {permissions?.addPayments !== false && (
             <motion.button whileTap={{ scale: 0.93 }} onClick={() => { setFormError(''); setEditingId(null); setForm(emptyForm); setPreview(''); setShowForm(true) }}
-              style={{ padding:'10px 18px', borderRadius:14, background:GRAD.brand, color:'#000', border:'none', cursor:'pointer', fontWeight:800, fontSize:13, boxShadow:'0 4px 16px rgba(245,158,11,0.3)', display:'flex', alignItems:'center', gap:5, fontFamily:'inherit' }}>
+              style={{ padding:'10px 18px', borderRadius:14, background:GRAD.brand, color:'#000', border:'none', cursor:'pointer', fontWeight:800, fontSize:13, boxShadow:'0 4px 16px color-mix(in srgb, var(--c-primary) 30%, transparent)', display:'flex', alignItems:'center', gap:5, fontFamily:'inherit' }}>
               <Plus size={14} strokeWidth={2.5} /> {tl(language, 'دفعة', 'תשלום', 'Payment')}
             </motion.button>
           )}

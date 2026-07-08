@@ -1031,7 +1031,7 @@ export default function ProjectsScreen({
         </motion.div>
         {permissions?.addProjects !== false && (
           <motion.button whileTap={{ scale: 0.94 }} onClick={() => setShowAdd(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 18px rgba(249,115,22,0.35)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 6px 18px color-mix(in srgb, var(--c-primary) 35%, transparent)' }}>
             <Plus size={15} strokeWidth={2.5} />
             {language === 'he' ? 'חדש' : language === 'en' ? 'New' : 'جديد'}
           </motion.button>

@@ -1,7 +1,7 @@
 import React from 'react'
 
 const colors = {
-  brand:   { bg: 'rgba(245,158,11,0.15)', color: '#F59E0B', border: 'rgba(245,158,11,0.25)' },
+  brand:   { bg: 'color-mix(in srgb, var(--c-primary) 15%, transparent)', color: '#F59E0B', border: 'color-mix(in srgb, var(--c-primary) 25%, transparent)' },
   success: { bg: 'rgba(34,197,94,0.15)',  color: '#22C55E', border: 'rgba(34,197,94,0.25)'  },
   danger:  { bg: 'rgba(239,68,68,0.15)',  color: '#EF4444', border: 'rgba(239,68,68,0.25)'  },
   warning: { bg: 'rgba(234,179,8,0.15)',  color: '#EAB308', border: 'rgba(234,179,8,0.25)'  },

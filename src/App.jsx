@@ -88,11 +88,11 @@ const globalCSS = `
   @keyframes float      { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-7px) } }
   @keyframes shimmer    { 0% { background-position:200% 0 } to { background-position:-200% 0 } }
   @keyframes ping       { 75%,100% { transform:scale(2.2); opacity:0 } }
-  @keyframes glowPulse  { 0%,100% { box-shadow:0 0 14px rgba(249,115,22,0.3) } 50% { box-shadow:0 0 28px rgba(249,115,22,0.55) } }
+  @keyframes glowPulse  { 0%,100% { box-shadow:0 0 14px color-mix(in srgb, var(--c-primary) 30%, transparent) } 50% { box-shadow:0 0 28px color-mix(in srgb, var(--c-primary) 55%, transparent) } }
   @keyframes badgePop   { 0% { transform:scale(0) } 70% { transform:scale(1.2) } 100% { transform:scale(1) } }
   @keyframes auroraMove { 0%,100% { opacity:0.6 } 50% { opacity:1 } }
 
-  .glass { background:rgba(7,8,15,0.88); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid rgba(249,115,22,0.07); }
+  .glass { background:rgba(7,8,15,0.88); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid color-mix(in srgb, var(--c-primary) 7%, transparent); }
   .badge-pop { animation: badgePop .3s cubic-bezier(0.34,1.56,0.64,1) both; }
   .app-root { min-height: var(--actual-vh, 100dvh); }
 `
@@ -211,7 +211,7 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount, nav = NA
     }}>
       <div style={{ padding: '18px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 11, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(245,158,11,0.35)', flexShrink: 0 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 11, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px color-mix(in srgb, var(--c-primary) 35%, transparent)', flexShrink: 0 }}>
             <HardHat size={18} color="#fff" strokeWidth={2} />
           </div>
           <div style={{ fontSize: 14, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>{language === 'ar' ? 'كبلان' : 'Kabblan'}</div>
@@ -509,11 +509,11 @@ function OwnerApp() {
       <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0, overflow: 'hidden', position: 'relative' }}>
         <style>{globalCSS}</style>
         {/* Aurora */}
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(249,115,22,0.1) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(124,58,237,0.07) 0%, transparent 60%)', animation: 'auroraMove 4s ease-in-out infinite', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 40%, color-mix(in srgb, var(--c-primary) 10%, transparent) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(124,58,237,0.07) 0%, transparent 60%)', animation: 'auroraMove 4s ease-in-out infinite', pointerEvents: 'none' }} />
         <motion.div
           animate={{ y: [0, -8, 0] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ width: 96, height: 96, borderRadius: 30, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 26, boxShadow: '0 20px 60px rgba(245,158,11,0.4), 0 0 0 1px rgba(255,255,255,0.12) inset', position: 'relative', zIndex: 1 }}
+          style={{ width: 96, height: 96, borderRadius: 30, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 26, boxShadow: '0 20px 60px color-mix(in srgb, var(--c-primary) 40%, transparent), 0 0 0 1px rgba(255,255,255,0.12) inset', position: 'relative', zIndex: 1 }}
         >
           <HardHat size={48} color="#fff" strokeWidth={1.5} />
         </motion.div>
@@ -554,13 +554,13 @@ function OwnerApp() {
   if (!orgLoading && org && !isPlanActive() && !effectiveOwnerId) return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", padding: 32, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
       <style>{globalCSS}</style>
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 50% at 50% 30%, rgba(249,115,22,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ width: 72, height: 72, borderRadius: 24, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', position: 'relative', zIndex: 1 }}><Clock size={36} color={C.primary} strokeWidth={1.5} /></div>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 50% at 50% 30%, color-mix(in srgb, var(--c-primary) 8%, transparent) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ width: 72, height: 72, borderRadius: 24, background: 'color-mix(in srgb, var(--c-primary) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--c-primary) 20%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', position: 'relative', zIndex: 1 }}><Clock size={36} color={C.primary} strokeWidth={1.5} /></div>
       <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 10, position: 'relative', zIndex: 1 }}>{tl(language, 'انتهت فترة التجربة المجانية', 'תקופת הניסיון החינמי הסתיימה', 'Your free trial has ended')}</div>
       <div style={{ fontSize: 14, color: C.textDim, lineHeight: 1.7, maxWidth: 300, marginBottom: 32, position: 'relative', zIndex: 1 }}>
         {tl(language, 'جميع بياناتك محفوظة. اشترك الآن للاستمرار في استخدام كبلان.', 'כל הנתונים שלך שמורים. הירשם עכשיו כדי להמשיך להשתמש ב-Kabblan.', 'All your data is saved. Subscribe now to keep using Kabblan.')}
       </div>
-      <button onClick={() => navigate('/pricing')} style={{ padding: '14px 36px', borderRadius: 16, background: GRAD.primary, border: 'none', color: '#000', fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 28px rgba(245,158,11,0.4)', marginBottom: 14, position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
+      <button onClick={() => navigate('/pricing')} style={{ padding: '14px 36px', borderRadius: 16, background: GRAD.primary, border: 'none', color: '#000', fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 28px color-mix(in srgb, var(--c-primary) 40%, transparent)', marginBottom: 14, position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
         {tl(language, 'اختر خطة اشتراك', 'בחר תוכנית מנוי', 'Choose a plan')}
       </button>
       <button onClick={() => supabase.auth.signOut()} style={{ padding: '10px 24px', borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: C.textDim, fontSize: 13, fontWeight: 600, cursor: 'pointer', position: 'relative', zIndex: 1, fontFamily: 'inherit' }}>
@@ -620,14 +620,14 @@ function OwnerApp() {
     return (
       <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", padding: 32, textAlign: 'center' }}>
         <style>{globalCSS}</style>
-        <div style={{ width: 72, height: 72, borderRadius: 24, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+        <div style={{ width: 72, height: 72, borderRadius: 24, background: 'color-mix(in srgb, var(--c-primary) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--c-primary) 20%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
           <AlertTriangle size={36} color={C.warning} strokeWidth={1.5} />
         </div>
         <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 8 }}>{tl(language, 'تعذّر تحميل المصالح', 'טעינת העסקים נכשלה', 'Failed to load businesses')}</div>
         <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7, maxWidth: 300, marginBottom: 28 }}>
           {tl(language, 'حدث خطأ أثناء جلب بياناتك. بياناتك محفوظة — تحقّق من الاتصال وأعد المحاولة.', 'אירעה שגיאה בעת טעינת הנתונים שלך. הנתונים שלך שמורים — בדוק את החיבור ונסה שוב.', 'An error occurred while loading your data. Your data is safe — check your connection and try again.')}
         </div>
-        <button onClick={() => loadBiz()} disabled={bizLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 32px', borderRadius: 16, background: GRAD.primary, border: 'none', color: '#000', fontSize: 15, fontWeight: 800, cursor: bizLoading ? 'wait' : 'pointer', opacity: bizLoading ? 0.7 : 1, boxShadow: '0 8px 28px rgba(245,158,11,0.4)', fontFamily: 'inherit' }}>
+        <button onClick={() => loadBiz()} disabled={bizLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 32px', borderRadius: 16, background: GRAD.primary, border: 'none', color: '#000', fontSize: 15, fontWeight: 800, cursor: bizLoading ? 'wait' : 'pointer', opacity: bizLoading ? 0.7 : 1, boxShadow: '0 8px 28px color-mix(in srgb, var(--c-primary) 40%, transparent)', fontFamily: 'inherit' }}>
           <RefreshCw size={18} strokeWidth={2.2} style={bizLoading ? { animation: 'spin 1s linear infinite' } : undefined} />
           {bizLoading ? tl(language, 'جارٍ المحاولة…', 'מנסה…', 'Retrying…') : tl(language, 'إعادة المحاولة', 'נסה שוב', 'Try again')}
         </button>
@@ -655,14 +655,14 @@ function OwnerApp() {
       {isDesktop && <DesktopSidebar screen={screen} setScreen={setScreen} permissions={p} pendingCount={pendingCount} dir={dir} nav={visibleNav} />}
 
       {/* ─── Aurora background ─── */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 40% at 15% 0%, rgba(249,115,22,0.07) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 85% 100%, rgba(124,58,237,0.04) 0%, transparent 60%)' }} />
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 40% at 15% 0%, color-mix(in srgb, var(--c-primary) 7%, transparent) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 85% 100%, rgba(124,58,237,0.04) 0%, transparent 60%)' }} />
 
       {/* ─── Connection & Sync status ─── */}
       <ConnectionStatus />
 
       {/* ─── Trial banner ─── */}
       {org && isTrialActive() && !effectiveOwnerId && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 199, background: 'linear-gradient(135deg, rgba(245,158,11,0.14), rgba(239,68,68,0.09))', backdropFilter: 'blur(12px)', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid rgba(245,158,11,0.2)', direction: 'rtl' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 199, background: 'linear-gradient(135deg, color-mix(in srgb, var(--c-primary) 14%, transparent), rgba(239,68,68,0.09))', backdropFilter: 'blur(12px)', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid color-mix(in srgb, var(--c-primary) 20%, transparent)', direction: 'rtl' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Gift size={15} color="#FBBF24" strokeWidth={2} />
             <span style={{ fontSize: 11, color: '#FBBF24', fontWeight: 700 }}>
@@ -681,7 +681,7 @@ function OwnerApp() {
 
       {/* ─── Notification Permission Banner (one-time prompt) ─── */}
       {uid && pushPermission === 'default' && !localStorage.getItem('cpro_notif_dismissed') && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 198, background: 'rgba(249,115,22,0.1)', backdropFilter: 'blur(12px)', padding: '9px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid rgba(249,115,22,0.2)', direction: 'rtl' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 198, background: 'color-mix(in srgb, var(--c-primary) 10%, transparent)', backdropFilter: 'blur(12px)', padding: '9px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid color-mix(in srgb, var(--c-primary) 20%, transparent)', direction: 'rtl' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Bell size={14} color={C.primary} strokeWidth={2} />
             <span style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{tl(language, 'فعّل الإشعارات لاستقبال طلبات العمال فورياً', 'הפעל התראות לקבלת בקשות העובדים באופן מיידי', 'Enable notifications to receive worker requests instantly')}</span>
@@ -700,9 +700,9 @@ function OwnerApp() {
       )}
 
       {/* ─── Header ─── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(7,8,15,0.93)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(249,115,22,0.07)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(7,8,15,0.93)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid color-mix(in srgb, var(--c-primary) 7%, transparent)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 14, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(245,158,11,0.4), 0 1px 0 rgba(255,255,255,0.15) inset', flexShrink: 0 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 14, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px color-mix(in srgb, var(--c-primary) 40%, transparent), 0 1px 0 rgba(255,255,255,0.15) inset', flexShrink: 0 }}>
             <HardHat size={22} color="#fff" strokeWidth={2} />
           </div>
           <div>
@@ -756,7 +756,7 @@ function OwnerApp() {
         </div>
 
         {/* Primary accent line */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.5), rgba(124,58,237,0.3), transparent)' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--c-primary) 50%, transparent), rgba(124,58,237,0.3), transparent)' }} />
       </div>
 
       {/* ─── Screen content ─── */}
@@ -767,7 +767,7 @@ function OwnerApp() {
       </div>
 
       {/* ─── Bottom Nav (mobile only) ─── */}
-      {!isDesktop && <div style={{ position: 'fixed', bottom: 'max(14px, calc(8px + env(safe-area-inset-bottom, 0px)))', left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: '1px solid rgba(245,158,11,0.1)', padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
+      {!isDesktop && <div style={{ position: 'fixed', bottom: 'max(14px, calc(8px + env(safe-area-inset-bottom, 0px)))', left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: '1px solid color-mix(in srgb, var(--c-primary) 10%, transparent)', padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
         {visibleNav.map(n => {
           const active = activeNav === n.id
           const Icon = NAV_ICONS[n.id]
@@ -786,7 +786,7 @@ function OwnerApp() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  style={{ position: 'absolute', top: 1, left: 0, right: 0, marginInline: 'auto', width: 46, height: 35, borderRadius: 16, background: 'linear-gradient(160deg, rgba(249,115,22,0.2), rgba(220,38,38,0.12))', border: '1px solid rgba(249,115,22,0.28)', pointerEvents: 'none', animation: 'glowPulse 2.5s ease-in-out infinite' }}
+                  style={{ position: 'absolute', top: 1, left: 0, right: 0, marginInline: 'auto', width: 46, height: 35, borderRadius: 16, background: 'linear-gradient(160deg, color-mix(in srgb, var(--c-primary) 20%, transparent), rgba(220,38,38,0.12))', border: '1px solid color-mix(in srgb, var(--c-primary) 28%, transparent)', pointerEvents: 'none', animation: 'glowPulse 2.5s ease-in-out infinite' }}
                 />
               )}
 
@@ -809,7 +809,7 @@ function OwnerApp() {
 
               {/* Active dot */}
               {active && (
-                <div style={{ width: 18, height: 2, borderRadius: 2, background: GRAD.primary, marginTop: 1, boxShadow: '0 0 8px rgba(249,115,22,0.7)' }} />
+                <div style={{ width: 18, height: 2, borderRadius: 2, background: GRAD.primary, marginTop: 1, boxShadow: '0 0 8px color-mix(in srgb, var(--c-primary) 70%, transparent)' }} />
               )}
             </motion.button>
           )
@@ -866,7 +866,7 @@ function OwnerApp() {
               style={{ background: C.surface, borderRadius: 24, padding: '28px 22px', width: '100%', maxWidth: 380, border: `1px solid ${C.borderMid}` }}
             >
               <div style={{ textAlign: 'center', marginBottom: 22 }}>
-                <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 8px 28px rgba(245,158,11,0.35)' }}>
+                <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 8px 28px color-mix(in srgb, var(--c-primary) 35%, transparent)' }}>
                   <HardHat size={32} color="#fff" strokeWidth={1.8} />
                 </div>
                 <div style={{ fontSize: 19, fontWeight: 900, background: GRAD.primary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tl(language, 'أهلاً بك في كبلان', 'ברוכים הבאים ל-Kabblan', 'Welcome to Kabblan')}</div>
@@ -880,7 +880,7 @@ function OwnerApp() {
                 { Icon: CreditCard,   title: tl(language, 'المصاريف', 'הוצאות', 'Expenses'),       desc: tl(language, 'تتبع مصاريف المشاريع واسترداد ضريبة القيمة المضافة', 'עקוב אחר הוצאות פרויקטים והחזרי מע"מ', 'Track project expenses and VAT refunds') },
               ].map(({ Icon, title, desc }, i) => (
                 <div key={title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < 3 ? `1px solid ${C.border}` : 'none' }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 12, background: 'color-mix(in srgb, var(--c-primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--c-primary) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon size={18} color={C.primary} strokeWidth={2} />
                   </div>
                   <div>
@@ -893,7 +893,7 @@ function OwnerApp() {
               <motion.button
                 whileTap={{ scale: 0.96 }}
                 onClick={() => { localStorage.setItem('cp_onboarded', '1'); setShowOnboarding(false) }}
-                style={{ marginTop: 22, width: '100%', padding: '13px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 24px rgba(245,158,11,0.35)', letterSpacing: '0.02em', fontFamily: 'inherit' }}
+                style={{ marginTop: 22, width: '100%', padding: '13px', borderRadius: 14, background: GRAD.primary, border: 'none', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 24px color-mix(in srgb, var(--c-primary) 35%, transparent)', letterSpacing: '0.02em', fontFamily: 'inherit' }}
               >
                 {tl(language, 'ابدأ الآن', 'התחל עכשיו', 'Get started')}
               </motion.button>

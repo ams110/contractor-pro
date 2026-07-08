@@ -22,7 +22,7 @@ function actionLabelFor(tbl, language) {
   return map[tbl] || tl(language, 'تأكيد عملية', 'אישור פעולה', 'Confirm action')
 }
 
-const GRAD = 'linear-gradient(135deg, #F97316, #DC2626)'
+const GRAD = 'linear-gradient(135deg, var(--c-primary), #DC2626)'
 
 function getInitialMode() {
   if (localStorage.getItem(PASSKEY_KEY)) return 'fingerprint'

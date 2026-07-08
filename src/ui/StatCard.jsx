@@ -11,7 +11,7 @@ export function StatCard({ label, value, sub, icon: Icon, color = '#F59E0B', gra
       transition={{ type: 'spring', stiffness: 400, damping: 20 }}
       style={{
         background: '#13151E',
-        border: `1px solid rgba(245,158,11,0.08)`,
+        border: `1px solid color-mix(in srgb, var(--c-primary) 8%, transparent)`,
         borderRadius: 18,
         padding: '14px 16px',
         cursor: onClick ? 'pointer' : 'default',

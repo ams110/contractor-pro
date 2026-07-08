@@ -43,7 +43,7 @@ export function Modal({ open, onClose, title, children, action, size = 'md', sty
             aria-labelledby={title ? titleId : undefined}
             style={{
               background: '#0D0F18',
-              border: '1px solid rgba(245,158,11,0.12)',
+              border: '1px solid color-mix(in srgb, var(--c-primary) 12%, transparent)',
               borderRadius: 24,
               width: '100%',
               maxWidth: maxW,
@@ -60,7 +60,7 @@ export function Modal({ open, onClose, title, children, action, size = 'md', sty
             </div>
 
             {title && (
-              <div style={{ padding: '10px 20px 14px', borderBottom: '1px solid rgba(245,158,11,0.08)', flexShrink: 0 }}>
+              <div style={{ padding: '10px 20px 14px', borderBottom: '1px solid color-mix(in srgb, var(--c-primary) 8%, transparent)', flexShrink: 0 }}>
                 <h2 id={titleId} style={{ fontSize: 16, fontWeight: 800, color: '#F8FAFC', margin: 0 }}>{title}</h2>
               </div>
             )}
@@ -73,7 +73,7 @@ export function Modal({ open, onClose, title, children, action, size = 'md', sty
             {action && (
               <div style={{
                 padding: '12px 20px 16px',
-                borderTop: '1px solid rgba(245,158,11,0.08)',
+                borderTop: '1px solid color-mix(in srgb, var(--c-primary) 8%, transparent)',
                 background: '#0D0F18',
                 flexShrink: 0,
               }}>

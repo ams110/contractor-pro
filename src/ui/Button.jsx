@@ -6,13 +6,13 @@ const variants = {
     background: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 50%, #EF4444 100%)',
     color: '#000',
     border: 'none',
-    boxShadow: '0 4px 20px rgba(245,158,11,0.35)',
+    boxShadow: '0 4px 20px color-mix(in srgb, var(--c-primary) 35%, transparent)',
   },
   warm: {
-    background: 'linear-gradient(135deg, #F59E0B, #F97316)',
+    background: 'linear-gradient(135deg, #F59E0B, var(--c-primary))',
     color: '#000',
     border: 'none',
-    boxShadow: '0 4px 16px rgba(245,158,11,0.3)',
+    boxShadow: '0 4px 16px color-mix(in srgb, var(--c-primary) 30%, transparent)',
   },
   ghost: {
     background: 'rgba(255,255,255,0.05)',

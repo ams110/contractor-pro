@@ -11,8 +11,8 @@ const KEY = 'cp_consent_v2'
 
 const C = {
   surface: '#0D0F1C', card: '#12152A',
-  primary: '#F97316', text: '#F8FAFC', textDim: '#94A3B8',
-  border: 'rgba(249,115,22,0.18)',
+  primary: 'var(--c-primary)', text: '#F8FAFC', textDim: '#94A3B8',
+  border: 'color-mix(in srgb, var(--c-primary) 18%, transparent)',
 }
 
 /**
