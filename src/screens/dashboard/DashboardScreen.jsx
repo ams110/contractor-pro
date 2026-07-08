@@ -26,6 +26,7 @@ const NetWorth = lazy(() => import('../../components/NetWorth.jsx'))
 // واجهات بديلة كاملة للرئيسية (الإعدادات → المظهر → شكل الواجهة) — lazy حتى ما تثقّل الافتراضي
 const CompactDashboard = lazy(() => import('./CompactDashboard.jsx'))
 const SimpleDashboard = lazy(() => import('./SimpleDashboard.jsx'))
+const BoardDashboard = lazy(() => import('./BoardDashboard.jsx'))
 
 // هيكل تحميل رفيع بنمط بطاقات الرؤى (يظهر لحظات ريثما يصل chunk اللوحات)
 function PanelSkeleton() {
@@ -364,8 +365,8 @@ function PlanBadge({ lang }) {
 // wrapper منفصل حتى تبقى hooks كل واجهة ثابتة الترتيب داخلها.
 export default function DashboardScreen(props) {
   const layout = useAppStore(s => s.layout)
-  if (layout === 'compact' || layout === 'simple') {
-    const Alt = layout === 'compact' ? CompactDashboard : SimpleDashboard
+  if (layout === 'compact' || layout === 'simple' || layout === 'board') {
+    const Alt = layout === 'compact' ? CompactDashboard : layout === 'simple' ? SimpleDashboard : BoardDashboard
     return (
       <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
         <Alt {...props} />

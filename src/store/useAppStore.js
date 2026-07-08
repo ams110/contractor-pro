@@ -46,11 +46,11 @@ export const useAppStore = create((set, get) => ({
   layout: (() => {
     try {
       const l = localStorage.getItem('cp_layout')
-      return ['comfort', 'compact', 'simple'].includes(l) ? l : 'comfort'
+      return ['comfort', 'compact', 'simple', 'board'].includes(l) ? l : 'comfort'
     } catch { return 'comfort' }
   })(),
   setLayout: (l) => {
-    const v = ['comfort', 'compact', 'simple'].includes(l) ? l : 'comfort'
+    const v = ['comfort', 'compact', 'simple', 'board'].includes(l) ? l : 'comfort'
     try { localStorage.setItem('cp_layout', v) } catch { /* private mode */ }
     set({ layout: v })
   },

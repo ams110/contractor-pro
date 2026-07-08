@@ -772,6 +772,7 @@ export default function SettingsScreen({
                     {l.id === 'comfort' && (<><span style={{ flex: 1.6, borderRadius: 3, background: GRAD.primary, opacity: 0.85 }} /><span style={{ flex: 1, borderRadius: 3, background: `${C.primary}30` }} /></>)}
                     {l.id === 'compact' && (<span style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>{[0, 1, 2, 3].map(i => <span key={i} style={{ borderRadius: 2, background: `${C.primary}${i === 0 ? '' : '30'}`, ...(i === 0 ? { backgroundImage: GRAD.primary } : {}) }} />)}</span>)}
                     {l.id === 'simple' && (<><span style={{ flex: 1, borderRadius: 3, background: GRAD.primary, opacity: 0.85 }} /><span style={{ flex: 1, borderRadius: 3, background: `${C.primary}30` }} /></>)}
+                    {l.id === 'board' && (<span style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1.4fr 1fr', gap: 2 }}><span style={{ gridColumn: '1 / -1', borderRadius: 2, border: `1px solid ${C.borderMid}`, background: `${C.primary}22` }} /><span style={{ borderRadius: 2, border: `1px solid ${C.borderMid}` }} /><span style={{ borderRadius: 2, border: `1px solid ${C.borderMid}` }} /></span>)}
                   </span>
                   <span style={{ flex: 1, fontSize: 12, fontWeight: 800, color: active ? C.text : C.textDim, lineHeight: 1.3 }}>
                     {language === 'he' ? l.he : language === 'en' ? l.en : l.ar}
