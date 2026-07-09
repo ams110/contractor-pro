@@ -21,6 +21,7 @@ const LoginScreen = lazy(() => import('./screens/auth/LoginScreen.jsx'))
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'))
 const AdStudio    = lazy(() => import('./pages/AdStudio.jsx'))
 const AdReel      = lazy(() => import('./pages/AdReel.jsx'))
+const AdBoard     = lazy(() => import('./pages/AdBoard.jsx'))
 const DemoShot    = lazy(() => import('./pages/DemoShot.jsx'))
 const DemoApp     = lazy(() => import('./pages/DemoApp.jsx'))
 
@@ -62,6 +63,8 @@ export default function Router() {
   if (path === '/adstudio') return <Suspense fallback={null}><AdStudio /></Suspense>
   // /adreel — نسخة فيديو ٩:١٦ من البوسترات (تُسجَّل عبر scripts/reel-shots.mjs)
   if (path === '/adreel') return <Suspense fallback={null}><AdReel /></Suspense>
+  // /adboard — سلايدات كاروسيل بلغة «لوحة البراند» (تُلتقط عبر scripts/board-shots.mjs)
+  if (path === '/adboard') return <Suspense fallback={null}><AdBoard /></Suspense>
   // /demoshot — يرندر الشاشات الفعلية ببيانات وهمية (للموكاب داخل البوسترات)
   if (path === '/demoshot') return <Suspense fallback={null}><DemoShot /></Suspense>
 
