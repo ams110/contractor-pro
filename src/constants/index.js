@@ -65,7 +65,99 @@ const PALETTE_SITE = {
   pink:      '#BE185D',
 }
 
-export const PALETTES = { dark: PALETTE_DARK, site: PALETTE_SITE }
+// ─── ثيمات داكنة إضافية (نفس السلّم، شخصية لونية مختلفة) ────────────────────
+// «فولاذ»: أزرق تقني بارد · «زمرّد»: أخضر-تركوازي مالي · «ليل ملكي»: بنفسجي فاخر.
+// الدلالات الوظيفية ثابتة بكل الثيمات: success أخضر · warning أصفر · accent أحمر.
+const PALETTE_STEEL = {
+  ...PALETTE_DARK,
+  bg: '#070A12', surface: '#0C1220', card: '#111A2E',
+  primary: '#3B82F6', secondary: '#6366F1', cyan: '#22D3EE',
+  textMuted: '#1B2337',
+  border: 'rgba(59,130,246,0.08)', borderMid: 'rgba(59,130,246,0.18)',
+  orange: '#3B82F6',
+}
+const PALETTE_EMERALD = {
+  ...PALETTE_DARK,
+  bg: '#060C09', surface: '#0A1410', card: '#0F1D17',
+  primary: '#14B8A6', secondary: '#0EA5E9', textDim: '#5F7A6E',
+  textMuted: '#16261F',
+  border: 'rgba(20,184,166,0.08)', borderMid: 'rgba(20,184,166,0.18)',
+  orange: '#14B8A6',
+}
+const PALETTE_ROYAL = {
+  ...PALETTE_DARK,
+  bg: '#0A0714', surface: '#110C21', card: '#171130',
+  primary: '#A855F7', secondary: '#EC4899', cyan: '#22D3EE', textDim: '#77719E',
+  textMuted: '#201839',
+  border: 'rgba(168,85,247,0.08)', borderMid: 'rgba(168,85,247,0.18)',
+  orange: '#A855F7',
+}
+
+const PALETTE_GOLD = {
+  ...PALETTE_DARK,
+  bg: '#0A0805', surface: '#131009', card: '#1B160D',
+  primary: '#E3A82B', secondary: '#B45309', cyan: '#22D3EE', textDim: '#8A7B5C',
+  textMuted: '#241D10',
+  border: 'rgba(227,168,43,0.08)', borderMid: 'rgba(227,168,43,0.18)',
+  orange: '#E3A82B',
+}
+
+export const PALETTES = {
+  dark: PALETTE_DARK, site: PALETTE_SITE,
+  steel: PALETTE_STEEL, emerald: PALETTE_EMERALD, royal: PALETTE_ROYAL,
+  gold: PALETTE_GOLD,
+}
+
+// تدرّجات لكل ثيم: primary/brand/dark تتبع شخصية الثيم، والوظيفية ثابتة.
+const GRAD_BASE = {
+  primary: 'linear-gradient(135deg, #F97316, #DC2626)',
+  brand:   'linear-gradient(135deg, #F97316, #DC2626)',
+  dark:    'linear-gradient(180deg, #0D0F1C 0%, #07080F 100%)',
+}
+const GRAD_THEMES = {
+  dark: GRAD_BASE,
+  site: { ...GRAD_BASE, dark: 'linear-gradient(180deg, #FFFFFF 0%, #F2F3F6 100%)' },
+  steel: {
+    primary: 'linear-gradient(135deg, #3B82F6, #4F46E5)',
+    brand:   'linear-gradient(135deg, #3B82F6, #4F46E5)',
+    dark:    'linear-gradient(180deg, #0C1220 0%, #070A12 100%)',
+  },
+  emerald: {
+    primary: 'linear-gradient(135deg, #14B8A6, #059669)',
+    brand:   'linear-gradient(135deg, #14B8A6, #059669)',
+    dark:    'linear-gradient(180deg, #0A1410 0%, #060C09 100%)',
+  },
+  royal: {
+    primary: 'linear-gradient(135deg, #A855F7, #EC4899)',
+    brand:   'linear-gradient(135deg, #A855F7, #EC4899)',
+    dark:    'linear-gradient(180deg, #110C21 0%, #0A0714 100%)',
+  },
+  gold: {
+    primary: 'linear-gradient(135deg, #E3A82B, #B45309)',
+    brand:   'linear-gradient(135deg, #E3A82B, #B45309)',
+    dark:    'linear-gradient(180deg, #131009 0%, #0A0805 100%)',
+  },
+}
+
+// قائمة الثيمات لواجهة الاختيار (الإعدادات). «وضع الورشة» مفتاح مستقل لأنّه فاتح
+// وظيفي (للشمس) وليس شخصية لونية — لذلك ليس ضمن المعرض.
+export const THEME_META = [
+  { id: 'dark',    ar: 'الأصلي — برتقالي',  he: 'מקורי — כתום',   en: 'Original — Amber',  swatch: ['#F97316', '#07080F'] },
+  { id: 'steel',   ar: 'فولاذ — أزرق',      he: 'פלדה — כחול',    en: 'Steel — Blue',      swatch: ['#3B82F6', '#070A12'] },
+  { id: 'emerald', ar: 'زمرّد — أخضر',      he: 'אזמרגד — ירוק',  en: 'Emerald — Green',   swatch: ['#14B8A6', '#060C09'] },
+  { id: 'royal',   ar: 'ليل ملكي — بنفسجي', he: 'לילה מלכותי',    en: 'Royal — Violet',    swatch: ['#A855F7', '#0A0714'] },
+  { id: 'gold',    ar: 'ذهب — فاخر',        he: 'זהב — יוקרתי',   en: 'Gold — Luxe',       swatch: ['#E3A82B', '#0A0805'] },
+]
+
+// ─── أنماط الواجهة (شكل الشاشة الرئيسية) — مستقلة عن ألوان الثيم ──────────────
+// comfort = الحالي الفخم (رؤى وبطاقات كبيرة) · compact = مكثّف أرقام أولاً ·
+// simple = «الواضح الكبير» خطوط ضخمة وأزرار عملاقة (لكبار السن/غير التقنيين).
+export const LAYOUT_META = [
+  { id: 'comfort', ar: 'الفخم — رؤى وبطاقات',   he: 'מפואר — תובנות',  en: 'Premium — insights' },
+  { id: 'compact', ar: 'مكثّف — أرقام أولاً',    he: 'דחוס — מספרים',   en: 'Compact — numbers first' },
+  { id: 'simple',  ar: 'الواضح الكبير — بسيط',  he: 'גדול וברור',      en: 'Big & clear — simple' },
+  { id: 'board',   ar: 'برو — نظيف واحترافي',   he: 'פרו — נקי ומקצועי', en: 'Pro — clean & focused' },
+]
 
 export const C = { ...PALETTE_DARK }
 
@@ -74,9 +166,7 @@ export const C = { ...PALETTE_DARK }
 export function applyTheme(mode = 'dark') {
   const p = PALETTES[mode] || PALETTES.dark
   Object.assign(C, p)
-  GRAD.dark = mode === 'site'
-    ? 'linear-gradient(180deg, #FFFFFF 0%, #F2F3F6 100%)'
-    : 'linear-gradient(180deg, #0D0F1C 0%, #07080F 100%)'
+  Object.assign(GRAD, GRAD_THEMES[PALETTES[mode] ? mode : 'dark'] || GRAD_BASE)
   if (typeof document !== 'undefined') {
     const r = document.documentElement
     r.dataset.theme = mode

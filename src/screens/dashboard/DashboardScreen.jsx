@@ -23,6 +23,10 @@ const BusinessPulse = lazy(() => import('../../components/BusinessPulse.jsx'))
 const CashForecast = lazy(() => import('../../components/CashForecast.jsx'))
 const CommandCenter = lazy(() => import('../../components/CommandCenter.jsx'))
 const NetWorth = lazy(() => import('../../components/NetWorth.jsx'))
+// واجهات بديلة كاملة للرئيسية (الإعدادات → المظهر → شكل الواجهة) — lazy حتى ما تثقّل الافتراضي
+const CompactDashboard = lazy(() => import('./CompactDashboard.jsx'))
+const SimpleDashboard = lazy(() => import('./SimpleDashboard.jsx'))
+const BoardDashboard = lazy(() => import('./BoardDashboard.jsx'))
 
 // هيكل تحميل رفيع بنمط بطاقات الرؤى (يظهر لحظات ريثما يصل chunk اللوحات)
 function PanelSkeleton() {
@@ -357,7 +361,22 @@ function PlanBadge({ lang }) {
   )
 }
 
-export default function DashboardScreen({
+// المبدّل: يختار الواجهة حسب نمط «شكل الواجهة» (الإعدادات → المظهر).
+// wrapper منفصل حتى تبقى hooks كل واجهة ثابتة الترتيب داخلها.
+export default function DashboardScreen(props) {
+  const layout = useAppStore(s => s.layout)
+  if (layout === 'compact' || layout === 'simple' || layout === 'board') {
+    const Alt = layout === 'compact' ? CompactDashboard : layout === 'simple' ? SimpleDashboard : BoardDashboard
+    return (
+      <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
+        <Alt {...props} />
+      </Suspense>
+    )
+  }
+  return <ComfortDashboard {...props} />
+}
+
+function ComfortDashboard({
   projects = [], employees = [], workDays = [], expenses = [],
   payments = [], advances = [], clientReceipts = [], onNav, permissions, addAdvance, soloMode = false,
 }) {
@@ -742,7 +761,7 @@ export default function DashboardScreen({
       {!soloMode && employees.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <PremiumShell accent={C.primary} radius={22} padding="32px 22px" style={{ textAlign: 'center' }}>
-            <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 12px 32px rgba(249,115,22,0.3)' }}>
+            <div style={{ width: 64, height: 64, borderRadius: 20, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 12px 32px color-mix(in srgb, var(--c-primary) 30%, transparent)' }}>
               <Users size={32} color="#fff" strokeWidth={1.7} />
             </div>
             <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>
@@ -757,7 +776,7 @@ export default function DashboardScreen({
             </div>
             <motion.button whileTap={{ scale: 0.96 }}
               onClick={() => { try { sessionStorage.setItem('kbl_intent_add_worker', '1') } catch {}; onNav?.('workers') }}
-              style={{ width: '100%', maxWidth: 320, marginInline: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 28px', borderRadius: 15, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px rgba(249,115,22,0.35)' }}>
+              style={{ width: '100%', maxWidth: 320, marginInline: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '15px 28px', borderRadius: 15, background: GRAD.primary, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px color-mix(in srgb, var(--c-primary) 35%, transparent)' }}>
               <Users size={18} strokeWidth={2.2} />
               {language === 'he' ? 'הוסף עובד ראשון' : language === 'en' ? 'Add first worker' : 'أضف أول عامل'}
             </motion.button>

@@ -94,7 +94,7 @@ export default function SearchOverlay({ open, onClose, projects, employees, expe
           {results.map((r, i) => (
             <button key={i} onClick={() => { onNav(r.nav); onClose() }}
               style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'12px 16px', background:'none', border:'none', borderBottom:`1px solid ${C.border}33`, cursor:'pointer', textAlign:'right' }}>
-              <div style={{ width:36, height:36, borderRadius:10, background:`rgba(245,158,11,0.1)`, border:`1px solid rgba(245,158,11,0.2)`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><r.Icon size={16} strokeWidth={2} style={{ color: C.primary }} /></div>
+              <div style={{ width:36, height:36, borderRadius:10, background:`color-mix(in srgb, var(--c-primary) 10%, transparent)`, border:`1px solid color-mix(in srgb, var(--c-primary) 20%, transparent)`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><r.Icon size={16} strokeWidth={2} style={{ color: C.primary }} /></div>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:2 }}>{r.title}</div>
                 <div style={{ fontSize:11, color:C.textDim }}>{r.sub}</div>

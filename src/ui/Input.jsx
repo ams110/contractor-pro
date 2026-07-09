@@ -34,7 +34,7 @@ export const Input = forwardRef(function Input({
           style={{
             width: '100%',
             background: '#0D0F18',
-            border: `1px solid ${error ? 'rgba(239,68,68,0.4)' : 'rgba(245,158,11,0.12)'}`,
+            border: `1px solid ${error ? 'rgba(239,68,68,0.4)' : 'color-mix(in srgb, var(--c-primary) 12%, transparent)'}`,
             borderRadius: 12,
             paddingTop: 10,
             paddingBottom: 10,
@@ -47,8 +47,8 @@ export const Input = forwardRef(function Input({
             transition: 'border-color .2s, box-shadow .2s',
             ...style,
           }}
-          onFocus={e => { e.target.style.borderColor = 'rgba(245,158,11,0.4)'; e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.08)' }}
-          onBlur={e  => { e.target.style.borderColor = error ? 'rgba(239,68,68,0.4)' : 'rgba(245,158,11,0.12)'; e.target.style.boxShadow = 'none' }}
+          onFocus={e => { e.target.style.borderColor = 'color-mix(in srgb, var(--c-primary) 40%, transparent)'; e.target.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--c-primary) 8%, transparent)' }}
+          onBlur={e  => { e.target.style.borderColor = error ? 'rgba(239,68,68,0.4)' : 'color-mix(in srgb, var(--c-primary) 12%, transparent)'; e.target.style.boxShadow = 'none' }}
           {...props}
         />
         {suffix && (

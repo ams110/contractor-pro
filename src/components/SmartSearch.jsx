@@ -70,7 +70,7 @@ export default function SmartSearch({ projects = [], employees = [], expenses = 
             style={{ width: '100%', maxWidth: 560 }}
           >
             <Command
-              style={{ background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: 20, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(249,115,22,0.1) inset' }}
+              style={{ background: C.surface, border: `1px solid ${C.borderMid}`, borderRadius: 20, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px color-mix(in srgb, var(--c-primary) 10%, transparent) inset' }}
               shouldFilter={false}
             >
               {/* Input */}

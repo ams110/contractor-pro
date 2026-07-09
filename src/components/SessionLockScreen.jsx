@@ -9,7 +9,7 @@ import { tl } from '../lib/labels.js'
 import { C } from '../constants/index.js'
 
 const PASSKEY_KEY = 'cpro_passkey_cred'
-const GRAD = 'linear-gradient(135deg, #F97316, #DC2626)'
+const GRAD = 'linear-gradient(135deg, var(--c-primary), #DC2626)'
 
 export default function SessionLockScreen() {
   const { isLocked, unlockSession } = useAppStore()

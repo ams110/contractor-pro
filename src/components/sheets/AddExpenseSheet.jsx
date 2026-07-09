@@ -19,7 +19,7 @@ const METHODS = [
   { id: 'app',      label: 'בנקאות סלולרית', he: 'בנקאות סלולרית', en: 'Mobile banking', Icon: Smartphone },
 ]
 
-const CAT_COLORS = ['#F59E0B','#22C55E','#3B82F6','#8B5CF6','#EC4899','#06B6D4','#F97316','#EF4444','#84CC16','#94A3B8']
+const CAT_COLORS = ['#F59E0B','#22C55E','#3B82F6','#8B5CF6','#EC4899','#06B6D4','var(--c-primary)','#EF4444','#84CC16','#94A3B8']
 function catColor(cat) {
   const i = EXP_CATS.indexOf(cat)
   return CAT_COLORS[i % CAT_COLORS.length] ?? '#94A3B8'

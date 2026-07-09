@@ -4,8 +4,12 @@ import { celebrationConfig } from '../lib/celebrations.js'
 import { applyTheme } from '../constants/index.js'
 
 // ثيم الجهاز (وليس الحساب): dark افتراضياً · site = «وضع الورشة» الفاتح للشمس
+// + ثيمات داكنة إضافية (steel/emerald/royal). cp_theme_dark = آخر ثيم داكن مختار
+// حتى يرجعله مفتاح «وضع الورشة» عند الإطفاء.
+import { PALETTES } from '../constants/index.js'
+const validTheme = (m, fallback = 'dark') => (PALETTES[m] ? m : fallback)
 const initialTheme = (() => {
-  try { return localStorage.getItem('cp_theme') === 'site' ? 'site' : 'dark' } catch { return 'dark' }
+  try { return validTheme(localStorage.getItem('cp_theme')) } catch { return 'dark' }
 })()
 // تطبيق مبكّر قبل أول رسم — يمنع وميض الثيم الغلط عند فتح التطبيق بوضع الورشة
 applyTheme(initialTheme)
@@ -19,12 +23,37 @@ export const useAppStore = create((set, get) => ({
   // ─── Theme (وضع الورشة) ───────────────────────────────────────────────────
   theme: initialTheme,
   setTheme: (mode) => {
-    const m = mode === 'site' ? 'site' : 'dark'
-    try { localStorage.setItem('cp_theme', m) } catch { /* private mode */ }
+    const m = validTheme(mode)
+    try {
+      localStorage.setItem('cp_theme', m)
+      if (m !== 'site') localStorage.setItem('cp_theme_dark', m)
+    } catch { /* private mode */ }
     applyTheme(m)
     set({ theme: m })
   },
-  toggleTheme: () => get().setTheme(get().theme === 'site' ? 'dark' : 'site'),
+  // مفتاح «وضع الورشة»: تشغيله يحفظ ثيمك الداكن ويرجعلك إياه عند الإطفاء
+  toggleTheme: () => {
+    const cur = get().theme
+    if (cur === 'site') {
+      let back = 'dark'
+      try { back = validTheme(localStorage.getItem('cp_theme_dark')) } catch { /* ignore */ }
+      get().setTheme(back)
+    } else get().setTheme('site')
+  },
+
+  // ─── Layout (شكل الواجهة الرئيسية) ─────────────────────────────────────────
+  // comfort (الفخم الافتراضي) · compact (مكثّف) · simple (الواضح الكبير)
+  layout: (() => {
+    try {
+      const l = localStorage.getItem('cp_layout')
+      return ['comfort', 'compact', 'simple', 'board'].includes(l) ? l : 'comfort'
+    } catch { return 'comfort' }
+  })(),
+  setLayout: (l) => {
+    const v = ['comfort', 'compact', 'simple', 'board'].includes(l) ? l : 'comfort'
+    try { localStorage.setItem('cp_layout', v) } catch { /* private mode */ }
+    set({ layout: v })
+  },
 
   // ─── Pending Action ───────────────────────────────────────────────────────
   // طريقة لتمرير "نية" بين الشاشات: مثلاً من ProjectsScreen → FinanceScreen

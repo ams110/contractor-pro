@@ -12,7 +12,7 @@ import {
   RotateCw, QrCode, Copy, ArrowRight, MessageCircle, AlertTriangle, Sun,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
-import { C, GRAD, MORE_SCREENS, navLabel } from '../../constants/index.js'
+import { C, GRAD, MORE_SCREENS, navLabel, THEME_META, LAYOUT_META } from '../../constants/index.js'
 import { HolographicSheen } from '../../ui/Premium.jsx'
 import { useAppStore } from '../../store/useAppStore.js'
 import { lockOnBackgroundEnabled, LOCK_ON_BG_KEY } from '../../lib/sessionLock.js'
@@ -206,7 +206,7 @@ function ContractorCard({ profile, business, lang }) {
           position: 'absolute', inset: 0, borderRadius: 22, overflow: 'hidden',
           backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
           background: `linear-gradient(135deg, ${C.primary} 0%, ${C.gold} 48%, ${C.secondary} 105%)`,
-          boxShadow: '0 14px 40px rgba(249,115,22,0.42), inset 0 1px 0 rgba(255,255,255,0.25)',
+          boxShadow: '0 14px 40px color-mix(in srgb, var(--c-primary) 42%, transparent), inset 0 1px 0 rgba(255,255,255,0.25)',
           padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         }}>
           {/* لمعة holographic تكتسح البطاقة (مصلَّحة: skew على غلاف ثابت) */}
@@ -336,7 +336,7 @@ export default function SettingsScreen({
   pushSubStatus, forceResubscribePush,
 }) {
   const { t } = useTranslation()
-  const { language, setLanguage, theme, setTheme } = useAppStore()
+  const { language, setLanguage, theme, setTheme, layout, setLayout } = useAppStore()
   const activeBusiness = useBusinessStore(s => s.activeBusiness)
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
@@ -647,7 +647,7 @@ export default function SettingsScreen({
       {/* ── Profile ── */}
       <Section id="set-profile" icon={User} accent={C.primary} title={language === 'he' ? 'פרופיל' : language === 'en' ? 'Profile' : 'الملف الشخصي'}>
         <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 17, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 14px rgba(249,115,22,0.3)' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 17, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 14px color-mix(in srgb, var(--c-primary) 30%, transparent)' }}>
             {profile?.avatar_url
               ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', borderRadius: 'inherit', objectFit: 'cover' }} />
               : <HardHat size={26} color="#fff" strokeWidth={1.5} />
@@ -697,7 +697,7 @@ export default function SettingsScreen({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {LANGS.map(l => (
               <motion.button key={l.code} whileTap={{ scale: 0.95 }} onClick={() => setLanguage(l.code)}
-                style={{ padding: '12px 8px', borderRadius: 14, background: language === l.code ? GRAD.primary : C.card, border: `1px solid ${language === l.code ? 'transparent' : C.border}`, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, boxShadow: language === l.code ? '0 4px 16px rgba(249,115,22,0.3)' : 'none' }}>
+                style={{ padding: '12px 8px', borderRadius: 14, background: language === l.code ? GRAD.primary : C.card, border: `1px solid ${language === l.code ? 'transparent' : C.border}`, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, boxShadow: language === l.code ? '0 4px 16px color-mix(in srgb, var(--c-primary) 30%, transparent)' : 'none' }}>
                 <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.04em', color: language === l.code ? '#fff' : C.primary, background: language === l.code ? 'rgba(255,255,255,0.18)' : `${C.primary}18`, border: `1px solid ${language === l.code ? 'rgba(255,255,255,0.3)' : C.primary + '30'}`, borderRadius: 9, padding: '4px 10px', minWidth: 34, textAlign: 'center' }}>{l.code.toUpperCase()}</span>
                 <span style={{ fontSize: 12, fontWeight: 800, color: language === l.code ? '#fff' : C.textDim }}>{l.label}</span>
                 {language === l.code && <Check size={12} color="#fff" strokeWidth={3} />}
@@ -717,10 +717,71 @@ export default function SettingsScreen({
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tl(language, 'وضع الورشة (للشمس)', 'מצב אתר (לשמש)', 'Site mode (sunlight)')}</div>
             <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{tl(language, 'خلفية فاتحة ونصوص غامقة بتباين عالٍ — للشاشة اللي بتصير مراية بشمس الورشة', 'רקע בהיר וטקסט כהה בניגודיות גבוהה — למסך שהופך למראה בשמש', 'Light background, high-contrast text — for screens that turn into mirrors in the sun')}</div>
           </div>
-          <button onClick={() => setTheme?.(theme === 'site' ? 'dark' : 'site')}
+          <button onClick={() => setTheme?.(theme === 'site' ? (() => { try { return localStorage.getItem('cp_theme_dark') || 'dark' } catch { return 'dark' } })() : 'site')}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: theme === 'site' ? C.success : C.textDim }}>
             {theme === 'site' ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
           </button>
+        </div>
+
+        {/* ── معرض الثيمات الداكنة: المستخدم يختار شخصية التطبيق اللونية ── */}
+        <div style={{ padding: '4px 16px 14px' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.textDim, marginBottom: 10 }}>
+            {tl(language, 'لون التطبيق', 'צבע האפליקציה', 'App color')}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+            {THEME_META.map(t => {
+              const active = theme === t.id || (theme === 'site' && (() => { try { return (localStorage.getItem('cp_theme_dark') || 'dark') === t.id } catch { return t.id === 'dark' } })())
+              return (
+                <motion.button key={t.id} whileTap={{ scale: 0.96 }} onClick={() => setTheme?.(t.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 12px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start',
+                    background: active ? `${t.swatch[0]}16` : C.card,
+                    border: `1.5px solid ${active ? t.swatch[0] : C.border}`,
+                    boxShadow: active ? `0 4px 18px ${t.swatch[0]}40` : 'none' }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, position: 'relative', overflow: 'hidden',
+                    background: `linear-gradient(135deg, ${t.swatch[0]} 50%, ${t.swatch[1]} 50%)`,
+                    border: '1px solid rgba(255,255,255,0.14)' }} />
+                  <span style={{ flex: 1, fontSize: 12, fontWeight: 800, color: active ? C.text : C.textDim, lineHeight: 1.3 }}>
+                    {language === 'he' ? t.he : language === 'en' ? t.en : t.ar}
+                  </span>
+                  {active && <Check size={14} color={t.swatch[0]} strokeWidth={3} />}
+                </motion.button>
+              )
+            })}
+          </div>
+          {theme === 'site' && (
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 8, lineHeight: 1.5 }}>
+              {tl(language, 'وضع الورشة شغّال حالياً — اختيار لون بيرجعك للوضع الداكن.', 'מצב אתר פעיל — בחירת צבע תחזיר למצב כהה.', 'Site mode is on — picking a color returns to dark mode.')}
+            </div>
+          )}
+        </div>
+
+        {/* ── شكل الواجهة: واجهات كاملة بديلة للشاشة الرئيسية ── */}
+        <div style={{ padding: '2px 16px 14px' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.textDim, marginBottom: 10 }}>
+            {tl(language, 'شكل الواجهة الرئيسية', 'סגנון המסך הראשי', 'Home screen style')}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {LAYOUT_META.map(l => {
+              const active = layout === l.id
+              return (
+                <motion.button key={l.id} whileTap={{ scale: 0.97 }} onClick={() => setLayout?.(l.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start',
+                    background: active ? `${C.primary}14` : C.card,
+                    border: `1.5px solid ${active ? C.primary : C.border}` }}>
+                  <span style={{ width: 34, height: 26, borderRadius: 7, flexShrink: 0, border: `1px solid ${C.borderMid}`, background: C.surface, display: 'flex', flexDirection: 'column', gap: 2, padding: 3 }}>
+                    {l.id === 'comfort' && (<><span style={{ flex: 1.6, borderRadius: 3, background: GRAD.primary, opacity: 0.85 }} /><span style={{ flex: 1, borderRadius: 3, background: `${C.primary}30` }} /></>)}
+                    {l.id === 'compact' && (<span style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>{[0, 1, 2, 3].map(i => <span key={i} style={{ borderRadius: 2, background: `${C.primary}${i === 0 ? '' : '30'}`, ...(i === 0 ? { backgroundImage: GRAD.primary } : {}) }} />)}</span>)}
+                    {l.id === 'simple' && (<><span style={{ flex: 1, borderRadius: 3, background: GRAD.primary, opacity: 0.85 }} /><span style={{ flex: 1, borderRadius: 3, background: `${C.primary}30` }} /></>)}
+                    {l.id === 'board' && (<span style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1.4fr 1fr', gap: 2 }}><span style={{ gridColumn: '1 / -1', borderRadius: 2, border: `1px solid ${C.borderMid}`, background: `${C.primary}22` }} /><span style={{ borderRadius: 2, border: `1px solid ${C.borderMid}` }} /><span style={{ borderRadius: 2, border: `1px solid ${C.borderMid}` }} /></span>)}
+                  </span>
+                  <span style={{ flex: 1, fontSize: 12, fontWeight: 800, color: active ? C.text : C.textDim, lineHeight: 1.3 }}>
+                    {language === 'he' ? l.he : language === 'en' ? l.en : l.ar}
+                  </span>
+                  {active && <Check size={14} color={C.primary} strokeWidth={3} />}
+                </motion.button>
+              )
+            })}
+          </div>
         </div>
       </Section>
 
@@ -902,7 +963,7 @@ export default function SettingsScreen({
                   fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center',
                   justifyContent: 'center', gap: 8,
                   background: GRAD.primary, color: '#fff',
-                  boxShadow: '0 4px 16px rgba(245,158,11,0.3)',
+                  boxShadow: '0 4px 16px color-mix(in srgb, var(--c-primary) 30%, transparent)',
                   opacity: notifLoading ? 0.7 : 1,
                 }}
               >
@@ -949,7 +1010,7 @@ export default function SettingsScreen({
                       background: GRAD.primary, color: '#fff',
                       fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                      marginBottom: 8, boxShadow: '0 3px 12px rgba(245,158,11,0.3)',
+                      marginBottom: 8, boxShadow: '0 3px 12px color-mix(in srgb, var(--c-primary) 30%, transparent)',
                     }}
                   >
                     <RefreshCw size={13} strokeWidth={2.5} />
@@ -1134,7 +1195,7 @@ export default function SettingsScreen({
                 ? `${C.primary}20`
                 : GRAD.primary,
               color: updateStatus === 'upToDate' || updateStatus === 'updating' ? C.success : '#fff',
-              boxShadow: updateStatus === 'idle' || updateStatus === 'checking' ? '0 4px 16px rgba(245,158,11,0.3)' : 'none',
+              boxShadow: updateStatus === 'idle' || updateStatus === 'checking' ? '0 4px 16px color-mix(in srgb, var(--c-primary) 30%, transparent)' : 'none',
               opacity: updateStatus === 'checking' ? 0.7 : 1,
             }}
           >
@@ -1404,7 +1465,7 @@ export default function SettingsScreen({
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => { setBioError(''); setShowRegisterBio(true) }}
-                style={{ padding: '8px 14px', borderRadius: 10, background: 'linear-gradient(135deg,#F97316,#DC2626)', border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+                style={{ padding: '8px 14px', borderRadius: 10, background: 'linear-gradient(135deg,var(--c-primary),#DC2626)', border: 'none', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}
               >
                 <Fingerprint size={13} />
                 تفعيل
@@ -1451,7 +1512,7 @@ export default function SettingsScreen({
                     whileTap={{ scale: 0.97 }}
                     onClick={handleRegisterBiometric}
                     disabled={bioLoading}
-                    style={{ width: '100%', padding: '15px', borderRadius: 16, background: bioLoading ? `${C.primary}55` : 'linear-gradient(135deg,#F97316,#DC2626)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: bioLoading ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                    style={{ width: '100%', padding: '15px', borderRadius: 16, background: bioLoading ? `${C.primary}55` : 'linear-gradient(135deg,var(--c-primary),#DC2626)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 800, cursor: bioLoading ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                   >
                     {bioLoading
                       ? <motion.div animate={{ opacity: [1, 0.4, 1] }} transition={{ repeat: Infinity, duration: 0.9 }}><Fingerprint size={18} /></motion.div>

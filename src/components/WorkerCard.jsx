@@ -70,7 +70,7 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
             position: 'absolute', inset: 0, borderRadius: 20, overflow: 'hidden',
             backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
             background: `linear-gradient(135deg, ${C.primary} 0%, #DC2626 60%, ${C.gold} 120%)`,
-            boxShadow: '0 12px 36px rgba(249,115,22,0.32), inset 0 1px 0 rgba(255,255,255,0.22)',
+            boxShadow: '0 12px 36px color-mix(in srgb, var(--c-primary) 32%, transparent), inset 0 1px 0 rgba(255,255,255,0.22)',
             padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
           }}>
           <HolographicSheen />

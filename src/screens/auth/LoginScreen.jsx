@@ -284,7 +284,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
     <div dir={dir} style={{ minHeight: '100dvh', background: C.bg, display: 'flex', overflow: 'hidden' }}>
 
       {/* Aurora background */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 80% 60% at 50% 30%, rgba(249,115,22,0.09) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(124,58,237,0.07) 0%, transparent 60%)' }} />
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 80% 60% at 50% 30%, color-mix(in srgb, var(--c-primary) 9%, transparent) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(124,58,237,0.07) 0%, transparent 60%)' }} />
 
       {/* ── Main content ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px', position: 'relative', zIndex: 1 }}>
@@ -310,7 +310,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
             <motion.div
               animate={{ y: [0, -6, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              style={{ width: 80, height: 80, borderRadius: 26, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', boxShadow: '0 20px 60px rgba(249,115,22,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset' }}
+              style={{ width: 80, height: 80, borderRadius: 26, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px', boxShadow: '0 20px 60px color-mix(in srgb, var(--c-primary) 40%, transparent), 0 0 0 1px rgba(255,255,255,0.1) inset' }}
             >
               <HardHat size={40} color="#fff" strokeWidth={1.5} />
             </motion.div>
@@ -318,7 +318,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
               كبلان
             </div>
             <div style={{ fontSize: 13, color: C.textDim, fontWeight: 500 }}>
-              {language === 'he' ? 'נהל את הפרויקטים שלך בחוכמה' : language === 'en' ? 'Manage your projects smartly' : 'إدارة مشاريعك بذكاء'}
+              {language === 'he' ? 'כל העסק שלך. בכיס.' : language === 'en' ? 'Your whole business. In your pocket.' : 'مصلحتك كلها. بجيبك.'}
             </div>
           </div>
 
@@ -455,7 +455,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
 
                   {/* Submit */}
                   <motion.button type="submit" whileTap={{ scale: 0.97 }} disabled={loading}
-                    style={{ width: '100%', padding: '13px', borderRadius: 14, background: loading ? 'rgba(249,115,22,0.4)' : GRAD.primary, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 8px 28px rgba(249,115,22,0.35)' }}>
+                    style={{ width: '100%', padding: '13px', borderRadius: 14, background: loading ? 'color-mix(in srgb, var(--c-primary) 40%, transparent)' : GRAD.primary, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 8px 28px color-mix(in srgb, var(--c-primary) 35%, transparent)' }}>
                     {loading ? <Loader2 size={18} style={{ animation: 'spin 0.75s linear infinite' }} /> : <UserPlus size={16} />}
                     {language === 'en' ? 'Create Account' : language === 'he' ? 'צור חשבון' : 'إنشاء الحساب'}
                   </motion.button>
@@ -601,7 +601,7 @@ export default function LoginScreen({ teamMemberSignIn, initialView = 'login' })
                       </AnimatePresence>
 
                       <motion.button type="submit" whileTap={{ scale: 0.97 }} disabled={loading}
-                        style={{ width: '100%', padding: '13px', borderRadius: 14, background: loading ? 'rgba(249,115,22,0.4)' : GRAD.primary, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 8px 28px rgba(249,115,22,0.35)' }}>
+                        style={{ width: '100%', padding: '13px', borderRadius: 14, background: loading ? 'color-mix(in srgb, var(--c-primary) 40%, transparent)' : GRAD.primary, border: 'none', color: '#fff', fontSize: 15, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 8px 28px color-mix(in srgb, var(--c-primary) 35%, transparent)' }}>
                         {loading ? <Loader2 size={18} style={{ animation: 'spin 0.75s linear infinite' }} /> : null}
                         {language === 'he' ? 'כניסה' : language === 'en' ? 'Sign In' : 'تسجيل الدخول'}
                       </motion.button>
