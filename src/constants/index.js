@@ -156,7 +156,7 @@ export const LAYOUT_META = [
   { id: 'comfort', ar: 'الفخم — رؤى وبطاقات',   he: 'מפואר — תובנות',  en: 'Premium — insights' },
   { id: 'compact', ar: 'مكثّف — أرقام أولاً',    he: 'דחוס — מספרים',   en: 'Compact — numbers first' },
   { id: 'simple',  ar: 'الواضح الكبير — بسيط',  he: 'גדול וברור',      en: 'Big & clear — simple' },
-  { id: 'board',   ar: 'لوحة الهوية — بانلات',  he: 'לוח מותג',        en: 'Brand board — panels' },
+  { id: 'board',   ar: 'برو — نظيف واحترافي',   he: 'פרו — נקי ומקצועי', en: 'Pro — clean & focused' },
 ]
 
 export const C = { ...PALETTE_DARK }
