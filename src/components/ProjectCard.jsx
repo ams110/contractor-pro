@@ -1,32 +1,31 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Building2, Hammer, RotateCw, TrendingUp, TrendingDown,
+  Building2, Hammer, TrendingUp, TrendingDown,
   MapPin, Clock, CheckCircle2, AlertTriangle, Banknote,
 } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
 import { tEnum } from '../lib/labels.js'
-import { HolographicSheen } from '../ui/Premium.jsx'
+import { toneFromColor } from '../ui/Premium.jsx'
 
 // ════════════════════════════════════════════════════════════════════════
-//  بطاقة المشروع — Wallet-style، اللون حسب الحالة، تنقلب 3D لتفصيل P&L.
-//  بصرية بحتة: تقرأ من stats المحسوبة مسبقاً دون أي تغيير في الحسابات.
+//  بطاقة المشروع — Premium DNA (§2.1): سطح داكن + نبرة لونية حسب الحالة
+//  بدل التدرّج المشبع الموحّد. الربح هو البطل + شريط تقدّم التحصيل.
+//  تنقلب 3D لتفصيل P&L كما قبل. بصرية بحتة — نفس الـprops والحسابات.
 // ════════════════════════════════════════════════════════════════════════
 
-// تدرّج حسب حالة المشروع — كله من العائلة الدافئة للهوية (برتقالي/ذهبي/أحمر)
-// + أخضر هادئ للمكتمل ورماديات للمغلق. (كانت سماوي/أزرق/بنفسجي خارج الهوية.)
-function projectGradient(status, profit) {
-  if ((status === 'نشط' || status === 'موافق عليه') && profit < 0)
-    return `linear-gradient(135deg, ${C.accent} 0%, ${C.primary} 70%, ${C.gold} 118%)`
+// لون النبرة حسب حالة المشروع (خسارة نشطة → أحمر إنذاري)
+function statusColor(status, profit) {
+  if ((status === 'نشط' || status === 'موافق عليه') && profit < 0) return C.accent
   switch (status) {
-    case 'نشط':       return `linear-gradient(135deg, ${C.primary} 0%, #DC2626 70%, ${C.gold} 118%)`
-    case 'موافق عليه': return `linear-gradient(135deg, ${C.gold} 0%, ${C.primary} 60%, #DC2626 118%)`
-    case 'عرض سعر':   return `linear-gradient(135deg, ${C.gold} 0%, ${C.warning} 52%, ${C.primary} 115%)`
-    case 'مكتمل':     return `linear-gradient(135deg, ${C.success} 0%, #0F766E 70%, #134E4A 118%)`
-    case 'ملغي':      return `linear-gradient(135deg, #64748B 0%, ${C.accent} 95%)`
-    case 'مؤرشف':     return `linear-gradient(135deg, #475569 0%, #1E293B 110%)`
-    default:          return `linear-gradient(135deg, ${C.primary} 0%, ${C.gold} 60%, #DC2626 118%)`
+    case 'نشط':        return C.primary
+    case 'موافق عليه':  return C.gold
+    case 'عرض سعر':    return C.warning
+    case 'مكتمل':      return C.success
+    case 'ملغي':       return C.accent
+    case 'مؤرشف':      return C.textDim
+    default:           return C.primary
   }
 }
 
@@ -37,10 +36,12 @@ export default function ProjectCard({ project, stats = {}, businessName, lang = 
 
   const profit = stats.profit || 0
   const isProfit = profit >= 0
-  const gradient = projectGradient(project.status, profit)
+  const tone = toneFromColor(statusColor(project.status, profit))
+  const profitColor = isProfit ? C.success : C.accent
   const Icon = project.type === 'يومي' ? Hammer : Building2
   const price = parseFloat(project.price) || 0
   const remaining = price > 0 ? price - (stats.revenue || 0) : 0
+  const collectedPct = price > 0 ? Math.max(0, Math.min(100, Math.round(((stats.revenue || 0) / price) * 100))) : 0
 
   function flip(e) { e.stopPropagation(); setFlipped(f => !f) }
 
@@ -58,76 +59,100 @@ export default function ProjectCard({ project, stats = {}, businessName, lang = 
         animate={{ rotateY: flipped ? 180 : 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 26 }}
         whileTap={{ scale: 0.985 }}
-        style={{ position: 'relative', width: '100%', aspectRatio: '1.6 / 1', transformStyle: 'preserve-3d', cursor: 'pointer' }}
+        style={{ position: 'relative', width: '100%', transformStyle: 'preserve-3d', cursor: 'pointer' }}
       >
-        {/* ══ الوجه الأمامي ══ */}
+        {/* ══ الوجه الأمامي — في التدفّق، يحدّد ارتفاع البطاقة ══ */}
         <div
           onClick={() => onOpen?.(project)}
           style={{
-            position: 'absolute', inset: 0, borderRadius: 20, overflow: 'hidden',
+            position: 'relative', borderRadius: 20, overflow: 'hidden',
             backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
-            background: gradient,
-            boxShadow: '0 12px 36px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.22)',
-            padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+            background: `linear-gradient(135deg, ${tone.soft}, ${C.surface} 62%)`,
+            border: `1px solid ${tone.main}33`,
+            padding: '14px 14px 12px',
           }}>
-          <HolographicSheen />
-          <div style={{ position: 'absolute', top: -64, insetInlineEnd: -46, width: 190, height: 190, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.16)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', top: -36, insetInlineEnd: -16, width: 140, height: 140, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.10)', pointerEvents: 'none' }} />
+          {/* وميض دائري بالزاوية (توقيع البطاقة الفخمة) */}
+          <div aria-hidden style={{ position: 'absolute', top: -60, insetInlineEnd: -40, width: 170, height: 170, borderRadius: '50%', background: `radial-gradient(circle, ${tone.glow} 0%, transparent 70%)`, opacity: 0.38, pointerEvents: 'none' }} />
 
-          {/* صف علوي */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(255,255,255,0.20)', border: '1px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backdropFilter: 'blur(4px)' }}>
-                <Icon size={22} color="#fff" strokeWidth={1.9} />
+          {/* رأس: أيقونة + اسم/عميل ↔ الربح */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: tone.soft, border: `1px solid ${tone.main}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon size={21} color={tone.main} strokeWidth={2} />
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15.5, fontWeight: 900, color: C.text, letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 9.5, fontWeight: 800, color: tone.main, padding: '2px 8px', borderRadius: 999, background: tone.soft, border: `1px solid ${tone.main}3a`, whiteSpace: 'nowrap' }}>
+                  {project.status ? tEnum(project.status, lang) : L('نشط', 'פעיל', 'Active')}
+                </span>
+                {project.client_name && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: C.textDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>
+                    <MapPin size={10} strokeWidth={2.2} /> {project.client_name}
+                  </span>
+                )}
               </div>
-              <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', padding: '4px 10px', borderRadius: 999, background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.28)', whiteSpace: 'nowrap' }}>
-                {project.status ? tEnum(project.status, lang) : L('نشط', 'פעיל', 'Active')}
-              </span>
             </div>
-            <button onClick={flip} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(255,255,255,0.28)', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
-              <RotateCw size={12} color="#fff" strokeWidth={2.5} />
-              <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{L('اقلب', 'הפוך', 'Flip')}</span>
-            </button>
-          </div>
 
-          {/* الاسم + العميل + الربح */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.72)', marginBottom: 3 }}>مشروع</div>
-              <div style={{ fontSize: 19, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.25)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</div>
-              {project.client_name && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 700, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>
-                  <MapPin size={11} color="#fff" strokeWidth={2.2} /> {project.client_name}
-                </div>
-              )}
-            </div>
             <div style={{ textAlign: 'end', flexShrink: 0 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.78)', marginBottom: 1, justifyContent: 'flex-end' }}>
-                {isProfit ? <TrendingUp size={11} color="#fff" strokeWidth={2.4} /> : <TrendingDown size={11} color="#fff" strokeWidth={2.4} />}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 700, color: C.textDim, marginBottom: 2 }}>
+                {isProfit ? <TrendingUp size={11} color={profitColor} strokeWidth={2.4} /> : <TrendingDown size={11} color={profitColor} strokeWidth={2.4} />}
                 {isProfit ? L('الربح', 'רווח', 'Profit') : L('الخسارة', 'הפסד', 'Loss')}
               </div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.28)' }}>{M(`${isProfit ? '' : '−'}₪${fmt(Math.abs(profit))}`)}</div>
-              {stats.margin ? <div style={{ fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{stats.margin}%</div> : null}
+              <div style={{ fontSize: 19, fontWeight: 900, color: profitColor, letterSpacing: '-0.02em', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                {M(`${isProfit ? '' : '−'}₪${fmt(Math.abs(profit))}`)}
+              </div>
+              {stats.margin ? <div style={{ fontSize: 9.5, fontWeight: 700, color: C.textDim }}>{stats.margin}%</div> : null}
             </div>
           </div>
 
-          {/* إحصائيات */}
-          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-            {miniStats.map(s => (
-              <div key={s.label} style={{ background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 9, padding: '5px 6px', textAlign: 'center', backdropFilter: 'blur(2px)' }}>
-                <div style={{ fontSize: 11, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{s.value}</div>
-                <div style={{ fontSize: 8.5, fontWeight: 600, color: 'rgba(255,255,255,0.78)', marginTop: 1 }}>{s.label}</div>
+          {/* شريط تقدّم التحصيل (للمقاولة المسعّرة) */}
+          {price > 0 && showAmounts && (
+            <div style={{ position: 'relative', marginTop: 11 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: C.textDim }}>
+                  {L('التحصيل', 'גבייה', 'Collected')} {collectedPct}%
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 700, color: remaining > 0 ? C.warning : C.success }}>
+                  {remaining > 0 ? <Clock size={9} strokeWidth={2.2} /> : <CheckCircle2 size={9} strokeWidth={2.2} />}
+                  {remaining > 0 ? `${L('متبقّي', 'נותר', 'Left')} ₪${fmt(remaining)}` : L('اكتمل التحصيل', 'נגבה במלואו', 'Fully collected')}
+                </span>
+              </div>
+              <div style={{ height: 5, borderRadius: 999, background: C.card, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+                <div style={{ width: `${collectedPct}%`, height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${tone.main}, ${C.gold})`, transition: 'width .5s ease' }} />
+              </div>
+            </div>
+          )}
+
+          {/* شريط إحصائيات مفصول بخيط */}
+          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
+            {miniStats.map((s, i) => (
+              <div key={s.label} style={{ textAlign: 'center', borderInlineStart: i > 0 ? `1px solid ${C.border}` : 'none' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+                <div style={{ fontSize: 9, fontWeight: 600, color: C.textDim, marginTop: 1 }}>{s.label}</div>
               </div>
             ))}
           </div>
 
-          {/* تنبيه معلّق */}
-          {stats.pending > 0 && (
-            <div style={{ position: 'absolute', insetInlineStart: 16, bottom: 14, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 7px', borderRadius: 999, background: 'rgba(0,0,0,0.28)', border: '1px solid rgba(255,255,255,0.22)' }}>
-              <AlertTriangle size={10} color="#fff" strokeWidth={2.5} />
-              <span style={{ fontSize: 9, fontWeight: 800, color: '#fff' }}>{stats.pending}</span>
-            </div>
-          )}
+          {/* صفّ سفلي: P&L + مصلحة + تنبيه معلّق */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 7, marginTop: 11 }}>
+            <button onClick={flip}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 10, background: `${C.cyan}14`, border: `1px solid ${C.cyan}30`, color: C.cyan, fontSize: 10.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+              <Banknote size={12} strokeWidth={2.4} /> {L('الربح والخسارة', 'רווח והפסד', 'P&L')}
+            </button>
+            {businessName && (
+              <span style={{ fontSize: 9.5, fontWeight: 700, color: C.textDim, padding: '4px 9px', borderRadius: 999, background: C.card, border: `1px solid ${C.border}`, display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Building2 size={10} strokeWidth={2} /> {businessName}
+              </span>
+            )}
+            <div style={{ flex: 1 }} />
+            {stats.pending > 0 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 999, background: `${C.warning}16`, border: `1px solid ${C.warning}3a` }}>
+                <AlertTriangle size={10} color={C.warning} strokeWidth={2.5} />
+                <span style={{ fontSize: 9.5, fontWeight: 800, color: C.warning }}>{stats.pending} {L('معلّق', 'ממתין', 'Pending')}</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* ══ الوجه الخلفي (P&L) ══ */}
