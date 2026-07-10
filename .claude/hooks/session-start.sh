@@ -33,13 +33,15 @@ EOF
   echo "Created .env.local (dummy Supabase env for sandbox preview)."
 fi
 
-echo "Session setup complete."
-
-# Install gstack skill suite in the background (best-effort, never blocks).
-# The container is ephemeral, so gstack is re-installed each session; running it
-# detached (setsid) keeps session start fast while gstack arms in ~1-2 min.
+# Install gstack skill suite SYNCHRONOUSLY (blocking) so it is fully armed
+# before the first message. The container is ephemeral, so gstack is
+# re-installed each session (~1-2 min: clone + browse build + 110MB Chromium).
+# Best-effort: `|| true` ensures a failure never aborts session start.
+# NOTE: the SessionStart hook needs a generous `timeout` in settings.json to
+# allow this to finish (see .claude/settings.json).
 if [ -x "$CLAUDE_PROJECT_DIR/.claude/hooks/install-gstack.sh" ]; then
-  echo "Installing gstack skill suite in the background..."
-  setsid nohup "$CLAUDE_PROJECT_DIR/.claude/hooks/install-gstack.sh" \
-    >/tmp/gstack-install.log 2>&1 < /dev/null &
+  echo "Installing gstack skill suite (blocking; can take 1-2 min on a fresh session)..."
+  "$CLAUDE_PROJECT_DIR/.claude/hooks/install-gstack.sh" || true
 fi
+
+echo "Session setup complete."
