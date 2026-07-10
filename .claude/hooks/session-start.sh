@@ -34,3 +34,12 @@ EOF
 fi
 
 echo "Session setup complete."
+
+# Install gstack skill suite in the background (best-effort, never blocks).
+# The container is ephemeral, so gstack is re-installed each session; running it
+# detached (setsid) keeps session start fast while gstack arms in ~1-2 min.
+if [ -x "$CLAUDE_PROJECT_DIR/.claude/hooks/install-gstack.sh" ]; then
+  echo "Installing gstack skill suite in the background..."
+  setsid nohup "$CLAUDE_PROJECT_DIR/.claude/hooks/install-gstack.sh" \
+    >/tmp/gstack-install.log 2>&1 < /dev/null &
+fi
