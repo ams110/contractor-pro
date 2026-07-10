@@ -1,19 +1,21 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  RotateCw, HardHat, MessageCircle, Copy, Check, QrCode,
+  RotateCw, MessageCircle, Copy, Check, QrCode,
   Star, AlertTriangle, Wallet,
 } from 'lucide-react'
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../lib/whatsapp.js'
 import { tEnum } from '../lib/labels.js'
-import { HolographicSheen } from '../ui/Premium.jsx'
+import { toneFromColor } from '../ui/Premium.jsx'
 import PortalUpsell from './PortalUpsell.jsx'
 
 // ════════════════════════════════════════════════════════════════════════
-//  بطاقة هوية العامل — Wallet-style، لمعة holographic، تنقلب 3D لـ QR البوّابة
-//  بصرية بحتة: تعيد استخدام رابط البوّابة العام دون أي تغيير في منطقه.
+//  بطاقة العامل — Premium DNA (§2.1): سطح داكن + نبرة لونية حسب حالة الرصيد
+//  بدل التدرّج البرتقالي الموحّد. مضغوطة وقابلة للمسح السريع، والرصيد هو
+//  البطل. تنقلب 3D لوجه QR البوّابة كما قبل. بصرية بحتة — نفس الـprops.
+//  النبرة: مستحق له → warning · مسدّد → success · مدفوع زيادة → cyan.
 // ════════════════════════════════════════════════════════════════════════
 function initialsOf(name) {
   return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -26,6 +28,14 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
 
   const balance = stats.balance || 0
   const url = portalUrl || `${window.location.origin}${window.location.pathname}?portal`
+  const alerts = (stats.pending || 0) + (anomaly?.total || 0)
+  // أحمر فقط عند شذوذ فعلي — المعلّق العادي تحذيري حتى ما تغرق القائمة بالأحمر
+  const alertColor = (anomaly?.total || 0) > 0 ? C.accent : C.warning
+
+  const tone = toneFromColor(balance > 0 ? C.warning : balance < 0 ? C.cyan : C.success)
+  const balanceLabel = balance > 0
+    ? L('مستحق له', 'לתשלום', 'Owed')
+    : balance < 0 ? L('مدفوع زيادة', 'שולם ביתר', 'Overpaid') : L('مسدّد', 'מאוזן', 'Settled')
 
   function flip(e) { e.stopPropagation(); setFlipped(f => !f) }
   function copyLink(e) {
@@ -53,6 +63,12 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
     { label: L('أيام', 'ימים', 'Days'),         value: stats.days || 0 },
   ]
 
+  const chipBtn = (color) => ({
+    display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 10,
+    background: `${color}14`, border: `1px solid ${color}30`, color,
+    fontSize: 10.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+  })
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
@@ -61,93 +77,88 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
         animate={{ rotateY: flipped ? 180 : 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 26 }}
         whileTap={{ scale: 0.985 }}
-        style={{ position: 'relative', width: '100%', aspectRatio: '1.6 / 1', transformStyle: 'preserve-3d', cursor: 'pointer' }}
+        style={{ position: 'relative', width: '100%', transformStyle: 'preserve-3d', cursor: 'pointer' }}
       >
-        {/* ══ الوجه الأمامي ══ */}
+        {/* ══ الوجه الأمامي — في التدفّق، يحدّد ارتفاع البطاقة ══ */}
         <div
           onClick={() => onOpen?.(worker)}
           style={{
-            position: 'absolute', inset: 0, borderRadius: 20, overflow: 'hidden',
+            position: 'relative', borderRadius: 20, overflow: 'hidden',
             backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
-            background: `linear-gradient(135deg, ${C.primary} 0%, #DC2626 60%, ${C.gold} 120%)`,
-            boxShadow: '0 12px 36px rgba(249,115,22,0.32), inset 0 1px 0 rgba(255,255,255,0.22)',
-            padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+            background: `linear-gradient(135deg, ${tone.soft}, ${C.surface} 62%)`,
+            border: `1px solid ${tone.main}33`,
+            padding: '14px 14px 12px',
           }}>
-          <HolographicSheen />
-          {/* نقش دائري خافت */}
-          <div style={{ position: 'absolute', top: -64, insetInlineEnd: -46, width: 190, height: 190, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.16)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', top: -36, insetInlineEnd: -16, width: 140, height: 140, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.10)', pointerEvents: 'none' }} />
+          {/* وميض دائري بالزاوية (توقيع البطاقة الفخمة) */}
+          <div aria-hidden style={{ position: 'absolute', top: -60, insetInlineEnd: -40, width: 170, height: 170, borderRadius: '50%', background: `radial-gradient(circle, ${tone.glow} 0%, transparent 70%)`, opacity: 0.38, pointerEvents: 'none' }} />
 
-          {/* صف علوي */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(255,255,255,0.20)', border: '1px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, backdropFilter: 'blur(4px)' }}>
-                {worker.avatar_url
-                  ? <img src={worker.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <span style={{ fontSize: 15, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{initialsOf(worker.name)}</span>}
+          {/* رأس: أفاتار + اسم/تخصّص ↔ الرصيد */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: tone.soft, border: `1px solid ${tone.main}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+              {worker.avatar_url
+                ? <img src={worker.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ fontSize: 15, fontWeight: 900, color: tone.main, letterSpacing: '-0.02em' }}>{initialsOf(worker.name)}</span>}
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15.5, fontWeight: 900, color: C.text, letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{worker.name}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                {worker.specialty && (
+                  <span style={{ fontSize: 9.5, fontWeight: 700, color: C.textDim, padding: '2px 8px', borderRadius: 999, background: C.card, border: `1px solid ${C.border}`, whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {tEnum(worker.specialty, lang)}
+                  </span>
+                )}
+                {dna && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 999, background: `${C.gold}18`, border: `1px solid ${C.gold}3a` }}>
+                    {dna.star && <Star size={9} color={C.gold} strokeWidth={2.5} fill={C.gold} />}
+                    <span style={{ fontSize: 10, fontWeight: 900, color: C.gold, direction: 'ltr' }}>{dna.score}</span>
+                    <span style={{ fontSize: 8.5, fontWeight: 700, color: C.gold }}>{dna.tier}</span>
+                  </span>
+                )}
+                {worker.phone && (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: C.textDim, fontFamily: 'monospace', letterSpacing: '0.05em', direction: 'ltr' }}>{worker.phone}</span>
+                )}
               </div>
-              {worker.specialty && (
-                <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', padding: '4px 9px', borderRadius: 999, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.26)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>
-                  {tEnum(worker.specialty, lang)}
-                </span>
-              )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              {dna && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.34)' }}>
-                  {dna.star && <Star size={10} color="#fff" strokeWidth={2.5} fill="#fff" />}
-                  <span style={{ fontSize: 11, fontWeight: 900, color: '#fff', direction: 'ltr' }}>{dna.score}</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{dna.tier}</span>
-                </span>
-              )}
-              {worker.phone && showAmounts && (
-                <button onClick={shareStatement} title={L('كشف حساب واتساب', 'דוח חשבון בוואטסאפ', 'WhatsApp statement')}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(255,255,255,0.28)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <MessageCircle size={12} color="#fff" strokeWidth={2.5} />
-                  <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{L('كشف', 'דוח', 'Bill')}</span>
-                </button>
-              )}
-              <button onClick={flip} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(255,255,255,0.28)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                <RotateCw size={12} color="#fff" strokeWidth={2.5} />
-                <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{L('اقلب', 'הפוך', 'Flip')}</span>
-              </button>
-            </div>
-          </div>
 
-          {/* الاسم + الرصيد */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginTop: 4 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.72)', marginBottom: 3 }}>كبلان</div>
-              <div style={{ fontSize: 19, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.25)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{worker.name}</div>
-              {worker.phone && (
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.85)', fontFamily: 'monospace', letterSpacing: '0.08em', marginTop: 2, direction: 'ltr', textAlign: 'start' }}>{worker.phone}</div>
-              )}
-            </div>
             <div style={{ textAlign: 'end', flexShrink: 0 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.78)', marginBottom: 1 }}>
-                <Wallet size={11} color="#fff" strokeWidth={2.4} /> {L('الرصيد', 'מאזן', 'Balance')}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 700, color: C.textDim, marginBottom: 2 }}>
+                <Wallet size={11} color={tone.main} strokeWidth={2.4} /> {balanceLabel}
               </div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', textShadow: '0 1px 8px rgba(0,0,0,0.28)' }}>{showAmounts ? `₪${fmt(Math.abs(balance))}` : '•••'}</div>
+              <div style={{ fontSize: 19, fontWeight: 900, color: tone.main, letterSpacing: '-0.02em', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                {showAmounts ? `${balance < 0 ? '−' : ''}₪${fmt(Math.abs(balance))}` : '•••'}
+              </div>
             </div>
           </div>
 
-          {/* شريط إحصائيات صغير */}
-          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-            {miniStats.map(s => (
-              <div key={s.label} style={{ background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 9, padding: '5px 6px', textAlign: 'center', backdropFilter: 'blur(2px)' }}>
-                <div style={{ fontSize: 11, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>{s.value}</div>
-                <div style={{ fontSize: 8.5, fontWeight: 600, color: 'rgba(255,255,255,0.78)', marginTop: 1 }}>{s.label}</div>
+          {/* شريط إحصائيات مفصول بخيط */}
+          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
+            {miniStats.map((s, i) => (
+              <div key={s.label} style={{ textAlign: 'center', borderInlineStart: i > 0 ? `1px solid ${C.border}` : 'none' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+                <div style={{ fontSize: 9, fontWeight: 600, color: C.textDim, marginTop: 1 }}>{s.label}</div>
               </div>
             ))}
           </div>
 
-          {/* تنبيه معلّق */}
-          {(stats.pending > 0 || anomaly?.total > 0) && (
-            <div style={{ position: 'absolute', insetInlineStart: 16, bottom: 14, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 7px', borderRadius: 999, background: 'rgba(0,0,0,0.28)', border: '1px solid rgba(255,255,255,0.22)' }}>
-              <AlertTriangle size={10} color="#fff" strokeWidth={2.5} />
-              <span style={{ fontSize: 9, fontWeight: 800, color: '#fff' }}>{(stats.pending || 0) + (anomaly?.total || 0)}</span>
-            </div>
-          )}
+          {/* صفّ الإجراءات السريعة */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 7, marginTop: 11 }}>
+            {worker.phone && showAmounts && (
+              <button onClick={shareStatement} title={L('كشف حساب واتساب', 'דוח חשבון בוואטסאפ', 'WhatsApp statement')} style={chipBtn(C.success)}>
+                <MessageCircle size={12} strokeWidth={2.5} /> {L('كشف', 'דוח', 'Bill')}
+              </button>
+            )}
+            <button onClick={flip} style={chipBtn(C.cyan)}>
+              <QrCode size={12} strokeWidth={2.4} /> {L('البوّابة', 'פורטל', 'Portal')}
+            </button>
+            <div style={{ flex: 1 }} />
+            {alerts > 0 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 999, background: `${alertColor}16`, border: `1px solid ${alertColor}3a` }}>
+                <AlertTriangle size={10} color={alertColor} strokeWidth={2.5} />
+                <span style={{ fontSize: 9.5, fontWeight: 800, color: alertColor }}>{alerts} {L('معلّق', 'ממתין', 'Pending')}</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* ══ الوجه الخلفي (QR البوّابة) ══ */}
@@ -161,7 +172,7 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
             display: 'flex', alignItems: 'center', gap: 14,
           }}>
           {portalEnabled ? (<>
-            <div style={{ width: 100, height: 100, borderRadius: 14, background: '#fff', padding: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
+            <div style={{ width: 96, height: 96, borderRadius: 14, background: '#fff', padding: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
               {qr ? <img src={qr} alt="" style={{ width: '100%', height: '100%' }} /> : <QrCode size={44} color={C.surface} />}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -172,12 +183,15 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
               <div style={{ fontSize: 10, color: C.textDim, lineHeight: 1.5, marginBottom: 9 }}>
                 {L('امسح الكود أو شارك الرابط ليدخل العامل بوّابته', 'סרוק או שתף את הקישור', 'Scan or share the link with your worker')}
               </div>
-              <div style={{ display: 'flex', gap: 7 }}>
-                <button onClick={shareWa} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, background: `${C.success}1c`, border: `1px solid ${C.success}40`, color: C.success, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                <button onClick={shareWa} style={chipBtn(C.success)}>
                   <MessageCircle size={13} strokeWidth={2.4} /> {L('واتساب', 'וואטסאפ', 'WhatsApp')}
                 </button>
-                <button onClick={copyLink} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 11px', borderRadius: 10, background: copied ? `${C.success}1c` : `${C.primary}1c`, border: `1px solid ${copied ? C.success : C.primary}40`, color: copied ? C.success : C.primary, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button onClick={copyLink} style={chipBtn(copied ? C.success : C.primary)}>
                   {copied ? <Check size={13} strokeWidth={2.6} /> : <Copy size={13} strokeWidth={2.4} />} {copied ? L('تم', 'הועתק', 'Copied') : L('نسخ', 'העתק', 'Copy')}
+                </button>
+                <button onClick={flip} style={chipBtn(C.cyan)}>
+                  <RotateCw size={12} strokeWidth={2.4} /> {L('رجوع', 'חזרה', 'Back')}
                 </button>
               </div>
             </div>
