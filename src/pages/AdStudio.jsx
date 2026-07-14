@@ -524,6 +524,9 @@ const IDEAS = [
 
   { tag: 'جرّب مجاناً', tone: 'brand', kw: '14 يوم', head: 'مجاناً — بلا بطاقة', sub: 'كل الميزات مفتوحة 14 يوم — بلا التزام وبلا بطاقة ائتمان. ابدأ بدقيقة.',
     blocks: [{ type: 'header', title: 'كبلان' }, { type: 'grid' }] },
+
+  { tag: 'عصرة السيولة', tone: 'cyan', kw: 'اعرف وين واقف', head: 'قبل ما تنعصر', sub: 'التوقّع الذكي للسيولة: كم داخل، كم طالع، وكم فعلياً ضايل معك — لحظة بلحظة من موبايلك.',
+    blocks: [{ type: 'header', title: 'التوقّع الذكي للسيولة' }, { type: 'heroMoney', icon: Wallet, label: 'رصيد متوقّع خلال 30 يوم', value: DEMO.forecast, tone: 'cyan', sub: 'مدى أمان: 94 يوم' }, { type: 'insights', rows: [{ icon: AlertTriangle, color: C.warning, text: 'دفعة عميل متأخّرة 70 يوم — ₪84,000' }, { icon: CheckCircle2, color: C.success, text: 'السيولة بتغطّي الرواتب وמע"מ هالشهر' }] }] },
 ]
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -620,6 +623,7 @@ const SCREEN_MAP = [
   { s: 'dashboard', f: 'نبض' },            // 35 موسم التقارير
   { s: 'workers' },                         // 36 بلا خلافات مع عمّالك
   { s: 'dashboard', f: 'نبض' },            // 37 جرّب مجاناً
+  { s: 'dashboard', f: 'التوقّع' },        // 38 عصرة السيولة (AD-013)
 ]
 function Poster({ idea, ideaIndex, size, lang = 'ar' }) {
   const { w, h } = SIZES[size] || SIZES.portrait

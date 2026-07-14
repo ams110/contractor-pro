@@ -22,11 +22,11 @@ export function buildDemo(lang = 'ar') {
   const M = (n) => Math.round(n)
 
   const projects = [
-    { id: 'p1', name: t('فيلا الياسمين', 'וילה ברעננה'),  status: 'نشط',    type: 'مقاولة مغلقة', client_name: t('سمير حدّاد', 'משה פרידמן'),         client_phone: '0521234567', total_amount: 380000, created_at: '2026-02-01' },
-    { id: 'p2', name: t('عمارة الورد', 'בניין מגורים תל אביב'), status: 'نشط', type: 'يومي',      client_name: t('شركة البناء الحديث', 'חברת בוני המרכז'), client_phone: '0539876543', total_amount: 0,      created_at: '2026-03-05' },
-    { id: 'p3', name: t('محل النور', 'חנות ברמת גן'),     status: 'نشط',    type: 'مقاولة مغلقة', client_name: t('خالد عثمان', 'דוד שמש'),            client_phone: '0501112233', total_amount: 96000,  created_at: '2026-04-10' },
-    { id: 'p4', name: t('شقة الزيتون', 'דירה בגבעתיים'),  status: 'مكتمل',  type: 'مقاولة مغلقة', client_name: t('ليلى ناصر', 'לאה ניסים'),           client_phone: '0524445566', total_amount: 142000, created_at: '2026-01-12' },
-    { id: 'p5', name: t('مكاتب الأمل', 'משרדים בפתח תקווה'), status: 'موافق عليه', type: 'مقاولة مغلقة', client_name: t('مجموعة الأمل', 'קבוצת אופק'),    client_phone: '0537778899', total_amount: 210000, created_at: '2026-05-20' },
+    { id: 'p1', name: t('فيلا الياسمين', 'וילה ברעננה'),  status: 'نشط',    type: 'مقاولة مغلقة', client_name: t('سمير حدّاد', 'משה פרידמן'),         client_phone: '0521234567', price: 380000, created_at: '2026-02-01' },
+    { id: 'p2', name: t('عمارة الورد', 'בניין מגורים תל אביב'), status: 'نشط', type: 'يومي',      client_name: t('شركة البناء الحديث', 'חברת בוני המרכז'), client_phone: '0539876543', price: 0,      created_at: '2026-03-05' },
+    { id: 'p3', name: t('محل النور', 'חנות ברמת גן'),     status: 'نشط',    type: 'مقاولة مغلقة', client_name: t('خالد عثمان', 'דוד שמש'),            client_phone: '0501112233', price: 96000,  created_at: '2026-04-10' },
+    { id: 'p4', name: t('شقة الزيتون', 'דירה בגבעתיים'),  status: 'مكتمل',  type: 'مقاولة مغلقة', client_name: t('ليلى ناصر', 'לאה ניסים'),           client_phone: '0524445566', price: 142000, created_at: '2026-01-12' },
+    { id: 'p5', name: t('مكاتب الأمل', 'משרדים בפתח תקווה'), status: 'موافق عليه', type: 'مقاولة مغلقة', client_name: t('مجموعة الأمل', 'קבוצת אופק'),    client_phone: '0537778899', price: 210000, created_at: '2026-05-20' },
   ]
   // كل المشاريع تتبع المصلحة الوهمية (لتعمل وحدة المالية في الديمو)
   projects.forEach(p => { p.business_id = 'biz1' })
