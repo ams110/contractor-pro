@@ -32,6 +32,8 @@ import { usePlanStore, useHasFeature } from '../../store/usePlanStore.js'
 import { openCustomerPortal } from '../../lib/paddle.js'
 import PortalUpsell from '../../components/PortalUpsell.jsx'
 import ReferralCard from '../../components/ReferralCard.jsx'
+import FeatureGate from '../../components/FeatureGate.jsx'
+import McpAccessSection from './McpAccessSection.jsx'
 import { tl } from '../../lib/labels.js'
 
 const PLAN_META_UI = {
@@ -66,6 +68,7 @@ const CATEGORIES = [
   { id: 'data',          icon: Database,          color: C.cyan,      ar: 'بيانات', he: 'נתונים', en: 'Data',    ownerOnly: true, hint: { ar: 'نسخ احتياطي · إجازات', he: 'גיבוי · חגים', en: 'Backup · holidays' } },
   { id: 'appTools',      icon: Settings,          color: C.success,   ar: 'أدوات',  he: 'כלים',   en: 'Tools',    hint: { ar: 'تحديث · أدوات إضافية', he: 'עדכון · כלים', en: 'Update · more tools' } },
   { id: 'security',      icon: Shield,            color: C.accent,    ar: 'أمان',   he: 'אבטחה',  en: 'Security', ownerOnly: true, hint: { ar: 'بصمة · قفل · سجلّ', he: 'ביומטרי · נעילה', en: 'Biometric · locks' } },
+  { id: 'api',           icon: KeyRound,          color: C.secondary, ar: 'ربط الذكاء', he: 'חיבור AI', en: 'AI Link', ownerOnly: true, hint: { ar: 'Claude MCP · مفاتيح', he: 'Claude MCP · מפתחות', en: 'Claude MCP · keys' } },
 ]
 
 // شريط تبويبات أفقي لاصق — حبّات (pills) أيقونة+نص، النشطة بتدرّج وتوهّج
@@ -1499,6 +1502,17 @@ export default function SettingsScreen({
       )}
 
       </>)}
+
+      {activeCat === 'api' && permissions?.isOwner && (
+        <FeatureGate requiredPlan="business"
+          title={tl(language, 'ربط Claude بمصلحتك', 'חיבור Claude לעסק', 'Connect Claude to your business')}
+          description={tl(language,
+            'اسأل وأمُر بلغة طبيعية من Claude مباشرة — ميزة خطة Business',
+            'שאל ופקוד בשפה טבעית ישירות מ-Claude — תוכנית Business',
+            'Ask and command in natural language from Claude — Business plan feature')}>
+          <McpAccessSection language={language} userId={userId} />
+        </FeatureGate>
+      )}
 
         </motion.div>
       )}
