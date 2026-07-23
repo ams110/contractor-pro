@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   Gift, HardHat, KeyRound, Bell, HardHat as ConstructionIcon, CalendarDays, Wallet, ClipboardList, Ruler, X,
   LogOut, LogIn, Eye, EyeOff, AlertTriangle, TrendingUp, CheckCircle2, Clock as ClockIcon,
@@ -1455,6 +1455,9 @@ function PasskeyCard({ supported, enabled: enabledInit, onRegister, onRemove }) 
 export default function WorkerPortalScreen() {
   const language = useAppStore(s => s.language)
   const theme = useAppStore(s => s.theme)   // إعادة تركيب كاملة عند تبديل «وضع الورشة» (زي App.jsx)
+  const ensureAppDefaultTheme = useAppStore(s => s.ensureAppDefaultTheme)
+  // افتراضي البوّابة فاتح ما لم يحفظ العامل اختياراً
+  useEffect(() => { ensureAppDefaultTheme() }, [ensureAppDefaultTheme])
   const {
     worker, workDays, payments, projects, holidays, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,

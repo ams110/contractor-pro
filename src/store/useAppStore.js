@@ -3,10 +3,21 @@ import { setLanguage, getCurrentLang } from '../i18n/index.js'
 import { celebrationConfig } from '../lib/celebrations.js'
 import { applyTheme } from '../constants/index.js'
 
-// ثيم الجهاز (وليس الحساب): dark افتراضياً · site = «وضع الورشة» الفاتح للشمس
-const initialTheme = (() => {
-  try { return localStorage.getItem('cp_theme') === 'site' ? 'site' : 'dark' } catch { return 'dark' }
+// ثيم الجهاز (وليس الحساب): اختيار المستخدم المحفوظ (cp_theme) يُحترم دائماً.
+// بلا اختيار محفوظ: التطبيق (/app) وبوّابة العامل (?portal/?worker) افتراضيّهما
+// «وضع الورشة» الفاتح (site)، وصفحات التسويق العامة (الهبوط/الأسعار...) تبقى غامقة.
+const savedTheme = (() => {
+  try {
+    const v = localStorage.getItem('cp_theme')
+    return v === 'site' || v === 'dark' ? v : null
+  } catch { return null }
 })()
+const isAppEntry = (() => {
+  try {
+    return /[?&](portal|worker)\b/.test(window.location.search) || window.location.pathname.includes('/app')
+  } catch { return false }
+})()
+const initialTheme = savedTheme || (isAppEntry ? 'site' : 'dark')
 // تطبيق مبكّر قبل أول رسم — يمنع وميض الثيم الغلط عند فتح التطبيق بوضع الورشة
 applyTheme(initialTheme)
 
@@ -25,6 +36,13 @@ export const useAppStore = create((set, get) => ({
     set({ theme: m })
   },
   toggleTheme: () => get().setTheme(get().theme === 'site' ? 'dark' : 'site'),
+  // افتراضي التطبيق/البوّابة فاتح ما لم يحفظ المستخدم اختياراً — يُستدعى عند
+  // تركيب App/WorkerPortalScreen (يغطّي الوصول عبر تنقّل SPA من صفحة عامة غامقة).
+  // بلا كتابة لـcp_theme: «الافتراضي» يظل افتراضياً حتى يبدّل المستخدم بنفسه.
+  ensureAppDefaultTheme: () => {
+    try { if (localStorage.getItem('cp_theme')) return } catch { /* private mode */ }
+    if (get().theme !== 'site') { applyTheme('site'); set({ theme: 'site' }) }
+  },
 
   // ─── Pending Action ───────────────────────────────────────────────────────
   // طريقة لتمرير "نية" بين الشاشات: مثلاً من ProjectsScreen → FinanceScreen
