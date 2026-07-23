@@ -114,7 +114,7 @@ function NoAccess() {
       <div style={{ width: 56, height: 56, borderRadius: 18, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
         <Lock size={24} color="#EF4444" strokeWidth={2} />
       </div>
-      <div style={{ fontSize: 14, color: '#64748B', fontWeight: 600 }}>{tl(language, 'ليس لديك صلاحية لعرض هذه الصفحة', 'אין לך הרשאה לצפות בדף זה', "You don't have permission to view this page")}</div>
+      <div style={{ fontSize: 14, color: C.textDim, fontWeight: 600 }}>{tl(language, 'ليس لديك صلاحية لعرض هذه الصفحة', 'אין לך הרשאה לצפות בדף זה', "You don't have permission to view this page")}</div>
     </div>
   )
 }
@@ -155,7 +155,7 @@ function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: C.textMuted }} />
             </div>
             <div style={{ padding: '0 8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {filtered.map(item => {
@@ -169,9 +169,9 @@ function MoreDrawer({ open, onClose, screen, setScreen, permissions }) {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12,
                       padding: '12px 14px', borderRadius: 16,
-                      background: active ? `${C.primary}1F` : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${active ? `${C.primary}40` : 'rgba(255,255,255,0.06)'}`,
-                      cursor: 'pointer', color: active ? C.primary : '#94A3B8',
+                      background: active ? `${C.primary}1F` : C.card,
+                      border: `1px solid ${active ? `${C.primary}40` : C.border}`,
+                      cursor: 'pointer', color: active ? C.primary : C.textDim,
                       fontFamily: 'inherit',
                     }}
                   >
@@ -205,11 +205,11 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount, nav = NA
   return (
     <div style={{
       position: 'fixed', right: 0, top: 0, width: 240, height: '100vh',
-      background: 'rgba(13,15,24,0.98)', borderLeft: `1px solid ${C.primary}1A`,
+      background: C.surface, borderLeft: `1px solid ${C.primary}1A`,
       display: 'flex', flexDirection: 'column', zIndex: 40, overflowY: 'auto',
       backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
     }}>
-      <div style={{ padding: '18px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+      <div style={{ padding: '18px 16px 16px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 36, height: 36, borderRadius: 11, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(245,158,11,0.35)', flexShrink: 0 }}>
             <HardHat size={18} color="#000" strokeWidth={2} />
@@ -228,16 +228,16 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount, nav = NA
               padding: '10px 12px', borderRadius: 12, marginBottom: 3,
               background: active ? `${C.primary}1F` : 'transparent',
               border: `1px solid ${active ? `${C.primary}40` : 'transparent'}`,
-              color: active ? C.primary : '#94A3B8', cursor: 'pointer',
+              color: active ? C.primary : C.textDim, cursor: 'pointer',
               textAlign: 'right', fontFamily: 'inherit', transition: 'all .15s',
             }}>
-              {Icon && <Icon size={17} color={active ? C.primary : '#94A3B8'} strokeWidth={active ? 2.2 : 1.8} />}
+              {Icon && <Icon size={17} color={active ? C.primary : C.textDim} strokeWidth={active ? 2.2 : 1.8} />}
               <span style={{ fontSize: 13, fontWeight: active ? 700 : 500 }}>{navLabel(n, language)}</span>
             </button>
           )
         })}
 
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '10px 4px' }} />
+        <div style={{ height: 1, background: C.border, margin: '10px 4px' }} />
         <div style={{ fontSize: 9, color: C.textDim, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0 12px 8px' }}>{tl(language, 'المزيد', 'עוד', 'More')}</div>
 
         {filteredMore.map(item => {
@@ -249,10 +249,10 @@ function DesktopSidebar({ screen, setScreen, permissions, pendingCount, nav = NA
               padding: '9px 12px', borderRadius: 12, marginBottom: 3,
               background: active ? `${C.primary}1F` : 'transparent',
               border: `1px solid ${active ? `${C.primary}40` : 'transparent'}`,
-              color: active ? C.primary : '#94A3B8', cursor: 'pointer',
+              color: active ? C.primary : C.textDim, cursor: 'pointer',
               textAlign: 'right', fontFamily: 'inherit', transition: 'all .15s',
             }}>
-              {Icon && <Icon size={16} color={active ? C.primary : '#94A3B8'} strokeWidth={active ? 2.2 : 1.8} />}
+              {Icon && <Icon size={16} color={active ? C.primary : C.textDim} strokeWidth={active ? 2.2 : 1.8} />}
               <span style={{ fontSize: 12, fontWeight: active ? 700 : 500 }}>{navLabel(item, language)}</span>
               {item.id === 'workers' && pendingCount > 0 && (
                 <span style={{ marginRight: 'auto', background: C.accent, color: '#fff', fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 8, minWidth: 18, textAlign: 'center' }}>{pendingCount}</span>
@@ -307,6 +307,13 @@ function OwnerApp() {
   useEffect(() => { ensureAppDefaultTheme() }, [ensureAppDefaultTheme])
 
   const dir = (language === 'ar' || language === 'he') ? 'rtl' : 'ltr'
+
+  // كروم التنقّل (الهيدر العلوي/الشريط السفلي): زجاجي غامق أو فاتح حسب الثيم —
+  // الأسطح هنا كانت hard-coded غامقة فظلّت سوداء في «وضع الورشة»
+  const isSite = theme === 'site'
+  const chromeBg   = isSite ? 'rgba(255,255,255,0.93)' : 'rgba(7,8,15,0.93)'
+  const chipBg     = isSite ? 'rgba(11,18,32,0.05)'    : 'rgba(255,255,255,0.04)'
+  const chipBorder = isSite ? 'rgba(11,18,32,0.12)'    : 'rgba(255,255,255,0.07)'
 
   // عنوان تبويب المتصفّح داخل التطبيق المسجَّل حسب اللغة (لا يوجد route SEO للتطبيق)
   useEffect(() => {
@@ -668,13 +675,13 @@ function OwnerApp() {
       {org && isTrialActive() && !effectiveOwnerId && (
         <div style={{ position: 'sticky', top: 0, zIndex: 199, background: 'linear-gradient(135deg, rgba(245,158,11,0.14), rgba(239,68,68,0.09))', backdropFilter: 'blur(12px)', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid rgba(245,158,11,0.2)', direction: 'rtl' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Gift size={15} color="#FBBF24" strokeWidth={2} />
-            <span style={{ fontSize: 11, color: '#FBBF24', fontWeight: 700 }}>
+            <Gift size={15} color={isSite ? C.gold : '#FBBF24'} strokeWidth={2} />
+            <span style={{ fontSize: 11, color: isSite ? C.gold : '#FBBF24', fontWeight: 700 }}>
               {language === 'he'
-                ? <>ניסיון חינם — נותרו <strong style={{ color: '#fff' }}>{trialDaysLeft()} ימים</strong></>
+                ? <>ניסיון חינם — נותרו <strong style={{ color: isSite ? C.text : '#fff' }}>{trialDaysLeft()} ימים</strong></>
                 : language === 'en'
-                ? <>Free trial — <strong style={{ color: '#fff' }}>{trialDaysLeft()} days</strong> left</>
-                : <>التجربة المجانية — متبقي <strong style={{ color: '#fff' }}>{trialDaysLeft()} يوم</strong></>}
+                ? <>Free trial — <strong style={{ color: isSite ? C.text : '#fff' }}>{trialDaysLeft()} days</strong> left</>
+                : <>التجربة المجانية — متبقي <strong style={{ color: isSite ? C.text : '#fff' }}>{trialDaysLeft()} يوم</strong></>}
             </span>
           </div>
           <button onClick={() => navigate('/pricing')} style={{ padding: '5px 14px', borderRadius: 9, background: GRAD.primary, border: 'none', color: '#000', fontSize: 11, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
@@ -697,14 +704,14 @@ function OwnerApp() {
             >{tl(language, 'تفعيل', 'הפעל', 'Enable')}</button>
             <button
               onClick={() => localStorage.setItem('cpro_notif_dismissed', '1')}
-              style={{ padding: '5px 8px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: 'none', color: C.textDim, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ padding: '5px 8px', borderRadius: 9, background: chipBg, border: 'none', color: C.textDim, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
             >×</button>
           </div>
         </div>
       )}
 
       {/* ─── Header ─── */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(7,8,15,0.93)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(249,115,22,0.07)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: chromeBg, backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 42, height: 42, borderRadius: 14, background: GRAD.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(245,158,11,0.4), 0 1px 0 rgba(255,255,255,0.15) inset', flexShrink: 0 }}>
             <HardHat size={22} color="#000" strokeWidth={2} />
@@ -721,7 +728,7 @@ function OwnerApp() {
           {dataLoading && <div style={{ width: 15, height: 15, border: `2px solid ${C.border}`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin .75s linear infinite' }} />}
 
           {/* Language switcher */}
-          <div style={{ display: 'flex', gap: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 11, padding: '3px' }}>
+          <div style={{ display: 'flex', gap: 3, background: chipBg, border: `1px solid ${chipBorder}`, borderRadius: 11, padding: '3px' }}>
             {['ar','he','en'].map(l => (
               <button
                 key={l}
@@ -735,16 +742,16 @@ function OwnerApp() {
 
           {(p?.isOwner || p?.viewActivity) && (
             <motion.button whileTap={{ scale: 0.9 }} onClick={() => setScreen('activity')}
-              style={{ background: screen === 'activity' ? `${C.primary}18` : 'rgba(255,255,255,0.04)', border: `1px solid ${screen === 'activity' ? C.primary+'40' : 'rgba(255,255,255,0.07)'}`, borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ background: screen === 'activity' ? `${C.primary}18` : chipBg, border: `1px solid ${screen === 'activity' ? C.primary+'40' : chipBorder}`, borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <ClipboardCheck size={16} color={screen === 'activity' ? C.primary : '#64748B'} strokeWidth={2} />
+              <ClipboardCheck size={16} color={screen === 'activity' ? C.primary : C.textDim} strokeWidth={2} />
             </motion.button>
           )}
 
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowNotifs(true)}
-            style={{ position: 'relative', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ position: 'relative', background: chipBg, border: `1px solid ${chipBorder}`, borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            <Bell size={16} color="#64748B" strokeWidth={2} />
+            <Bell size={16} color={C.textDim} strokeWidth={2} />
             {unreadCount > 0 && (
               <div className="badge-pop" style={{ position: 'absolute', top: -4, insetInlineEnd: -4, minWidth: 17, height: 17, borderRadius: 9, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', padding: '0 3px' }}>
                 {unreadCount}
@@ -753,9 +760,9 @@ function OwnerApp() {
           </motion.button>
 
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowSearch(true)}
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: chipBg, border: `1px solid ${chipBorder}`, borderRadius: 12, width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            <Search size={16} color="#64748B" strokeWidth={2} />
+            <Search size={16} color={C.textDim} strokeWidth={2} />
           </motion.button>
         </div>
 
@@ -771,7 +778,7 @@ function OwnerApp() {
       </div>
 
       {/* ─── Bottom Nav (mobile only) ─── */}
-      {!isDesktop && <div style={{ position: 'fixed', bottom: 'max(14px, calc(8px + env(safe-area-inset-bottom, 0px)))', left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: '1px solid rgba(245,158,11,0.1)', padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
+      {!isDesktop && <div style={{ position: 'fixed', bottom: 'max(14px, calc(8px + env(safe-area-inset-bottom, 0px)))', left: 0, right: 0, margin: '0 auto', width: 'calc(100% - 24px)', maxWidth: 410, background: isSite ? 'rgba(255,255,255,0.97)' : 'rgba(7,8,12,0.97)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderRadius: 28, border: `1px solid ${isSite ? 'rgba(234,97,0,0.22)' : 'rgba(245,158,11,0.1)'}`, padding: '7px 4px 9px', display: 'flex', justifyContent: 'space-around', zIndex: 50, boxShadow: isSite ? '0 16px 50px rgba(15,23,42,0.2), 0 1px 0 rgba(255,255,255,0.8) inset' : '0 16px 50px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.05) inset' }}>
         {visibleNav.map(n => {
           const active = activeNav === n.id
           const Icon = NAV_ICONS[n.id]
@@ -796,7 +803,7 @@ function OwnerApp() {
 
               {/* Icon */}
               <div style={{ position: 'relative', zIndex: 1 }}>
-                {Icon && <Icon size={active ? 21 : 18} color={active ? C.primary : 'rgba(255,255,255,0.28)'} strokeWidth={active ? 2.3 : 1.8} style={{ filter: active ? `drop-shadow(0 0 6px ${C.primary}88)` : 'none', display: 'block' }} />}
+                {Icon && <Icon size={active ? 21 : 18} color={active ? C.primary : (isSite ? 'rgba(11,18,32,0.5)' : 'rgba(255,255,255,0.28)')} strokeWidth={active ? 2.3 : 1.8} style={{ filter: active ? `drop-shadow(0 0 6px ${C.primary}88)` : 'none', display: 'block' }} />}
               </div>
 
               {/* Badge on "settings" (pending work days) */}
@@ -807,7 +814,7 @@ function OwnerApp() {
               )}
 
               {/* Label */}
-              <span style={{ fontSize: 8.5, fontWeight: active ? 800 : 500, color: active ? C.primary : 'rgba(255,255,255,0.25)', position: 'relative', zIndex: 1, letterSpacing: '0.01em', lineHeight: 1 }}>
+              <span style={{ fontSize: 8.5, fontWeight: active ? 800 : 500, color: active ? C.primary : (isSite ? 'rgba(11,18,32,0.55)' : 'rgba(255,255,255,0.25)'), position: 'relative', zIndex: 1, letterSpacing: '0.01em', lineHeight: 1 }}>
                 {navLabel(n, language)}
               </span>
 
