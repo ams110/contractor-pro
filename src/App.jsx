@@ -299,8 +299,12 @@ function OwnerApp() {
     language, setLanguage: setLang,
     setSigner,
     lockSession, isReadOnly, setReadOnly, setDailySpendLimit,
-    theme,
+    theme, ensureAppDefaultTheme,
   } = useAppStore()
+
+  // افتراضي التطبيق فاتح (وضع الورشة) ما لم يحفظ المستخدم اختياراً — يغطّي
+  // الدخول عبر تنقّل SPA من صفحة عامة غامقة (الهبوط → دخول → التطبيق)
+  useEffect(() => { ensureAppDefaultTheme() }, [ensureAppDefaultTheme])
 
   const dir = (language === 'ar' || language === 'he') ? 'rtl' : 'ltr'
 
