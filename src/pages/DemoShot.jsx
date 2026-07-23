@@ -16,7 +16,7 @@ import MaterialsScreen from '../screens/MaterialsScreen.jsx'
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  DEMO SHOT — يرندر الشاشات الفعلية للتطبيق ببيانات وهمية (بلا باكند ولا دخول)
-//  لأخذ سكرينشوتات حقيقية تُركّب داخل بوسترات AdStudio.
+//  لأخذ سكرينشوتات حقيقية للأغراض الدعائية.
 //  المسار: /demoshot?screen=dashboard|workdays|workers|finance|projects|expenses|payments|materials
 //  مصدر البيانات الموحّد: src/lib/demoData.js (يشاركه الديمو العام /demo).
 // ═══════════════════════════════════════════════════════════════════════════

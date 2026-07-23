@@ -19,12 +19,10 @@ npm run lint          # ESLint على src
 npm run test:e2e      # Playwright E2E (يشغّل dev server تلقائياً)
 npm run test:e2e:ui   # واجهة Playwright التفاعلية
 npm run demo:shots    # لقطات شاشات التطبيق الدعائية من /demoshot (هاتف، PNG 4x) — يحتاج dev server
-npm run ads:shots     # بوسترات إعلانية من /adstudio (square/portrait/story، PNG 2x) — يحتاج dev server
 ```
 
-> 🎬 **صور دعائية**: استعمل سكِيل **`promo-shots`** (تفاعلي — بيسألك شو بدك ثم يولّد ويبعت).
-> السكربتان وراءه: `scripts/demo-shots.mjs` (شاشات `/demoshot`) و`scripts/ad-shots.mjs` (بوسترات `/adstudio`).
-> كلاهما يخصَّص بمتغيّرات بيئة (`SCREENS`/`IDEAS`/`SIZES`/`DPR`/`FORMAT`/`QUALITY`) — التفاصيل براس كل سكربت.
+> 🎬 **صور دعائية**: `scripts/demo-shots.mjs` (شاشات `/demoshot`) — يخصَّص بمتغيّرات بيئة
+> (`SCREENS`/`DPR`/`FORMAT`/`QUALITY`) — التفاصيل براس السكربت.
 
 - **Node**: 20 (في CI). **Package manager**: npm.
 
