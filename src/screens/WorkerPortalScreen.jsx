@@ -4,6 +4,7 @@ import {
   LogOut, LogIn, Eye, EyeOff, AlertTriangle, TrendingUp, CheckCircle2, Clock as ClockIcon,
   CalendarPlus, Receipt, Package, HandCoins, Map as MapIcon, Settings, Send, FileText, Download,
   Check, X as XIcon, ChevronDown, Sparkles, MapPin, Camera, Paperclip, Fingerprint, ShieldCheck, Trash2,
+  Sun, Moon,
 } from 'lucide-react'
 import { C, GRAD, EXP_CATS } from '../constants/index.js'
 import { useAppStore } from '../store/useAppStore.js'
@@ -22,16 +23,11 @@ const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو
 
 const DAY_TYPES = ['كامل', 'نص يوم', 'ساعات']
 
-const EXP_STATUS_BADGE = {
+// دوال (مش ثوابت) حتى تلقط ألوان الثيم الحالي وقت الرندر (وضع الورشة)
+const expStatusBadge = (status) => ({
   approved: { ar: 'موافق', he: 'מאושר', en: 'Approved', color: C.success },
   pending:  { ar: 'معلق',  he: 'ממתין', en: 'Pending',  color: C.warning },
-}
-
-const STATUS_BADGE = {
-  approved: { ar: 'موافق', he: 'מאושר', en: 'Approved', bg: `${C.success}22`, color: C.success },
-  pending:  { ar: 'معلق',  he: 'ממתין', en: 'Pending',  bg: `${C.warning}22`, color: C.warning },
-  rejected: { ar: 'مرفوض', he: 'נדחה',  en: 'Rejected', bg: `${C.accent}22`,  color: C.accent  },
-}
+}[status])
 
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
                    'יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
@@ -48,6 +44,8 @@ function fmtMonth(yyyymm, language = 'ar') {
 // ─── هيدر «بطاقة العامل» — بانر محفظة متدرّج + لمعة ────────────────────────────
 function PortalHero({ worker, owed, earned, paid, daysCount, pending, onLogout }) {
   const language = useAppStore(s => s.language)
+  const theme = useAppStore(s => s.theme)
+  const toggleTheme = useAppStore(s => s.toggleTheme)
   const initials = (worker?.name || '؟').split(' ').map(w => w[0]).join('').slice(0, 2)
   const specialty = worker?.specialization ? worker.specialization.split(',')[0] : ''
   return (
@@ -67,9 +65,22 @@ function PortalHero({ worker, owed, earned, paid, daysCount, pending, onLogout }
             {specialty && <span style={{ display: 'inline-block', fontSize: 9.5, fontWeight: 800, color: '#fff', padding: '2px 8px', borderRadius: 999, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.26)', marginTop: 3 }}>{specialty}</span>}
           </div>
         </div>
-        <button onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 11px', borderRadius: 11, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.28)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
-          <LogOut size={13} strokeWidth={2.4} /> {tl(language, 'خروج', 'יציאה', 'Log out')}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {/* «وضع الورشة» — نفس تبديل الثيم الفاتح/الغامق في التطبيق الأم */}
+          <button onClick={toggleTheme}
+            aria-label={theme === 'site'
+              ? tl(language, 'الوضع الغامق', 'מצב כהה', 'Dark mode')
+              : tl(language, 'وضع الورشة (للشمس)', 'מצב אתר (לשמש)', 'Site mode (sunlight)')}
+            title={theme === 'site'
+              ? tl(language, 'الوضع الغامق', 'מצב כהה', 'Dark mode')
+              : tl(language, 'وضع الورشة (للشمس)', 'מצב אתר (לשמש)', 'Site mode (sunlight)')}
+            style={{ width: 30, height: 30, borderRadius: 11, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.28)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            {theme === 'site' ? <Moon size={14} strokeWidth={2.4} /> : <Sun size={14} strokeWidth={2.4} />}
+          </button>
+          <button onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 11px', borderRadius: 11, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.28)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+            <LogOut size={13} strokeWidth={2.4} /> {tl(language, 'خروج', 'יציאה', 'Log out')}
+          </button>
+        </div>
       </div>
 
       <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
@@ -107,7 +118,7 @@ function PortalTabs({ tabs, tab, setTab }) {
         return (
           <button key={id} onClick={() => setTab(id)}
             style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '9px 13px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
-              background: on ? GRAD.primary : 'rgba(255,255,255,0.05)', border: `1px solid ${on ? 'transparent' : C.border}`,
+              background: on ? GRAD.primary : C.card, border: `1px solid ${on ? 'transparent' : C.border}`,
               color: on ? '#fff' : C.textDim, boxShadow: on ? `0 6px 18px ${C.primary}44` : 'none', minWidth: 60, transition: 'all .2s' }}>
             <Icon size={17} strokeWidth={on ? 2.5 : 2} />
             <span style={{ fontSize: 10.5, fontWeight: on ? 900 : 700 }}>{label}</span>
@@ -118,7 +129,7 @@ function PortalTabs({ tabs, tab, setTab }) {
   )
 }
 
-const DAY_TYPE_COLORS = { 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange }
+const dayTypeColor = (t) => ({ 'كامل': C.primary, 'نص يوم': C.warning, 'ساعات': C.blue, 'مبلغ مسكر': C.orange }[t] || C.primary)
 
 // عمر الطلب بصيغة نسبية بسيطة («من 3 ساعات»)
 function agoText(ts, language) {
@@ -372,6 +383,9 @@ function EditLogList({ editLog }) {
 // ─── شاشة تسجيل الدخول ───────────────────────────────────────────────────────
 function LoginScreen({ onLogin, error, loading, onPasskeyLogin, hasPasskey, passkeySupported }) {
   const language = useAppStore(s => s.language)
+  const theme = useAppStore(s => s.theme)
+  const toggleTheme = useAppStore(s => s.toggleTheme)
+  const isSite = theme === 'site'
   const [username,   setUsername]   = useState('')
   const [password,   setPassword]   = useState('')
   const [showPass,   setShowPass]   = useState(false)
@@ -384,18 +398,30 @@ function LoginScreen({ onLogin, error, loading, onPasskeyLogin, hasPasskey, pass
       <div style={{ position: 'absolute', top: '-15%', right: '-15%', width: 300, height: 300, borderRadius: '50%', background: `radial-gradient(circle, ${C.primary}22 0%, transparent 70%)`, pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: '-15%', left: '-15%', width: 280, height: 280, borderRadius: '50%', background: `radial-gradient(circle, ${C.secondary}22 0%, transparent 70%)`, pointerEvents: 'none' }} />
 
+      {/* «وضع الورشة» — نفس تبديل الثيم الفاتح/الغامق في التطبيق الأم */}
+      <button onClick={toggleTheme}
+        aria-label={isSite
+          ? tl(language, 'الوضع الغامق', 'מצב כהה', 'Dark mode')
+          : tl(language, 'وضع الورشة (للشمس)', 'מצב אתר (לשמש)', 'Site mode (sunlight)')}
+        title={isSite
+          ? tl(language, 'الوضع الغامق', 'מצב כהה', 'Dark mode')
+          : tl(language, 'وضع الورشة (للشمس)', 'מצב אתר (לשמש)', 'Site mode (sunlight)')}
+        style={{ position: 'absolute', top: 16, insetInlineEnd: 16, width: 36, height: 36, borderRadius: 12, background: `${C.warning}14`, border: `1px solid ${C.warning}36`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        {isSite ? <Moon size={17} color={C.warning} /> : <Sun size={17} color={C.warning} />}
+      </button>
+
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 12px 36px rgba(245,158,11,0.35)', animation: 'float 3s ease-in-out infinite' }}><HardHat size={38} strokeWidth={1.8} color="#000" /></div>
         <div style={{ fontSize: 24, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tl(language, 'بوابة العمال', 'פורטל העובדים', 'Worker Portal')}</div>
         <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, letterSpacing: '0.06em' }}>{tl(language, 'كبلان', 'כבלאן', 'Kabblan')}</div>
       </div>
 
-      <div style={{ width: '100%', maxWidth: 380, background: 'rgba(13,17,23,0.9)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: 28, padding: 28, border: `1px solid ${C.borderMid}`, boxShadow: '0 24px 80px rgba(0,0,0,0.5)' }}>
+      <div style={{ width: '100%', maxWidth: 380, background: isSite ? 'rgba(255,255,255,0.92)' : 'rgba(13,17,23,0.9)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: 28, padding: 28, border: `1px solid ${C.borderMid}`, boxShadow: isSite ? '0 24px 80px rgba(15,23,42,0.16)' : '0 24px 80px rgba(0,0,0,0.5)' }}>
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }}>{tl(language, 'اسم المستخدم', 'שם משתמש', 'Username')}</label>
           <input value={username} onChange={e => setUsername(e.target.value)}
             placeholder={tl(language, 'أدخل اسم المستخدم', 'הזן שם משתמש', 'Enter username')} autoComplete="username"
-            style={{ width: '100%', padding: '13px 14px', borderRadius: 14, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+            style={{ width: '100%', padding: '13px 14px', borderRadius: 14, border: `1px solid ${C.border}`, background: isSite ? C.bg : 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
         </div>
 
         <div style={{ marginBottom: 20 }}>
@@ -404,7 +430,7 @@ function LoginScreen({ onLogin, error, loading, onPasskeyLogin, hasPasskey, pass
             <input value={password} onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && onLogin(username, password)}
               type={showPass ? 'text' : 'password'} placeholder="••••••••" autoComplete="current-password"
-              style={{ width: '100%', padding: '13px 44px 13px 14px', borderRadius: 14, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
+              style={{ width: '100%', padding: '13px 44px 13px 14px', borderRadius: 14, border: `1px solid ${C.border}`, background: isSite ? C.bg : 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }} />
             <button onClick={() => setShowPass(s => !s)}
               style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
               {showPass ? <EyeOff size={17} strokeWidth={2} /> : <Eye size={17} strokeWidth={2} />}
@@ -864,13 +890,13 @@ function ChangePasswordForm({ worker, onChangePassword }) {
     }
   }
 
-  const inputStyle = { width: '100%', padding: '12px 44px 12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }
+  const inputStyle = { width: '100%', padding: '12px 44px 12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }
   const labelStyle = { fontSize: 12, color: C.textDim, display: 'block', marginBottom: 6, fontWeight: 600 }
 
   return (
     <div>
       {/* بطاقة الملف الشخصي */}
-      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.borderMid}`, padding: '18px 16px', marginBottom: 20, overflow: 'hidden' }}>
+      <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.borderMid}`, padding: '18px 16px', marginBottom: 20, overflow: 'hidden' }}>
         <div style={{ height: 3, background: GRAD.brand, margin: '-18px -16px 16px' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ padding: 2, borderRadius: '50%', background: GRAD.brand, flexShrink: 0 }}>
@@ -889,7 +915,7 @@ function ChangePasswordForm({ worker, onChangePassword }) {
       </div>
 
       {/* فورم تغيير كلمة المرور */}
-      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.borderMid}`, padding: '18px 16px', overflow: 'hidden' }}>
+      <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.borderMid}`, padding: '18px 16px', overflow: 'hidden' }}>
         <div style={{ height: 3, background: GRAD.purple, margin: '-18px -16px 16px' }} />
         <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 16, display:'flex', alignItems:'center', gap:6 }}><KeyRound size={14} strokeWidth={2} /> {tl(language, 'تغيير كلمة المرور', 'שינוי סיסמה', 'Change password')}</div>
 
@@ -998,7 +1024,7 @@ function RequestPaymentForm({ worker, onRequest, unpaidDays, totalOwed }) {
           </div>
           <div style={{ padding:'8px 16px 12px', maxHeight:220, overflowY:'auto' }}>
             {unpaidDays.slice(0, 20).map((d, i) => {
-              const tc = DAY_TYPE_COLORS[d.day_type] || C.primary
+              const tc = dayTypeColor(d.day_type)
               return (
                 <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom:`1px solid ${C.border}18` }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
@@ -1097,7 +1123,7 @@ function RequestAdvanceForm({ onRequest }) {
   )
 
   return (
-    <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 20, border: `1px solid ${C.border}`, padding: 20, direction: 'rtl' }}>
+    <div style={{ background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, padding: 20, direction: 'rtl' }}>
       <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 7 }}><HandCoins size={17} color={C.primary} strokeWidth={2.2} /> {tl(language, 'طلب سلفة', 'בקשת מקדמה', 'Request an advance')}</div>
       <div style={{ fontSize: 11, color: C.textDim, marginBottom: 18 }}>
         {tl(language, 'اطلب سلفة من راتبك — ستُخصم تلقائياً من مستحقاتك', 'בקש מקדמה מהמשכורת שלך — היא תנוכה אוטומטית מהזכאות שלך', 'Request an advance on your salary — it will be deducted automatically from what you are owed')}
@@ -1108,7 +1134,7 @@ function RequestAdvanceForm({ onRequest }) {
         <input
           type="number" min="1" value={amount} onChange={e => setAmount(e.target.value)}
           placeholder={tl(language, 'أدخل المبلغ', 'הזן סכום', 'Enter the amount')}
-          style={{ width: '100%', padding: '13px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 16, fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }}
+          style={{ width: '100%', padding: '13px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 16, fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontFamily: 'monospace' }}
         />
       </div>
 
@@ -1118,7 +1144,7 @@ function RequestAdvanceForm({ onRequest }) {
           value={notes} onChange={e => setNotes(e.target.value)}
           placeholder={tl(language, 'مثال: ضرورة طارئة...', 'לדוגמה: צורך דחוף...', 'e.g. urgent need...')}
           rows={3}
-          style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.06)', color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+          style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
         />
       </div>
 
@@ -1428,6 +1454,7 @@ function PasskeyCard({ supported, enabled: enabledInit, onRegister, onRemove }) 
 // ─── البوابة الرئيسية ─────────────────────────────────────────────────────────
 export default function WorkerPortalScreen() {
   const language = useAppStore(s => s.language)
+  const theme = useAppStore(s => s.theme)   // إعادة تركيب كاملة عند تبديل «وضع الورشة» (زي App.jsx)
   const {
     worker, workDays, payments, projects, holidays, loading, loginErr, loggingIn,
     submitting, submitErr, setSubmitErr,
@@ -1444,14 +1471,14 @@ export default function WorkerPortalScreen() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div key={theme} style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 40, height: 40, border: `3px solid ${C.border}`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin .8s linear infinite' }} />
       </div>
     )
   }
 
   if (!worker) {
-    return <LoginScreen onLogin={login} error={loginErr} loading={loggingIn}
+    return <LoginScreen key={theme} onLogin={login} error={loginErr} loading={loggingIn}
       onPasskeyLogin={loginWithPasskey} hasPasskey={hasPasskey} passkeySupported={passkeySupported} />
   }
 
@@ -1477,7 +1504,7 @@ export default function WorkerPortalScreen() {
   const activeTab = tabs.some(t => t.id === tab) ? tab : (tabs[0]?.id || 'monthly')
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
+    <div key={theme} style={{ minHeight: '100vh', background: C.bg, direction: 'rtl', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}>
 
       <div style={{ padding: 16, paddingBottom: 32 }}>
         {/* هيدر بطاقة العامل */}
@@ -1522,7 +1549,7 @@ export default function WorkerPortalScreen() {
               <div style={{ marginTop: 20 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>{tl(language, 'مصاريفي السابقة', 'ההוצאות הקודמות שלי', 'My previous expenses')}</div>
                 {workerExpenses.map(ex => {
-                  const badge = EXP_STATUS_BADGE[ex.status] || EXP_STATUS_BADGE.approved
+                  const badge = expStatusBadge(ex.status) || expStatusBadge('approved')
                   return (
                     <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: ex.status === 'pending' ? `${C.warning}11` : C.card, borderRadius: 10, border: `1px solid ${ex.status === 'pending' ? C.warning + '44' : C.border}`, marginBottom: 6 }}>
                       <div>
