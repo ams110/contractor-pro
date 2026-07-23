@@ -19,8 +19,6 @@ import { pageview } from './lib/analytics.js'
 const App = lazy(() => import('./App.jsx'))
 const LoginScreen = lazy(() => import('./screens/auth/LoginScreen.jsx'))
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'))
-const AdStudio    = lazy(() => import('./pages/AdStudio.jsx'))
-const AdReel      = lazy(() => import('./pages/AdReel.jsx'))
 const DemoShot    = lazy(() => import('./pages/DemoShot.jsx'))
 const DemoApp     = lazy(() => import('./pages/DemoApp.jsx'))
 
@@ -58,11 +56,7 @@ export default function Router() {
 
   // /admin — لوحة تحكّم المنصّة (مركز قيادة الأدمن، دخول مخصّص — بلا لافتة كوكيز)
   if (path === '/admin') return <Suspense fallback={null}><AdminDashboard /></Suspense>
-  // /adstudio — محرّك البوسترات التسويقية (بلا لافتة كوكيز)
-  if (path === '/adstudio') return <Suspense fallback={null}><AdStudio /></Suspense>
-  // /adreel — نسخة فيديو ٩:١٦ من البوسترات (تُسجَّل عبر scripts/reel-shots.mjs)
-  if (path === '/adreel') return <Suspense fallback={null}><AdReel /></Suspense>
-  // /demoshot — يرندر الشاشات الفعلية ببيانات وهمية (للموكاب داخل البوسترات)
+  // /demoshot — يرندر الشاشات الفعلية ببيانات وهمية (لقطات دعائية)
   if (path === '/demoshot') return <Suspense fallback={null}><DemoShot /></Suspense>
 
   let page

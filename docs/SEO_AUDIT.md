@@ -15,7 +15,7 @@
 |------|:-----:|---------|
 | الزحف والفهرسة | ✅ | SPA يخدم `index.html`، وجوجل يرندر JS. + prerender ثابت لـ9 مسارات للزواحف غير الرندرة (واتساب/فيسبوك/تويتر). |
 | sitemap.xml | ✅ | **مولّد تلقائياً** وقت البناء من `seoRoutes.js` (مصدر واحد)، بتاريخ `lastmod` طازج. معلَن في `robots.txt`. |
-| robots.txt | ✅ | `Allow: /` + حجب الأدوات الداخلية (`/admin`, `/adstudio`, `/adreel`, `/demoshot`, `/welcome`, `?portal`, `?worker`). |
+| robots.txt | ✅ | `Allow: /` + حجب الأدوات الداخلية (`/admin`, `/demoshot`, `/welcome`, `?portal`, `?worker`). |
 | الموارد (CSS/JS) غير محجوبة | ✅ | لا حجب لأي أصول؛ جوجل يرى الصفحة كالمستخدم. |
 | تحقّق الملكية | ✅ | `google-site-verification` meta + ملف `google2e9ae507788087c4.html`. |
 
