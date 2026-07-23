@@ -33,3 +33,4 @@ jobs:
           supabase functions deploy webauthn-register-verify --project-ref rvhjrzbhugvytvktdhor
           supabase functions deploy webauthn-auth-options --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
           supabase functions deploy webauthn-auth-verify --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
+          supabase functions deploy mcp-server --project-ref rvhjrzbhugvytvktdhor --no-verify-jwt
