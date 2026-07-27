@@ -1,5 +1,5 @@
 {
-  "packageId": "app.linko.services",
+  "packageId": "com.kabblan.app",
   "host": "kabblan.com",
   "name": "كبلان",
   "launcherName": "كبلان",
@@ -20,8 +20,8 @@
     "path": "./android-upload.keystore",
     "alias": "upload"
   },
-  "appVersionName": "1.0.1",
-  "appVersionCode": 3,
+  "appVersionName": "1.0.3",
+  "appVersionCode": 112,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://kabblan.com/manifest.webmanifest",
@@ -40,5 +40,5 @@
   "additionalTrustedOrigins": ["https://app.linko.services"],
   "retainedBundles": [],
   "displayOverride": [],
-  "appVersion": "1.0.1"
+  "appVersion": "1.0.3"
 }

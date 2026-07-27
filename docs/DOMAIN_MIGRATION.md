@@ -31,11 +31,14 @@
 | `src/pages/LegalPage.jsx` | `LEGAL_INFO.domain` |
 | `supabase/functions/send-auth-email/index.ts` | افتراضي `APP_URL` + `EMAIL_FROM` |
 | `supabase/functions/send-push/index.ts` | `mailto:` بتفاصيل VAPID |
-| `android/twa-manifest.json` | `host` + `iconUrl` + `maskableIconUrl` + `webManifestUrl` + `fullScopeUrl`، + النطاق القديم بـ`additionalTrustedOrigins`. ⚠️ **`packageId` بقي `app.linko.services`** — غير قابل للتغيير بعد النشر على Play، وتغييره = تطبيق جديد وفقدان كل المستخدمين |
+| `android/twa-manifest.json` | `host` + `iconUrl` + `maskableIconUrl` + `webManifestUrl` + `fullScopeUrl` + `packageId` → `com.kabblan.app`، + النطاق القديم بـ`additionalTrustedOrigins` (انظر §8) |
+| `.github/workflows/android.yml` + `public/.well-known/assetlinks.json` | الباكج الجديد (انظر §8) |
 | `src/lib/domainMigration.js` | **جديد** — جسر الترحيل على العميل (انظر §2) |
 
-**ما تغيّر عمداً**: `packageId` الأندرويدي · بصمات `assetlinks.json` · اسم حزمة npm ·
-`rpID` لـWebAuthn (مشتقّ تلقائياً من ترويسة `Origin` — انظر §6).
+**ما تغيّر عمداً**: مفتاح التوقيع (`ANDROID_KEYSTORE_BASE64` — غير مرتبط باسم الباكج) ·
+مدخل `app.linko.services` في `assetlinks.json` (لازم للنسخ المثبّتة — §8) · اسم حزمة npm
+(`contractor-pro` — داخلي، غير مرئي للمستخدم) · `rpID` لـWebAuthn (مشتقّ تلقائياً من
+ترويسة `Origin` — انظر §6).
 
 ---
 
@@ -144,18 +147,61 @@ EMAIL_FROM = Kabblan <noreply@kabblan.com>    # بعد توثيق النطاق �
 
 ---
 
-## 8. أندرويد (TWA) — بالترتيب
+## 8. أندرويد (TWA) — تطبيق **جديد** بباكج `com.kabblan.app`
 
-1. تأكّد `https://kabblan.com/.well-known/assetlinks.json` بيرجع نفس الملف بنفس البصمات
-   (بينشر تلقائياً مع البناء من `public/`). افحص:
+### ليش تطبيق جديد أصلاً؟
+
+الباكج القديم `app.linko.services` **محجوز للأبد** عند جوجل من لحظة أوّل رفعة، ولا
+بيتعدّل بمكانه. الطريق الوحيد لاسم مطابق للعلامة = **تسجيل تطبيق جديد** بالكونسول.
+
+**هلق هي اللحظة الوحيدة اللي التبديل فيها مجاني**: التطبيق **ما انطلق للإنتاج أبداً**،
+الاختبار المغلق **مسوّدة ما انطلقت**، و**صفر مختبِرين** → عدّاد الـ14 يوم واقف على صفر
+أصلاً. يعني ما في مستخدمين ولا تقييمات ولا وقت بينخسر. بعد ما تجيب المختبِرين، الكلفة
+بتصير خسارة عدّاد كامل.
+
+### اللي تغيّر بالكود ✅
+
+| الملف | التغيير |
+|---|---|
+| `android/twa-manifest.json` | `packageId` → `com.kabblan.app` · `appVersionName` 1.0.3 · `appVersionCode` 112 |
+| `.github/workflows/android.yml` | `packageName` للنشر التلقائي → `com.kabblan.app` |
+| `public/.well-known/assetlinks.json` | مدخل جديد لـ`com.kabblan.app`، **والمدخل القديم محفوظ** (انظر التحذير تحت) |
+
+> 🔑 **مفتاح التوقيع ما بتغيّر.** هو مخزَّن كسرّ `ANDROID_KEYSTORE_BASE64` وغير مرتبط
+> باسم الباكج إطلاقاً — نفس المفتاح بوقّع الباكج الجديد بلا أي إعداد إضافي.
+
+> ⚠️ **ليش أبقينا مدخل `app.linko.services` بملف الربط؟** لأنّ نسخة الاختبار الداخلي
+> المثبّتة على أجهزتكم مضبوطة على النطاق القديم، وبعد التحويل بتوصل لـ`kabblan.com`.
+> بلا هالمدخل بيطلع فوقها **شريط عنوان متصفح** بدل ما تشتغل ملء الشاشة. احذفه بعد ما
+> تتخلّصوا من النسخ القديمة.
+
+### خطوات Play Console (عليك)
+
+1. **أنشئ تطبيق جديد**: Play Console → *All apps* → **Create app**
+   - App name: `Kabblan - Contractor Manager` · اللغة الافتراضية: نفس القديم
+   - نوع: App · مجاني
+2. **Store listing**: انسخ الوصف والصور من التطبيق القديم (كلها محفوظة عندك — النصوص
+   الجاهزة بـ`docs/GOOGLE_PLAY_PRODUCTION.md`).
+3. **App content + Content rating**: أعد تعبئتها (الأجوبة موثّقة بنفس الملف:
+   All ages · Advertising ID = No). حدّث روابط الخصوصية/الشروط/حذف الحساب لـ`kabblan.com`.
+4. **ابنِ ورفع أوّل نسخة**: شغّل workflow **Build Android (TWA)** يدوياً → نزّل
+   `app-release-bundle.aab` → ارفعه على **Internal testing**.
+   > ⚠️ أوّل رفعة **لازم تكون يدوية** (شرط جوجل لإنشاء التطبيق وقبول الشروط)؛
+   > بعدها الـAPI بيقدر ينشر التحديثات.
+5. **🔴 خذ بصمة التوقيع الجديدة** — أهم خطوة وسهل تُنسى:
+   Play Console → التطبيق الجديد → *Test and release* → **Setup → App integrity** →
+   *App signing key certificate* → انسخ **SHA-256**.
+   جوجل بتولّد **مفتاح توقيع جديد لكل تطبيق**، فبصمة التطبيق القديم **ما بتنفع**.
+6. **أضف البصمة لملف الربط**: احطّها بمصفوفة `sha256_cert_fingerprints` تبعت
+   `com.kabblan.app` في `public/.well-known/assetlinks.json` → ادمج → انتظر نشر Vercel.
+7. **تحقّق من الربط**:
    ```
    curl -s https://kabblan.com/.well-known/assetlinks.json
    ```
-2. شغّل `android.yml` يدوياً (workflow_dispatch) لبناء AAB جديد بعد ما ترفع
-   `appVersionCode` (3 → 4) و`appVersionName` في `android/twa-manifest.json`.
-3. ارفع للـPlay Console (مسار Internal testing أول).
-4. ⚠️ المستخدمون اللي ما حدّثوا بيظلّوا على `app.linko.services` — لهيك النطاق القديم
-   لازم يظلّ حيّ (§0)، والنطاق القديم مضاف بـ`additionalTrustedOrigins` بالبناء الجديد.
+   لازم يرجع مدخل `com.kabblan.app` وفيه الـSHA-256 اللي نسختها.
+   ثم افتح التطبيق على جهاز — لو اشتغل **ملء الشاشة بلا شريط عنوان** فالربط سليم.
+8. **أطلق الاختبار المغلق** + ضيف 12 مختبِر → **يبدأ عدّاد الـ14 يوم**.
+9. **نظّف**: التطبيق القديم اتركه مركوناً بالكونسول (ما بيتحذف بعد أوّل رفعة، وما بيضرّ).
 
 ---
 
@@ -171,7 +217,7 @@ EMAIL_FROM = Kabblan <noreply@kabblan.com>    # بعد توثيق النطاق �
 | 6 | Paddle + Sentry + TikTok + GA4 (§7) | يوم 1 |
 | 7 | Search Console: خاصية جديدة + sitemap | يوم 1 |
 | 8 | رسالة جماعية للمستخدمين عن البصمة (§6) | يوم 1 |
-| 9 | بناء ورفع AAB جديد (§8) | أسبوع 1 |
+| 9 | إنشاء تطبيق Play جديد بباكج `com.kabblan.app` + رفع AAB + بصمة التوقيع الجديدة (§8) | أسبوع 1 |
 | 10 | **بعد 30 يوم**: فعّل 301 من الخادم على النطاق القديم (باستثناء `/.well-known/*`) + أداة Change of Address | شهر 1 |
 | 11 | أبقِ النطاق القديم مسجَّلاً ومحوَّلاً | 12 شهر+ |
 
@@ -200,7 +246,10 @@ EMAIL_FROM = Kabblan <noreply@kabblan.com>    # بعد توثيق النطاق �
 
 ## 11. أخطاء ما تعملها
 
-- ❌ **تغيير `packageId` الأندرويدي** → تطبيق جديد على Play وفقدان كل المستخدمين والتقييمات.
+- ❌ **تغيير `packageId` بعد ما يصير عندك مستخدمين** → تطبيق جديد على Play وفقدان كل
+  المستخدمين والتقييمات. (بدّلناه **الآن** تحديداً لأنّ العدد صفر — انظر §8.)
+- ❌ **نسيان بصمة التوقيع الجديدة** بعد أوّل رفعة (§8 خطوة 5) → التطبيق بيفتح وفوقه شريط
+  عنوان متصفح بدل ما يشتغل ملء الشاشة.
 - ❌ **redirect 301 من الخادم على النطاق القديم من اليوم الأول** → الـSW القديم بيعلق للأبد
   وبيانات متتبّع الوحدات بتضيع (§2).
 - ❌ **تغيير `EMAIL_FROM` قبل توثيق النطاق بـResend** → كل إيميلات المصادقة بتفشل.
