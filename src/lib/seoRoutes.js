@@ -7,7 +7,7 @@
 import { CALC_CITIES } from './calcCities.js'
 import { CITY_TRADE_PAGES, cityTradeFaqSchema } from './cityTradePages.js'
 
-export const ORIGIN = 'https://app.linko.services'
+export const ORIGIN = 'https://kabblan.com'
 // صورة مشاركة مخصّصة 1200×630 (بانر) — أفضل بكثير من الأيقونة المربّعة للمعاينات
 export const OG_IMAGE = `${ORIGIN}/og-image.png`
 

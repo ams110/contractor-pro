@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { HardHat, ArrowLeft, Share2, Receipt, Calculator } from 'lucide-react'
 import { navigate } from '../Router.jsx'
 import { useRouteSeo } from '../lib/seo.js'
+import { ORIGIN } from '../lib/seoRoutes.js'
 import { trackCtaClick } from '../lib/track.js'
 import { VAT } from '../constants/index.js'
 import { useAppStore } from '../store/useAppStore.js'
@@ -18,7 +19,7 @@ const money = (n) => (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('
 
 function shareWhatsApp(language) {
   trackCtaClick('vat_calculator_share')
-  const url = 'https://app.linko.services/vat-calculator'
+  const url = `${ORIGIN}/vat-calculator`
   const text = tl(language,
     `احسب ${'מע"מ'} (${PCT}%) على أي مبلغ مجاناً 🧾\n${url}`,
     `חשב ${'מע"מ'} (${PCT}%) על כל סכום בחינם 🧾\n${url}`,

@@ -1,6 +1,6 @@
 {
   "packageId": "app.linko.services",
-  "host": "app.linko.services",
+  "host": "kabblan.com",
   "name": "كبلان",
   "launcherName": "كبلان",
   "display": "standalone",
@@ -13,8 +13,8 @@
   "backgroundColor": "#0B1117",
   "enableNotifications": true,
   "startUrl": "/app",
-  "iconUrl": "https://app.linko.services/pwa-512.png",
-  "maskableIconUrl": "https://app.linko.services/maskable-512.png",
+  "iconUrl": "https://kabblan.com/pwa-512.png",
+  "maskableIconUrl": "https://kabblan.com/maskable-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./android-upload.keystore",
@@ -24,7 +24,7 @@
   "appVersionCode": 3,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://app.linko.services/manifest.webmanifest",
+  "webManifestUrl": "https://kabblan.com/manifest.webmanifest",
   "fallbackType": "customtabs",
   "features": {},
   "alphaDependencies": {
@@ -33,11 +33,11 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://app.linko.services/",
+  "fullScopeUrl": "https://kabblan.com/",
   "minSdkVersion": 21,
   "orientation": "portrait",
   "fingerprints": [],
-  "additionalTrustedOrigins": [],
+  "additionalTrustedOrigins": ["https://app.linko.services"],
   "retainedBundles": [],
   "displayOverride": [],
   "appVersion": "1.0.1"

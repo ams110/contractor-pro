@@ -87,9 +87,9 @@
 | غلاف الأندرويد (TWA) باسم **كبلان** | ✅ `android/twa-manifest.json` |
 | آلة بناء AAB موقّعة (workflow) | ✅ `.github/workflows/android.yml` |
 | ربط التحقّق `assetlinks.json` (بصمتين) | ✅ يشمل توقيع جوجل + مفتاح الرفع |
-| سياسة الخصوصية | ✅ `https://app.linko.services/privacy` |
-| شروط الاستخدام | ✅ `https://app.linko.services/terms` |
-| حذف الحساب (إلزامي من جوجل) | ✅ `https://app.linko.services/delete-account` |
+| سياسة الخصوصية | ✅ `https://kabblan.com/privacy` |
+| شروط الاستخدام | ✅ `https://kabblan.com/terms` |
+| حذف الحساب (إلزامي من جوجل) | ✅ `https://kabblan.com/delete-account` |
 
 ---
 
@@ -111,7 +111,7 @@ Play Console → **Policy and programs → App content**. لازم كل بند �
 
 | البند | الجواب الجاهز |
 |------|----------------|
-| **Privacy policy** | `https://app.linko.services/privacy` |
+| **Privacy policy** | `https://kabblan.com/privacy` |
 | **Ads** | التطبيق **لا يحتوي إعلانات** → "No, my app does not contain ads" |
 | **App access** | التطبيق محمي بتسجيل دخول → وفّر **حساب تجريبي** لمراجعي جوجل (إيميل + كلمة سرّ لحساب فيه بيانات ديمو). **مهم جداً** وإلا بيرفضوا. |
 | **Content ratings** | عبّي الاستبيان (تفاصيله تحت) → النتيجة المتوقّعة: **للجميع / Everyone 3+** |
@@ -278,7 +278,7 @@ Try free for 14 days — no credit card required.
 
 **إعدادات عامّة:**
 - البيانات مشفّرة أثناء النقل (Encrypted in transit): **نعم**
-- يوفّر طريقة لطلب حذف البيانات (Data deletion): **نعم** → الرابط: `https://app.linko.services/delete-account`
+- يوفّر طريقة لطلب حذف البيانات (Data deletion): **نعم** → الرابط: `https://kabblan.com/delete-account`
 
 **أنواع البيانات المجموعة** (كلها: تُجمع = نعم · تُشارَك = لا · غرضها = تشغيل التطبيق/إدارة الحساب):
 

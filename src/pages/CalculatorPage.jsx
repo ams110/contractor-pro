@@ -2,6 +2,7 @@ import React from 'react'
 import { HardHat, ArrowLeft, Share2, Receipt } from 'lucide-react'
 import { navigate } from '../Router.jsx'
 import { useRouteSeo } from '../lib/seo.js'
+import { ORIGIN } from '../lib/seoRoutes.js'
 import { trackCtaClick } from '../lib/track.js'
 import SalaryCalculator from '../components/SalaryCalculator.jsx'
 
@@ -13,7 +14,7 @@ const GRAD = { brand: 'linear-gradient(135deg, #F97316 0%, #D97706 100%)' }
 
 function shareWhatsApp() {
   trackCtaClick('calculator_share')
-  const url = 'https://app.linko.services/calculator'
+  const url = `${ORIGIN}/calculator`
   const text = `احسب راتب عاملك بالساعات الإضافية مجاناً 👷\n${url}`
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
 }
