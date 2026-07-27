@@ -52,14 +52,36 @@ export function collectMigratableKeys(store) {
   return out
 }
 
-/** يبني رابط الوجهة على النطاق الجديد مع الحمولة بالـhash. */
-export function buildMigrationUrl({ pathname, search, payload, origin = NEW_ORIGIN }) {
-  const base = origin + (pathname || '/') + (search || '')
-  if (!payload || !Object.keys(payload).length) return base
-  let encoded
-  try { encoded = encodeURIComponent(JSON.stringify(payload)) } catch { return base }
-  if (encoded.length > MAX_BYTES) return base   // بلا ترحيل بيانات — التحويل أهمّ
-  return `${base}#${HASH_KEY}=${encoded}`
+/**
+ * يرصد روابط مصادقة Supabase — بتحمل التوكن في الـhash (تدفّق implicit):
+ * `#access_token=...&refresh_token=...&type=recovery`.
+ * لازم يمرّ الـhash كما هو للنطاق الجديد وإلا بينكسر تأكيد الإيميل/استعادة كلمة السر.
+ */
+export function isAuthCallbackHash(hash = '') {
+  return /(?:(?:access_token|refresh_token|error_description)=|type=(?:recovery|signup|magiclink|invite|email_change))/.test(hash)
+}
+
+/**
+ * يبني رابط الوجهة على النطاق الجديد.
+ * **يحافظ على الـhash الأصلي** ويضيف الحمولة كمقطع مستقلّ بعده — لأنّ الـhash قد يحمل
+ * توكن جلسة قادم من رابط مصادقة. (الحمولة مُرمَّزة بـencodeURIComponent فما بتحوي
+ * `&` ولا `=` غير مرمَّزين، فالفصل بـ`&` آمن.)
+ */
+export function buildMigrationUrl({ pathname, search, hash = '', payload, origin = NEW_ORIGIN }) {
+  const base     = origin + (pathname || '/') + (search || '')
+  const origHash = (hash || '').replace(/^#/, '')
+
+  let encoded = ''
+  if (payload && Object.keys(payload).length) {
+    try {
+      const candidate = encodeURIComponent(JSON.stringify(payload))
+      if (candidate.length <= MAX_BYTES) encoded = candidate   // الضخم يُسقَط — التحويل أهمّ
+    } catch { /* حمولة غير قابلة للترميز — تجاهل */ }
+  }
+
+  const seg = encoded ? `${HASH_KEY}=${encoded}` : ''
+  const out = [origHash, seg].filter(Boolean).join('&')
+  return out ? `${base}#${out}` : base
 }
 
 /** يلغّي تسجيل كل الـService Workers ويمسح كل الكاشات (best-effort، بلا رمي). */
@@ -85,13 +107,18 @@ async function tearDownServiceWorker() {
  */
 export function importMigrationPayload() {
   if (!isBrowser()) return 0
-  const hash = location.hash || ''
-  const at   = hash.indexOf(`${HASH_KEY}=`)
-  if (at === -1) return 0
+  const raw = (location.hash || '').replace(/^#/, '')
+  if (!raw.includes(`${HASH_KEY}=`)) return 0
+
+  // نفصل مقطع الحمولة عن باقي الـhash — الباقي قد يكون توكن جلسة من رابط مصادقة
+  // وما يجوز نمسحه قبل ما يقرأه supabase-js.
+  const segs = raw.split('&')
+  const mine = segs.filter(s => s.startsWith(`${HASH_KEY}=`))
+  const rest = segs.filter(s => !s.startsWith(`${HASH_KEY}=`)).join('&')
+
   let count = 0
   try {
-    const raw  = decodeURIComponent(hash.slice(at + HASH_KEY.length + 1))
-    const data = JSON.parse(raw)
+    const data = JSON.parse(decodeURIComponent(mine[0].slice(HASH_KEY.length + 1)))
     for (const [k, v] of Object.entries(data)) {
       if (DENY_PATTERNS.some(re => re.test(k))) continue
       if (localStorage.getItem(k) !== null) continue
@@ -100,8 +127,11 @@ export function importMigrationPayload() {
       count++
     }
   } catch { /* حمولة تالفة — تجاهل */ }
-  // نظّف الـhash من التاريخ حتى ما يظلّ بالرابط
-  try { history.replaceState(null, '', location.pathname + location.search) } catch { /* تجاهل */ }
+
+  // نشيل مقطع الحمولة فقط ونُبقي باقي الـhash كما هو
+  try {
+    history.replaceState(null, '', location.pathname + location.search + (rest ? `#${rest}` : ''))
+  } catch { /* تجاهل */ }
   return count
 }
 
@@ -122,11 +152,17 @@ export function runDomainMigration() {
   const target = buildMigrationUrl({
     pathname: location.pathname,
     search:   location.search,
+    hash:     location.hash,
     payload,
   })
-
-  // نلغّي الـSW ثم نحوّل. مهلة قصيرة حتى ما يعلق المستخدم لو تعطّل الإلغاء.
   const go = () => { location.replace(target) }
+
+  // رابط مصادقة: حوّل **فوراً وتزامنياً** حتى لا يستهلك supabase-js التوكن من الـhash
+  // ويخزّن الجلسة على الأصل القديم (وجلسات Supabase غير مُرحَّلة عمداً). تنظيف الـSW
+  // بيصير بأي زيارة تانية للنطاق القديم.
+  if (isAuthCallbackHash(location.hash)) { go(); return true }
+
+  // الحالة العادية: نلغّي الـSW ثم نحوّل، بمهلة حتى ما يعلق المستخدم لو تعطّل الإلغاء.
   Promise.race([
     tearDownServiceWorker(),
     new Promise(res => setTimeout(res, 1500)),

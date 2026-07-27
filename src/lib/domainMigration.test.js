@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  NEW_ORIGIN, LEGACY_HOSTS, shouldMigrate,
+  NEW_ORIGIN, LEGACY_HOSTS, shouldMigrate, isAuthCallbackHash,
   collectMigratableKeys, buildMigrationUrl,
 } from './domainMigration.js'
 
@@ -80,5 +80,55 @@ describe('domainMigration — buildMigrationUrl', () => {
       payload: { tracker_big: 'x'.repeat(400 * 1024) },
     })
     expect(url).toBe('https://kabblan.com/')
+  })
+
+  it('🔴 يحافظ على توكن المصادقة في الـhash (تأكيد إيميل/استعادة كلمة سر)', () => {
+    const authHash = '#access_token=abc123&refresh_token=def456&type=recovery'
+    const url = buildMigrationUrl({
+      pathname: '/', search: '', hash: authHash, payload: { cp_lang: 'ar' },
+    })
+    expect(url).toContain('access_token=abc123')
+    expect(url).toContain('refresh_token=def456')
+    expect(url).toContain('type=recovery')
+    expect(url).toContain(`${'__kblmig'}=`)
+    // التوكن أوّلاً ومقطع الترحيل بعده — بلا ما يدوس عليه
+    expect(url.indexOf('access_token')).toBeLessThan(url.indexOf('__kblmig'))
+  })
+
+  it('يمرّر الـhash الأصلي حتى بلا حمولة', () => {
+    const url = buildMigrationUrl({
+      pathname: '/', search: '?portal', hash: '#access_token=t', payload: null,
+    })
+    expect(url).toBe('https://kabblan.com/?portal#access_token=t')
+  })
+
+  it('الحمولة المُرمَّزة ما بتحوي & أو = فالفصل آمن', () => {
+    const url = buildMigrationUrl({
+      pathname: '/', search: '', hash: '#access_token=t',
+      payload: { 'settings_u1': '{"a":"x&y=z"}' },
+    })
+    const segs = url.split('#')[1].split('&')
+    expect(segs).toHaveLength(2)
+    expect(segs[0]).toBe('access_token=t')
+    expect(segs[1].startsWith('__kblmig=')).toBe(true)
+  })
+})
+
+describe('domainMigration — isAuthCallbackHash', () => {
+  it('يرصد روابط المصادقة بكل أنواعها', () => {
+    for (const h of [
+      '#access_token=x&refresh_token=y',
+      '#type=recovery',
+      '#type=signup',
+      '#type=magiclink',
+      '#type=invite',
+      '#type=email_change',
+      '#error_description=Something%20failed',
+    ]) expect(isAuthCallbackHash(h)).toBe(true)
+  })
+  it('ما بيرصد الـhash العادي', () => {
+    expect(isAuthCallbackHash('')).toBe(false)
+    expect(isAuthCallbackHash('#section-2')).toBe(false)
+    expect(isAuthCallbackHash('#__kblmig=%7B%7D')).toBe(false)
   })
 })
