@@ -111,12 +111,19 @@
   ⚠️ بدون هالخطوة: تأكيد الإيميل، استعادة كلمة السر، الدخول السحري، و**دخول
   الـpasskey** (بيمرّ عبر magic link) — كلها بترجع خطأ `redirect_to not allowed`.
 
-### 4.2 أسرار Edge Functions
-```
-APP_URL    = https://app.kabblan.com   # روابط إيميلات المصادقة تفتح التطبيق
-EMAIL_FROM = Kabblan <noreply@kabblan.com>    # بعد توثيق النطاق بـResend (§5)
-```
-ثم أعد نشر الدوال (push لـ`main` بيشغّل `deploy.yml`).
+### 4.2 أسرار Edge Functions — **لا شيء مطلوب الآن**
+
+الأسرار المضبوطة فعلياً على المشروع: `VAPID_PRIVATE_KEY` · `VAPID_PUBLIC_KEY` ·
+`SEND_PUSH_SECRET` · `TIKTOK_PIXEL_ID` · `TIKTOK_ACCESS_TOKEN` — **ولا واحد منها
+مرتبط بالنطاق**.
+
+- **`APP_URL` غير مضبوط** → الدالة تستعمل الافتراضي في الكود، وقد صار
+  `https://app.kabblan.com`. فلا حاجة لضبط السرّ إطلاقاً.
+- **`RESEND_API_KEY` و`SEND_EMAIL_HOOK_SECRET` غير مضبوطين** → دالة `send-auth-email`
+  **غير مفعّلة أصلاً**، وSupabase يرسل إيميلات المصادقة بمرسله المدمج. لذلك
+  `EMAIL_FROM` لا معنى له الآن، و**§5 (Resend) مؤجَّل بالكامل** لحين الإطلاق التجاري.
+- ⇒ **رابط إيميلات المصادقة يحكمه `Site URL` في §4.1 وحده.** هذا يجعل §4.1 هو
+  التغيير الوحيد المطلوب على Supabase.
 
 ### 4.3 لا تغييرات على القاعدة
 الـRLS وكل الـRPCs مبنيّة على `auth.uid()` — مستقلّة عن النطاق. الـCORS على كل
@@ -124,7 +131,7 @@ EMAIL_FROM = Kabblan <noreply@kabblan.com>    # بعد توثيق النطاق �
 
 ---
 
-## 5. البريد (Resend)
+## 5. البريد (Resend) — ⏸️ مؤجَّل (غير مفعّل حالياً — انظر §4.2)
 
 1. Resend → Domains → أضف `kabblan.com` → أضف سجلات **SPF + DKIM + DMARC** بالـDNS.
 2. استنّى الحالة تصير **Verified** (ساعة–24 ساعة).
@@ -241,7 +248,7 @@ EMAIL_FROM = Kabblan <noreply@kabblan.com>    # بعد توثيق النطاق �
 | 2 | Supabase Auth URLs (§4.1) — **قبل النشر** | يوم 0 |
 | 3 | ادمج هذا الفرع وانشر على الإنتاج | يوم 0 |
 | 4 | فحص الدخان (§10) | يوم 0 |
-| 5 | Resend + `EMAIL_FROM` (§5) | يوم 0–1 |
+| 5 | ~~Resend~~ — مؤجَّل، غير مفعّل (§4.2) | الإطلاق التجاري |
 | 6 | Paddle + Sentry + TikTok + GA4 (§7) | يوم 1 |
 | 7 | Search Console: خاصية جديدة + sitemap | يوم 1 |
 | 8 | رسالة جماعية للمستخدمين عن البصمة (§6) | يوم 1 |
