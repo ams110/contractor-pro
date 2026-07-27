@@ -1,6 +1,6 @@
 # نشر Contractor Pro على Google Play (TWA)
 
-التطبيق **PWA** منشور على `https://app.linko.services`. لرفعه على Google Play نلفّه بحاوية
+التطبيق **PWA** منشور على `https://kabblan.com`. لرفعه على Google Play نلفّه بحاوية
 **TWA (Trusted Web Activity)** عبر [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap) —
 حاوية أندرويد رفيعة بتفتح الموقع بملء الشاشة بدون شريط عنوان (هي الطريقة الرسمية من Google لتطبيقات PWA).
 
@@ -10,7 +10,7 @@
 |------|--------|
 | **Package / Application ID** | `services.linko.app` |
 | **اسم التطبيق** | Contractor Pro |
-| **الدومين** | `app.linko.services` |
+| **الدومين** | `kabblan.com` |
 | **مصدر الإعداد** | `android/twa-manifest.json` |
 
 ## 1. مفتاح التوقيع (Upload Key) — ⚠️ احتفظ فيه للأبد
@@ -34,7 +34,7 @@ keytool -list -v -keystore android/android-upload.keystore -alias upload
 ## 2. ملف Digital Asset Links — يشيل شريط العنوان
 
 عشان تفتح الحاوية الموقع بملء الشاشة (بدون شريط URL)، أندرويد بيتأكد من ملكية الدومين عبر:
-`https://app.linko.services/.well-known/assetlinks.json`
+`https://kabblan.com/.well-known/assetlinks.json`
 
 الملف موجود بالريبو في `public/.well-known/assetlinks.json` وبيتنشر تلقائياً مع Vercel.
 
@@ -86,7 +86,7 @@ npx @bubblewrap/cli build
 ## 4. خطوات Google Play Console
 
 1. **Create app** → اسم: Contractor Pro · لغة افتراضية: العربية · نوع: App · مجاني/مدفوع.
-2. أكمل **App content**: سياسة الخصوصية (`https://app.linko.services/privacy`)، تصنيف المحتوى،
+2. أكمل **App content**: سياسة الخصوصية (`https://kabblan.com/privacy`)، تصنيف المحتوى،
    الجمهور المستهدف، أمان البيانات (Data safety)، الوصول للتطبيق.
 3. **Production → Create new release** → فعّل **Google Play App Signing** (موصى به).
 4. ارفع `app-release-bundle.aab`.
@@ -101,7 +101,7 @@ npx @bubblewrap/cli build
 
 ## ملاحظات
 
-- المحتوى الفعلي بيتحمّل من `app.linko.services` (مش مدمج بالـ APK)، فأي تحديث للويب بينعكس فوراً
+- المحتوى الفعلي بيتحمّل من `kabblan.com` (مش مدمج بالـ APK)، فأي تحديث للويب بينعكس فوراً
   بدون تحديث على المتجر — التحديث على المتجر فقط لتغييرات الحاوية نفسها (أيقونة، اسم، صلاحيات).
 - الإشعارات (Web Push) مفعّلة بالحاوية (`enableNotifications: true`).
 - لو ما بدك تبني محلياً: [PWABuilder.com](https://www.pwabuilder.com) بياخد رابط الموقع وبيولّد

@@ -2,6 +2,7 @@ import React from 'react'
 import { HardHat, Share2, Receipt, MapPin, MessageCircle } from 'lucide-react'
 import { navigate } from '../Router.jsx'
 import { useRouteSeo } from '../lib/seo.js'
+import { ORIGIN } from '../lib/seoRoutes.js'
 import { trackCtaClick } from '../lib/track.js'
 import { useAppStore } from '../store/useAppStore.js'
 import { tl } from '../lib/labels.js'
@@ -31,7 +32,7 @@ export default function CityTradeCalculatorPage({ city, trade }) {
 
   function shareWhatsApp() {
     trackCtaClick(`ct_calc_share_${key}`)
-    const url = `https://app.linko.services/calculator/${key}`
+    const url = `${ORIGIN}/calculator/${key}`
     window.open(`https://wa.me/?text=${encodeURIComponent(`${tl(language, 'احسب راتب عاملك مجاناً', 'חשב את שכר העובד בחינם', 'Calculate worker salary free')} 👷\n${url}`)}`, '_blank')
   }
 

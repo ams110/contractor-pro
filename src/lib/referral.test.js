@@ -18,6 +18,6 @@ describe('normalizeRefCode', () => {
 
 describe('referralShareUrl', () => {
   it('يبني الرابط بالكود', () => {
-    expect(referralShareUrl('AB3XK9', 'https://kabblan.app')).toBe('https://kabblan.app/?ref=AB3XK9')
+    expect(referralShareUrl('AB3XK9', 'https://kabblan.com')).toBe('https://kabblan.com/?ref=AB3XK9')
   })
 })

@@ -18,7 +18,7 @@ const GRAD = { brand: 'linear-gradient(135deg, #F97316, #DC2626)' }
 export const LEGAL_INFO = {
   product:      'كبلان',
   company:      'Linko',                       // ← الاسم القانوني للمشغّل
-  domain:       'app.linko.services',
+  domain:       'kabblan.com',
   supportEmail: 'contractor.pro.linko@gmail.com', // ← بريد الدعم الرسمي
   whatsapp:     '',                            // ← رقم واتساب بصيغة دولية (مثلاً 972500000000) — اتركه فارغاً لإخفاء الزر
   jurisdiction: 'دولة إسرائيل',
