@@ -2,6 +2,16 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { generateAuthenticationOptions } from 'https://esm.sh/@simplewebauthn/server@9'
 
+// النطاق الأمّ لـWebAuthn: البصمة المسجّلة على `kabblan.com` تشتغل على النطاق
+// وكل فروعه (`app.kabblan.com`...). بلا هالتثبيت كانت تنحصر بالنطاق الفرعي وحده،
+// فتنكسر عند أي انتقال بين الهبوط والتطبيق.
+function rpIdFromOrigin(origin: string): string {
+  const host = origin.replace(/^https?:\/\//, '').split(':')[0]
+  if (host === 'kabblan.com' || host.endsWith('.kabblan.com')) return 'kabblan.com'
+  return host
+}
+
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -50,7 +60,7 @@ serve(async (req) => {
     }
 
     const origin = req.headers.get('origin') || 'https://localhost'
-    const rpID   = origin.replace(/^https?:\/\//, '').split(':')[0]
+    const rpID   = rpIdFromOrigin(origin)
 
     const options = await generateAuthenticationOptions({
       rpID,

@@ -13,6 +13,7 @@ import CookieConsent from './components/CookieConsent.jsx'
 import Celebration from './components/Celebration.jsx'
 import { ttPage } from './lib/tiktok.js'
 import { pageview } from './lib/analytics.js'
+import { crossHostRedirect, isAppHost } from './lib/hosts.js'
 
 // التطبيق الكامل lazy — صفحات التسويق (هبوط/أسعار/قانونية) ما تنزّل كود التطبيق
 // والـhooks والشاشات معها، فتصغر الحزمة الأولى كثيراً (أداء أسرع على الموبايل).
@@ -49,6 +50,17 @@ export default function Router() {
     pageview(path)    // Google Analytics 4 page_view
   }, [path])
 
+  // ─── تقسيم النطاقات: تسويق (kabblan.com) × تطبيق (app.kabblan.com) ──────────
+  // أي مسار وصل النطاق الغلط يُحوَّل لمكانه الصحيح مع الحفاظ على الـquery والـhash.
+  // (بلا تأثير على localhost ومعاينات Vercel — انظر `lib/hosts.js`.)
+  const redirectTo = crossHostRedirect({
+    hostname: window.location.hostname,
+    pathname: path,
+    search:   window.location.search,
+    hash:     window.location.hash,
+  })
+  if (redirectTo) { window.location.replace(redirectTo); return null }
+
   // ?portal and ?worker query params always go straight to the app
   const params = new URLSearchParams(window.location.search)
   if (params.has('portal') || params.has('worker')) return <Suspense fallback={null}><App /></Suspense>
@@ -66,7 +78,10 @@ export default function Router() {
   if (path === '/demoshot') return <Suspense fallback={null}><DemoShot /></Suspense>
 
   let page
-  if (path === '/')              page = <LandingPage />
+  // على نطاق التطبيق الجذر `/` بيفتح التطبيق مباشرة — بلا صفحة هبوط.
+  if (path === '/' && isAppHost(window.location.hostname))
+                                 page = <Suspense fallback={null}><App /></Suspense>
+  else if (path === '/')         page = <LandingPage />
   else if (path === '/pricing')  page = <PricingPage />
   else if (path === '/calculator') page = <CalculatorPage />
   else if (path === '/vat-calculator') page = <VatCalculatorPage />

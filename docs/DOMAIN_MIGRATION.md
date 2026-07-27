@@ -1,4 +1,18 @@
-# 🌐 ترحيل النطاق — `app.linko.services` → `kabblan.com`
+# 🌐 ترحيل النطاق — `app.linko.services` → `kabblan.com` + `app.kabblan.com`
+
+## البنية الجديدة: نطاقان
+
+| النطاق | يخدم | الفهرسة |
+|---|---|---|
+| **`kabblan.com`** | الهبوط · الأسعار · الحاسبات · المدوّنة · القانونية | مفهرس ✅ |
+| **`app.kabblan.com`** | التطبيق · الدخول/التسجيل · بوّابة العامل · الأدمن | `noindex` ⛔ |
+
+- على `app.kabblan.com` الجذر `/` بيفتح **التطبيق مباشرة** — بلا صفحة هبوط.
+- المسارات المشتركة (`/pricing` + القانونية) بتُعرَض على النطاقين، والـcanonical
+  تبعها دايماً على نطاق التسويق فما بيصير تكرار عند جوجل.
+- **مصدر القرار الوحيد**: `src/lib/hosts.js` — أي مسار وصل النطاق الغلط بينحوّل
+  لمكانه مع الحفاظ على الـquery والـhash. **التقسيم معطَّل على `localhost` ومعاينات
+  Vercel** حتى لا ينكسر التطوير ولا معاينات الـPR.
 
 > دليل تنفيذي كامل. القسم الأول (الكود) **منجَز** في هذا الفرع. الأقسام الباقية
 > إعدادات خارجية لازم تعملها بالإيد بالترتيب المذكور.
@@ -34,11 +48,14 @@
 | `android/twa-manifest.json` | `host` + `iconUrl` + `maskableIconUrl` + `webManifestUrl` + `fullScopeUrl` + `packageId` → `com.kabblan.app`، + النطاق القديم بـ`additionalTrustedOrigins` (انظر §8) |
 | `.github/workflows/android.yml` + `public/.well-known/assetlinks.json` | الباكج الجديد (انظر §8) |
 | `src/lib/domainMigration.js` | **جديد** — جسر الترحيل على العميل (انظر §2) |
+| `src/lib/hosts.js` + `src/Router.jsx` | **جديد** — تقسيم تسويق × تطبيق والتحويل بينهما |
+| `vercel.json` | ترويسة `X-Robots-Tag: noindex` لنطاق التطبيق والنطاق القديم |
+| 9 دوال WebAuthn | `rpIdFromOrigin` — تثبيت البصمة على النطاق الأمّ (§6) |
+| `src/lib/seoRoutes.js` | `/login` و`/register` صاروا `noindex` (انتقلوا لنطاق التطبيق) |
 
 **ما تغيّر عمداً**: مفتاح التوقيع (`ANDROID_KEYSTORE_BASE64` — غير مرتبط باسم الباكج) ·
 مدخل `app.linko.services` في `assetlinks.json` (لازم للنسخ المثبّتة — §8) · اسم حزمة npm
-(`contractor-pro` — داخلي، غير مرئي للمستخدم) · `rpID` لـWebAuthn (مشتقّ تلقائياً من
-ترويسة `Origin` — انظر §6).
+(`contractor-pro` — داخلي، غير مرئي للمستخدم).
 
 ---
 
@@ -54,8 +71,9 @@
    (`tracker_*` / `extras_*` / `blueprints_*`) لأنّها **محلية بحتة، مش بالقاعدة**، وبتضيع
    كلياً بلا هالجسر (الـlocalStorage معزول لكل origin).
    ⛔ الأسرار ما بتُرحَّل عمداً: PIN، passkey، مفتاح التشفير، توكن جلسة العامل، جلسة Supabase.
-3. **يحوّل لنفس المسار والـquery** على `kabblan.com` — فرابط `?portal` وصفحات
-   `/calculator/*` بتوصل لمكانها الصحيح.
+3. **يحوّل لنفس المسار والـquery — على النطاق الصحيح حسب نوع المسار**:
+   `?portal` وشاشات التطبيق → `app.kabblan.com` · صفحات `/calculator/*` المفهرسة →
+   `kabblan.com`. والحمولة ما بتنكتب إلا على نطاق التطبيق (بيانات التطبيق تخصّ نطاقه).
 
 > ⚠️ **لذلك: لا تضيف redirect من طرف الخادم على النطاق القديم الآن.** لازم النطاق القديم
 > يظلّ يخدم الـHTML فعلياً حتى يشتغل الجسر. الـ301 من الخادم بيجي بالمرحلة الأخيرة (§8).
@@ -68,18 +86,23 @@
    (`A 76.76.21.21` للـapex + `CNAME cname.vercel-dns.com` للـwww — أو اتبع اللي بيعطيك ياه Vercel).
 2. Vercel → Project → Settings → Domains:
    - أضف `kabblan.com` واجعله **Production / Primary**.
+   - أضف **`app.kabblan.com`** → Production كذلك (نفس المشروع — نفس الحزمة تخدم
+     النطاقين، والتقسيم يصير داخل `hosts.js`).
    - أضف `www.kabblan.com` → **Redirect to `kabblan.com` (308)**.
    - **أبقِ `app.linko.services` مربوطاً بنفس المشروع** (بلا redirect حالياً — §2).
-3. استنّى شهادة الـSSL تصير Valid للنطاقين قبل ما تكمّل.
+3. الـDNS: سجلّ `A` للـapex + سجلّ `CNAME` لكل من `www` و**`app`**.
+4. استنّى شهادة الـSSL تصير Valid **للنطاقات الثلاثة** قبل ما تكمّل.
 
 ---
 
 ## 4. Supabase
 
 ### 4.1 إعدادات المصادقة (Authentication → URL Configuration)
-- **Site URL** → `https://kabblan.com`
+- **Site URL** → `https://app.kabblan.com` ← **نطاق التطبيق، لا التسويق** (الدخول
+  والتسجيل يعيشان هناك).
 - **Redirect URLs** — أضف (وأبقِ القديمة سنة):
   ```
+  https://app.kabblan.com/**
   https://kabblan.com/**
   https://www.kabblan.com/**
   https://app.linko.services/**
@@ -90,7 +113,7 @@
 
 ### 4.2 أسرار Edge Functions
 ```
-APP_URL    = https://kabblan.com
+APP_URL    = https://app.kabblan.com   # روابط إيميلات المصادقة تفتح التطبيق
 EMAIL_FROM = Kabblan <noreply@kabblan.com>    # بعد توثيق النطاق بـResend (§5)
 ```
 ثم أعد نشر الدوال (push لـ`main` بيشغّل `deploy.yml`).
@@ -121,6 +144,11 @@ EMAIL_FROM = Kabblan <noreply@kabblan.com>    # بعد توثيق النطاق �
 - بصمة العامل (بوّابة العامل)
 - بصمة الأدمن (`admin_passkeys`)
 
+> ✅ **تحسين مدموج**: `rpID` صار **مثبَّتاً على النطاق الأمّ `kabblan.com`** في كل دوال
+> WebAuthn (`rpIdFromOrigin`)، بدل ما يُشتقّ من النطاق الفرعي الكامل. يعني البصمة
+> المسجَّلة تشتغل على `kabblan.com` و`app.kabblan.com` معاً — وعلى أي نطاق فرعي
+> تضيفه مستقبلاً بلا كسر جديد. **هذا يُحلّ مرّة واحدة فقط، فلا تُرجِع الاشتقاق القديم.**
+
 **التخفيف**: المستخدم بيقدر يدخل بكلمة السر عادي ثم يعيد تسجيل البصمة من الإعدادات.
 - ابعت إشعار/رسالة جماعية قبل التبديل: «رح نغيّر رابط التطبيق — بتحتاج تدخل بكلمة
   السر مرّة وحدة وتعيد تفعيل البصمة».
@@ -138,11 +166,11 @@ EMAIL_FROM = Kabblan <noreply@kabblan.com>    # بعد توثيق النطاق �
 
 | الخدمة | المطلوب |
 |---|---|
-| **Paddle** | Settings → Website/Domain approval: أضف `kabblan.com`. + حدّث روابط الـcheckout المسموحة. بدون هيك الـcheckout بينفتح ويفشل |
+| **Paddle** | Settings → Website/Domain approval: أضف **`kabblan.com` و`app.kabblan.com`** (الأسعار على التسويق والترقية من داخل التطبيق). + حدّث روابط الـcheckout المسموحة. بدون هيك الـcheckout بينفتح ويفشل |
 | **Google Search Console** | أنشئ خاصية جديدة لـ`kabblan.com` (توثيق DNS TXT) · قدّم `https://kabblan.com/sitemap.xml` · بعد ما تفعّل الـ301 (§8) استعمل **أداة Change of Address** من الخاصية القديمة للجديدة. ⚠️ `public/google2e9ae507788087c4.html` توثيق الخاصية القديمة — خلّيه |
-| **GA4** | نفس الـMeasurement ID (`G-KFGX0K1VT5`) — بس حدّث Data Stream URL لـ`https://kabblan.com` |
+| **GA4** | نفس الـMeasurement ID (`G-KFGX0K1VT5`) — حدّث Data Stream URL لـ`https://kabblan.com` وفعّل **قياس النطاقات الفرعية** ليتتبّع القمع من التسويق للتطبيق |
 | **TikTok Events Manager** | وثّق `kabblan.com` كنطاق جديد + حدّث الـPixel domain. الـEvents API server-side ما بيتأثّر |
-| **Sentry** | Project Settings → Allowed Domains: أضف `kabblan.com` |
+| **Sentry** | Project Settings → Allowed Domains: أضف `kabblan.com` و`app.kabblan.com` |
 | **Google Play Console** | Store listing → روابط الخصوصية/الشروط/حذف الحساب → `https://kabblan.com/...` |
 
 ---
@@ -163,7 +191,7 @@ EMAIL_FROM = Kabblan <noreply@kabblan.com>    # بعد توثيق النطاق �
 
 | الملف | التغيير |
 |---|---|
-| `android/twa-manifest.json` | `packageId` → `com.kabblan.app` · `appVersionName` 1.0.3 · `appVersionCode` 112 |
+| `android/twa-manifest.json` | `packageId` → `com.kabblan.app` · `host` → **`app.kabblan.com`** · `startUrl` → `/` · 1.0.3 / 112 |
 | `.github/workflows/android.yml` | `packageName` للنشر التلقائي → `com.kabblan.app` |
 | `public/.well-known/assetlinks.json` | مدخل جديد لـ`com.kabblan.app`، **والمدخل القديم محفوظ** (انظر التحذير تحت) |
 
@@ -226,9 +254,15 @@ EMAIL_FROM = Kabblan <noreply@kabblan.com>    # بعد توثيق النطاق �
 ## 10. فحص الدخان بعد النشر
 
 ```
-□ https://kabblan.com                          يفتح ويحمّل بلا أخطاء كونسول
-□ https://app.linko.services                   يحوّل تلقائياً لـkabblan.com بنفس المسار
-□ https://app.linko.services/?portal           يوصّل لبوّابة العامل على النطاق الجديد
+□ https://kabblan.com                          يفتح صفحة الهبوط
+□ https://app.kabblan.com                      يفتح **التطبيق مباشرة** (بلا صفحة هبوط)
+□ https://kabblan.com/app                      يحوّل لـapp.kabblan.com/app
+□ https://app.kabblan.com/calculator/haifa     يحوّل لـkabblan.com/calculator/haifa
+□ https://kabblan.com/pricing                  يفتح بمكانه (مشترك — بلا تحويل)
+□ https://app.linko.services                   يحوّل تلقائياً لـapp.kabblan.com
+□ https://app.linko.services/?portal           يوصّل لبوّابة العامل على app.kabblan.com
+□ https://app.linko.services/calculator/haifa  يحوّل لـkabblan.com (لا نطاق التطبيق)
+□ curl -sI https://app.kabblan.com | grep -i x-robots-tag   → noindex
 □ بيانات متتبّع الوحدات ظهرت بعد التحويل        (اختبرها بجهاز فيه بيانات فعلية)
 □ تسجيل مستخدم جديد + إيميل التأكيد يوصل ورابطه يشتغل
 □ استعادة كلمة السر — الرابط يفتح النطاق الجديد

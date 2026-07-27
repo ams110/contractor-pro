@@ -223,6 +223,7 @@ export const ROUTE_SEO = {
     title_en: 'Log in | Kabblan',
     description_en: 'Log in to Kabblan to manage your projects, workers and payroll.',
     crumb: 'تسجيل الدخول',
+    noindex: true,   // يعيش على app.kabblan.com — نطاق التطبيق كلّه noindex
   },
   '/register': {
     title: 'إنشاء حساب | كبلان — جرّب مجاناً 14 يوم',
@@ -232,6 +233,7 @@ export const ROUTE_SEO = {
     title_en: 'Sign up | Kabblan — Try free for 14 days',
     description_en: 'Create your Kabblan account and start a free 14-day trial to manage your contracting business.',
     crumb: 'إنشاء حساب',
+    noindex: true,   // يعيش على app.kabblan.com — نطاق التطبيق كلّه noindex
   },
   '/welcome': {
     title: 'أهلاً بك | كبلان',

@@ -15,8 +15,11 @@
 // الأسرار (بيانات دخول PIN/passkey، مفتاح التشفير، توكن جلسة العامل) **ما بتُرحَّل**
 // عمداً — المستخدم بيعيد ضبط الـPIN/البصمة على النطاق الجديد.
 
-export const NEW_ORIGIN  = 'https://kabblan.com'
-export const LEGACY_HOSTS = ['app.linko.services', 'www.kabblan.com']
+import { APP_ORIGIN, originForPath } from './hosts.js'
+
+// النطاق القديم كان **يخدم التطبيق**، فبيانات المتصفّح المحلية تخصّ نطاق التطبيق.
+export const NEW_ORIGIN   = APP_ORIGIN
+export const LEGACY_HOSTS = ['app.linko.services']
 
 const HASH_KEY  = '__kblmig'
 const MAX_BYTES = 300 * 1024   // سقف أمان لحجم الـhash
@@ -67,9 +70,16 @@ export function isAuthCallbackHash(hash = '') {
  * توكن جلسة قادم من رابط مصادقة. (الحمولة مُرمَّزة بـencodeURIComponent فما بتحوي
  * `&` ولا `=` غير مرمَّزين، فالفصل بـ`&` آمن.)
  */
-export function buildMigrationUrl({ pathname, search, hash = '', payload, origin = NEW_ORIGIN }) {
-  const base     = origin + (pathname || '/') + (search || '')
+export function buildMigrationUrl({ pathname, search, hash = '', payload, origin }) {
+  const path = pathname || '/'
+  // وجهة حسب نوع المسار: صفحات الحاسبة المفهرسة بجوجل تروح لنطاق التسويق،
+  // وبوّابة العامل وشاشات التطبيق تروح لنطاق التطبيق.
+  const dest     = origin || originForPath(path, search || '') || APP_ORIGIN
+  const base     = dest + path + (search || '')
   const origHash = (hash || '').replace(/^#/, '')
+
+  // الحمولة (بيانات محلية) تخصّ نطاق التطبيق حصراً — ما بتنكتب على نطاق التسويق.
+  if (dest !== APP_ORIGIN) return origHash ? `${base}#${origHash}` : base
 
   let encoded = ''
   if (payload && Object.keys(payload).length) {

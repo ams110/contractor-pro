@@ -1,6 +1,6 @@
 {
   "packageId": "com.kabblan.app",
-  "host": "kabblan.com",
+  "host": "app.kabblan.com",
   "name": "كبلان",
   "launcherName": "كبلان",
   "display": "standalone",
@@ -12,9 +12,9 @@
   "navigationDividerColorDark": "#0B1117",
   "backgroundColor": "#0B1117",
   "enableNotifications": true,
-  "startUrl": "/app",
-  "iconUrl": "https://kabblan.com/pwa-512.png",
-  "maskableIconUrl": "https://kabblan.com/maskable-512.png",
+  "startUrl": "/",
+  "iconUrl": "https://app.kabblan.com/pwa-512.png",
+  "maskableIconUrl": "https://app.kabblan.com/maskable-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./android-upload.keystore",
@@ -24,7 +24,7 @@
   "appVersionCode": 112,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://kabblan.com/manifest.webmanifest",
+  "webManifestUrl": "https://app.kabblan.com/manifest.webmanifest",
   "fallbackType": "customtabs",
   "features": {},
   "alphaDependencies": {
@@ -33,7 +33,7 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://kabblan.com/",
+  "fullScopeUrl": "https://app.kabblan.com/",
   "minSdkVersion": 21,
   "orientation": "portrait",
   "fingerprints": [],

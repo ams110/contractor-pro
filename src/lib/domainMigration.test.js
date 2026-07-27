@@ -7,16 +7,17 @@ import {
 describe('domainMigration — shouldMigrate', () => {
   it('يرصد النطاق القديم', () => {
     expect(shouldMigrate('app.linko.services')).toBe(true)
-    expect(shouldMigrate('www.kabblan.com')).toBe(true)
   })
-  it('لا يحوّل من النطاق الجديد ولا من التطوير المحلي', () => {
+  it('لا يحوّل من النطاقات الجديدة ولا من التطوير المحلي', () => {
     expect(shouldMigrate('kabblan.com')).toBe(false)
+    expect(shouldMigrate('app.kabblan.com')).toBe(false)
     expect(shouldMigrate('localhost')).toBe(false)
     expect(shouldMigrate('contractor-pro.vercel.app')).toBe(false)
   })
-  it('النطاق الجديد ليس ضمن قائمة النطاقات القديمة', () => {
+  it('النطاق القديم كان يخدم التطبيق → الوجهة الافتراضية نطاق التطبيق', () => {
     expect(LEGACY_HOSTS).not.toContain('kabblan.com')
-    expect(NEW_ORIGIN).toBe('https://kabblan.com')
+    expect(LEGACY_HOSTS).not.toContain('app.kabblan.com')
+    expect(NEW_ORIGIN).toBe('https://app.kabblan.com')
   })
 })
 
@@ -57,35 +58,43 @@ describe('domainMigration — collectMigratableKeys', () => {
 })
 
 describe('domainMigration — buildMigrationUrl', () => {
-  it('يحافظ على المسار والـquery (روابط بوّابة العامل القديمة)', () => {
+  it('🔴 روابط بوّابة العامل القديمة تروح لنطاق التطبيق', () => {
     const url = buildMigrationUrl({ pathname: '/', search: '?portal', payload: null })
-    expect(url).toBe('https://kabblan.com/?portal')
+    expect(url).toBe('https://app.kabblan.com/?portal')
   })
 
-  it('يحافظ على مسارات الحاسبة المفهرسة بجوجل', () => {
+  it('🔴 مسارات الحاسبة المفهرسة تروح لنطاق التسويق (لا التطبيق)', () => {
     const url = buildMigrationUrl({ pathname: '/calculator/haifa', search: '', payload: {} })
     expect(url).toBe('https://kabblan.com/calculator/haifa')
   })
 
   it('يضيف الحمولة في الـhash (لا تُرسَل للخادم)', () => {
-    const url = buildMigrationUrl({ pathname: '/', search: '', payload: { cp_lang: 'ar' } })
+    const url = buildMigrationUrl({ pathname: '/app', search: '', payload: { cp_lang: 'ar' } })
     expect(url).toContain('#__kblmig=')
     const raw = decodeURIComponent(url.split('#__kblmig=')[1])
     expect(JSON.parse(raw)).toEqual({ cp_lang: 'ar' })
   })
 
+  it('🔴 الحمولة ما بتنكتب على نطاق التسويق — بيانات التطبيق تخصّ نطاقه', () => {
+    const url = buildMigrationUrl({
+      pathname: '/calculator/haifa', search: '', payload: { tracker_p1: '{}' },
+    })
+    expect(url).toBe('https://kabblan.com/calculator/haifa')
+    expect(url).not.toContain('__kblmig')
+  })
+
   it('يسقط الحمولة الضخمة ويكمّل التحويل بدلاً من كسره', () => {
     const url = buildMigrationUrl({
-      pathname: '/', search: '',
+      pathname: '/app', search: '',
       payload: { tracker_big: 'x'.repeat(400 * 1024) },
     })
-    expect(url).toBe('https://kabblan.com/')
+    expect(url).toBe('https://app.kabblan.com/app')
   })
 
   it('🔴 يحافظ على توكن المصادقة في الـhash (تأكيد إيميل/استعادة كلمة سر)', () => {
     const authHash = '#access_token=abc123&refresh_token=def456&type=recovery'
     const url = buildMigrationUrl({
-      pathname: '/', search: '', hash: authHash, payload: { cp_lang: 'ar' },
+      pathname: '/login', search: '', hash: authHash, payload: { cp_lang: 'ar' },
     })
     expect(url).toContain('access_token=abc123')
     expect(url).toContain('refresh_token=def456')
@@ -99,12 +108,12 @@ describe('domainMigration — buildMigrationUrl', () => {
     const url = buildMigrationUrl({
       pathname: '/', search: '?portal', hash: '#access_token=t', payload: null,
     })
-    expect(url).toBe('https://kabblan.com/?portal#access_token=t')
+    expect(url).toBe('https://app.kabblan.com/?portal#access_token=t')
   })
 
   it('الحمولة المُرمَّزة ما بتحوي & أو = فالفصل آمن', () => {
     const url = buildMigrationUrl({
-      pathname: '/', search: '', hash: '#access_token=t',
+      pathname: '/app', search: '', hash: '#access_token=t',
       payload: { 'settings_u1': '{"a":"x&y=z"}' },
     })
     const segs = url.split('#')[1].split('&')
