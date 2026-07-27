@@ -80,3 +80,18 @@ describe('hosts — التحويل عبر النطاقات', () => {
     expect(isAppHost('kabblan.com')).toBe(false)
   })
 })
+
+describe('hosts — شبكة أمان الـwww', () => {
+  const mk = (hostname, pathname, search = '') =>
+    crossHostRedirect({ hostname, pathname, search })
+
+  it('www بتتحوّل دايماً على الجذر — حتى على `/`', () => {
+    expect(mk('www.kabblan.com', '/')).toBe('https://kabblan.com/')
+    expect(mk('www.kabblan.com', '/pricing')).toBe('https://kabblan.com/pricing')
+    expect(mk('www.kabblan.com', '/blog')).toBe('https://kabblan.com/blog')
+  })
+  it('www + مسار تطبيق → نطاق التطبيق مباشرة (بلا قفزتين)', () => {
+    expect(mk('www.kabblan.com', '/app')).toBe('https://app.kabblan.com/app')
+    expect(mk('www.kabblan.com', '/', '?portal')).toBe('https://app.kabblan.com/?portal')
+  })
+})

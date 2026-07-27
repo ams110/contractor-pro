@@ -14,6 +14,10 @@ export const APP_ORIGIN       = 'https://app.kabblan.com'
 
 export const MARKETING_HOST = 'kabblan.com'
 export const APP_HOST       = 'app.kabblan.com'
+// الـwww بيتحوّل على الجذر بـ308 من Vercel. منتعامل معه بالكود كمان كشبكة أمان:
+// لو تعطّل إعداد التحويل لأي سبب، منحوّله بدل ما ينكسر منطق الفصل بصمت
+// (النطاق الرسمي بالـcanonical/sitemap/OG هو الجذر بلا www).
+export const WWW_HOST       = 'www.kabblan.com'
 
 // مسارات التطبيق — تعيش على app.kabblan.com حصراً.
 const APP_PATHS = new Set(['/app', '/login', '/register', '/welcome', '/thankyou', '/admin'])
@@ -30,7 +34,7 @@ const SHARED_PATHS = new Set([
 
 /** نطاق إنتاج فعلي؟ (غير ذلك = تطوير/معاينة → بلا تقسيم) */
 export function isSplitHost(hostname) {
-  return hostname === MARKETING_HOST || hostname === APP_HOST
+  return hostname === MARKETING_HOST || hostname === APP_HOST || hostname === WWW_HOST
 }
 
 export function isAppHost(hostname)       { return hostname === APP_HOST }
@@ -68,6 +72,12 @@ export function originForPath(pathname, search = '') {
  */
 export function crossHostRedirect({ hostname, pathname, search = '', hash = '' }) {
   if (!isSplitHost(hostname)) return null       // تطوير/معاينة → بلا تقسيم
+
+  // www → دايماً بره (على الجذر أو على نطاق التطبيق حسب المسار)
+  if (hostname === WWW_HOST) {
+    const want = originForPath(pathname, search) || MARKETING_ORIGIN
+    return want + pathname + search + hash
+  }
 
   // الجذر `/` يُعرَض محلياً على كل نطاق ولا يُحوَّل أبداً:
   //   kabblan.com/      → صفحة الهبوط
