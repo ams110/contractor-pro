@@ -14,7 +14,7 @@ import Celebration from './components/Celebration.jsx'
 import { ttPage } from './lib/tiktok.js'
 import { pageview } from './lib/analytics.js'
 import { crossHostRedirect, isAppHost } from './lib/hosts.js'
-import { isWorkerPath, legacyPortalRedirect } from './lib/workerApp.js'
+import { isWorkerHost, isWorkerPath, workerRedirect } from './lib/workerApp.js'
 
 // التطبيق الكامل lazy — صفحات التسويق (هبوط/أسعار/قانونية) ما تنزّل كود التطبيق
 // والـhooks والشاشات معها، فتصغر الحزمة الأولى كثيراً (أداء أسرع على الموبايل).
@@ -56,6 +56,25 @@ export default function Router() {
     pageview(path)    // Google Analytics 4 page_view
   }, [path])
 
+  // ─── بوّابة العامل = تطبيق منفصل على نطاق خاص ───────────────────────────────
+  // 🔴 **لازم قبل `crossHostRedirect`**: أي دخول للبوّابة (مسار `/worker` أو رابط
+  // قديم `?portal`/`?worker`) يُحوَّل **مباشرة** لنطاق البوّابة `worker.kabblan.com`.
+  // لو تركناه بعد تقسيم النطاقات لصار تحويلان متتاليان (تسويق → تطبيق → بوّابة).
+  // سبب النطاق الفرعي: تصادم scope مع تطبيق المالك — انظر `lib/workerApp.js`.
+  const toWorker = workerRedirect({
+    hostname: window.location.hostname,
+    pathname: path,
+    search:   window.location.search,
+    hash:     window.location.hash,
+    base:     import.meta.env.BASE_URL,
+  })
+  if (toWorker) { window.location.replace(toWorker); return null }
+
+  // على نطاق البوّابة تُخدَم وثيقة `worker.html` من الخادم، فما بيوصل حدا لهون.
+  // شبكة أمان: لو وصل (تطوير/مرآة Pages/إعداد ناقص) نعرض البوّابة بلا مرور المالك.
+  if (isWorkerHost(window.location.hostname) || isWorkerPath(path))
+    return <Suspense fallback={null}><WorkerPortalScreen /></Suspense>
+
   // ─── تقسيم النطاقات: تسويق (kabblan.com) × تطبيق (app.kabblan.com) ──────────
   // أي مسار وصل النطاق الغلط يُحوَّل لمكانه الصحيح مع الحفاظ على الـquery والـhash.
   // (بلا تأثير على localhost ومعاينات Vercel — انظر `lib/hosts.js`.)
@@ -66,22 +85,6 @@ export default function Router() {
     hash:     window.location.hash,
   })
   if (redirectTo) { window.location.replace(redirectTo); return null }
-
-  // ─── بوّابة العامل = تطبيق منفصل ───────────────────────────────────────────
-  // الروابط القديمة المنتشرة عند العمّال (`?portal`/`?worker`) تُحوَّل لمسار
-  // البوّابة `/worker` كي يهبط العامل على الوثيقة/الـmanifest الخاصّين به —
-  // وإلا ثبّت تطبيق المالك بالغلط (كانت هاي «الخربطة»).
-  const workerRedirect = legacyPortalRedirect({
-    pathname: path,
-    search:   window.location.search,
-    hash:     window.location.hash,
-    base:     import.meta.env.BASE_URL,
-  })
-  if (workerRedirect) { window.location.replace(workerRedirect); return null }
-
-  // شبكة أمان: `/worker` وصل لـ`index.html` (تطوير/مرآة Pages بلا rewrite)
-  // → نعرض البوّابة مباشرة، بلا أي مرور على تطبيق المالك.
-  if (isWorkerPath(path)) return <Suspense fallback={null}><WorkerPortalScreen /></Suspense>
 
   const params = new URLSearchParams(window.location.search)
 

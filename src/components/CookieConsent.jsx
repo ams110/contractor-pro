@@ -28,7 +28,11 @@ export default function CookieConsent() {
   useEffect(() => {
     // لا تحليلات داخل بوّابة العامل (تطبيق منفصل — ما بيركّب هذا المكوّن أصلاً،
     // وهاد الفحص شبكة أمان لو وصلنا عبر شبكة أمان الـRouter).
-    if (isWorkerEntry({ pathname: window.location.pathname, search: window.location.search })) return
+    if (isWorkerEntry({
+      hostname: window.location.hostname,
+      pathname: window.location.pathname,
+      search:   window.location.search,
+    })) return
     let stored = null
     try { stored = localStorage.getItem(KEY) } catch { /* تخزين غير متاح */ }
     // Consent Mode v2: حمّل GA للجميع بحالة موافقة مبدئية حسب القرار السابق

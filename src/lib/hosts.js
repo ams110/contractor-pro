@@ -9,7 +9,7 @@
 // ومعاينات Vercel (`*.vercel.app`) يُخدَم **كل شي من نفس الأصل** — وإلا انكسر
 // التطوير المحلي وكل معاينة PR (بتحوّل على الإنتاج بدل ما تعرض التغيير).
 
-import { WORKER_PATH, isWorkerEntry } from './workerApp.js'
+import { WORKER_PATH, WORKER_HOST, isWorkerEntry } from './workerApp.js'
 
 export const MARKETING_ORIGIN = 'https://kabblan.com'
 export const APP_ORIGIN       = 'https://app.kabblan.com'
@@ -39,8 +39,12 @@ const SHARED_PATHS = new Set([
   '/pricing', '/terms', '/privacy', '/refund', '/contact', '/delete-account',
 ])
 
-/** نطاق إنتاج فعلي؟ (غير ذلك = تطوير/معاينة → بلا تقسيم) */
+/** نطاق إنتاج فعلي؟ (غير ذلك = تطوير/معاينة → بلا تقسيم)
+ *  🔴 نطاق بوّابة العامل (`worker.kabblan.com`) **مستثنى عمداً**: هو تطبيق ثالث
+ *  مستقل بأصله الخاص، و`Router` يتعامل معه قبل تقسيم النطاقات. لو دخل هون
+ *  لصار `crossHostRedirect` يسحب العامل على نطاق المالك. */
 export function isSplitHost(hostname) {
+  if (hostname === WORKER_HOST) return false
   return hostname === MARKETING_HOST || hostname === APP_HOST || hostname === WWW_HOST
 }
 
