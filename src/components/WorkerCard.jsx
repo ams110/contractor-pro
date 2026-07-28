@@ -7,6 +7,7 @@ import {
 import { C } from '../constants/index.js'
 import { fmt } from '../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../lib/whatsapp.js'
+import { workerPortalUrl } from '../lib/workerApp.js'
 import { tEnum } from '../lib/labels.js'
 import { HolographicSheen } from '../ui/Premium.jsx'
 import PortalUpsell from './PortalUpsell.jsx'
@@ -25,7 +26,7 @@ export default function WorkerCard({ worker, stats = {}, dna, anomaly, lang = 'a
   const L = (ar, he, en) => (lang === 'en' ? en : lang === 'he' ? he : ar)
 
   const balance = stats.balance || 0
-  const url = portalUrl || `${window.location.origin}${window.location.pathname}?portal`
+  const url = portalUrl || workerPortalUrl(window.location.origin, import.meta.env.BASE_URL)
 
   function flip(e) { e.stopPropagation(); setFlipped(f => !f) }
   function copyLink(e) {

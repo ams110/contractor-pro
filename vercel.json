@@ -1,5 +1,9 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/" }],
+  "rewrites": [
+    { "source": "/worker", "destination": "/worker.html" },
+    { "source": "/worker/(.*)", "destination": "/worker.html" },
+    { "source": "/(.*)", "destination": "/" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -9,6 +13,10 @@
     {
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "app.linko.services" }],
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/worker(/.*)?",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     }
   ]
