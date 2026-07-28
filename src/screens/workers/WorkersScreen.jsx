@@ -13,6 +13,7 @@ import { C, GRAD, SPECS } from '../../constants/index.js'
 import { fmt, fmtDate, todayStr } from '../../lib/helpers.js'
 import { tl, tEnum } from '../../lib/labels.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
+import { workerPortalUrl } from '../../lib/workerApp.js'
 import { useAppStore } from '../../store/useAppStore.js'
 import { useHasFeature, useWorkerLimit } from '../../store/usePlanStore.js'
 import { navigate } from '../../Router.jsx'
@@ -199,7 +200,8 @@ function AddWorkerModal({ open, onClose, onSave, specs = [], language }) {
 }
 
 // ─── Worker Detail ────────────────────────────────────────────────────────────
-const PORTAL_URL = `${window.location.origin}${window.location.pathname}?portal`
+// رابط تطبيق بوّابة العامل المنفصل (`/worker`) — مصدره `lib/workerApp.js`
+const PORTAL_URL = workerPortalUrl(window.location.origin, import.meta.env.BASE_URL)
 
 // مفتاح تبديل صغير (RTL-safe عبر flex + layout)
 function Switch({ on, onChange, disabled = false }) {

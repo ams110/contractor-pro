@@ -3,6 +3,7 @@ import { Cookie, X } from 'lucide-react'
 import { navigate } from '../Router.jsx'
 import { isGranted, initAnalytics, grantConsent } from '../lib/analytics.js'
 import { tl } from '../lib/labels.js'
+import { isWorkerEntry } from '../lib/workerApp.js'
 import { useAppStore } from '../store/useAppStore.js'
 
 // مفتاح إصدار v2: يُعيد سؤال كل المستخدمين بعد إضافة تحليلات Google Analytics
@@ -25,9 +26,9 @@ export default function CookieConsent() {
   const language = useAppStore(s => s.language)
 
   useEffect(() => {
-    // لا تحليلات داخل بوّابة العامل
-    const params = new URLSearchParams(window.location.search)
-    if (params.has('portal') || params.has('worker')) return
+    // لا تحليلات داخل بوّابة العامل (تطبيق منفصل — ما بيركّب هذا المكوّن أصلاً،
+    // وهاد الفحص شبكة أمان لو وصلنا عبر شبكة أمان الـRouter).
+    if (isWorkerEntry({ pathname: window.location.pathname, search: window.location.search })) return
     let stored = null
     try { stored = localStorage.getItem(KEY) } catch { /* تخزين غير متاح */ }
     // Consent Mode v2: حمّل GA للجميع بحالة موافقة مبدئية حسب القرار السابق

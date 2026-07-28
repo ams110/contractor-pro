@@ -1,1 +1,6 @@
-/* /index.html 200
+# بوّابة العامل = تطبيق منفصل بوثيقته الخاصّة — لازم **قبل** الـcatch-all،
+# وإلا انسحب العامل على وثيقة تطبيق المالك (index.html) وضاع الفصل.
+/worker      /worker.html  200
+/worker/*    /worker.html  200
+
+/*           /index.html   200

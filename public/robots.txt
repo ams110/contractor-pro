@@ -9,5 +9,7 @@ Disallow: /demoshot
 Disallow: /welcome
 Disallow: /*?portal
 Disallow: /*?worker
+# تطبيق بوّابة العامل المنفصل (خاص بالعمّال — لا قيمة له في البحث)
+Disallow: /worker
 
 Sitemap: https://kabblan.com/sitemap.xml

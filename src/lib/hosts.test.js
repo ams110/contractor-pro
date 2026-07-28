@@ -6,11 +6,14 @@ import {
 
 describe('hosts — تصنيف المسارات', () => {
   it('مسارات التطبيق', () => {
-    for (const p of ['/app', '/login', '/register', '/welcome', '/thankyou', '/admin'])
+    for (const p of ['/app', '/login', '/register', '/welcome', '/thankyou', '/admin', '/worker'])
       expect(isAppPath(p)).toBe(true)
   })
   it('بوّابة العامل مسار تطبيق عبر الـquery', () => {
     expect(isAppPath('/', '?portal')).toBe(true)
+    // بوّابة العامل = تطبيق منفصل على نطاق التطبيق
+    expect(isAppPath('/worker')).toBe(true)
+    expect(isAppPath('/worker/')).toBe(true)
     expect(isAppPath('/', '?worker')).toBe(true)
     expect(isAppPath('/', '')).toBe(false)
   })
@@ -35,6 +38,7 @@ describe('hosts — التحويل عبر النطاقات', () => {
 
   it('مسار تطبيق وصل نطاق التسويق → يتحوّل', () => {
     expect(mk('kabblan.com', '/app')).toBe('https://app.kabblan.com/app')
+    expect(mk('kabblan.com', '/worker')).toBe('https://app.kabblan.com/worker')
     expect(mk('kabblan.com', '/login')).toBe('https://app.kabblan.com/login')
   })
 

@@ -69,13 +69,21 @@ npm run ads:shots     # بوسترات إعلانية من /adstudio (square/por
 
 ### 2.2 أيقونات التطبيق (App Icons) — مولّدة، مصدر واحد
 
-شعار التطبيق = **خوذة بناء `HardHat` (Lucide) بيضاء على تدرّج `GRAD.brand` (`linear-gradient(135deg, #F97316, #DC2626)`) بزوايا مدوّرة** — نفس لوغو صفحة الهبوط (`LandingPage.jsx`) بالضبط.
+**عائلتان** لأنّ عندنا **تطبيقين قابلين للتثبيت** (انظر §4.1):
+
+| التطبيق | الشكل (Lucide) | التدرّج | بادئة الملفات |
+|---------|----------------|---------|----------------|
+| كبلان (المالك) | `HardHat` | `GRAD.brand` (`#F97316→#DC2626`) | بلا بادئة (`pwa-512`...) |
+| بوّابة العامل | `ClipboardCheck` | `GRAD.premium` (`#7C3AED→#2563EB`) | **`worker-`** (`worker-pwa-512`...) |
+
+شعار تطبيق المالك = **خوذة بناء `HardHat` (Lucide) بيضاء على تدرّج `GRAD.brand` بزوايا مدوّرة** — نفس لوغو صفحة الهبوط (`LandingPage.jsx`) بالضبط. 🔴 **أيقونة العامل لازم تظل مختلفة الشكل *واللون*** — التطبيقان بيقعدوا جنب بعض على شاشة العامل، والتشابه هو بالضبط اللي كان يخربط.
 
 - **المولِّد**: `generate_icon.py` (بايثون + `cairosvg` + `Pillow`). شغّله بعد أي تغيير شكلي: `python3 generate_icon.py`. يرسم كل حجم **متّجهياً من الصفر** (لا تكبير صورة) → كل المقاسات حادّة 100%.
-- 🔴 **قاعدة حاسمة — لا تنسخ مسارات الأيقونة يدوياً أبداً.** المولِّد **يقرأ شكل الخوذة وقت التوليد من نفس مصدر التطبيق**: `node_modules/lucide-react/dist/esm/icons/hard-hat.mjs` (دالة `load_hardhat_inner` تفكّك `__iconNode`). هيك الأيقونة دايماً = خوذة `<HardHat/>` المرسومة بالـUI، وتتعقّب أي تحديث Lucide تلقائياً عند إعادة التوليد. **سبب الوجود**: سابقاً كانت المسارات منسوخة بالإيد فتعتّقت واختلفت عن lucide-react → طلعت خوذة مشوّهة (قبّة طايرة فوق حافّة منفصلة). لا تُرجِع هذا الغلط.
+- 🔴 **قاعدة حاسمة — لا تنسخ مسارات الأيقونة يدوياً أبداً.** المولِّد **يقرأ الشكل وقت التوليد من نفس مصدر التطبيق**: `node_modules/lucide-react/dist/esm/icons/{hard-hat,clipboard-check}.mjs` (دالة `load_lucide_inner(name)` تفكّك `__iconNode`، وكل عائلة كائن `Family`). هيك الأيقونة دايماً = خوذة `<HardHat/>` المرسومة بالـUI، وتتعقّب أي تحديث Lucide تلقائياً عند إعادة التوليد. **سبب الوجود**: سابقاً كانت المسارات منسوخة بالإيد فتعتّقت واختلفت عن lucide-react → طلعت خوذة مشوّهة (قبّة طايرة فوق حافّة منفصلة). لا تُرجِع هذا الغلط.
 - **المخرجات** (في `public/`): عادية `purpose:any` → `icon-1024` (المتاجر) · `pwa-512/384/192` · `apple-touch-icon` 180 · `icon-167/152/120` (iPad/iPhone). + **maskable** لأندرويد → `maskable-512/192` (`make_maskable_svg`: **تدرّج ملء الإطار بلا زوايا مدوّرة** + الخوذة داخل **منطقة الأمان ~80%** فلا تُقصّ تحت قناع المشغّل الدائري). + `badge-96` (سيلويت مصمت مخصّص للإشعارات، `make_badge_svg`) + `favicon.ico` (16/32/48).
+- **مخرجات بوّابة العامل**: `worker-pwa-512/384/192` · `worker-apple-touch-icon` 180 · `worker-maskable-512/192` · `worker-favicon.ico`.
 - ⚠️ **maskable لازم تظل full-bleed** (بلا `rx`/زوايا) والخوذة صغيرة بالنص — **ممنوع توجيه `purpose:maskable` لأيقونة مدوّرة مثل `pwa-512`** (تنقصّ تحت القناع).
-- **التوصيل**: `vite.config.js` → `manifest.icons` (3 عادية + 2 maskable) · `index.html` → روابط `favicon` + `apple-touch-icon` بمقاسات iOS. عند إضافة/إزالة حجم: حدّث المولِّد **و** هذين الموضعين.
+- **التوصيل**: تطبيق المالك → `vite.config.js` (`manifest.icons`: 3 عادية + 2 maskable) + `index.html` (روابط `favicon`/`apple-touch-icon` بمقاسات iOS). تطبيق العامل → `public/worker.webmanifest` + `worker.html`. عند إضافة/إزالة حجم: حدّث المولِّد **وكل** المواضع المعنيّة.
 
 ---
 
@@ -109,9 +117,28 @@ main.jsx → Router.jsx → App.jsx (بعد الدخول) → الشاشات
 | `/login` `/register` | `LoginScreen` (lazy) |
 | `/admin` | `AdminDashboard` (lazy) — لوحة تحكّم المنصّة (مركز قيادة الأدمن): دخول مخصّص باسم مستخدم/كلمة مرور (أسرار Supabase)، يعرض إجمالي/جدد المستخدمين + الإيراد الشهري MRR + الاشتراكات + التجارب + توزيع الخطط + نمو التسجيلات + آخر المسجّلين. عبر edge `admin-stats` + RPCs `admin_get_stats`/`admin_list_users`/`admin_user_detail`/`admin_broadcast`/`admin_action_items`. تبويبات: نظرة عامة (**نبض المنصّة** 0–100 + **صندوق إجراءات ذكي** + **توقّع نمو** 3 أشهر + **أهداف** قابلة للضبط + نشطون + قمع تحويل + ARR + اتجاه أسبوعي) · **مباشر** (سجلّ نشاط حيّ بشري يتحدّث كل 20ث + **قائمة نشاط البوتات** المرصودة/المصنّفة: تسجيل/دخول/محو عبر `bot_activity`) · **المستخدمون** (بحث + تفاصيل + حظر + تغيير خطة + تمديد تجربة + **دخول كمستخدم** للدعم + تصدير CSV) · **رسالة جماعية**. يدعم **دخول بالبصمة (WebAuthn)** و**تغيير كلمة السر/اسم المستخدم**. + **تنبيهات فورية** للمالك عند تسجيل/اشتراك جديد (trigger يكتب notification → Web Push). + **رصد البوتات**: `is_bot_email` يكشف نمط الفحص (probe/bot/+test...)، وtriggers على `auth.users` (insert/update last_sign_in_at/delete) تسجّل دورة حياة البوت في `bot_activity` وتنبّه موسومةً «🤖 بوت» (لا تُتجاهل) — والسجلّ الحيّ البشري يستثنيها. **مخفي — غير موصول بأي UI عام** |
 | `/app` أو أي شيء آخر | `App` |
-| `?portal` أو `?worker` | **بوّابة العامل** (`WorkerPortalScreen`) مباشرة بلا دخول مالك |
+| `/worker` | **بوّابة العامل — تطبيق منفصل** (وثيقة `worker.html` الخاصة، لا تمرّ من `Router` بالإنتاج). المسار هنا شبكة أمان فقط لبيئات بلا rewrite |
+| `?portal` أو `?worker` | روابط قديمة — **تُحوَّل** لـ`/worker` (عبر `legacyPortalRedirect`) |
 
 > `Router` يلفّ كل الصفحات (عدا بوّابة العامل) بـ `<CookieConsent/>` (لافتة موافقة كوكيز خفيفة تظهر مرّة).
+
+### 4.1 🔴 بوّابة العامل = **تطبيق منفصل** (لا تُرجِعها داخل تطبيق المالك)
+
+العامل ينزّل «بوّابة العامل» كتطبيق PWA مستقل على هاتفه. سابقاً كانت البوّابة تُفتح بـ`?portal` على **نفس** وثيقة المالك ونفس الـmanifest، فعند التثبيت كان `start_url` يفتح تطبيق المالك، والأيقونة واحدة للاثنين → خربطة للعامل. الفصل الحالي:
+
+| الطبقة | تطبيق المالك | تطبيق بوّابة العامل |
+|--------|--------------|---------------------|
+| وثيقة HTML | `index.html` → `src/main.jsx` → `Router` | **`worker.html`** → `src/worker-main.jsx` → `WorkerPortalScreen` مباشرة |
+| المسار | `/`, `/app`, ... | **`/worker`** (rewrite → `worker.html` في `vercel.json` + `public/_redirects`) |
+| manifest | `manifest.webmanifest` (مولّد من `vite.config.js`) | **`public/worker.webmanifest`** — `start_url`/`scope` = `/worker` |
+| الأيقونة | HardHat على `GRAD.brand` (برتقالي→أحمر) | **ClipboardCheck على `GRAD.premium`** (بنفسجي→أزرق) — `worker-*.png` |
+| الحزمة | كل الشاشات | البوّابة فقط (بلا أي كود من `App.jsx`) |
+
+- **مصدر القرار الوحيد**: `src/lib/workerApp.js` (`WORKER_PATH`, `isWorkerPath`, `isWorkerEntry`, `legacyPortalRedirect`, `workerPortalUrl`) — **مغطّى باختبارات**. أي مكان يبني رابط بوّابة (واتساب/QR في `WorkersScreen`/`SettingsScreen`/`WorkerCard`) لازم يستعمل `workerPortalUrl`، لا سلسلة يدوية.
+- **الروابط القديمة لا تنكسر**: `?portal`/`?worker` تُحوَّل client-side لـ`/worker` مع الحفاظ على باقي الـquery والـhash.
+- ⚠️ **`vite-plugin-pwa` يحقن رابط manifest المالك في كل وثائق HTML** — بما فيها `worker.html`. الإضافة `worker-app-manifest-isolation` في `vite.config.js` تشيله، ولازم تبقى **بعد `VitePWA()` بالمصفوفة و`enforce:'post'`** (الإضافة نفسها `enforce:'post'`، فبلا هذا يشتغل حقنها بعد تنظيفنا ويرجع الرابط — صار فعلياً). فيها كذلك تنظيف احتياطي في `generateBundle`.
+- ⚠️ **ممنوع** إرجاع فرع `?portal` داخل `App.jsx`، وممنوع استيراد `App.jsx` من `worker-main.jsx` — هذا يفتح الطريق للخربطة من جديد.
+- `sw.js` يوجّه تنقّلات `/worker*` لـ`worker.html` (بلا هذا التوجيه ممكن يُخدَم شِلّ المالك للعامل)، و`notificationclick` يتجاهل نوافذ البوّابة لأنّ الإشعارات تخصّ المالك.
 
 **App.jsx** هو القلب — يدير:
 1. **المصادقة** عبر `useAuth` (مالك Supabase) أو `teamMemberSignIn` (عضو فريق).
@@ -130,7 +157,9 @@ main.jsx → Router.jsx → App.jsx (بعد الدخول) → الشاشات
 
 ```
 src/
-├── main.jsx                 ← نقطة الدخول (StrictMode + i18n + Router)
+├── main.jsx                 ← مدخل تطبيق المالك/التسويق (index.html): StrictMode + i18n + Router
+├── worker-main.jsx          ← مدخل تطبيق بوّابة العامل (worker.html) — منفصل تماماً (انظر §4.1)
+├── globalCSS.js             ← أنميشن/كلاسات عامة مشتركة بين المدخلين
 ├── Router.jsx               ← توجيه client-side + navigate()
 ├── App.jsx                  ← التطبيق بعد الدخول (auth, data hooks, perms, layout, 5 tabs)
 ├── sw.js                    ← Service Worker (Workbox precache + Supabase NetworkFirst + web push)
@@ -153,7 +182,8 @@ supabase/                    ← schema.sql, master.sql, migrations/, functions/
 tests/e2e/                   ← Playwright specs (landing, navigation, auth-forms)
 .github/workflows/           ← pages.yml (GitHub Pages) + deploy.yml (Supabase edge functions)
 scripts/bump-version.mjs     ← يرفع patch version قبل كل build
-generate_icon.py             ← مولّد أيقونات التطبيق (يقرأ HardHat من lucide-react) — انظر §2.2
+generate_icon.py             ← مولّد أيقونات التطبيقين (يقرأ الأشكال من lucide-react) — انظر §2.2
+index.html / worker.html     ← وثيقتا المدخل: تطبيق المالك · تطبيق بوّابة العامل (§4.1)
 ```
 
 ---
@@ -192,7 +222,7 @@ generate_icon.py             ← مولّد أيقونات التطبيق (يق�
 | `MaterialsScreen.jsx` | عرض البضاعة المسجّلة من بوّابة العامل (قراءة فقط، جدول `material_logs`) |
 | `UnitTrackerScreen.jsx` | تتبّع إنشائي هرمي (قطع→بيوت→طوابق→مهام) + تبويب "إضافات" بموافقة، يُحفظ localStorage |
 | `ActivityScreen.jsx` | سجلّ تدقيق شامل لكل العمليات (insert/update/delete/view) حسب العضو، للمالك فقط، Excel |
-| `WorkerPortalScreen.jsx` | بوّابة العامل الذاتية (`?portal`/`?worker`): كشف حساب، طلب سلفة، تسجيل بضاعة، تقديم مصروف — كله عبر RPCs مع token |
+| `WorkerPortalScreen.jsx` | بوّابة العامل الذاتية — **تطبيق منفصل على `/worker`** (§4.1): كشف حساب، طلب سلفة، تسجيل بضاعة، تقديم مصروف — كله عبر RPCs مع token |
 
 **finance/** التبويبات الفرعية مفصّلة في §8.
 
@@ -385,6 +415,7 @@ generate_icon.py             ← مولّد أيقونات التطبيق (يق�
 
 - **i18n** (`src/i18n/index.js`): ar (افتراضي) / he / en، مخزّن في localStorage `cp_lang`. RTL تلقائي لـ ar/he. الترجمات في `locales/*.json`. **سلاسل عبرية داخل JSX تُكتب `{'מע"מ'}`** لتجنّب كسر JSX بسبب `"`.
 - **PWA**: `vite-plugin-pwa` بنمط `injectManifest` و`src/sw.js`. precache للأصول + Supabase API بـ NetworkFirst (مهلة 10s). تحديث تلقائي (`onNeedRefresh` → reload).
+- **تطبيقان قابلان للتثبيت على نفس الأصل**: تطبيق المالك (`manifest.webmanifest`، scope `/`) وتطبيق **بوّابة العامل** (`worker.webmanifest`، scope `/worker`، أيقونة مختلفة) — تفاصيل العزل في **§4.1**. الـService Worker واحد (scope `/`) ويخدم الاثنين، لكن تنقّلات `/worker*` تُوجَّه لوثيقة العامل.
 - **Web Push**: SW يستقبل `push` → إشعار RTL. الاشتراكات في `push_subscriptions`، VAPID عبر `VITE_VAPID_PUBLIC_KEY`، الإرسال عبر edge `send-push`.
 
 ---
@@ -425,9 +456,9 @@ generate_icon.py             ← مولّد أيقونات التطبيق (يق�
 
 ## 18. الاختبارات
 
-- **Vitest (unit)**: `npm test`. الملفات: `src/lib/insights.test.js`، `calculations.test.js`، `whatsapp.test.js`، `accountReadiness.test.js`، `workerInsights.test.js`، `export.test.js`، `src/hooks/useTaxEngine.test.js`، و`src/store/usePlanStore.test.js` (تقييد الخطط + حدّ العمّال).
-  > `vite.config.js` يستثني `tests/e2e/**` من Vitest، فما عاد يلتقط ملفات Playwright. (المجموع حالياً ~143 اختباراً ناجحاً.)
-- **Playwright (E2E)**: `tests/e2e/` — تغطية **client-side فقط** (تنقّل + تحقّق فورمات، بلا باكند): `landing.spec.js`، `navigation.spec.js`، `auth-forms.spec.js`. على viewport موبايل (Pixel 7) + ديسكتوب، locale عربي. تفاصيل في `docs/TESTING.md`.
+- **Vitest (unit)**: `npm test`. الملفات: `src/lib/insights.test.js`، `calculations.test.js`، `whatsapp.test.js`، `accountReadiness.test.js`، `workerInsights.test.js`، `export.test.js`، `hosts.test.js`، `workerApp.test.js` (تطبيق بوّابة العامل المنفصل — §4.1)، `src/hooks/useTaxEngine.test.js`، و`src/store/usePlanStore.test.js` (تقييد الخطط + حدّ العمّال).
+  > `vite.config.js` يستثني `tests/e2e/**` من Vitest، فما عاد يلتقط ملفات Playwright. (المجموع حالياً ~292 اختباراً ناجحاً في 27 ملفاً.)
+- **Playwright (E2E)**: `tests/e2e/` — تغطية **client-side فقط** (تنقّل + تحقّق فورمات، بلا باكند): `landing.spec.js`، `navigation.spec.js`، `auth-forms.spec.js`، و`worker-portal-app.spec.js` (عزل تطبيق بوّابة العامل: manifest/عنوان/تحويل الروابط القديمة). على viewport موبايل (Pixel 7) + ديسكتوب، locale عربي. تفاصيل في `docs/TESTING.md`.
 - **Playwright MCP**: للتحقّق البصري التفاعلي (المتصفح يُثبّت بـ `npx playwright install chrome` عند الحاجة).
 - **سكيل `landing-shots`** (`.claude/skills/landing-shots/`): وصفة التصوير المعتمدة — سكرينشوتات عالية الجودة (ديسكتوب 1380×820 + موبايل 412×915، توقيتات الأنميشن، مشاهد السكرول المثبّتة) وإرسالها للمحادثة. هوك بداية الجلسة ينشئ `.env.local` بقيم وهمية تلقائياً حتى تعمل المعاينة بالساندبوكس.
 
@@ -453,6 +484,7 @@ generate_icon.py             ← مولّد أيقونات التطبيق (يق�
 - وحدة المالية مكتملة (Phases 0→5)، المصادقة WebAuthn passkey حقيقية، الفريق متعدّد الصلاحيات، بوّابة العامل، اشتراكات Paddle، Push.
 - **جهوزية الإطلاق** (مدموجة): صفحات قانونية (`/terms`,`/privacy`,`/refund`,`/contact`) + تنظيف الهبوط من محتوى وهمي · تقييد الميزات حسب الخطة (شاشة الفريق + **بوّابة العامل** على Pro + حدّ عمّال تجربة=1) + إدارة اشتراك بالإعدادات · فوترة سنوية · مراقبة أخطاء Sentry · إيميلات Resend · لافتة كوكيز · إشعارات فشل الدفع · **حذف الحساب الذاتي** (وعد سياسة الخصوصية + متطلّب App Store) · شارة الخطة بلوحة التحكم + شاشة ترحيب محسّنة.
 - **متبقٍّ للإطلاق التجاري**: ضبط مفاتيح Paddle/Resend/Sentry للإنتاج (أو اعتماد بوّابة دفع إسرائيلية مثل iCount) + تفعيل Send Email Hook + توثيق نطاق Resend + تفعيل Leaked Password Protection. (الكود جاهز وخامل بأمان حتى تُضبط المفاتيح.)
+- **بوّابة العامل صارت تطبيقاً منفصلاً** (`worker.html` على `/worker`، manifest وأيقونة وscope خاصّة، حزمة بلا كود المالك) — الروابط القديمة `?portal`/`?worker` تُحوَّل تلقائياً. التفاصيل والمحاذير في **§4.1**.
 - **طبقة الذكاء المالي** مدموجة وموسّعة: نبض المصلحة · التوقّع الذكي للسيولة · مركز القيادة · الذمّة الصافية · صحّة المشروع · رادار التحصيل · كشف شذوذ المصاريف · مدرج الضريبة · نبض الفريق · بصمة العامل · جاهزية الحساب — كلها دوال نقيّة في `insights.js`/`accountReadiness.js`/`workerInsights.js` مغطّاة باختبارات.
 - **توحيد بصري**: kit الفخامة `ui/Premium.jsx` + هياكل تحميل (Skeleton) + مؤشّر اتصال، وبطاقات هوية موحّدة (مشروع/عامل/إيصال). جارٍ مطابقة باقي الشاشات على نفس اللغة (انظر §2.1).
 - **بحث سوق**: `docs/MARKET_RESEARCH.md` — تقرير موثّق (منافسون/تسعير/نقاط ألم/جمهور عربي/قنوات تسويق) لتوجيه التسعير وصياغة الإعلان.

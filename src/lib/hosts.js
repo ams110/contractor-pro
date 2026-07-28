@@ -9,6 +9,8 @@
 // ومعاينات Vercel (`*.vercel.app`) يُخدَم **كل شي من نفس الأصل** — وإلا انكسر
 // التطوير المحلي وكل معاينة PR (بتحوّل على الإنتاج بدل ما تعرض التغيير).
 
+import { WORKER_PATH, isWorkerEntry } from './workerApp.js'
+
 export const MARKETING_ORIGIN = 'https://kabblan.com'
 export const APP_ORIGIN       = 'https://app.kabblan.com'
 
@@ -20,7 +22,12 @@ export const APP_HOST       = 'app.kabblan.com'
 export const WWW_HOST       = 'www.kabblan.com'
 
 // مسارات التطبيق — تعيش على app.kabblan.com حصراً.
-const APP_PATHS = new Set(['/app', '/login', '/register', '/welcome', '/thankyou', '/admin'])
+// `/worker` = تطبيق بوّابة العامل المنفصل (وثيقة وmanifest خاصّين — انظر
+// `lib/workerApp.js`). لازم يكون هنا صريحاً كي يُحوَّل رابط انتشر على نطاق
+// التسويق بالغلط إلى نطاق التطبيق بدل ما ينكسر.
+const APP_PATHS = new Set([
+  '/app', '/login', '/register', '/welcome', '/thankyou', '/admin', WORKER_PATH,
+])
 
 // مسارات التسويق — تعيش على kabblan.com حصراً (صفحات مفهرسة بجوجل).
 const MARKETING_PATHS = new Set(['/', '/calculator', '/vat-calculator', '/blog', '/demo'])
@@ -40,11 +47,10 @@ export function isSplitHost(hostname) {
 export function isAppHost(hostname)       { return hostname === APP_HOST }
 export function isMarketingHost(hostname) { return hostname === MARKETING_HOST }
 
-/** هل المسار خاصّ بالتطبيق؟ (بوّابة العامل تُمرَّر عبر الـquery) */
+/** هل المسار خاصّ بالتطبيق؟ (بوّابة العامل: `/worker` أو روابطها القديمة) */
 export function isAppPath(pathname, search = '') {
   if (APP_PATHS.has(pathname)) return true
-  const q = new URLSearchParams(search)
-  if (q.has('portal') || q.has('worker')) return true
+  if (isWorkerEntry({ pathname, search })) return true
   // أي مسار غير معروف يسقط على التطبيق (زي ما بيعمل الـRouter)
   return !MARKETING_PATHS.has(pathname) &&
          !SHARED_PATHS.has(pathname) &&

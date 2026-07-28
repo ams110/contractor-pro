@@ -2,10 +2,12 @@ import { create } from 'zustand'
 import { setLanguage, getCurrentLang } from '../i18n/index.js'
 import { celebrationConfig } from '../lib/celebrations.js'
 import { applyTheme } from '../constants/index.js'
+import { isWorkerEntry } from '../lib/workerApp.js'
 
 // ثيم الجهاز (وليس الحساب): اختيار المستخدم المحفوظ (cp_theme) يُحترم دائماً.
-// بلا اختيار محفوظ: التطبيق (/app) وبوّابة العامل (?portal/?worker) افتراضيّهما
-// «وضع الورشة» الفاتح (site)، وصفحات التسويق العامة (الهبوط/الأسعار...) تبقى غامقة.
+// بلا اختيار محفوظ: التطبيق (/app) وبوّابة العامل (/worker — تطبيق منفصل، ومعها
+// روابطها القديمة ?portal/?worker) افتراضيّهما «وضع الورشة» الفاتح (site)،
+// وصفحات التسويق العامة (الهبوط/الأسعار...) تبقى غامقة.
 const savedTheme = (() => {
   try {
     const v = localStorage.getItem('cp_theme')
@@ -14,7 +16,8 @@ const savedTheme = (() => {
 })()
 const isAppEntry = (() => {
   try {
-    return /[?&](portal|worker)\b/.test(window.location.search) || window.location.pathname.includes('/app')
+    return isWorkerEntry({ pathname: window.location.pathname, search: window.location.search })
+        || window.location.pathname.includes('/app')
   } catch { return false }
 })()
 const initialTheme = savedTheme || (isAppEntry ? 'site' : 'dark')

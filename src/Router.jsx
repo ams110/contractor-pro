@@ -14,6 +14,7 @@ import Celebration from './components/Celebration.jsx'
 import { ttPage } from './lib/tiktok.js'
 import { pageview } from './lib/analytics.js'
 import { crossHostRedirect, isAppHost } from './lib/hosts.js'
+import { isWorkerPath, legacyPortalRedirect } from './lib/workerApp.js'
 
 // التطبيق الكامل lazy — صفحات التسويق (هبوط/أسعار/قانونية) ما تنزّل كود التطبيق
 // والـhooks والشاشات معها، فتصغر الحزمة الأولى كثيراً (أداء أسرع على الموبايل).
@@ -24,6 +25,11 @@ const AdStudio    = lazy(() => import('./pages/AdStudio.jsx'))
 const AdReel      = lazy(() => import('./pages/AdReel.jsx'))
 const DemoShot    = lazy(() => import('./pages/DemoShot.jsx'))
 const DemoApp     = lazy(() => import('./pages/DemoApp.jsx'))
+// بوّابة العامل لها **مدخل HTML مستقل** (`worker.html` → `/worker`) وهو الطريق
+// الطبيعي بالإنتاج. هذا الاستيراد شبكة أمان فقط: خادم التطوير (بلا rewrite)
+// ومرآة GitHub Pages (بلا rewrite كذلك) يسقطان على `index.html`، فنعرض البوّابة
+// هنا بدل ما يهبط العامل على تطبيق المالك.
+const WorkerPortalScreen = lazy(() => import('./screens/WorkerPortalScreen.jsx'))
 
 // ─── Client-side navigation (no full page reload) ─────────────────────────────
 export function navigate(path) {
@@ -61,9 +67,23 @@ export default function Router() {
   })
   if (redirectTo) { window.location.replace(redirectTo); return null }
 
-  // ?portal and ?worker query params always go straight to the app
+  // ─── بوّابة العامل = تطبيق منفصل ───────────────────────────────────────────
+  // الروابط القديمة المنتشرة عند العمّال (`?portal`/`?worker`) تُحوَّل لمسار
+  // البوّابة `/worker` كي يهبط العامل على الوثيقة/الـmanifest الخاصّين به —
+  // وإلا ثبّت تطبيق المالك بالغلط (كانت هاي «الخربطة»).
+  const workerRedirect = legacyPortalRedirect({
+    pathname: path,
+    search:   window.location.search,
+    hash:     window.location.hash,
+    base:     import.meta.env.BASE_URL,
+  })
+  if (workerRedirect) { window.location.replace(workerRedirect); return null }
+
+  // شبكة أمان: `/worker` وصل لـ`index.html` (تطوير/مرآة Pages بلا rewrite)
+  // → نعرض البوّابة مباشرة، بلا أي مرور على تطبيق المالك.
+  if (isWorkerPath(path)) return <Suspense fallback={null}><WorkerPortalScreen /></Suspense>
+
   const params = new URLSearchParams(window.location.search)
-  if (params.has('portal') || params.has('worker')) return <Suspense fallback={null}><App /></Suspense>
 
   // /demo (أو ?demo) — الديمو العام التفاعلي: التطبيق الحقيقي ببيانات وهمية بلا تسجيل
   if (path === '/demo' || params.has('demo')) return <Suspense fallback={null}><DemoApp /></Suspense>

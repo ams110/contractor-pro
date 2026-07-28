@@ -27,6 +27,7 @@ import { computeListUsage } from '../../lib/listUsage.js'
 import SmartList from '../../components/SmartList.jsx'
 import { fmtDate } from '../../lib/helpers.js'
 import { openWhatsApp, waMessages } from '../../lib/whatsapp.js'
+import { workerPortalUrl } from '../../lib/workerApp.js'
 import { useSubscription } from '../../hooks/useSubscription.js'
 import { usePlanStore, useHasFeature } from '../../store/usePlanStore.js'
 import { openCustomerPortal } from '../../lib/paddle.js'
@@ -171,7 +172,7 @@ function ContractorCard({ profile, business, lang }) {
   const [qr, setQr] = useState('')
   const [copied, setCopied] = useState(false)
   const portalEnabled = useHasFeature('pro')   // بوّابة العامل ميزة خطة Pro
-  const portalUrl = `${window.location.origin}${window.location.pathname}?portal`
+  const portalUrl = workerPortalUrl(window.location.origin, import.meta.env.BASE_URL)
   const typeLabel = BUSINESS_TYPES.find(t => t.id === business?.type)?.label || ''
   const name = profile?.full_name || (lang === 'en' ? 'Your Name' : lang === 'he' ? 'השם שלך' : 'اسمك هنا')
   const num = profile?.contractor_number
