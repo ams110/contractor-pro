@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import {
   Gift, HardHat, KeyRound, Bell, HardHat as ConstructionIcon, CalendarDays, Wallet, ClipboardList, Ruler, X,
+  ClipboardCheck,
   LogOut, LogIn, Eye, EyeOff, AlertTriangle, TrendingUp, CheckCircle2, Clock as ClockIcon,
   CalendarPlus, Receipt, Package, HandCoins, Map as MapIcon, Settings, Send, FileText, Download,
   Check, X as XIcon, ChevronDown, Sparkles, MapPin, Camera, Paperclip, Fingerprint, ShieldCheck, Trash2,
@@ -411,8 +412,13 @@ function LoginScreen({ onLogin, error, loading, onPasskeyLogin, hasPasskey, pass
       </button>
 
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 12px 36px rgba(245,158,11,0.35)', animation: 'float 3s ease-in-out infinite' }}><HardHat size={38} strokeWidth={1.8} color="#000" /></div>
-        <div style={{ fontSize: 24, fontWeight: 900, background: GRAD.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tl(language, 'بوابة العمال', 'פורטל העובדים', 'Worker Portal')}</div>
+        {/* 🔴 هوية تطبيق البوّابة = **نفس** أيقونته المثبّتة على شاشة العامل:
+            ClipboardCheck على GRAD.premium (بنفسجي→أزرق). ممنوع استعمال
+            HardHat/GRAD.brand هنا — هاي هوية تطبيق المالك، والعامل يفتح أيقونة
+            بنفسجية فتطلعه هوية برتقالية = نفس الخربطة اللي فصلنا التطبيقين
+            لأجلها. المصدر: `generate_icon.py` (عائلة WORKER) + §2.2/§4.1. */}
+        <div style={{ width: 76, height: 76, borderRadius: 24, background: GRAD.premium, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', boxShadow: '0 12px 36px rgba(124,58,237,0.38)', animation: 'float 3s ease-in-out infinite' }}><ClipboardCheck size={38} strokeWidth={1.8} color="#fff" /></div>
+        <div style={{ fontSize: 24, fontWeight: 900, background: GRAD.premium, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{tl(language, 'بوابة العمال', 'פורטל העובדים', 'Worker Portal')}</div>
         <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, letterSpacing: '0.06em' }}>{tl(language, 'كبلان', 'כבלאן', 'Kabblan')}</div>
       </div>
 
