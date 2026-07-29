@@ -124,18 +124,31 @@ main.jsx → Router.jsx → App.jsx (بعد الدخول) → الشاشات
 
 ### 4.1 🔴 بوّابة العامل = **تطبيق منفصل** (لا تُرجِعها داخل تطبيق المالك)
 
-العامل ينزّل «بوّابة العامل» كتطبيق PWA مستقل على هاتفه. سابقاً كانت البوّابة تُفتح بـ`?portal` على **نفس** وثيقة المالك ونفس الـmanifest، فعند التثبيت كان `start_url` يفتح تطبيق المالك، والأيقونة واحدة للاثنين → خربطة للعامل. الفصل الحالي:
+العامل ينزّل «بوّابة العامل» كتطبيق PWA مستقل على هاتفه. سابقاً كانت البوّابة تُفتح بـ`?portal` على **نفس** وثيقة المالك ونفس الـmanifest، فعند التثبيت كان `start_url` يفتح تطبيق المالك، والأيقونة واحدة للاثنين → خربطة للعامل. الفصل الحالي على **ثلاث طبقات**:
 
 | الطبقة | تطبيق المالك | تطبيق بوّابة العامل |
 |--------|--------------|---------------------|
+| **الأصل (origin)** | `app.kabblan.com` | 🔴 **`worker.kabblan.com`** — أصل مستقل |
 | وثيقة HTML | `index.html` → `src/main.jsx` → `Router` | **`worker.html`** → `src/worker-main.jsx` → `WorkerPortalScreen` مباشرة |
-| المسار | `/`, `/app`, ... | **`/worker`** (rewrite → `worker.html` في `vercel.json` + `public/_redirects`) |
-| manifest | `manifest.webmanifest` (مولّد من `vite.config.js`) | **`public/worker.webmanifest`** — `start_url`/`scope` = `/worker` |
+| المسار | `/`, `/app`, ... | **`/worker`** (rewrite → `worker.html`) |
+| manifest | `manifest.webmanifest` (مولّد من `vite.config.js`) — `scope` = `/` | **`public/worker.webmanifest`** — `start_url`/`scope` = `/worker` |
 | الأيقونة | HardHat على `GRAD.brand` (برتقالي→أحمر) | **ClipboardCheck على `GRAD.premium`** (بنفسجي→أزرق) — `worker-*.png` |
 | الحزمة | كل الشاشات | البوّابة فقط (بلا أي كود من `App.jsx`) |
 
-- **مصدر القرار الوحيد**: `src/lib/workerApp.js` (`WORKER_PATH`, `isWorkerPath`, `isWorkerEntry`, `legacyPortalRedirect`, `workerPortalUrl`) — **مغطّى باختبارات**. أي مكان يبني رابط بوّابة (واتساب/QR في `WorkersScreen`/`SettingsScreen`/`WorkerCard`) لازم يستعمل `workerPortalUrl`، لا سلسلة يدوية.
-- **الروابط القديمة لا تنكسر**: `?portal`/`?worker` تُحوَّل client-side لـ`/worker` مع الحفاظ على باقي الـquery والـhash.
+#### 🔴 ليش نطاق فرعي ولا يكفي مسار `/worker`؟
+
+جُرّب المسار وحده أوّلاً و**فشل عملياً** (رُصد على جهاز حقيقي): manifest تطبيق المالك عنده `scope = "/"` وهو **يشمل** `/worker`. وقاعدة كروم: إذا الصفحة الحالية واقعة داخل نطاق تطبيق **مثبَّت أصلاً**، يعتبرها «مثبّتة» ويعرض «open the app instead» بدل التثبيت — فيفتح تطبيق المالك.
+
+النتيجة: أي واحد عنده تطبيق المالك مثبّت صار **محجوباً** عن تثبيت البوّابة — وهذا يشمل **المقاول نفسه** و**كل عامل ثبّت البوّابة القديمة بـ`?portal`** (لأنّها كانت تثبّت manifest المالك). ونطاق المالك `/` ما ينفع نضيّقه (مساراته غير متجاورة: `/app`، `/pricing`، `/login`...؛ وتضييقه لـ`/app` يطلّع `/pricing` و`/terms` برّا التطبيق المثبّت فينكسر تدفّق الترقية/الدفع). فالحلّ الوحيد المضمون = **أصل مختلف**: سجلّ تطبيقات وscope وتخزين وService Worker مستقلّين تماماً.
+
+⚠️ **ليش المسار `/worker` وليس جذر نطاق البوّابة؟** Vercel يخدم الملفات الثابتة **قبل** الـrewrites، فـ`/` يلتقط `index.html` تبع المالك ولا يصل للـrewrite أبداً. وبدل إضافة middleware وتبعيّة جديدة: **تحويل** `worker.kabblan.com/` → `/worker` (التحويلات تُنفَّذ قبل الملفات). العامل ما يكتب الرابط بإيده أصلاً — يوصله بواتساب/QR.
+
+**إعداد النشر المطلوب** (خارج الكود، مرّة واحدة): سجلّ DNS من نوع CNAME للاسم `worker` → `cname.vercel-dns.com`، ثم إضافة `worker.kabblan.com` كنطاق للمشروع على Vercel.
+
+- **مصدر القرار الوحيد**: `src/lib/workerApp.js` (`WORKER_PATH`, `WORKER_HOST`, `WORKER_ORIGIN`, `isWorkerHost`, `isProdDomain`, `isWorkerPath`, `isWorkerEntry`, `workerRedirect`, `workerPortalUrl`, `currentWorkerPortalUrl`) — **مغطّى باختبارات**. أي مكان يبني رابط بوّابة (واتساب/QR في `WorkersScreen`/`SettingsScreen`/`WorkerCard`) لازم يستعمل `currentWorkerPortalUrl()`، لا سلسلة يدوية.
+- **الروابط القديمة لا تنكسر**: `?portal`/`?worker` و`app.kabblan.com/worker` تُحوَّل لنطاق البوّابة (خادمياً عبر `vercel.json` + client-side عبر `workerRedirect`) مع الحفاظ على باقي الـquery والـhash.
+- ⚠️ **`workerRedirect` لازم يشتغل في `Router` قبل `crossHostRedirect`** — وإلا صار تحويلان متتاليان (تسويق → تطبيق → بوّابة). و`isSplitHost` في `hosts.js` **يستثني** `WORKER_HOST` صراحةً، وإلا سحب `crossHostRedirect` العاملَ لنطاق المالك.
+- **على التطوير/المعاينة** (localhost، `*.vercel.app`، مرآة Pages) ما في نطاق فرعي: كل شي على نفس الأصل والبوّابة على المسار `/worker`. `isProdDomain` هو من يقرّر.
 - ⚠️ **`vite-plugin-pwa` يحقن رابط manifest المالك في كل وثائق HTML** — بما فيها `worker.html`. الإضافة `worker-app-manifest-isolation` في `vite.config.js` تشيله، ولازم تبقى **بعد `VitePWA()` بالمصفوفة و`enforce:'post'`** (الإضافة نفسها `enforce:'post'`، فبلا هذا يشتغل حقنها بعد تنظيفنا ويرجع الرابط — صار فعلياً). فيها كذلك تنظيف احتياطي في `generateBundle`.
 - ⚠️ **ممنوع** إرجاع فرع `?portal` داخل `App.jsx`، وممنوع استيراد `App.jsx` من `worker-main.jsx` — هذا يفتح الطريق للخربطة من جديد.
 - `sw.js` يوجّه تنقّلات `/worker*` لـ`worker.html` (بلا هذا التوجيه ممكن يُخدَم شِلّ المالك للعامل)، و`notificationclick` يتجاهل نوافذ البوّابة لأنّ الإشعارات تخصّ المالك.

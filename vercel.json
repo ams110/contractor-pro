@@ -1,4 +1,30 @@
 {
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "worker.kabblan.com" }],
+      "destination": "/worker",
+      "permanent": false
+    },
+    {
+      "source": "/worker(/.*)?",
+      "has": [{ "type": "host", "value": "app.kabblan.com" }],
+      "destination": "https://worker.kabblan.com/worker",
+      "permanent": false
+    },
+    {
+      "source": "/worker(/.*)?",
+      "has": [{ "type": "host", "value": "kabblan.com" }],
+      "destination": "https://worker.kabblan.com/worker",
+      "permanent": false
+    },
+    {
+      "source": "/worker(/.*)?",
+      "has": [{ "type": "host", "value": "www.kabblan.com" }],
+      "destination": "https://worker.kabblan.com/worker",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     { "source": "/worker", "destination": "/worker.html" },
     { "source": "/worker/(.*)", "destination": "/worker.html" },
@@ -8,6 +34,11 @@
     {
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "app.kabblan.com" }],
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "worker.kabblan.com" }],
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     },
     {

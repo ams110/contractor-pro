@@ -16,8 +16,11 @@ const savedTheme = (() => {
 })()
 const isAppEntry = (() => {
   try {
-    return isWorkerEntry({ pathname: window.location.pathname, search: window.location.search })
-        || window.location.pathname.includes('/app')
+    return isWorkerEntry({
+      hostname: window.location.hostname,
+      pathname: window.location.pathname,
+      search:   window.location.search,
+    }) || window.location.pathname.includes('/app')
   } catch { return false }
 })()
 const initialTheme = savedTheme || (isAppEntry ? 'site' : 'dark')
