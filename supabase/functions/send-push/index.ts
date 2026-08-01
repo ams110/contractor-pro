@@ -19,7 +19,16 @@ const cors = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-async function sendToUser(userId: string, title: string, body: string, tag: string) {
+type PushExtras = {
+  priority?: string        // low | normal | high | critical — يضبط الاهتزاز/الإلحاح بالـSW
+  screen?: string | null   // وجهة نقر الإشعار داخل التطبيق
+  badgeCount?: number      // عدّاد غير المقروء على أيقونة التطبيق
+  type?: string
+}
+
+async function sendToUser(
+  userId: string, title: string, body: string, tag: string, extras: PushExtras = {},
+) {
   const { data: subs, error } = await supabase
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth')
@@ -27,7 +36,7 @@ async function sendToUser(userId: string, title: string, body: string, tag: stri
 
   if (error || !subs?.length) return 0
 
-  const payload = JSON.stringify({ title, body, tag })
+  const payload = JSON.stringify({ title, body, tag, ...extras })
   const results = await Promise.allSettled(
     subs.map(sub =>
       webpush.sendNotification(
@@ -70,7 +79,12 @@ Deno.serve(async (req) => {
     const tag    = (record.type  as string) || 'general'
     if (!userId) return new Response('no user_id', { status: 400, headers: cors })
 
-    const sent = await sendToUser(userId, title, text, tag)
+    const sent = await sendToUser(userId, title, text, tag, {
+      priority:   (record.priority   as string) || 'normal',
+      screen:     (record.screen     as string) ?? null,
+      badgeCount: typeof record.badgeCount === 'number' ? record.badgeCount : undefined,
+      type:       (record.type       as string) || undefined,
+    })
     return new Response(JSON.stringify({ sent }), {
       status: 200, headers: { ...cors, 'Content-Type': 'application/json' },
     })

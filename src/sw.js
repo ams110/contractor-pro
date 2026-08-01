@@ -74,33 +74,60 @@ self.addEventListener('push', event => {
   let data = { title: 'كبلان', body: '' }
   try { data = event.data.json() } catch { data.body = event.data.text() }
 
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
+  event.waitUntil((async () => {
+    // تجميع: لو وصل إشعار من نفس النوع ولسّا معروض، اعرض عدّاداً بدل تكديس
+    // إشعارات متطابقة على شاشة القفل (٧ «طلب حضور جديد» = سطر واحد بـ٧).
+    const tag = data.tag || 'cpro-notif'
+    let count = 1
+    try {
+      const existing = await self.registration.getNotifications({ tag })
+      if (existing.length) count = (existing[0].data?.count || 1) + 1
+    } catch { /* بعض المتصفحات ما بتدعم getNotifications */ }
+
+    const title = count > 1 && data.groupTitle
+      ? data.groupTitle.replace('{n}', count)
+      : data.title
+
+    await self.registration.showNotification(title, {
       body:      data.body,
       icon:      '/pwa-192.png',
       badge:     '/badge-96.png',
-      tag:       data.tag || 'cpro-notif',
+      tag,
       renotify:  true,
       dir:       'rtl',
       lang:      'ar',
-      data:      { url: data.url || '/' },
+      // الحرِج (راتب متأخّر/فشل دفع) لازم يهزّ الجهاز — الباقي صامت
+      silent:    data.priority === 'low',
+      requireInteraction: data.priority === 'critical',
+      data:      { url: data.url || '/', screen: data.screen || null, count, type: data.type || null },
     })
-  )
+
+    // شارة العدّاد على أيقونة التطبيق
+    try {
+      if (typeof data.badgeCount === 'number') await self.navigator?.setAppBadge?.(data.badgeCount)
+    } catch { /* غير مدعوم */ }
+  })())
 })
 
 // ── Notification click — focus or open the app ──────────────────────────────
 self.addEventListener('notificationclick', event => {
   event.notification.close()
-  const url = event.notification.data?.url || '/'
+  const { url = '/', screen = null, type = null } = event.notification.data || {}
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       // الإشعارات تخصّ تطبيق المالك — نتجاهل نوافذ بوّابة العامل (تطبيق منفصل)
       // كي لا نفتح البوّابة على إشعار المالك.
       const own = list.filter(c => !WORKER_NAV_RE.test(c.url || ''))
       for (const client of own) {
-        if ('focus' in client) return client.focus()
+        if ('focus' in client) {
+          // كان يكتفي بـfocus فيوقف المستخدم على آخر شاشة كان فيها بدل
+          // الشاشة اللي بيخصّها الإشعار. هلق منبعت الوجهة للتطبيق ليتنقّل.
+          if (screen) client.postMessage({ type: 'NAVIGATE', screen, notifType: type })
+          return client.focus()
+        }
       }
-      return clients.openWindow(url)
+      return clients.openWindow(screen ? `/app?screen=${encodeURIComponent(screen)}` : url)
     })
   )
 })

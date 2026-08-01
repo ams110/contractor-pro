@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { supabase } from '../lib/supabase.js'
 import { fmt, todayStr } from '../lib/helpers.js'
+import { insertOnce, runDailyOnce } from '../lib/notifyOnce.js'
 
 // ملخّص يومي للمالك: مرّة كل يوم عند فتح التطبيق يكتب إشعاراً واحداً يجمّع
 // الطلبات المعلّقة + صرف اليوم. خفيف (بلا باكند) — نفس نمط useSalaryAlerts.
@@ -11,11 +11,10 @@ export function useDailyDigest(userId, { workDays = [], expenses = [], payments 
 
   useEffect(() => {
     if (!enabled || !userId || ran.current) return
-    const today = todayStr()
-    if (localStorage.getItem(CHECK_KEY) === today) return
     ran.current = true
+    const today = todayStr()
 
-    async function run() {
+    runDailyOnce(CHECK_KEY, async () => {
       const pendingDays = workDays.filter(w => w.status === 'pending').length
       const pendingExp  = expenses.filter(e => e.status === 'pending').length
       const pendingPay  = payments.filter(p => p.status === 'pending').length
@@ -25,20 +24,7 @@ export function useDailyDigest(userId, { workDays = [], expenses = [], payments 
 
       const totalPending = pendingDays + pendingExp + pendingPay
       // لا تُزعج المالك بإشعار فارغ تماماً
-      if (totalPending === 0 && todaySpend === 0) {
-        localStorage.setItem(CHECK_KEY, today)
-        return
-      }
-
-      // تفادي التكرار لو أُنشئ ملخّص اليوم مسبقاً (جهاز آخر)
-      const { data: existing } = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('type', 'daily_digest')
-        .gte('created_at', `${today}T00:00:00`)
-        .limit(1)
-      if (existing?.length) { localStorage.setItem(CHECK_KEY, today); return }
+      if (totalPending === 0 && todaySpend === 0) return
 
       const parts = []
       if (totalPending > 0) {
@@ -50,15 +36,12 @@ export function useDailyDigest(userId, { workDays = [], expenses = [], payments 
       }
       if (todaySpend > 0) parts.push(`صرف اليوم: ${fmt(todaySpend)}₪`)
 
-      await supabase.from('notifications').insert({
-        user_id: userId,
-        title:   '📊 ملخّصك اليومي',
-        body:    parts.join(' — '),
-        type:    'daily_digest',
+      await insertOnce({
+        userId,
+        type:  'daily_digest',
+        title: 'ملخّصك اليومي',
+        body:  parts.join(' — '),
       })
-      localStorage.setItem(CHECK_KEY, today)
-    }
-
-    run().catch(() => {})
+    })
   }, [userId, workDays?.length, expenses?.length, payments?.length, enabled])
 }

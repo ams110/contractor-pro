@@ -285,6 +285,25 @@ function OwnerApp() {
   // الدخول عبر تنقّل SPA من صفحة عامة غامقة (الهبوط → دخول → التطبيق)
   useEffect(() => { ensureAppDefaultTheme() }, [ensureAppDefaultTheme])
 
+  // ── نقر الإشعار → الشاشة المعنيّة ──────────────────────────────────────────
+  // الـSW يبعت {type:'NAVIGATE'} لنافذة مفتوحة، أو يفتح /app?screen=... لو مسكّرة.
+  // بلا هذا كان النقر بس يعمل focus فيوقف المالك على آخر شاشة كان فيها.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const target = params.get('screen')
+    if (target) {
+      setScreen(target)
+      params.delete('screen')
+      const qs = params.toString()
+      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''))
+    }
+    const onMsg = e => {
+      if (e.data?.type === 'NAVIGATE' && e.data.screen) setScreen(e.data.screen)
+    }
+    navigator.serviceWorker?.addEventListener('message', onMsg)
+    return () => navigator.serviceWorker?.removeEventListener('message', onMsg)
+  }, [setScreen])
+
   const dir = (language === 'ar' || language === 'he') ? 'rtl' : 'ltr'
 
   // كروم التنقّل (الهيدر العلوي/الشريط السفلي): زجاجي غامق أو فاتح حسب الثيم —
@@ -357,7 +376,7 @@ function OwnerApp() {
   const { specs, expCats, payMethods, pensionMonthly, taxEnabled, taxModules, salaryAlerts, dailyDigest, soloMode, addSpec, removeSpec, addExpCat, removeExpCat, addPayMethod, removePayMethod, setPensionMonthly, setTaxEnabled, setTaxModule, setSalaryAlerts, setDailyDigest, setSoloMode } = useSettings(eid)
   const { holidays, addHoliday, deleteHoliday } = useHolidays(eid)
   const { profile, saving: profSaving, uploading, saveName, uploadAvatar, saveContractorNumber } = useProfile(uid)
-  const { notifications, unreadCount, markAllRead, markRead, deleteAll } = useNotifications(uid)
+  const { notifications, unreadCount, markAllRead, markRead, markManyRead, deleteAll, loadMore: loadMoreNotifs, hasMore: hasMoreNotifs, loading: notifsLoading } = useNotifications(uid)
   useSalaryAlerts(uid, employees, workDays, payments, advances, expenses, salaryAlerts)
   // الملخّص اليومي للمالك فقط (ليس عضو فريق)
   useDailyDigest(effectiveOwnerId ? null : uid, { workDays, expenses, payments }, dailyDigest)
@@ -810,7 +829,7 @@ function OwnerApp() {
       {!isDesktop && <MoreDrawer open={showMore} onClose={() => setShowMore(false)} screen={screen} setScreen={setScreen} permissions={p} />}
 
       {/* ─── Notifications ─── */}
-      <NotificationsPanel open={showNotifs} onClose={() => setShowNotifs(false)} notifications={notifications} unreadCount={unreadCount} markAllRead={markAllRead} markRead={markRead} deleteAll={deleteAll} onNav={nav => { setScreen(nav); setShowNotifs(false) }} />
+      <NotificationsPanel open={showNotifs} onClose={() => setShowNotifs(false)} notifications={notifications} unreadCount={unreadCount} markAllRead={markAllRead} markRead={markRead} markManyRead={markManyRead} deleteAll={deleteAll} loadMore={loadMoreNotifs} hasMore={hasMoreNotifs} loading={notifsLoading} onNav={nav => { setScreen(nav); setShowNotifs(false) }} />
 
       {/* ─── Biometric Confirm ─── */}
       <BiometricConfirmModal />

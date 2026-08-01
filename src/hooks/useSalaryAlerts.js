@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { supabase } from '../lib/supabase.js'
 import { fmt } from '../lib/helpers.js'
 import { calcMutabqi } from '../lib/calculations.js'
+import { insertOnce, runDailyOnce } from '../lib/notifyOnce.js'
 
 const OVERDUE_DAYS = 14
 const CHECK_KEY    = 'salary_alert_checked'
@@ -11,15 +11,9 @@ export function useSalaryAlerts(userId, employees, workDays, payments, advances 
 
   useEffect(() => {
     if (!enabled || !userId || !employees?.length || ran.current) return
-
-    // تحقق مرة واحدة كل يوم فقط
-    const lastCheck = localStorage.getItem(CHECK_KEY)
-    const today     = new Date().toISOString().slice(0, 10)
-    if (lastCheck === today) return
-
     ran.current = true
 
-    async function check() {
+    runDailyOnce(CHECK_KEY, async () => {
       const today = new Date()
       const overdueWorkers = []
 
@@ -43,38 +37,21 @@ export function useSalaryAlerts(userId, employees, workDays, payments, advances 
         }
       })
 
-      if (!overdueWorkers.length) {
-        localStorage.setItem(CHECK_KEY, today.toISOString().slice(0, 10))
-        return
-      }
+      if (!overdueWorkers.length) return
 
-      // تحقق إذا في إشعارات رواتب متأخرة اليوم مسبقاً
-      const todayStr = today.toISOString().slice(0, 10)
-      const { data: existing } = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('type', 'salary_overdue')
-        .gte('created_at', `${todayStr}T00:00:00`)
-        .limit(1)
+      // إشعار واحد يجمع كل العمال المتأخرين — والأكثر تأخيراً أولاً
+      overdueWorkers.sort((a, b) => b.daysSince - a.daysSince)
+      const totalOwed = overdueWorkers.reduce((s, o) => s + o.owed, 0)
+      const names = overdueWorkers.map(o => `${o.emp.name} (${fmt(o.owed)}₪ · ${o.daysSince} يوم)`).join('، ')
 
-      if (existing?.length) {
-        localStorage.setItem(CHECK_KEY, todayStr)
-        return
-      }
-
-      // أنشئ إشعار واحد يجمع كل العمال المتأخرين
-      const names = overdueWorkers.map(o => `${o.emp.name} (${fmt(o.owed)}₪)`).join('، ')
-      await supabase.from('notifications').insert({
-        user_id: userId,
-        title:   `رواتب متأخرة (${overdueWorkers.length} عمال)`,
-        body:    names,
-        type:    'salary_overdue',
+      await insertOnce({
+        userId,
+        type:  'salary_overdue',
+        title: overdueWorkers.length === 1
+          ? `راتب متأخّر: ${overdueWorkers[0].emp.name}`
+          : `${overdueWorkers.length} عمّال مستحقّين ${fmt(totalOwed)}₪`,
+        body:  names,
       })
-
-      localStorage.setItem(CHECK_KEY, todayStr)
-    }
-
-    check().catch(() => {})
-  }, [userId, employees?.length, workDays?.length, payments?.length])
+    })
+  }, [userId, employees?.length, workDays?.length, payments?.length, enabled])
 }

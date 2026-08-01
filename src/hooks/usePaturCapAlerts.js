@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { supabase } from '../lib/supabase.js'
 import { fmt } from '../lib/helpers.js'
 import { OSEK_PATUR_THRESHOLD } from '../constants/index.js'
+import { insertOnce, runDailyOnce } from '../lib/notifyOnce.js'
 
 const CHECK_KEY = 'patur_cap_checked'
 
@@ -39,12 +39,9 @@ export function usePaturCapAlerts(userId, clientReceipts, businesses, enabled = 
 
   useEffect(() => {
     if (!enabled || !userId || !businesses?.length || !clientReceipts?.length || ran.current) return
-
-    const today = new Date().toISOString().slice(0, 10)
-    if (localStorage.getItem(CHECK_KEY) === today) return
     ran.current = true
 
-    async function check() {
+    runDailyOnce(CHECK_KEY, async () => {
       const year = new Date().getFullYear()
       const singleBusiness = businesses.length === 1
 
@@ -53,17 +50,6 @@ export function usePaturCapAlerts(userId, clientReceipts, businesses, enabled = 
         if (!status?.level) continue
 
         const type = `patur_cap_${status.level}`
-        // dedup: تنبيه واحد لكل عتبة/مصلحة/سنة
-        const { data: existing } = await supabase
-          .from('notifications')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('type', type)
-          .eq('ref_id', biz.id)
-          .gte('created_at', `${year}-01-01T00:00:00`)
-          .limit(1)
-        if (existing?.length) continue
-
         const title = status.level >= 90
           ? `تحذير: ${biz.name} تجاوزت 90% من سقف עוסק פטור`
           : `انتبه: ${biz.name} وصلت ${Math.round(status.pct)}% من سقف עוסק פטור`
@@ -71,18 +57,9 @@ export function usePaturCapAlerts(userId, clientReceipts, businesses, enabled = 
           ? `باقي لك ${fmt(status.remaining)}₪ فقط قبل السقف السنوي — احكِ مع محاسبك قبل ما توصل غرامة.`
           : `مجموع مقبوضات ${year}: ${fmt(status.totalYear)}₪ من أصل ${fmt(OSEK_PATUR_THRESHOLD)}₪ — باقي ${fmt(status.remaining)}₪.`
 
-        await supabase.from('notifications').insert({
-          user_id: userId,
-          title,
-          body,
-          type,
-          ref_id: biz.id,
-        })
+        // dedup بالسنة: كل عتبة (70%/90%) تُنبَّه مرة واحدة/سنة لكل مصلحة
+        await insertOnce({ userId, type, title, body, refId: biz.id, scope: 'year' })
       }
-
-      localStorage.setItem(CHECK_KEY, today)
-    }
-
-    check().catch(() => {})
+    })
   }, [userId, clientReceipts?.length, businesses?.length, enabled])
 }
