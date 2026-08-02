@@ -9,7 +9,7 @@ import {
   Activity, Plus, Trash2, Save, Camera, Tag, RefreshCw, Download,
   Fingerprint, ShieldCheck, Clock, Lock, Eye, EyeOff, Smartphone, KeyRound,
   ToggleLeft, ToggleRight, Timer, CalendarOff, UserCheck, UserX, Wallet, SlidersHorizontal,
-  RotateCw, QrCode, Copy, ArrowRight, MessageCircle, AlertTriangle, Sun,
+  RotateCw, QrCode, Copy, ArrowRight, MessageCircle, AlertTriangle, Sun, Moon,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase.js'
 import { C, GRAD, MORE_SCREENS, navLabel } from '../../constants/index.js'
@@ -19,6 +19,7 @@ import { lockOnBackgroundEnabled, LOCK_ON_BG_KEY } from '../../lib/sessionLock.j
 import { hasPin } from '../../lib/pinCrypto.js'
 import { navigate } from '../../Router.jsx'
 import { usePushNotifications } from '../../hooks/usePushNotifications.js'
+import { NOTIF_GROUPS, GROUP_LABELS } from '../../lib/notifications.js'
 import { useAuth } from '../../hooks/useAuth.js'
 import { useBusinessStore, BUSINESS_TYPES } from '../../store/useBusinessStore.js'
 import { computeAccountReadiness } from '../../lib/accountReadiness.js'
@@ -346,7 +347,10 @@ export default function SettingsScreen({
   const { subscription, isActive: subIsActive, isCanceling, daysUntilPeriodEnd } = useSubscription(userId)
 
   const { registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, deleteAccount } = useAuth()
-  const { supported: pushSupported, permission, requestPermission } = usePushNotifications(userId)
+  const {
+    supported: pushSupported, permission, requestPermission,
+    prefs: notifPrefs, updatePrefs: updateNotifPrefs,
+  } = usePushNotifications(userId)
   const [notifLoading, setNotifLoading] = useState(false)
   const [testNotifLoading, setTestNotifLoading] = useState(false)
 
@@ -980,6 +984,106 @@ export default function SettingsScreen({
                     }
                   </motion.button>
                 )}
+              </div>
+            )}
+
+            {/* ── أي إشعارات تصلني + ساعات الهدوء ── */}
+            {permission === 'granted' && (
+              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14, marginTop: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.textDim, marginBottom: 9 }}>
+                  {tl(language, 'شو بيوصلني', 'מה מגיע אליי', 'What reaches me')}
+                </div>
+
+                {NOTIF_GROUPS.filter(g => g !== 'insights').map(g => {
+                  const on = !(notifPrefs.muted || []).includes(g)
+                  return (
+                    <div key={g} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '9px 0', gap: 10,
+                    }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: C.text }}>
+                        {tl(language, GROUP_LABELS[g].ar, GROUP_LABELS[g].he, GROUP_LABELS[g].en)}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const set = new Set(notifPrefs.muted || [])
+                          if (on) set.add(g); else set.delete(g)
+                          updateNotifPrefs({ muted: [...set] })
+                        }}
+                        style={{
+                          width: 42, height: 24, borderRadius: 12, border: 'none', flexShrink: 0,
+                          background: on ? C.success : 'rgba(148,163,184,0.28)',
+                          cursor: 'pointer', padding: 2, display: 'flex',
+                          justifyContent: on ? 'flex-end' : 'flex-start',
+                          transition: 'background .2s',
+                        }}
+                        aria-pressed={on}
+                      >
+                        <motion.span layout transition={{ type: 'spring', stiffness: 400, damping: 30 }} style={{
+                          width: 20, height: 20, borderRadius: '50%', background: '#fff', display: 'block',
+                        }} />
+                      </button>
+                    </div>
+                  )
+                })}
+
+                {/* ساعات الهدوء — الحرِج (راتب متأخّر/تجاوز سقف) بيوصل رغمها */}
+                <div style={{
+                  marginTop: 10, padding: '11px 12px', borderRadius: 13,
+                  background: `${C.secondary}0E`, border: `1px solid ${C.secondary}28`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <Moon size={15} color={C.secondary} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 800, color: C.text }}>
+                          {tl(language, 'ساعات الهدوء', 'שעות שקט', 'Quiet hours')}
+                        </div>
+                        <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>
+                          {tl(language, 'الطارئ فقط بيوصل بهالوقت', 'רק דחוף מגיע בזמן הזה', 'Only urgent alerts get through')}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => updateNotifPrefs({ quiet: { ...notifPrefs.quiet, enabled: !notifPrefs.quiet?.enabled } })}
+                      style={{
+                        width: 42, height: 24, borderRadius: 12, border: 'none', flexShrink: 0,
+                        background: notifPrefs.quiet?.enabled ? C.secondary : 'rgba(148,163,184,0.28)',
+                        cursor: 'pointer', padding: 2, display: 'flex',
+                        justifyContent: notifPrefs.quiet?.enabled ? 'flex-end' : 'flex-start',
+                        transition: 'background .2s',
+                      }}
+                      aria-pressed={!!notifPrefs.quiet?.enabled}
+                    >
+                      <motion.span layout transition={{ type: 'spring', stiffness: 400, damping: 30 }} style={{
+                        width: 20, height: 20, borderRadius: '50%', background: '#fff', display: 'block',
+                      }} />
+                    </button>
+                  </div>
+
+                  {notifPrefs.quiet?.enabled && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                      {[['start', tl(language, 'من', 'מ־', 'From')], ['end', tl(language, 'إلى', 'עד', 'To')]].map(([key, label]) => (
+                        <div key={key} style={{ flex: 1 }}>
+                          <div style={{ fontSize: 10, color: C.textDim, marginBottom: 3 }}>{label}</div>
+                          <select
+                            value={notifPrefs.quiet?.[key] ?? 0}
+                            onChange={e => updateNotifPrefs({ quiet: { ...notifPrefs.quiet, [key]: Number(e.target.value) } })}
+                            style={{
+                              width: '100%', padding: '7px 9px', borderRadius: 10,
+                              background: C.card, color: C.text, fontFamily: 'inherit',
+                              border: `1px solid ${C.borderMid}`, fontSize: 12.5, fontWeight: 700,
+                            }}
+                          >
+                            {Array.from({ length: 24 }, (_, h) => (
+                              <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                            ))}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

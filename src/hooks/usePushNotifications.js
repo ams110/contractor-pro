@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { DEFAULT_QUIET, NOTIF_GROUPS, shouldPush, notifTag } from '../lib/notifications.js'
 
 const PREF_KEY = 'cpro_notif_prefs'
 
@@ -8,12 +9,56 @@ const VAPID_PUBLIC_KEY =
   import.meta.env.VITE_VAPID_PUBLIC_KEY ||
   'BBWTNkHM3Nz5Rc5sDSLDp0YMXwI-QXqP3VmdDO4hkrCuWuLE3mX5Zt7ZfmhimxwE5NZsbbGMklqpyLB7TO99awI'
 
+/**
+ * تفضيلات الإشعارات: مجموعات مكتومة + ساعات هدوء.
+ * تُقرأ محليّاً (فوريّة) وتُزامَن للقاعدة حتى **الـpush الخلفي** يحترمها كمان —
+ * قبل، التفضيل كان localStorage فقط فالـtrigger كان يبعت رغم الكتم.
+ */
 export function getNotifPrefs() {
-  try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') } catch { return {} }
+  try {
+    const raw = JSON.parse(localStorage.getItem(PREF_KEY) || '{}')
+    return {
+      muted: Array.isArray(raw.muted) ? raw.muted.filter(g => NOTIF_GROUPS.includes(g)) : [],
+      quiet: { ...DEFAULT_QUIET, ...(raw.quiet || {}) },
+    }
+  } catch {
+    return { muted: [], quiet: { ...DEFAULT_QUIET } }
+  }
 }
-export function setNotifPref(key, val) {
+
+export function saveNotifPrefs(next) {
+  const prefs = { ...getNotifPrefs(), ...next }
+  try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)) } catch { /* تصفّح خاص */ }
+  return prefs
+}
+
+/** اكتم/فعّل مجموعة كاملة (requests · money · insights · system). */
+export function toggleNotifGroup(group, muted) {
   const prefs = getNotifPrefs()
-  localStorage.setItem(PREF_KEY, JSON.stringify({ ...prefs, [key]: val }))
+  const set = new Set(prefs.muted)
+  if (muted) set.add(group); else set.delete(group)
+  return saveNotifPrefs({ muted: [...set] })
+}
+
+/**
+ * مزامنة التفضيلات للقاعدة. متسامحة عمداً: لو جدول notification_prefs
+ * لسّا ما انعمل (migration ما انطبّقت) بنفضل شغّالين على النسخة المحليّة.
+ */
+export async function syncNotifPrefs(userId, prefs = getNotifPrefs()) {
+  if (!userId) return false
+  try {
+    const { error } = await supabase.from('notification_prefs').upsert({
+      user_id:      userId,
+      muted_groups: prefs.muted || [],
+      quiet_enabled: prefs.quiet?.enabled !== false,
+      quiet_start:  Number(prefs.quiet?.start ?? DEFAULT_QUIET.start),
+      quiet_end:    Number(prefs.quiet?.end   ?? DEFAULT_QUIET.end),
+      tz_offset_minutes: -new Date().getTimezoneOffset(),
+    }, { onConflict: 'user_id' })
+    return !error
+  } catch {
+    return false
+  }
 }
 
 function urlBase64ToUint8Array(base64) {
@@ -126,16 +171,35 @@ export function usePushNotifications(userId) {
     return status
   }
 
-  const notify = useCallback((title, body, tag) => {
+  const notify = useCallback((title, body, type) => {
     if (!supported || Notification.permission !== 'granted') return
-    const prefs = getNotifPrefs()
-    if (prefs[tag] === false) return
+    if (!shouldPush(type, getNotifPrefs())) return
     try {
       new Notification(title, {
-        body, icon: '/pwa-192.png', badge: '/pwa-192.png', tag, renotify: true,
+        body, icon: '/pwa-192.png', badge: '/badge-96.png',
+        tag: notifTag(type), dir: 'rtl', lang: 'ar',
       })
     } catch { /* ignore */ }
   }, [supported])
 
-  return { supported, permission, subStatus, requestPermission, forceResubscribe, notify }
+  const [prefs, setPrefs] = useState(getNotifPrefs)
+
+  // التفضيلات المحليّة هي المصدر الفوري، والقاعدة نسخة يقرأها الـtrigger.
+  const updatePrefs = useCallback(async (next) => {
+    const saved = saveNotifPrefs(next)
+    setPrefs(saved)
+    await syncNotifPrefs(userId, saved)
+    return saved
+  }, [userId])
+
+  // ادفع التفضيلات المحليّة للقاعدة أول ما تصير جلسة (أو بعد أول تفعيل push)
+  useEffect(() => {
+    if (!userId || subStatus !== 'ok') return
+    syncNotifPrefs(userId)
+  }, [userId, subStatus])
+
+  return {
+    supported, permission, subStatus, requestPermission, forceResubscribe, notify,
+    prefs, updatePrefs,
+  }
 }

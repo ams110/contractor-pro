@@ -287,7 +287,7 @@ index.html / worker.html     ← وثيقتا المدخل: تطبيق الما�
 | `ScreenSkeleton.jsx` | هياكل تحميل (Skeleton) متوهّجة لكل شاشة (variant) |
 | `BiometricConfirmModal.jsx` | نافذة تأكيد بصمة/PIN للعمليات الحسّاسة (تُستدعى عبر `useAppStore.requestBioConfirm`) |
 | `SessionLockScreen.jsx` | شاشة قفل الجلسة عند الخمول (بدل الخروج التلقائي) |
-| `NotificationsPanel.jsx` | مركز الإشعارات داخل التطبيق |
+| `NotificationsPanel.jsx` | مركز الإشعارات داخل التطبيق: تجميع المتشابهات، فرز حسب الأولوية، فلتر «غير مقروء»، أيقونة/لون لكل نوع، وتنقّل ذكي للشاشة المعنيّة. يقرأ كل سلوكه من `lib/notifications.js` |
 | `SmartSearch.jsx` / `SearchOverlay.jsx` | بحث شامل (cmdk) عبر المشاريع/العمّال/المصاريف/الدفعات |
 | `SignaturePad.jsx` | لوحة توقيع canvas |
 | `WorkerStatsPanel.jsx` | ملخّص أداء/ساعات/رواتب العامل |
@@ -314,8 +314,8 @@ index.html / worker.html     ← وثيقتا المدخل: تطبيق الما�
 | `useSubscription` | اشتراك Paddle النشط (`isActive`, `isCanceling`, `daysUntilPeriodEnd`) | RPC `get_my_subscription`، realtime `subscriptions` |
 | `useSettings` | تفضيلات localStorage: specs، expCats، payMethods، نوع المصلحة، وحدات الضرائب | localStorage `settings_${uid}` |
 | `useProfile` | اسم/أفاتار/رقم مقاول + رفع صورة | `profiles`، bucket `avatars` |
-| `useNotifications` | قائمة إشعارات + عدد غير مقروء (Realtime) | `notifications` |
-| `usePushNotifications` | Web Push (SW + VAPID) | `push_subscriptions`، `VITE_VAPID_PUBLIC_KEY` |
+| `useNotifications` | قائمة إشعارات + عدد غير مقروء (Realtime على INSERT/UPDATE/DELETE) + pagination (`loadMore`) + شارة أيقونة التطبيق. **تحديث تفاضلي** (يُدخل الصف الجديد محليّاً بدل refetch كامل) | `notifications` |
+| `usePushNotifications` | Web Push (SW + VAPID) + **تفضيلات** (`prefs`/`updatePrefs`: كتم مجموعات + ساعات هدوء) تُزامَن لـ`notification_prefs` | `push_subscriptions`، `notification_prefs`، `VITE_VAPID_PUBLIC_KEY` |
 | `useSalaryAlerts` | تنبيه رواتب متأخّرة (14+ يوم) مرّة/يوم | يكتب `notifications` |
 | `useDailyDigest` | ملخّص يومي للمالك (طلبات معلّقة + صرف اليوم) مرّة/يوم — للمالك فقط، تبديل عبر `dailyDigest` في `useSettings` | يكتب `notifications` (type `daily_digest`) |
 | `useTaxEngine` | حسابات ضريبية إسرائيلية (دوال نقيّة) | — |
@@ -337,6 +337,8 @@ index.html / worker.html     ← وثيقتا المدخل: تطبيق الما�
 | `helpers.js` | `fmt`، `fmtDate`، `fmtDateFull`، `uid`، `todayStr`، `calcSalary` (overtime)، `validate*`، `calcVATNet`، `calcBituachLeumi*`، `estimateIncomeTax`، `isPaymentOverdue` |
 | `calculations.js` | دوال نقيّة: `calcEarned`، `calcPaid`، `calcAdvances`، `calcWasel`، `calcMustahaq`، `calcMutabqi` (رصيد العامل)، `calcRevenue`، `calcProjectCost`، `calcProfit`، `calcMargin`، `calcOwnerCash`، `calcProjectStats` |
 | `insights.js` | **محرّك الرؤى المالية** (دوال نقيّة): `computeBusinessPulse` · `computeCashForecast` · `computeCommandCenter` · `computeNetWorth` · `computeProjectHealth` · `computeCollectionAging` · `detectExpenseAnomalies` · `computeTaxRunway` · `computeTeamPulse` · `computeWorkerDNA` + مساعدات (`weightedAvg`/`stdDev`/`fmtMonths`/`gradeFor`/`workerTier`/`clamp`). **مغطّى باختبارات** |
+| `notifications.js` | 🔔 **محرّك الإشعارات — المصدر الوحيد لسلوك كل نوع.** `NOTIF_TYPES` (سجلّ كل نوع: مجموعة/أيقونة/لون/أولوية/شاشة الوجهة/هل يستحق push) · `notifMeta`/`priorityRank`/`notifTag` · `groupNotifications` (ضمّ المتشابهات) · `unreadStats` · `sortSmart` · `isQuietHours`/`shouldPush` (كتم مجموعات + ساعات هدوء، **الحرِج يخترق الهدوء**). **مغطّى باختبارات**. ⚠️ `notifTag` لازم يظلّ = نوع الإشعار نفسه ليطابق وسم الـSW — بلا هذا يوصل الإشعار مرّتين (realtime محلّي + Web Push) بوسمين مختلفين فيتكدّس بدل ما ينستبدل |
+| `notifyOnce.js` | بوّابة موحّدة لتنبيهات «مرة واحدة»: `insertOnce` (dedup + insert بنطاق يوم/سنة) + `runDailyOnce`. تستعملها الأربع hooks التنبيهية بدل تكرار المنطق. **مغطّى باختبارات** |
 | `accountReadiness.js` | `computeAccountReadiness` + `readinessGrade` (جاهزية الحساب 0–100). **مغطّى باختبارات** |
 | `workerInsights.js` | رؤى العامل: `buildAttendanceHeatmap`/`buildFleetDna`/`buildRadarData`/`detectWorkerAnomalies`/`buildWorkerTimeline`/`buildFleetLeaderboard`. **مغطّى باختبارات** |
 | `crypto.js` | تشفير AES-256-GCM محلي (`secureSet/Get/Remove`)، مفتاح مشتقّ من بصمة المتصفح |
@@ -362,7 +364,7 @@ index.html / worker.html     ← وثيقتا المدخل: تطبيق الما�
 - **البضاعة**: `material_logs`.
 - **المؤسسة/الاشتراك**: `organizations` (plan: free/**maalem**/starter/pro/business، `trial_ends_at`)، `user_organizations`، `subscriptions` (Paddle). maalem = باقة «معلّم» الفردية ₪35/شهر بلا ميزات عمال (تفرض وضع solo عبر `effectiveSolo` في App.jsx، وحدّ عمالها 0).
 - **الفريق/التدقيق**: `team_members` (صلاحيات دقيقة `can_*` + `allowed_project_ids` + `expires_at` + `is_blocked`)، `audit_log`، `signature_log`، `login_log`، `locked_periods`، `app_config`.
-- **الإشعارات**: `notifications`، `push_subscriptions`.
+- **الإشعارات**: `notifications`، `push_subscriptions`، **`notification_prefs`** (`muted_groups[]` + `quiet_enabled/start/end` + `tz_offset_minutes`). الـtrigger `call_send_push` يقرأ منها فيفلتر الـpush خادمياً: مجموعة `insights` بلا push إطلاقاً · المجموعة المكتومة تُتخطّى · ساعات الهدوء تُحسب بتوقيت المستخدم المحلّي و**الحرِج يخترقها** (`notif_group`/`notif_priority`/`notif_screen` دوال IMMUTABLE تعكس `NOTIF_TYPES` بالفرونت — عدّلهما معاً). 🔴 **`insights` هي المجموعة الوحيدة اللي بتلغي الـpush، فـfallback الـSQL `ELSE 'system'` عمداً (fail-open)** — أي نوع جديد بلا تسجيل يوصل بدل ما ينسكت بصمت. سبق أن وقعت أنواع تنبيهات المنصّة (`admin_signup`/`admin_subscription`/`bot_signup`/`bot_login`/`bot_deleted`، تكتبها triggers على `auth.users`/`subscriptions`) على fallback قديم = `insights` فانقطع push المالك الفوري عند تسجيل/اشتراك جديد؛ صاروا الآن ضمن `system` صراحةً + حارس اختبار في `notifications.test.js`. ⚠️ **`notifMeta` بالفرونت بيرجع لـ`info` كـfallback شكلي فقط (أيقونة/لون) — ما بيتحكّم بالتوصيل، فالتباين بين الـfallbackين مقصود.** + trigger `strip_notification_emoji` (BEFORE INSERT) يضمن قاعدة «بلا إيموجي في UI» لكل مصدر إشعار بلا تعديل كل RPC. + `prune_old_notifications()`: المقروء يُحذف بعد 30 يوم وأي إشعار بعد 120 — ⚠️ **pg_cron غير مفعّل على المشروع حالياً**، فالـmigration بيتخطّى الجدولة بأمان والدالة تُستدعى يدوياً (`select public.prune_old_notifications();`) لحدّ ما تُفعَّل الإضافة.
 - **المصادقة**: `passkey_credentials`، `passkey_challenges`، `rate_limits`، `profiles`.
 - **الأدمن** (لوحة `/admin`، كلها RLS بلا policies = service_role فقط): `admin_auth` (بيانات دخول مجزّأة قابلة للتغيير)، `admin_passkeys` (بصمات WebAuthn)، `admin_challenges` (تحدّيات مؤقتة).
 - **مرجعية**: `ref_counters` (ترقيم تلقائي PAY-/ADV-/EXP-/RCP-/PRJ-/INV-/INC-/...).
