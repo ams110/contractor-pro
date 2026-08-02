@@ -33,6 +33,17 @@ describe('notifMeta', () => {
       expect(typeof meta.icon).toBe('string')
     }
   })
+
+  // حارس انحدار: هالأنواع تكتبها triggers على auth.users/subscriptions وتصل
+  // لمالك المنصّة. وقعت مرّة على مجموعة 'insights' فانقطع عنها الـpush بصمت.
+  it('تنبيهات المنصّة (admin_*/bot_*) مسجّلة وبرّا مجموعة insights', () => {
+    for (const type of ['admin_signup', 'admin_subscription',
+                        'bot_signup', 'bot_login', 'bot_deleted']) {
+      expect(NOTIF_TYPES, `${type} مسجّل`).toHaveProperty(type)
+      expect(notifMeta(type).group, `group of ${type}`).not.toBe('insights')
+      expect(notifMeta(type).push, `push of ${type}`).toBe(true)
+    }
+  })
 })
 
 describe('priorityRank / notifTag', () => {

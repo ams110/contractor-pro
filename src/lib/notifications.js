@@ -50,6 +50,14 @@ export const NOTIF_TYPES = {
   team:             T('system',   'Users',         'secondary','normal',  'team'),
   broadcast:        T('system',   'Megaphone',     'primary', 'normal',   null),
 
+  // ── تنبيهات المنصّة (triggers على auth.users/subscriptions → مالك المنصّة وحده،
+  //    لوحة /admin). مش داخل 'insights' عمداً: هاي لازم توصل push فوراً. ──
+  admin_signup:       T('system', 'UserPlus',        'success', 'high', null),
+  admin_subscription: T('system', 'BadgeDollarSign', 'gold',    'high', null),
+  bot_signup:         T('system', 'Bot',             'textDim', 'low',  null),
+  bot_login:          T('system', 'Bot',             'textDim', 'low',  null),
+  bot_deleted:        T('system', 'Bot',             'textDim', 'low',  null),
+
   // ── عام ──
   info:             T('insights', 'Lightbulb',     'cyan',    'low',      null, false),
   warning:          T('money',    'AlertTriangle', 'warning', 'high',     null),

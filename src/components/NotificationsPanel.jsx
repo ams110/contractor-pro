@@ -3,6 +3,7 @@ import {
   Bell, X, CalendarDays, Banknote, Receipt, HandCoins, Package, Clock,
   AlertCircle, TrendingUp, AlertTriangle, FileWarning, Sunrise, Lightbulb,
   CreditCard, Users, Megaphone, ChevronDown, Loader2,
+  UserPlus, BadgeDollarSign, Bot,
 } from 'lucide-react'
 import { tl } from '../lib/labels.js'
 import { useAppStore } from '../store/useAppStore.js'
@@ -13,7 +14,7 @@ import { notifMeta, groupNotifications, unreadStats, sortSmart } from '../lib/no
 const ICONS = {
   CalendarDays, Banknote, Receipt, HandCoins, Package, Clock, AlertCircle,
   TrendingUp, AlertTriangle, FileWarning, Sunrise, Lightbulb, CreditCard,
-  Users, Megaphone,
+  Users, Megaphone, UserPlus, BadgeDollarSign, Bot,
 }
 
 function timeAgo(dateStr, language) {

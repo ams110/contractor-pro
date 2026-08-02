@@ -21,9 +21,12 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_type_created
 CREATE INDEX IF NOT EXISTS idx_notifications_unread
   ON public.notifications (user_id) WHERE read = false;
 
--- إرسال الـpush: WHERE user_id = ?
-CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user
-  ON public.push_subscriptions (user_id);
+-- ملاحظة: ما منضيف فهرس (user_id) على push_subscriptions — موجود أصلاً باسم
+-- idx_push_subscriptions_user_id من 20260613000000، وتكراره كلفة كتابة بلا فايدة.
+
+-- والفهرس القديم (user_id) على notifications صار زائداً: عمود بادئ من
+-- idx_notifications_user_created أعلاه، فالمخطّط بيستعمل المركّب مكانه.
+DROP INDEX IF EXISTS public.idx_notifications_user_id;
 
 
 -- ── 2. تفضيلات الإشعارات ────────────────────────────────────────────────────
@@ -61,7 +64,14 @@ AS $$
                     'overdue_receipt','warning')                      THEN 'money'
     WHEN p_type IN ('daily_digest','insight','info')                  THEN 'insights'
     WHEN p_type IN ('subscription','payment_failed','team','broadcast') THEN 'system'
-    ELSE 'insights'
+    -- تنبيهات المنصّة لمالكها (triggers على auth.users/subscriptions). لازم تظلّ
+    -- برّا 'insights' وإلا انقطع الـpush الفوري عند تسجيل/اشتراك جديد.
+    WHEN p_type IN ('admin_signup','admin_subscription',
+                    'bot_signup','bot_login','bot_deleted')           THEN 'system'
+    -- ⚠️ fail-open عمداً: 'insights' هي المجموعة الوحيدة اللي بتلغي الـpush، فأي
+    -- نوع جديد ما بينحط هون لازم يوصل لا أن ينسكت بصمت. (الفرونت بيرجع لـinfo
+    -- كـfallback شكلي فقط — أيقونة/لون — وما بيتحكّم بالتوصيل.)
+    ELSE 'system'
   END;
 $$;
 
@@ -74,8 +84,9 @@ AS $$
     WHEN p_type IN ('salary_overdue','patur_cap_90','payment_failed') THEN 'critical'
     WHEN p_type IN ('pending_day','pending_expense','pending_payment','advance_request',
                     'stale_pending','patur_cap_70','overdue_receipt','subscription',
-                    'warning')                                        THEN 'high'
-    WHEN p_type IN ('daily_digest','insight','info')                  THEN 'low'
+                    'warning','admin_signup','admin_subscription')    THEN 'high'
+    WHEN p_type IN ('daily_digest','insight','info',
+                    'bot_signup','bot_login','bot_deleted')           THEN 'low'
     ELSE 'normal'
   END;
 $$;
