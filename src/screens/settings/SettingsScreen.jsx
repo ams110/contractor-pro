@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import QRCode from 'qrcode'
 import {
   Settings, User, Users, Users2, Globe, Shield, Bell, BellOff, BellRing, Database,
   ChevronRight, ChevronDown, Check, LogOut, HardHat, Palette, CalendarDays,
@@ -59,6 +58,9 @@ const NAV_ICONS_MAP = {
   activity:   Activity,
 }
 
+// ⚡ أداء: قائمة ثابتة — كانت تُعاد بناؤها (map + نسخ كائنات) في كل رندر للشاشة.
+const MORE_WITH_ICONS = MORE_SCREENS.map(s => ({ ...s, IconComp: NAV_ICONS_MAP[s.id] || Settings }))
+
 // ── فئات الإعدادات (تبويبات أفقية) — كل فئة لها أيقونة ولون ولابل ثلاثي اللغة ──
 const CATEGORIES = [
   { id: 'account',       icon: User,              color: C.primary,   ar: 'حسابي',  he: 'חשבון',  en: 'Account',  hint: { ar: 'الملف والخروج', he: 'פרופיל ויציאה', en: 'Profile & sign out' } },
@@ -99,7 +101,7 @@ function CategoryNav({ categories, active, onChange, lang }) {
   )
 }
 
-function Section({ title, children, id, icon: Icon, accent = C.primary }) {
+const Section = React.memo(function Section({ title, children, id, icon: Icon, accent = C.primary }) {
   return (
     <div id={id} style={{ marginBottom: 16, scrollMarginTop: 76 }}>
       {title && (
@@ -117,9 +119,33 @@ function Section({ title, children, id, icon: Icon, accent = C.primary }) {
       </div>
     </div>
   )
-}
+})
 
-function Row({ icon: Icon, label, value, color = C.primary, onClick, danger, last }) {
+// ════════════════════════════════════════════════════════════════════════
+//  CommitInput — حقل يملك قيمته محلياً ويُثبّتها للأعلى عند الخروج (blur)
+// ════════════════════════════════════════════════════════════════════════
+// ⚡ أداء (سبب تلعثم الكتابة): كل حقول الإعدادات كانت تخزّن قيمتها في `useState`
+// داخل `SettingsScreen` نفسه — وهو مكوّن واحد ضخم (~1500 سطر، عشرات الحالات).
+// فكل ضغطة زر على المفتاح كانت تُعيد رندر **الشاشة كاملة** (كل الأقسام والقوائم
+// والحركات) رغم أنّ القيمة لا تُستعمل إلا وقت الحفظ (`onBlur`) لا أثناء الكتابة.
+//   الحل: عزل الحالة داخل هذا المكوّن الصغير — الكتابة تُعيد رندر الحقل وحده،
+//   والأب لا يعرف بالقيمة إلا لحظة التثبيت. نفس السلوك تماماً، بلا أي تلعثم.
+const CommitInput = React.memo(function CommitInput({ value: incoming = '', onCommit, onType, ...rest }) {
+  const [val, setVal] = useState(incoming)
+  const focused = React.useRef(false)
+  // زامن مع القيمة الخارجية فقط والحقل غير مُركَّز — حتى لا تُداس كتابة المستخدم
+  useEffect(() => { if (!focused.current) setVal(incoming) }, [incoming])
+  return (
+    <input {...rest}
+      value={val}
+      onFocus={() => { focused.current = true }}
+      onChange={e => { setVal(e.target.value); onType?.() }}
+      onBlur={() => { focused.current = false; onCommit?.(val) }}
+    />
+  )
+})
+
+const Row = React.memo(function Row({ icon: Icon, label, value, color = C.primary, onClick, danger, last }) {
   return (
     <button onClick={onClick}
       style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'none', border: 'none', borderBottom: last ? 'none' : `1px solid ${C.border}`, cursor: onClick ? 'pointer' : 'default', fontFamily: 'inherit', textAlign: 'inherit' }}>
@@ -133,41 +159,53 @@ function Row({ icon: Icon, label, value, color = C.primary, onClick, danger, las
       {onClick && <ChevronRight size={14} color={C.textDim} style={{ transform: 'scaleX(-1)' }} />}
     </button>
   )
-}
+})
 
 // ════════════════════════════════════════════════════════════════════════
 //  خلفية Aurora حيّة — بقع برتقالي/بنفسجي/سماوي تنجرف ببطء خلف الزجاج
 // ════════════════════════════════════════════════════════════════════════
-function AuroraBackground() {
-  const blobs = [
-    { color: C.primary,   size: 340, top: '-6%',  left: '-12%', dur: 22, x: 40,  y: 30 },
-    { color: C.secondary, size: 300, top: '18%',  left: '60%',  dur: 27, x: -50, y: 40 },
-    { color: C.cyan,      size: 260, top: '52%',  left: '-8%',  dur: 31, x: 60,  y: -30 },
-    { color: C.gold,      size: 220, top: '78%',  left: '55%',  dur: 25, x: -40, y: -40 },
-  ]
+// ⚡ أداء: البقع ثابتة على مستوى الوحدة (لا تُعاد بناؤها كل رندر).
+const AURORA_BLOBS = [
+  { color: C.primary,   size: 340, top: '-6%',  left: '-12%', dur: 22, x: 40,  y: 30 },
+  { color: C.secondary, size: 300, top: '18%',  left: '60%',  dur: 27, x: -50, y: 40 },
+  { color: C.cyan,      size: 260, top: '52%',  left: '-8%',  dur: 31, x: 60,  y: -30 },
+  { color: C.gold,      size: 220, top: '78%',  left: '55%',  dur: 25, x: -40, y: -40 },
+]
+
+// ⚡ أداء (سبب البطء الرئيسي في هذه الشاشة): سابقاً كانت البقع الأربع تتحرّك
+// بـ`scale` **بلا توقّف** وعليها `filter: blur(38px)`. تغيير الـscale على طبقة
+// مموّهة يجبر المتصفّح على **إعادة رسم التمويه (re-rasterize) كل إطار** لأربع
+// طبقات كبيرة معاً — طول ما الشاشة مفتوحة. هذا يأكل الـGPU/المعالج على الموبايل
+// ويخلّي كل تفاعل (كتابة، ضغط، سكرول) يتلعثم.
+//   الحل: إزالة `scale` والاكتفاء بانزياح `transform` فقط — المتصفّح يرفع الطبقة
+//   لطبقة مركّبة (composited) ويحرّكها بلا إعادة رسم التمويه إطلاقاً. نفس المنظر
+//   تقريباً بكلفة شبه صفرية. + احترام `prefers-reduced-motion` (تصير ثابتة تماماً).
+const AuroraBackground = React.memo(function AuroraBackground() {
+  const reduceMotion = useReducedMotion()
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }} aria-hidden>
-      {blobs.map((b, i) => (
+      {AURORA_BLOBS.map((b, i) => (
         <motion.div key={i}
-          initial={{ x: 0, y: 0 }}
-          animate={{ x: [0, b.x, 0], y: [0, b.y, 0], scale: [1, 1.15, 1] }}
-          transition={{ duration: b.dur, repeat: Infinity, ease: 'easeInOut' }}
+          initial={false}
+          animate={reduceMotion ? undefined : { x: [0, b.x, 0], y: [0, b.y, 0] }}
+          transition={reduceMotion ? undefined : { duration: b.dur, repeat: Infinity, ease: 'easeInOut' }}
           style={{
             position: 'absolute', top: b.top, left: b.left,
             width: b.size, height: b.size, borderRadius: '50%',
             background: `radial-gradient(circle, ${b.color}38 0%, ${b.color}00 70%)`,
             filter: 'blur(38px)',
+            willChange: reduceMotion ? undefined : 'transform',
           }}
         />
       ))}
     </div>
   )
-}
+})
 
 // ════════════════════════════════════════════════════════════════════════
 //  بطاقة هوية المقاول — Wallet-style، لمعة holographic، تنقلب 3D لـ QR
 // ════════════════════════════════════════════════════════════════════════
-function ContractorCard({ profile, business, lang }) {
+const ContractorCard = React.memo(function ContractorCard({ profile, business, lang }) {
   const [flipped, setFlipped] = useState(false)
   const [qr, setQr] = useState('')
   const [copied, setCopied] = useState(false)
@@ -177,10 +215,21 @@ function ContractorCard({ profile, business, lang }) {
   const name = profile?.full_name || (lang === 'en' ? 'Your Name' : lang === 'he' ? 'השם שלך' : 'اسمك هنا')
   const num = profile?.contractor_number
 
+  // ⚡ أداء: مكتبة `qrcode` (~28KB) كانت تُستورد **ثابتاً** بأعلى الملف فتُحمَّل مع
+  // حزمة الإعدادات كلّها، والـQR كان يُولَّد وقت التركيب حتى لو ما قلب المستخدم
+  // البطاقة أبداً. صارت تُحمَّل **عند الطلب فقط** (أول قلبة، وللخطط المؤهّلة).
   useEffect(() => {
-    QRCode.toDataURL(portalUrl, { margin: 1, width: 320, color: { dark: '#0D0F1C', light: '#ffffff' } })
-      .then(setQr).catch(() => {})
-  }, [portalUrl])
+    if (!flipped || !portalEnabled || qr) return
+    let alive = true
+    import('qrcode')
+      .then(m => (m.default || m).toDataURL(portalUrl, { margin: 1, width: 320, color: { dark: '#0D0F1C', light: '#ffffff' } }))
+      .then(url => { if (alive) setQr(url) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [flipped, portalEnabled, portalUrl, qr])
+
+  // لو تغيّر الرابط بعد التوليد → أبطل النسخة القديمة ليُعاد التوليد عند الحاجة
+  useEffect(() => { setQr('') }, [portalUrl])
 
   function copyLink(e) {
     e.stopPropagation()
@@ -280,12 +329,12 @@ function ContractorCard({ profile, business, lang }) {
       </motion.div>
     </div>
   )
-}
+})
 
 // ════════════════════════════════════════════════════════════════════════
 //  Bento Grid — بلاطات فئات بأحجام مختلفة، تتمدّد (morph) للوحة كاملة
 // ════════════════════════════════════════════════════════════════════════
-function BentoTile({ cat, onSelect, lang, span }) {
+const BentoTile = React.memo(function BentoTile({ cat, onSelect, lang, span }) {
   const Icon = cat.icon
   const label = cat[lang] || cat.ar
   return (
@@ -319,7 +368,7 @@ function BentoTile({ cat, onSelect, lang, span }) {
       </div>
     </motion.button>
   )
-}
+})
 
 export default function SettingsScreen({
   projects = [], employees = [], workDays = [], expenses = [], payments = [], clientReceipts = [], advances = [],
@@ -341,9 +390,17 @@ export default function SettingsScreen({
   const activeBusiness = useBusinessStore(s => s.activeBusiness)
   const dir = language === 'en' ? 'ltr' : 'rtl'
 
+  // الفئة المفتوحة — null = شاشة البلاطات (الرئيسية) · id = لوحة فئة مفتوحة.
+  // ⚡ تُعرَّف مبكّراً لأنّ عدّة hooks تؤجّل شغلها الشبكي حتى تُفتح فئتها فعلياً.
+  const [activeCat, setActiveCat] = useState(null)
+
   const plan = usePlanStore(s => s.plan)
   const trialActive = usePlanStore(s => s.trialActive)
-  const { subscription, isActive: subIsActive, isCanceling, daysUntilPeriodEnd } = useSubscription(userId)
+  // ⚡ أداء: `useSubscription` يطلق RPC **ويفتح قناة Realtime (websocket)** وقت
+  // التركيب. بيانات الاشتراك لا تُعرض إلا داخل فئة «مالية»، فنؤجّل الاثنين حتى
+  // تُفتح فعلياً (تمرير `null` يجعل الهوك خاملاً بأمان — يضبط القيم ويتخطّى القناة).
+  const { subscription, isActive: subIsActive, isCanceling, daysUntilPeriodEnd } =
+    useSubscription(activeCat === 'finance' ? userId : null)
 
   const { registerPasskey, isPasskeySupported, hasPasskeyRegistered, removePasskey, deleteAccount } = useAuth()
   const { supported: pushSupported, permission, requestPermission } = usePushNotifications(userId)
@@ -363,12 +420,18 @@ export default function SettingsScreen({
   const [sigLog, setSigLog] = useState([])
   const [sigLogLoading, setSigLogLoading] = useState(false)
 
+  // ⚡ أداء: سجلّ التواقيع يُعرض داخل فئة «أمان» فقط، لكن الـRPC كان ينطلق وقت
+  // تركيب الشاشة دائماً — طلب شبكي مهدور على كل فتحة إعدادات. صار يُجلب عند فتح
+  // الفئة فعلياً (ومرّة واحدة، لأنّ الشرط يتوقّف بعد أوّل تحميل).
+  const [sigLogLoaded, setSigLogLoaded] = useState(false)
   useEffect(() => {
+    if (activeCat !== 'security' || sigLogLoaded) return
     if (!userId || !permissions?.isOwner) return
+    setSigLogLoaded(true)
     setSigLogLoading(true)
     supabase.rpc('get_signature_log', { p_limit: 20 })
       .then(({ data }) => { setSigLog(data || []); setSigLogLoading(false) })
-  }, [userId, permissions?.isOwner])
+  }, [activeCat, sigLogLoaded, userId, permissions?.isOwner])
 
   const [hasPasskey, setHasPasskey] = useState(() => hasPasskeyRegistered())
   const [showRegisterBio, setShowRegisterBio] = useState(false)
@@ -391,24 +454,12 @@ export default function SettingsScreen({
 
   const [loginLog, setLoginLog] = useState([])
   const [loginLogOpen, setLoginLogOpen] = useState(false)
-  const [limitInput, setLimitInput] = useState('')
-  const [timeoutInput, setTimeoutInput] = useState('')
   const [lockOnBg, setLockOnBg] = useState(lockOnBackgroundEnabled(localStorage.getItem(LOCK_ON_BG_KEY)))
-  const [bioThrInput, setBioThrInput] = useState('')
   const [memberExpiryEditing, setMemberExpiryEditing] = useState(null)
   const [memberExpiryValue, setMemberExpiryValue] = useState('')
 
-  useEffect(() => {
-    if (!limitInput && appCfg?.config) setLimitInput(String(appCfg.config.daily_spend_limit || ''))
-  }, [appCfg?.config?.daily_spend_limit])
-
-  useEffect(() => {
-    if (!timeoutInput && appCfg?.config) setTimeoutInput(String(appCfg.config.session_timeout || '30'))
-  }, [appCfg?.config?.session_timeout])
-
-  useEffect(() => {
-    if (!bioThrInput && appCfg?.config?.payment_bio_threshold) setBioThrInput(String(appCfg.config.payment_bio_threshold))
-  }, [appCfg?.config?.payment_bio_threshold])
+  // ⚡ حالات الحقول (حدّ الصرف/مهلة الجلسة/حدّ البصمة) وتأثيرات تعبئتها من
+  // `appCfg` انتقلت داخل `CommitInput` — القيمة تُقرأ مباشرةً من الإعداد الآن.
 
   async function loadLoginLog() {
     if (!appCfg) return
@@ -428,21 +479,19 @@ export default function SettingsScreen({
   }
 
   // استخدام القوائم الحيّ — يربط كل عنصر ببياناته الحقيقية (لوحات الإعدادات الذكية)
-  const specUsage = useMemo(() => computeListUsage(specs, employees, { countKey: 'specialization' }), [specs, employees])
-  const catUsage  = useMemo(() => computeListUsage(expCats, expenses, { countKey: 'category', amountKey: 'amount' }), [expCats, expenses])
-  const payUsage  = useMemo(() => computeListUsage(payMethods, payments, { countKey: 'method', amountKey: 'amount' }), [payMethods, payments])
+  // ⚡ أداء: هذه تمسح كل العمّال/المصاريف/الدفعات، وتُعرض في فئة «تخصيص» فقط —
+  // فلا داعي لحسابها عند فتح الإعدادات أو أي فئة أخرى.
+  const showLists = activeCat === 'customization'
+  const specUsage = useMemo(() => (showLists ? computeListUsage(specs, employees, { countKey: 'specialization' }) : null), [showLists, specs, employees])
+  const catUsage  = useMemo(() => (showLists ? computeListUsage(expCats, expenses, { countKey: 'category', amountKey: 'amount' }) : null), [showLists, expCats, expenses])
+  const payUsage  = useMemo(() => (showLists ? computeListUsage(payMethods, payments, { countKey: 'method', amountKey: 'amount' }) : null), [showLists, payMethods, payments])
   const [editName, setEditName] = useState('')
   const [editingName, setEditingName] = useState(false)
   const [updateStatus, setUpdateStatus] = useState('idle') // idle | checking | upToDate | updating
 
   // ── إعدادات الضرائب: פנסיה شهرية + رقم العوسيك ──
-  const [pensionInput, setPensionInput] = useState(String(pensionMonthly || ''))
-  const [taxNumInput,  setTaxNumInput]  = useState('')
+  // (قيم الحقول نفسها صارت داخل `CommitInput` — هنا فقط مؤشّر الحفظ)
   const [taxNumSaved,  setTaxNumSaved]  = useState(false)
-  useEffect(() => { setPensionInput(String(pensionMonthly || '')) }, [pensionMonthly])
-  useEffect(() => { setTaxNumInput(profile?.contractor_number || '') }, [profile?.contractor_number])
-
-  const MORE_WITH_ICONS = MORE_SCREENS.map(s => ({ ...s, IconComp: NAV_ICONS_MAP[s.id] || Settings }))
 
   async function handleCheckUpdate() {
     if (updateStatus === 'checking') return
@@ -487,13 +536,11 @@ export default function SettingsScreen({
     dailySpendLimit: appCfg?.config?.daily_spend_limit,
   }, language), [profile?.full_name, profile?.avatar_url, profile?.contractor_number, pensionMonthly, hasPasskey, permission, appCfg?.config?.daily_spend_limit, language])
 
-  // الفئات المرئية (data/security للمالك فقط) + الفئة النشطة
+  // الفئات المرئية (data/security للمالك فقط) — `activeCat` معرّف بأعلى المكوّن
   const visibleCategories = useMemo(
     () => CATEGORIES.filter(c => !c.ownerOnly || permissions?.isOwner),
     [permissions?.isOwner]
   )
-  // null = شاشة البلاطات (الرئيسية) · id = لوحة فئة مفتوحة
-  const [activeCat, setActiveCat] = useState(null)
   useEffect(() => {
     if (activeCat && !visibleCategories.some(c => c.id === activeCat)) setActiveCat(null)
   }, [visibleCategories, activeCat])
@@ -819,10 +866,10 @@ export default function SettingsScreen({
               <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{tl(language, 'يُخصم من الوعاء الضريبي ويظهر الوفر في ملخص الضرائب', 'מנוכה מבסיס המס והחיסכון מוצג בסיכום המסים', 'Deducted from the tax base; savings shown in the tax summary')}</div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input
-                type="number" min="0" value={pensionInput}
-                onChange={e => setPensionInput(e.target.value)}
-                onBlur={() => setPensionMonthly?.(pensionInput)}
+              <CommitInput
+                type="number" min="0"
+                value={String(pensionMonthly || '')}
+                onCommit={v => setPensionMonthly?.(v)}
                 placeholder="0"
                 style={{ width: 72, padding: '6px 8px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
               />
@@ -840,10 +887,11 @@ export default function SettingsScreen({
               <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>{tl(language, 'يظهر على الفواتير الرسمية وملخص الضرائب', 'מופיע בחשבוניות הרשמיות ובסיכום המסים', 'Appears on official invoices and the tax summary')}</div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input
-                type="text" inputMode="numeric" value={taxNumInput}
-                onChange={e => { setTaxNumInput(e.target.value); setTaxNumSaved(false) }}
-                onBlur={() => { if (taxNumInput !== (profile?.contractor_number || '')) { saveContractorNumber?.(taxNumInput); setTaxNumSaved(true) } }}
+              <CommitInput
+                type="text" inputMode="numeric"
+                value={profile?.contractor_number || ''}
+                onType={() => setTaxNumSaved(false)}
+                onCommit={v => { if (v !== (profile?.contractor_number || '')) { saveContractorNumber?.(v); setTaxNumSaved(true) } }}
                 placeholder="—"
                 style={{ width: 110, padding: '6px 8px', background: C.card, border: `1px solid ${taxNumSaved ? C.success+'55' : C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none', direction: 'ltr' }}
               />
@@ -1218,10 +1266,10 @@ export default function SettingsScreen({
               <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>يطلب توقيع إضافي عند التجاوز (0 = معطّل)</div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input
-                type="number" min="0" value={limitInput}
-                onChange={e => setLimitInput(e.target.value)}
-                onBlur={() => appCfg.update({ daily_spend_limit: Number(limitInput) || 0 })}
+              <CommitInput
+                type="number" min="0"
+                value={String(appCfg.config.daily_spend_limit || '')}
+                onCommit={v => appCfg.update({ daily_spend_limit: Number(v) || 0 })}
                 style={{ width: 70, padding: '6px 8px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
               />
               <span style={{ fontSize: 11, color: C.textDim }}>₪</span>
@@ -1238,10 +1286,10 @@ export default function SettingsScreen({
               <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>تأكيد بصمة عند تسجيل دفعة بهذا المبلغ أو أكثر (0 = معطّل)</div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input
-                type="number" min="0" value={bioThrInput}
-                onChange={e => setBioThrInput(e.target.value)}
-                onBlur={() => appCfg.update({ payment_bio_threshold: Number(bioThrInput) || 0 })}
+              <CommitInput
+                type="number" min="0"
+                value={String(appCfg.config.payment_bio_threshold || '')}
+                onCommit={v => appCfg.update({ payment_bio_threshold: Number(v) || 0 })}
                 style={{ width: 70, padding: '6px 8px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
               />
               <span style={{ fontSize: 11, color: C.textDim }}>₪</span>
@@ -1258,10 +1306,10 @@ export default function SettingsScreen({
               <div style={{ fontSize: 10, color: C.textDim, marginTop: 1 }}>دقائق بدون نشاط قبل قفل التطبيق</div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input
-                type="number" min="5" max="480" value={timeoutInput}
-                onChange={e => setTimeoutInput(e.target.value)}
-                onBlur={() => appCfg.update({ session_timeout: Number(timeoutInput) || 30 })}
+              <CommitInput
+                type="number" min="5" max="480"
+                value={String(appCfg.config.session_timeout || '30')}
+                onCommit={v => appCfg.update({ session_timeout: Number(v) || 30 })}
                 style={{ width: 55, padding: '6px 8px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, fontFamily: 'inherit', textAlign: 'center', outline: 'none' }}
               />
               <span style={{ fontSize: 11, color: C.textDim }}>د</span>
